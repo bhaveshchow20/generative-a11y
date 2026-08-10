@@ -100,9 +100,7 @@ The current package can be exercised from this workspace:
 import { createGenerativeA11y } from "@generative-a11y/core";
 import { connectRuntimeToDOM } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({
-  onAnnouncement() {},
-});
+const runtime = createGenerativeA11y({});
 const delivery = connectRuntimeToDOM(runtime);
 
 runtime.dispatch({ type: "response.started", responseId: "response-1" });

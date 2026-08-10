@@ -39,7 +39,7 @@ export interface GenerativeA11yOptions {
   preset?: PresetName;
   policy?: PolicyOverrides;
   clock?: Clock;
-  onAnnouncement: (announcement: AnnouncementIntent) => void;
+  onAnnouncement?: (announcement: AnnouncementIntent) => void;
   onDeliveryError?: (error: unknown, announcement: AnnouncementIntent) => void;
   onDiagnostic?: (diagnostic: AnnouncementDiagnostic) => void;
 }
@@ -75,9 +75,9 @@ export function createGenerativeA11y(
   const policy = resolvePolicy(options.preset, options.policy);
   const responses = new Map<string, ResponseState>();
   const tools = new Map<string, ToolState>();
-  const announcementListeners = new Map<number, AnnouncementListener>([
-    [0, options.onAnnouncement],
-  ]);
+  const announcementListeners = new Map<number, AnnouncementListener>();
+  if (options.onAnnouncement)
+    announcementListeners.set(0, options.onAnnouncement);
   const diagnosticListeners = new Map<number, DiagnosticListener>();
   if (options.onDiagnostic) diagnosticListeners.set(0, options.onDiagnostic);
   let nextAnnouncementListenerId = 1;
@@ -105,6 +105,9 @@ export function createGenerativeA11y(
   }
 
   function emitAnnouncement(announcement: AnnouncementIntent): void {
+    if (announcementListeners.size === 0) {
+      throw new Error("No announcement listeners are registered");
+    }
     let delivered = false;
     let failed = false;
     let firstError: unknown;

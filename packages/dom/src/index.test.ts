@@ -525,6 +525,24 @@ describe("createDOMAnnouncer", () => {
 });
 
 describe("connectRuntimeToDOM", () => {
+  it("can attach the runtime's first announcement listener", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const clock = new ManualClock();
+    const runtime = createGenerativeA11y({ clock });
+    const binding = connectRuntimeToDOM(runtime, {
+      document: dom.window.document,
+      mode: "live-region",
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(binding.announcer.getRegions()?.polite.textContent).toBe(
+      "Response stopped.",
+    );
+  });
+
   it("removes owned regions when subscribing to a disposed runtime fails", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const runtime = createGenerativeA11y({

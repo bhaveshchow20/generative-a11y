@@ -22,9 +22,7 @@ runtime.
 import { createGenerativeA11y } from "@generative-a11y/core";
 import { connectRuntimeToDOM } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({
-  onAnnouncement: () => undefined,
-});
+const runtime = createGenerativeA11y({});
 const binding = connectRuntimeToDOM(runtime);
 
 // Later:

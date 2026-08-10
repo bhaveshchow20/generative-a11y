@@ -531,6 +531,37 @@ describe("generative accessibility runtime", () => {
     expect(subscribed.map(({ text }) => text)).toEqual(["Response stopped."]);
   });
 
+  it("supports attaching the first announcement listener after construction", () => {
+    const clock = new ManualClock();
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    const delivered: string[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    const unsubscribe = runtime.subscribeAnnouncements(({ text }) =>
+      delivered.push(text),
+    );
+    runtime.dispatch({ type: "response.started", responseId: "r2" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r2" });
+    clock.runUntilIdle();
+    unsubscribe();
+
+    expect(delivered).toEqual(["Response stopped."]);
+    expect(
+      diagnostics
+        .filter(
+          ({ reason }) => reason === "delivery-error" || reason === "delivered",
+        )
+        .map(({ reason }) => reason),
+    ).toEqual(["delivery-error", "delivered"]);
+  });
+
   it("keeps identical listener registrations independent", () => {
     const clock = new ManualClock();
     const delivered: string[] = [];
