@@ -50,18 +50,29 @@
     "version-packages": "changeset version"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
     "@generative-a11y/core": "workspace:*",
-    "@types/node": "26.2.0",
+    "@playwright/test": "1.62.1",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "@typescript-eslint/eslint-plugin": "8.66.0",
     "@typescript-eslint/parser": "8.66.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.1",
+    "jsdom": "30.0.1",
     "prettier": "3.9.6",
     "publint": "0.3.23",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tsup": "8.5.1",
     "typescript": "6.0.3",
+    "vite": "8.2.1",
     "vitest": "4.1.10"
   }
 }
