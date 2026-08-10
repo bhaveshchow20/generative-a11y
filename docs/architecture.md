@@ -3,75 +3,87 @@
 ## Dependency direction
 
 ```text
-framework adapter -> react (when needed) -> dom -> core
-custom JavaScript ------------------------------> core
-test/devtools ----------------------------------> core
+framework adapter -> react -> dom -> core
+                            \------> core
+custom JavaScript ----------------> core
 ```
 
-Dependencies only point toward `core`. Core has no browser, DOM, React or
-AI-framework dependency.
+In package terms, the Phase 2 stack is `core <- dom <- react`. React may also
+depend directly on core for runtime types and behavior. Core never imports DOM
+or React code, DOM never imports React, and no package may create a dependency
+circle.
 
-## Planned packages
+## Package responsibilities
 
-| Package                         | Responsibility                                               | v0.1 publication decision                        |
-| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
-| `@generative-a11y/core`         | Events, policies, scheduler, segmentation, runtime, recorder | Publish                                          |
-| `@generative-a11y/dom`          | Delivery drivers and optional semantic bindings              | Publish after AT verification                    |
-| `@generative-a11y/react`        | Provider, hooks, attention inputs and preferences            | Publish                                          |
-| `@generative-a11y/ai-sdk`       | AI SDK state/callback translation                            | Publish with full and reduced-fidelity modes     |
-| `@generative-a11y/assistant-ui` | Stable runtime subscription translation                      | Publish                                          |
-| `@generative-a11y/ag-ui`        | Protocol subscriber translation                              | Publish                                          |
-| CopilotKit integration          | Thin wrapper over AG-UI                                      | Start as a guide; split only if code warrants it |
-| `@generative-a11y/test`         | Replay, fixtures and matchers                                | Publish                                          |
-| `@generative-a11y/devtools`     | Development-only decision inspector                          | Publish after core reason codes stabilize        |
+| Package                  | Responsibility                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `@generative-a11y/core`  | Events, policies, scheduling, segmentation, runtime state, and diagnostics     |
+| `@generative-a11y/dom`   | Announcement delivery, browser-signal stores, focus helpers, and preferences   |
+| `@generative-a11y/react` | Provider and hooks that bind React lifecycles to borrowed core and DOM objects |
 
-## Core flow
+The DOM package has four bounded jobs:
 
-1. An adapter or custom application dispatches a normalized event.
-2. The runtime validates lifecycle state and records per-response epochs and
-   buffers.
-3. The segmenter extracts completed sentences or paragraphs.
-4. Policy maps semantic activity to announcement candidates.
-5. The scheduler coalesces, deduplicates, prioritizes, rate-limits and cancels
-   candidates.
-6. An output driver receives serializable announcement intents.
-7. Diagnostic observers receive stable decisions such as queued, merged,
-   suppressed, cancelled and announced.
+1. Deliver a prepared `AnnouncementIntent` through `ariaNotify()` when callable
+   or through stable polite/assertive live regions.
+2. Expose conservative attention observations from document visibility, window
+   focus, DOM focus, and intersection state.
+3. Provide explicit, host-requested focus capture, focus, and restoration
+   helpers. Streaming and status updates never invoke them automatically.
+4. Validate and optionally persist versioned announcement preferences.
+
+See [DOM integration decisions](dom-integration-decisions.md), the
+[attention model](attention-model.md), and
+[preference storage](preference-storage.md).
+
+## Delivery is not policy
+
+Core decides _whether_, _when_, and _what_ to announce. It owns lifecycle
+validation, segmentation, coalescing, prioritization, cancellation, and timing.
+DOM receives an already prepared intent and attempts delivery; it does not
+reschedule, rewrite, deduplicate, or infer events. A `DOMDeliveryResult` records
+a DOM/API action, not confirmed speech.
+
+Attention snapshots and stored preferences are inputs a host or future React
+binding may use when constructing core policy. They do not mutate an active
+runtime by themselves.
+
+## SSR and module evaluation
+
+Public modules must be safe to import where `window`, `document`, storage, and
+browser constructors do not exist. Browser globals are resolved only inside an
+explicit constructor or helper call. An injected `Document`, storage object, or
+observer factory takes precedence where the API accepts one.
+
+Server snapshots are stable, conservative values: attention is all `"unknown"`,
+and preferences use the configured default. This shape is designed for React's
+server/external-store contract without pretending that server rendering has
+browser evidence.
+
+## Lifecycle ownership
+
+- A `DOMRuntimeBinding` borrows its core runtime. Disposing the binding removes
+  its subscription and disposes its announcer; it never disposes the runtime.
+- A `DOMAnnouncer` removes regions it created. Supplied regions remain owned by
+  the host and stay mounted after disposal.
+- Attention and preference stores own their listeners and observers. Their
+  creator must dispose them; cleanup is idempotent and stale callbacks cannot
+  resume delivery or state updates.
+- React providers will own only objects they create. Externally supplied
+  runtimes remain externally owned, including across unmount and Strict Mode
+  remounts.
 
 ## Adapter fidelity
 
-Adapters declare whether interruption, retries and connectivity are `exact`,
+Adapters declare whether interruption, retries, and connectivity are `exact`,
 require an `action-wrapper`, are `inferred`, or are `unavailable`. A missing
 protocol feature stays missing; it is not guessed from text or private state.
+See [framework integration research](framework-integrations.md).
 
-Current research indicates:
+## Tooling and publication
 
-- AI SDK needs its documented `onFinish` callback composed at initialization for
-  exact abort/disconnect classification. Hook-state-only mode is reduced
-  fidelity.
-- assistant-ui supports stable `subscribe()`/`getState()` mapping, but not
-  reliable retry or connectivity events.
-- AG-UI most closely matches the normalized protocol. `TOOL_CALL_END` means
-  argument streaming ended, not tool execution completed; completion maps from
-  `TOOL_CALL_RESULT`.
-- CopilotKit v2 exposes AG-UI through `useAgent()`. Generic tool-based
-  human-in-the-loop flows require configuration to distinguish them from
-  ordinary client tools.
-
-See the full [framework integration research](framework-integrations.md) for
-event mappings and source links.
-
-## Tooling
-
-- pnpm workspaces, without a task orchestrator until build scale warrants one.
-- TypeScript 5.9 in strict workspace package mode.
-- tsup for ESM/CJS bundles and declarations.
-- Vitest for deterministic unit and later browser-adjacent tests.
-- ESLint and Prettier for static checks.
-- Changesets for independent package versioning and changelogs.
-- Node support starts at 22; browser support will be defined only after Phase 2
-  compatibility testing.
-
-Releases start at `0.x`. Breaking changes may occur in minor releases before 1.0
-and must be documented. Public packages should use explicit exports and avoid
-cross-package source imports.
+The repository uses pnpm workspaces, strict TypeScript, tsup for ESM/CommonJS
+bundles and declarations, Vitest for deterministic tests, and Playwright for the
+browser layer. Public packages use explicit exports and do not import another
+package's source files. Browser and assistive-technology support is published
+only from dated test results; see [browser support](browser-support.md) and the
+[manual AT test plan](manual-at-test-plan.md).

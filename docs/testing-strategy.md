@@ -2,53 +2,124 @@
 
 ## Evidence layers
 
-| Layer               | What it proves                                             | What it does not prove                |
-| ------------------- | ---------------------------------------------------------- | ------------------------------------- |
-| Core transcript     | Policy, order, timing, cancellation and reason codes       | Browser or screen-reader speech       |
-| jsdom DOM contract  | Markup and mutation mechanics                              | Platform accessibility delivery       |
-| Browser integration | Focus, visibility, scroll and accessibility-tree structure | Exact spoken timing/order             |
-| Automated AT        | Observed phrases in a pinned AT/browser environment        | General usability or all combinations |
-| Manual/user testing | Real workflow pacing and recovery                          | Universal conformance                 |
+| Layer                    | What it proves                                                                       | What it does not prove                           | Status                            |
+| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------- |
+| Core transcript          | Policy, order, timing, cancellation, reason codes                                    | Browser or screen-reader delivery                | Implemented                       |
+| jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup                 | Browser accessibility tree or speech             | Implemented                       |
+| React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration     | Real-browser or AT behavior                      | Planned; React slice not complete |
+| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Planned                           |
+| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Planned                           |
+| Manual AT                | Observed output and workflow behavior in one dated configuration                     | All versions, settings, or universal conformance | Planned, not executed             |
+
+The boundary is deliberate: a delivered core intent, successful `ariaNotify()`
+call, live-region mutation, ARIA snapshot, or zero axe violations never proves
+that a screen reader spoke the expected phrase.
+
+## Deterministic core tests
 
 Core uses an injected clock with deterministic same-time ordering. Tests never
-sleep. `dispose()` must clear every owned timer. The recorder exposes delivered
-announcements and a diagnostic transcript with stable dispositions/reason codes.
+sleep. `dispose()` clears every owned timer. Fixtures cover:
 
-## Phase 1 fixtures
+- sentences and paragraphs split at every chunk boundary;
+- quotes, parentheses, abbreviations, initials, decimals, currency, versions,
+  URLs, email, Markdown, and non-Latin punctuation;
+- stop, retry identity rotation, reused IDs, and late stale deltas;
+- slow/fast and parallel tools, progress coalescing, interactions, errors,
+  reconnect, and citations;
+- golden transcripts for all presets;
+- bounded queues and zero timers after terminal events or disposal.
 
-- Sentences split at every chunk boundary.
-- Quotes, parentheses, abbreviations, initials, decimals, currency, versions,
-  URLs, email, Markdown and non-Latin punctuation.
-- Paragraph boundaries, maximum-delay flush and completion fragments.
-- Stop, retry identity rotation, reused response IDs and late stale deltas.
-- Slow/fast tools, progress coalescing, parallel tools and response text.
-- Interaction priority, errors, reconnect and citation deduplication.
-- Golden transcripts for all presets.
-- Stress tests for bounded queues and zero timers after completion/disposal.
-- Package smoke tests load both ESM and CommonJS exports; conditional
-  declaration paths are inspected during packing.
+Property-oriented invariants include chunk invariance, bounded deduplication, no
+old-epoch delivery, assertive-before-due-polite ordering, and one completion
+flush.
 
-Property-oriented invariants include chunk invariance, one delivery per dedupe
-window, no old-epoch delivery, assertive-before-due-polite ordering and exactly
-one completion flush.
+## Deterministic DOM tests
 
-## Later phases
+Vitest and jsdom test observable contracts without pretending to emulate an
+accessibility bridge:
 
-- jsdom tests pre-mounted regions, roles/properties, mutation ordering,
-  singleton mounting and `ariaNotify()` feature detection. jsdom is not called a
-  screen-reader test ([jsdom project](https://github.com/jsdom/jsdom)).
-- Playwright covers Chromium, Firefox and WebKit behavior. ARIA snapshots verify
-  semantic structure, not speech
-  ([Playwright ARIA snapshots](https://playwright.dev/docs/aria-snapshots)).
-  Playwright WebKit is not branded Safari
-  ([browser docs](https://playwright.dev/docs/browsers)).
-- Release-gate automation uses VoiceOver/macOS and NVDA/Windows through
-  [Guidepup](https://github.com/guidepup/guidepup-playwright), serially on
-  pinned dedicated runners.
-- Manual release checks include actual Safari with VoiceOver, Chrome/Firefox
-  with NVDA, and later JAWS, iOS VoiceOver and TalkBack before claiming support.
+- synchronous mount, supplied/owned region lifecycle, polite/assertive
+  selection, locale timing, literal unsafe text, and repeated identical text;
+- `ariaNotify()` success, absence, throwing accessor/call, permanent fallback,
+  and serializable diagnostics;
+- runtime binding ownership, subscription failure, reentrant disposal, stale
+  delivery prevention, and multiple isolated runtimes;
+- visibility, window focus, composer/conversation focus, Intersection Observer
+  present/absent/stale records, cached snapshots, listener mutation, and
+  cleanup;
+- focus capture/restore, `preventScroll`, eligibility, guards, cross-document
+  rejection, open shadow roots, slots, disabled fieldsets, and hostile DOM
+  boundaries;
+- every preference enum and core mapping, initial storage variants, canonical
+  writes, failures, external-event filters, corruption, reentrancy, SSR, and
+  disposal.
 
-Automated checks find only some accessibility problems
-([Playwright accessibility guidance](https://playwright.dev/docs/accessibility-testing)).
-Releases publish exact tested versions and known issues, and periodically
-include experienced disabled screen-reader users.
+DOM code owns no clocks or timers. Observer and browser boundaries are injected
+or stubbed rather than controlled by sleeps.
+
+## React tests
+
+When the React slice is implemented, use React Testing Library and
+`useSyncExternalStore` through the public provider/hooks. Cover default and
+external runtime ownership, hooks inside/outside a provider, Strict Mode
+mount/remount cleanup, rerenders and configuration changes, SSR/hydration, and
+multiple providers. Semantic queries are preferred over implementation-state
+inspection. This layer must not be marked complete merely because the DOM stores
+already expose the external-store shape.
+
+## Real-browser tests
+
+Playwright projects will run the same focused fixture in Chromium, Firefox, and
+WebKit. WebKit results are not reported as Safari results
+([Playwright browsers](https://playwright.dev/docs/browsers)). Cover:
+
+- region mount and mutation order, repeated text, locale, and literal text;
+- feature-detected `ariaNotify()` versus forced fallback;
+- Page Visibility and window focus transitions where the runner can control them
+  deterministically;
+- composer/conversation focus, explicit focus helpers, open shadow roots, and
+  slot traversal;
+- Intersection Observer absence/presence and viewport transitions;
+- localStorage loading, cross-page storage events, cleanup, and hydration;
+- accessibility-tree structure through targeted
+  [ARIA snapshots](https://playwright.dev/docs/aria-snapshots).
+
+Run Chromium, Firefox, and WebKit in CI. Keep a smaller Chromium smoke shard for
+pull-request latency only if the full matrix remains a required merge or nightly
+gate. Pin tool/browser versions in CI artifacts so a result can be reproduced.
+
+`@axe-core/playwright` scans the rendered example after each meaningful UI
+state, not the isolated visually hidden announcer alone. Axe findings are
+triaged as violations or incomplete/manual-review items. Follow Playwright's
+[accessibility guidance](https://playwright.dev/docs/accessibility-testing):
+automation complements manual assessment.
+
+## Realistic stream fixture
+
+One shared synthetic conversation should drive browser, React, and manual tests:
+
+1. focus begins in the composer;
+2. an assistant response streams sentence fragments and a paragraph boundary;
+3. one fast tool suppresses its delayed start and one slow tool reports status;
+4. a repeated polite phrase and an assertive actionable failure are delivered;
+5. locale changes between utterances;
+6. stop cancels pending text, retry creates a new response epoch, and a stale
+   delta arrives for the old epoch;
+7. the newest response moves outside and back inside the viewport;
+8. an explicit host interaction captures/restores focus while ordinary updates
+   leave focus unchanged.
+
+The fixture exposes deterministic event and DOM logs. Manual testers record AT
+output separately; the fixture never derives a “spoken” result from its logs.
+
+## Packaging and CI
+
+Package smoke tests import ESM and require CommonJS, and packed conditional
+exports/declarations are inspected. Static gates include formatting, ESLint,
+strict TypeScript, unit coverage, builds, publint, and package smoke tests.
+
+Browser binaries and axe add CI cost and should be cached by exact lockfile/tool
+version. Browser artifacts include traces and screenshots only on failure.
+Automated AT tooling is not currently a release gate; it requires a pinned,
+maintained runner and still would not replace the
+[manual AT matrix](manual-at-test-plan.md).
