@@ -1,10 +1,34 @@
 {
   "name": "generative-a11y-monorepo",
   "version": "0.0.0",
-  "description": "Plug-and-play accessibility infrastructure for generative AI applications.",
+  "description": "Accessibility infrastructure for streaming AI and agent interfaces.",
+  "keywords": [
+    "accessibility",
+    "ag-ui",
+    "ai",
+    "ai-agents",
+    "assistant-ui",
+    "assistive-technology",
+    "copilotkit",
+    "generative-ai",
+    "llm",
+    "screen-reader",
+    "streaming",
+    "typescript",
+    "vercel-ai-sdk",
+    "web-accessibility"
+  ],
   "license": "MIT",
   "private": true,
   "type": "module",
+  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhaveshchow20/generative-a11y.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bhaveshchow20/generative-a11y/issues"
+  },
   "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=22"

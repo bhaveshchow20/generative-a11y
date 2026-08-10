@@ -2,18 +2,119 @@
 
 [![CI](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/ci.yml/badge.svg)](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/codeql.yml/badge.svg)](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Accessible AI, without rebuilding your interface.
+**Accessible AI, without rebuilding your interface.**
 
-`generative-a11y` is an accessibility runtime for streaming and agentic
-applications. Framework adapters translate existing AI lifecycle state into
-normalized events; the runtime turns those events into paced, prioritized, and
-testable accessibility announcements.
+`generative-a11y` is a framework-independent accessibility layer for streaming
+AI and agent interfaces. It translates existing lifecycle state into paced,
+prioritized announcement intents for screen readers while leaving the host
+application's visual UI alone.
 
-This repository is in pre-release development. Phase 1 contains the
-browser-independent core runtime. See
-[the product specification](docs/product-spec.md) and
-[implementation plan](docs/implementation-plan.md).
+> [!IMPORTANT] This project is in pre-release development and is not yet
+> published to npm. The browser-independent core runtime is implemented; DOM
+> delivery and framework adapters are on the roadmap.
+
+[Core API](packages/core/README.md) · [Architecture](docs/architecture.md) ·
+[Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
+· [Contributing](CONTRIBUTING.md)
+
+## Why generative-a11y?
+
+AI interfaces create accessibility problems that ordinary component libraries do
+not solve: responses stream incrementally, tools run for uncertain periods, and
+agents can pause for approval or fail mid-task. Sending every token to a live
+region is noisy; moving focus on routine status changes is disruptive.
+
+This project provides the orchestration layer between AI lifecycle events and
+accessible delivery:
+
+- **Meaningful announcements** — segment streaming text into useful units
+  instead of announcing tokens.
+- **Agent-aware status** — represent tool progress, approvals, retries,
+  connection changes, citations, and terminal states.
+- **Predictable behavior** — prioritize, deduplicate, coalesce, and bound queued
+  work with injected time for deterministic tests.
+- **Framework independence** — keep accessibility policy in the core and make
+  adapters translate documented public framework state.
+- **Honest fidelity** — declare missing lifecycle evidence instead of guessing,
+  and keep automated transcripts distinct from real assistive-technology tests.
+
+## How it fits
+
+```text
+AI SDK / AG-UI / assistant-ui / custom application state
+                         │
+                    thin adapter
+                         │
+                         ▼
+              normalized lifecycle events
+                         │
+                         ▼
+           @generative-a11y/core runtime
+        segment · prioritize · dedupe · schedule
+                         │
+                         ▼
+              announcement intents
+                         │
+                    DOM driver
+                         │
+                         ▼
+              assistive technology
+```
+
+The core never touches the DOM and never claims that assistive technology spoke
+an announcement. That boundary keeps policy portable and delivery testable in
+the environment where it actually runs.
+
+## What it is — and what it is not
+
+| generative-a11y is                                       | generative-a11y is not                                   |
+| -------------------------------------------------------- | -------------------------------------------------------- |
+| An accessibility behavior layer for existing AI UIs      | A chat interface or visual component library             |
+| A normalized event model for streaming and agent state   | An agent framework, model SDK, or transport protocol     |
+| Policy and scheduling for announcement intents           | A replacement for semantic HTML, keyboard, or focus work |
+| Infrastructure designed for adapter and DOM integrations | Proof that a specific screen reader announced content    |
+
+## Ecosystem
+
+| Source                   | Intended integration                                       | Status           |
+| ------------------------ | ---------------------------------------------------------- | ---------------- |
+| Custom applications      | Dispatch normalized events directly to the core runtime    | Core ready       |
+| [AG-UI][ag-ui]           | Translate protocol events through a thin adapter           | Planned          |
+| [AI SDK][ai-sdk]         | Observe documented chat state and lifecycle callbacks      | Planned          |
+| [assistant-ui][aui]      | Subscribe to documented runtime and message state          | Planned          |
+| [CopilotKit][copilotkit] | Reuse its public AG-UI agent surface where fidelity allows | Guidance planned |
+
+[ag-ui]: https://github.com/ag-ui-protocol/ag-ui
+[ai-sdk]: https://github.com/vercel/ai
+[aui]: https://github.com/assistant-ui/assistant-ui
+[copilotkit]: https://github.com/CopilotKit/CopilotKit
+
+## Core example
+
+The current package can be exercised from this workspace:
+
+```ts
+import { createGenerativeA11y } from "@generative-a11y/core";
+
+const runtime = createGenerativeA11y({
+  onAnnouncement(intent) {
+    deliveryDriver.announce(intent);
+  },
+});
+
+runtime.dispatch({ type: "response.started", responseId: "response-1" });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "response-1",
+  delta: "A complete sentence.",
+});
+runtime.dispatch({ type: "response.completed", responseId: "response-1" });
+```
+
+See [`@generative-a11y/core`](packages/core/README.md) for the runtime contract,
+policies, scheduler, recorder, and deterministic clock APIs.
 
 ## Principles
 
@@ -23,6 +124,17 @@ browser-independent core runtime. See
 - Make timing deterministic and inspectable.
 - Treat real screen-reader testing as a release requirement, not a unit-test
   claim.
+
+## Roadmap
+
+- Browser-independent event runtime — implemented
+- DOM announcement delivery — planned
+- AG-UI adapter — planned first
+- AI SDK and assistant-ui adapters — planned
+- React bindings, devtools, examples, and documentation application — later
+
+Adapter feasibility and fidelity constraints are documented in
+[framework integration research](docs/framework-integrations.md).
 
 ## Development
 
@@ -40,3 +152,14 @@ production builds, package metadata, and ESM/CommonJS loading.
 See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. Security
 issues should follow the private reporting process in
 [SECURITY.md](SECURITY.md).
+
+## Community
+
+- [Request a feature or integration](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=feature_request.yml)
+- [Report a bug](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=bug_report.yml)
+- [Share an assistive-technology test result](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=assistive_technology_report.yml)
+- [Get support](SUPPORT.md)
+
+## License
+
+[MIT](LICENSE)
