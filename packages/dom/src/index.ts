@@ -68,6 +68,7 @@ export function createDOMAnnouncer(
       }
       if (regions) {
         const region = regions[intent.channel];
+        applyLocale(region, intent.locale);
         const ariaNotify = (region as AriaNotifyRegion).ariaNotify;
         let error: DOMDeliveryResult["error"];
         if (
@@ -89,8 +90,6 @@ export function createDOMAnnouncer(
             error = serializeError(cause);
           }
         }
-        if (intent.locale === undefined) region.removeAttribute("lang");
-        else region.setAttribute("lang", intent.locale);
         region.textContent = intent.text;
         return report({
           status: "mutated",
@@ -150,6 +149,12 @@ function configureRegion(
   region: HTMLElement,
   channel: AnnouncementIntent["channel"],
 ): void {
+  region.removeAttribute("role");
+  region.removeAttribute("aria-busy");
+  region.removeAttribute("hidden");
+  region.removeAttribute("aria-hidden");
+  region.style.removeProperty("display");
+  region.style.removeProperty("visibility");
   region.setAttribute("aria-live", channel);
   region.setAttribute("aria-atomic", "true");
   region.setAttribute("aria-relevant", "additions text");
@@ -164,6 +169,11 @@ function configureRegion(
     whiteSpace: "nowrap",
     border: "0",
   });
+}
+
+function applyLocale(region: HTMLElement, locale: string | undefined): void {
+  if (locale === undefined) region.removeAttribute("lang");
+  else region.setAttribute("lang", locale);
 }
 
 export function connectRuntimeToDOM(

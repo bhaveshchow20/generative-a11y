@@ -143,6 +143,35 @@ describe("createDOMAnnouncer", () => {
   });
 
   it.each([
+    { initialLocale: undefined, locale: "fr-FR", expectedLocale: "fr-FR" },
+    { initialLocale: "en-US", locale: undefined, expectedLocale: null },
+  ])(
+    "applies locale $expectedLocale before ariaNotify",
+    ({ initialLocale, locale, expectedLocale }) => {
+      const dom = new JSDOM("<!doctype html><html><body></body></html>");
+      const announcer = createDOMAnnouncer({
+        document: dom.window.document,
+        mode: "auto",
+      });
+      const region = announcer.getRegions()?.polite;
+      if (!region) throw new Error("polite region missing");
+      if (initialLocale !== undefined) {
+        region.setAttribute("lang", initialLocale);
+      }
+      let localeAtNotify: string | null | undefined;
+      Object.defineProperty(region, "ariaNotify", {
+        value: () => {
+          localeAtNotify = region.getAttribute("lang");
+        },
+      });
+
+      announcer.announce(intent("Bonjour", "polite", locale));
+
+      expect(localeAtNotify).toBe(expectedLocale);
+    },
+  );
+
+  it.each([
     ["auto", "polite", "normal"],
     ["aria-notify", "assertive", "high"],
   ] as const)(
@@ -240,6 +269,29 @@ describe("createDOMAnnouncer", () => {
     announcer.dispose();
     expect(polite.isConnected).toBe(true);
     expect(assertive.isConnected).toBe(true);
+  });
+
+  it("removes prohibited semantics and hiding from supplied regions", () => {
+    const dom = new JSDOM(`<!doctype html><html><body>
+      <div id="p" role="status" aria-busy="true" aria-hidden="true" hidden
+        style="display: none; visibility: hidden"></div>
+      <div id="a" role="alert" aria-busy="true" aria-hidden="true" hidden
+        style="display: none; visibility: hidden"></div>
+    </body></html>`);
+    const polite = dom.window.document.querySelector<HTMLElement>("#p");
+    const assertive = dom.window.document.querySelector<HTMLElement>("#a");
+    if (!polite || !assertive) throw new Error("fixture regions missing");
+
+    createDOMAnnouncer({ regions: { polite, assertive } });
+
+    for (const region of [polite, assertive]) {
+      expect(region.hasAttribute("role")).toBe(false);
+      expect(region.hasAttribute("aria-busy")).toBe(false);
+      expect(region.hasAttribute("hidden")).toBe(false);
+      expect(region.hasAttribute("aria-hidden")).toBe(false);
+      expect(region.style.display).toBe("");
+      expect(region.style.visibility).toBe("");
+    }
   });
 
   it("treats markup-shaped announcement text as literal text", () => {
