@@ -72,9 +72,13 @@ announcer.dispose();
   `ariaNotify` on the selected region and fall back when it is absent.
   `"live-region"` always uses text mutation.
 - `regions`: a pre-mounted `DOMLiveRegions` pair with `polite` and `assertive`
-  elements. Required live-region attributes and visually hidden inline styles
-  are applied, accessibility-tree hiding is removed, and the elements remain
-  owned by the caller. The two channels must use distinct elements.
+  elements. Supply dedicated, connected, empty elements in the same document;
+  neither element may contain the other, and an explicitly supplied `document`
+  must be their owner document. The driver normalizes direct hiding attributes
+  and inline `display`, `visibility`, and `content-visibility`, then applies the
+  required live-region attributes and visually hidden inline styles. The caller
+  must ensure ancestors and external CSS keep both regions in the accessibility
+  tree. Supplied elements remain owned by the caller.
 - `onDiagnostic`: a callback invoked with the `DOMDeliveryResult` for each
   attempted announcement. Callback errors are isolated from delivery.
 

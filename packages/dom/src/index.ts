@@ -38,14 +38,7 @@ export interface DOMRuntimeBinding {
 export function createDOMAnnouncer(
   options: DOMAnnouncerOptions = {},
 ): DOMAnnouncer {
-  if (
-    options.regions !== undefined &&
-    options.regions.polite === options.regions.assertive
-  ) {
-    throw new TypeError(
-      "Polite and assertive regions must be distinct elements",
-    );
-  }
+  validateSuppliedRegions(options);
   const selectedDocument =
     options.document ??
     options.regions?.polite.ownerDocument ??
@@ -130,6 +123,35 @@ export function createDOMAnnouncer(
       }
     },
   };
+}
+
+function validateSuppliedRegions(options: DOMAnnouncerOptions): void {
+  if (options.regions === undefined) return;
+  const { polite, assertive } = options.regions;
+  if (polite === assertive) {
+    throw new TypeError(
+      "Polite and assertive regions must be distinct elements",
+    );
+  }
+  if (polite.contains(assertive) || assertive.contains(polite)) {
+    throw new TypeError(
+      "Polite and assertive regions must not contain one another",
+    );
+  }
+  if (polite.ownerDocument !== assertive.ownerDocument) {
+    throw new TypeError(
+      "Polite and assertive regions must belong to the same document",
+    );
+  }
+  if (
+    options.document !== undefined &&
+    (polite.ownerDocument !== options.document ||
+      assertive.ownerDocument !== options.document)
+  ) {
+    throw new TypeError(
+      "Supplied regions must belong to the provided document",
+    );
+  }
 }
 
 function serializeError(
@@ -241,8 +263,11 @@ export function connectRuntimeToDOM(
     dispose() {
       if (disposed) return;
       disposed = true;
-      unsubscribe();
-      announcer.dispose();
+      try {
+        unsubscribe();
+      } finally {
+        announcer.dispose();
+      }
     },
   };
 }

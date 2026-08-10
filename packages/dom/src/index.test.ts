@@ -383,22 +383,76 @@ describe("createDOMAnnouncer", () => {
     }
   });
 
-  it("rejects one supplied element used for both channels before mutation", () => {
-    const dom = new JSDOM(
-      "<!doctype html><html><body><div id='region' role='status'></div></body></html>",
-    );
-    const region = dom.window.document.querySelector<HTMLElement>("#region");
-    if (!region) throw new Error("fixture region missing");
-    const originalMarkup = region.outerHTML;
+  it.each([
+    ["the same element", "same", "must be distinct elements"],
+    [
+      "the polite region contains the assertive region",
+      "polite-contains",
+      "must not contain one another",
+    ],
+    [
+      "the assertive region contains the polite region",
+      "assertive-contains",
+      "must not contain one another",
+    ],
+    [
+      "the owner documents differ",
+      "different-documents",
+      "must belong to the same document",
+    ],
+    [
+      "the supplied document differs",
+      "different-option-document",
+      "must belong to the provided document",
+    ],
+  ] as const)(
+    "rejects supplied regions when %s before mutation",
+    (_label, relationship, expectedMessage) => {
+      const firstDOM = new JSDOM("<!doctype html><html><body></body></html>");
+      const secondDOM = new JSDOM("<!doctype html><html><body></body></html>");
+      const polite = firstDOM.window.document.createElement("div");
+      let assertive = firstDOM.window.document.createElement("div");
+      let suppliedDocument: Document | undefined;
 
-    expect(() =>
-      createDOMAnnouncer({
-        regions: { polite: region, assertive: region },
-      }),
-    ).toThrow(TypeError);
-    expect(region.outerHTML).toBe(originalMarkup);
-    expect(dom.window.document.body.children).toHaveLength(1);
-  });
+      if (relationship === "same") {
+        assertive = polite;
+        firstDOM.window.document.body.append(polite);
+      } else if (relationship === "polite-contains") {
+        polite.append(assertive);
+        firstDOM.window.document.body.append(polite);
+      } else if (relationship === "assertive-contains") {
+        assertive.append(polite);
+        firstDOM.window.document.body.append(assertive);
+      } else if (relationship === "different-documents") {
+        assertive = secondDOM.window.document.createElement("div");
+        firstDOM.window.document.body.append(polite);
+        secondDOM.window.document.body.append(assertive);
+      } else {
+        firstDOM.window.document.body.append(polite, assertive);
+        suppliedDocument = secondDOM.window.document;
+      }
+      polite.setAttribute("data-original", "polite");
+      assertive.setAttribute("data-original", "assertive");
+      const originals = [...new Set([polite, assertive])].map((region) => ({
+        region,
+        markup: region.outerHTML,
+        parent: region.parentNode,
+      }));
+
+      expect(() =>
+        createDOMAnnouncer({
+          ...(suppliedDocument === undefined
+            ? {}
+            : { document: suppliedDocument }),
+          regions: { polite, assertive },
+        }),
+      ).toThrow(expectedMessage);
+      for (const original of originals) {
+        expect(original.region.outerHTML).toBe(original.markup);
+        expect(original.region.parentNode).toBe(original.parent);
+      }
+    },
+  );
 
   it("treats markup-shaped announcement text as literal text", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
@@ -482,6 +536,39 @@ describe("connectRuntimeToDOM", () => {
       connectRuntimeToDOM(runtime, { document: dom.window.document }),
     ).toThrow("Cannot subscribe to a disposed generative-a11y runtime");
     expect(dom.window.document.body.children).toHaveLength(0);
+  });
+
+  it("removes owned regions when unsubscribe throws and remains idempotent", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const baseRuntime = createGenerativeA11y({
+      onAnnouncement: () => undefined,
+    });
+    const unsubscribeFailure = vi.fn(() => {
+      throw new Error("unsubscribe failed");
+    });
+    const runtime = {
+      ...baseRuntime,
+      subscribeAnnouncements(
+        listener: Parameters<typeof baseRuntime.subscribeAnnouncements>[0],
+      ) {
+        const unsubscribe = baseRuntime.subscribeAnnouncements(listener);
+        return () => {
+          unsubscribe();
+          unsubscribeFailure();
+        };
+      },
+    };
+    const binding = connectRuntimeToDOM(runtime, {
+      document: dom.window.document,
+    });
+
+    expect(dom.window.document.body.children).toHaveLength(2);
+    expect(() => binding.dispose()).toThrow("unsubscribe failed");
+    expect(dom.window.document.body.children).toHaveLength(0);
+    expect(unsubscribeFailure).toHaveBeenCalledOnce();
+
+    expect(() => binding.dispose()).not.toThrow();
+    expect(unsubscribeFailure).toHaveBeenCalledOnce();
   });
 
   it("forwards once, unsubscribes deterministically, and never disposes the runtime", () => {
