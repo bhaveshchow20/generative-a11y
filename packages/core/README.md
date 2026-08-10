@@ -41,8 +41,20 @@ optional injected `Clock`, and delivery callbacks:
   and citation events.
 - `getPolicy()` returns a deeply frozen policy snapshot.
 - `pendingCount()` counts scheduler candidates and response flush timers.
+- `subscribeAnnouncements(listener)` adds an isolated output listener and
+  returns an idempotent unsubscribe function. This is the attachment point used
+  by browser delivery integrations; the construction callback remains an initial
+  listener.
+- `subscribeDiagnostics(listener)` observes subsequent diagnostic decisions and
+  returns an idempotent unsubscribe function. Diagnostic listener failures are
+  isolated.
 - `dispose()` is idempotent, cancels owned timers/queues and makes later
-  dispatch throw.
+  dispatch or subscription attempts throw.
+
+Announcement listeners run from a stable snapshot. A throwing listener does not
+prevent later listeners from receiving the same intent, and every listener
+failure is reported through `onDeliveryError`. A delivery is diagnosed as failed
+only when every current announcement listener throws.
 
 Responses and tools should always receive a terminal event. `maxActiveEntities`
 also prevents missing terminal events from growing active state without bound.

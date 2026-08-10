@@ -11,6 +11,8 @@ export {
 } from "./recorder.js";
 export {
   createGenerativeA11y,
+  type AnnouncementListener,
+  type DiagnosticListener,
   type GenerativeA11yOptions,
   type GenerativeA11yRuntime,
 } from "./runtime.js";

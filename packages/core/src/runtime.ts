@@ -44,10 +44,15 @@ export interface GenerativeA11yOptions {
   onDiagnostic?: (diagnostic: AnnouncementDiagnostic) => void;
 }
 
+export type AnnouncementListener = (announcement: AnnouncementIntent) => void;
+export type DiagnosticListener = (diagnostic: AnnouncementDiagnostic) => void;
+
 export interface GenerativeA11yRuntime {
   dispatch(event: GenerativeA11yEvent): void;
   getPolicy(): ReadonlyAnnouncementPolicy;
   pendingCount(): number;
+  subscribeAnnouncements(listener: AnnouncementListener): () => void;
+  subscribeDiagnostics(listener: DiagnosticListener): () => void;
   dispose(): void;
 }
 
@@ -70,26 +75,89 @@ export function createGenerativeA11y(
   const policy = resolvePolicy(options.preset, options.policy);
   const responses = new Map<string, ResponseState>();
   const tools = new Map<string, ToolState>();
+  const announcementListeners = new Map<number, AnnouncementListener>([
+    [0, options.onAnnouncement],
+  ]);
+  const diagnosticListeners = new Map<number, DiagnosticListener>();
+  if (options.onDiagnostic) diagnosticListeners.set(0, options.onDiagnostic);
+  let nextAnnouncementListenerId = 1;
+  let nextDiagnosticListenerId = 1;
   let nextResponseEpoch = 1;
   let disposed = false;
+  let announcementEmissionDepth = 0;
+  let clearListenersAfterDeliveryDiagnostic = false;
+
+  function clearListeners(): void {
+    announcementListeners.clear();
+    diagnosticListeners.clear();
+    clearListenersAfterDeliveryDiagnostic = false;
+  }
+
+  function reportDeliveryError(
+    error: unknown,
+    announcement: AnnouncementIntent,
+  ): void {
+    try {
+      options.onDeliveryError?.(error, announcement);
+    } catch {
+      // Delivery error observers cannot alter output fan-out.
+    }
+  }
+
+  function emitAnnouncement(announcement: AnnouncementIntent): void {
+    let delivered = false;
+    let failed = false;
+    let firstError: unknown;
+    announcementEmissionDepth += 1;
+    try {
+      for (const listener of [...announcementListeners.values()]) {
+        try {
+          listener(announcement);
+          delivered = true;
+        } catch (error) {
+          if (!failed) firstError = error;
+          failed = true;
+          reportDeliveryError(error, announcement);
+        }
+      }
+    } finally {
+      announcementEmissionDepth -= 1;
+    }
+    if (!delivered && failed) throw firstError;
+  }
+
+  function emitDiagnostic(diagnostic: AnnouncementDiagnostic): void {
+    for (const listener of [...diagnosticListeners.values()]) {
+      try {
+        listener(diagnostic);
+      } catch {
+        // Diagnostic observers are best-effort and cannot alter scheduling.
+      }
+    }
+    if (
+      clearListenersAfterDeliveryDiagnostic &&
+      announcementEmissionDepth === 0 &&
+      (diagnostic.reason === "delivered" ||
+        diagnostic.reason === "delivery-error")
+    ) {
+      clearListeners();
+    }
+  }
 
   const scheduler: AnnouncementScheduler = createAnnouncementScheduler({
     clock,
     minimumGapMs: policy.minimumGapMs,
     dedupeWindowMs: policy.dedupeWindowMs,
     maxQueueSize: policy.maxQueueSize,
-    onAnnouncement: options.onAnnouncement,
-    ...(options.onDeliveryError
-      ? { onDeliveryError: options.onDeliveryError }
-      : {}),
-    ...(options.onDiagnostic ? { onDiagnostic: options.onDiagnostic } : {}),
+    onAnnouncement: emitAnnouncement,
+    onDiagnostic: emitDiagnostic,
   });
 
   function diagnose(
     event: GenerativeA11yEvent,
     reason: AnnouncementDiagnostic["reason"],
   ): void {
-    options.onDiagnostic?.({
+    emitDiagnostic({
       at: clock.now(),
       disposition: "suppressed",
       reason,
@@ -583,6 +651,34 @@ export function createGenerativeA11y(
       [...responses.values()].filter(
         (response) => response.flushTimer !== undefined,
       ).length,
+    subscribeAnnouncements(listener) {
+      if (disposed)
+        throw new Error(
+          "Cannot subscribe to a disposed generative-a11y runtime",
+        );
+      const listenerId = nextAnnouncementListenerId++;
+      announcementListeners.set(listenerId, listener);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        announcementListeners.delete(listenerId);
+      };
+    },
+    subscribeDiagnostics(listener) {
+      if (disposed)
+        throw new Error(
+          "Cannot subscribe to a disposed generative-a11y runtime",
+        );
+      const listenerId = nextDiagnosticListenerId++;
+      diagnosticListeners.set(listenerId, listener);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        diagnosticListeners.delete(listenerId);
+      };
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -590,6 +686,9 @@ export function createGenerativeA11y(
       scheduler.dispose();
       responses.clear();
       tools.clear();
+      if (announcementEmissionDepth > 0)
+        clearListenersAfterDeliveryDiagnostic = true;
+      else clearListeners();
     },
   };
 }
