@@ -8,6 +8,10 @@ updates:
     groups:
       development-dependencies:
         dependency-type: development
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
     open-pull-requests-limit: 10
 
   - package-ecosystem: github-actions
@@ -18,4 +22,7 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+    commit-message:
+      prefix: ci
+      include: scope
     open-pull-requests-limit: 5
