@@ -92,6 +92,49 @@ describe("preference schema and core mapping", () => {
     );
   });
 
+  it("rejects accessor-backed, mutating, symbol-extra, and hostile proxy inputs", () => {
+    let reads = 0;
+    const accessorValue = {
+      version: 1,
+      get preset() {
+        reads += 1;
+        return reads === 1 ? "balanced" : "verbose";
+      },
+      streaming: "preset",
+      tools: "preset",
+    } as unknown as PreferenceSchemaV1;
+    const symbolValue = balanced() as PreferenceSchemaV1 & {
+      [key: symbol]: unknown;
+    };
+    Object.defineProperty(symbolValue, Symbol("extra"), {
+      enumerable: true,
+      value: true,
+    });
+    const prototypeNamedExtra = balanced();
+    Object.defineProperty(prototypeNamedExtra, "__proto__", {
+      enumerable: true,
+      value: true,
+    });
+    const proxyValue = new Proxy(balanced(), {
+      ownKeys() {
+        throw new Error("hostile ownKeys");
+      },
+    });
+
+    for (const value of [
+      accessorValue,
+      symbolValue,
+      prototypeNamedExtra,
+      proxyValue,
+    ]) {
+      expect(() => preferencesToCoreConfiguration(value)).toThrow(TypeError);
+      const store = createPreferenceStore();
+      expect(() => store.setPreferences(value)).toThrow(TypeError);
+      expect(store.getSnapshot()).toBe(defaultPreferences);
+    }
+    expect(reads).toBe(0);
+  });
+
   it.each([
     ["preset", undefined],
     ["off", { strategy: "silent" }],
@@ -267,6 +310,92 @@ describe("preference persistence", () => {
     expect(JSON.parse(JSON.stringify(seen[0]))).toEqual(seen[0]);
   });
 
+  it.each([
+    new Proxy(
+      {},
+      {
+        getPrototypeOf() {
+          throw new Error("prototype trap");
+        },
+      },
+    ),
+    Object.defineProperties(new Error("hidden"), {
+      name: {
+        get() {
+          throw new Error("name trap");
+        },
+      },
+      message: {
+        get() {
+          throw new Error("message trap");
+        },
+      },
+    }),
+    {
+      [Symbol.toPrimitive]() {
+        throw new Error("primitive trap");
+      },
+    },
+  ])("never leaks hostile thrown values while reporting %#", (cause) => {
+    const storage: PreferenceStorage = {
+      getItem() {
+        throw cause;
+      },
+      setItem() {},
+    };
+    const seen: unknown[] = [];
+
+    expect(() =>
+      createPreferenceStore({
+        persistence: { key: "p", storage },
+        onDiagnostic: (diagnostic) => seen.push(diagnostic),
+      }),
+    ).not.toThrow();
+    expect(seen).toEqual([
+      {
+        source: "storage-read",
+        code: "operation-failed",
+        error: { name: "Error", message: "Unknown error" },
+      },
+    ]);
+  });
+
+  it("contains a throwing Error Symbol.hasInstance hook", () => {
+    const previous = Object.getOwnPropertyDescriptor(Error, Symbol.hasInstance);
+    const seen: unknown[] = [];
+    try {
+      Object.defineProperty(Error, Symbol.hasInstance, {
+        configurable: true,
+        value() {
+          throw new Error("instance trap");
+        },
+      });
+      const storage: PreferenceStorage = {
+        getItem() {
+          throw {};
+        },
+        setItem() {},
+      };
+      createPreferenceStore({
+        persistence: { key: "p", storage },
+        onDiagnostic: (diagnostic) => seen.push(diagnostic),
+      });
+    } finally {
+      if (previous) {
+        Object.defineProperty(Error, Symbol.hasInstance, previous);
+      } else {
+        Reflect.deleteProperty(Error, Symbol.hasInstance);
+      }
+    }
+    expect(seen).toEqual([
+      {
+        source: "storage-read",
+        code: "operation-failed",
+        error: { name: "Error", message: "Unknown error" },
+      },
+    ]);
+  });
+
   it("updates and notifies before writing canonical JSON, with semantic no-ops", () => {
     const order: string[] = [];
     const storage: PreferenceStorage = {
@@ -301,6 +430,16 @@ describe("preference persistence", () => {
     expect(storage.values.get("p")).toBe(
       JSON.stringify(balanced("sentence", "progress")),
     );
+  });
+
+  it("does not write when a listener disposes during notification", () => {
+    const storage = new MemoryStorage();
+    const store = createPreferenceStore({ persistence: { key: "p", storage } });
+    store.subscribe(() => store.dispose());
+
+    store.setPreferences(balanced("sentence", "progress"));
+    expect(store.getSnapshot()).toEqual(balanced("sentence", "progress"));
+    expect(storage.setItem).not.toHaveBeenCalled();
   });
 
   it("keeps a successful update when writing fails", () => {
@@ -388,6 +527,61 @@ describe("preference subscriptions and synchronization", () => {
     }
   });
 
+  it("lets a reentrant newer storage event win over the outer event", () => {
+    const storage = new MemoryStorage();
+    const events = new StorageEvents();
+    const store = createPreferenceStore({
+      persistence: { key: "p", storage, events },
+    });
+    let keyReads = 0;
+    let valueReads = 0;
+    let areaReads = 0;
+    const outer = {
+      get key() {
+        keyReads += 1;
+        return "p";
+      },
+      get newValue() {
+        valueReads += 1;
+        events.emit({
+          key: "p",
+          newValue: JSON.stringify(balanced("sentence", "progress")),
+          storageArea: storage,
+        });
+        return JSON.stringify(balanced("paragraph", "status"));
+      },
+      get storageArea() {
+        areaReads += 1;
+        return storage;
+      },
+    } as PreferenceStorageEvent;
+
+    events.emit(outer);
+    expect(store.getSnapshot()).toEqual(balanced("sentence", "progress"));
+    expect({ keyReads, valueReads, areaReads }).toEqual({
+      keyReads: 1,
+      valueReads: 1,
+      areaReads: 1,
+    });
+  });
+
+  it("does not commit an event whose getter disposes the store", () => {
+    const storage = new MemoryStorage();
+    const events = new StorageEvents();
+    const store = createPreferenceStore({
+      persistence: { key: "p", storage, events },
+    });
+    events.emit({
+      key: "p",
+      newValue: JSON.stringify(balanced("off")),
+      get storageArea() {
+        store.dispose();
+        return storage;
+      },
+    });
+    expect(store.getSnapshot()).toBe(defaultPreferences);
+  });
+
   it("synchronizes two stores only through an injected broadcaster", () => {
     const events = new StorageEvents();
     const storage = new MemoryStorage();
@@ -445,6 +639,47 @@ describe("preference subscriptions and synchronization", () => {
     expect(() => store.subscribe(() => undefined)).toThrow(/disposed/);
     expect(() => store.setPreferences(balanced())).toThrow(/disposed/);
     expect(store.getServerSnapshot()).toBe(defaultPreferences);
+  });
+
+  it("contains hostile unsubscribe errors and reentrant diagnostic disposal", () => {
+    const hostile = Object.defineProperties(new Error(), {
+      name: {
+        get() {
+          throw new Error("name trap");
+        },
+      },
+      message: {
+        get() {
+          throw new Error("message trap");
+        },
+      },
+    });
+    const diagnostics: unknown[] = [];
+    let store: ReturnType<typeof createPreferenceStore>;
+    store = createPreferenceStore({
+      persistence: {
+        key: "p",
+        storage: new MemoryStorage(),
+        events: {
+          subscribe: () => () => {
+            throw hostile;
+          },
+        },
+      },
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push(diagnostic);
+        store.dispose();
+      },
+    });
+
+    expect(() => store.dispose()).not.toThrow();
+    expect(diagnostics).toEqual([
+      {
+        source: "event-unsubscribe",
+        code: "operation-failed",
+        error: { name: "Error", message: "Unknown error" },
+      },
+    ]);
   });
 
   it("diagnoses a throwing event subscription and remains usable", () => {

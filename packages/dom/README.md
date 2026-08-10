@@ -253,7 +253,9 @@ other granular presets are `"minimal"` and `"verbose"`; streaming can be
 verbosity can be `"preset"`, `"off"`, `"failures"`, `"status"`, or `"progress"`.
 The separate `"completion-only"` schema has no granular fields. Every accepted
 `PreferenceSchemaV1` snapshot is frozen, and validation rejects missing, extra,
-invalid, or unsupported-version fields.
+invalid, or unsupported-version fields. Runtime input fields must be own,
+enumerable data properties; accessor-backed and symbol-keyed input is rejected
+without invoking its getters.
 
 ```ts
 import {

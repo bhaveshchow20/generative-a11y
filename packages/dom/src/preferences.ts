@@ -132,6 +132,7 @@ export function createPreferenceStore(
     }
   }
   let disposed = false;
+  let eventEpoch = 0;
   const listeners = new Set<() => void>();
   let unsubscribeEvents: (() => void) | undefined;
 
@@ -152,22 +153,36 @@ export function createPreferenceStore(
   };
   const handleStorageEvent = (event: PreferenceStorageEvent): void => {
     if (disposed || !persistence) return;
+    const epoch = ++eventEpoch;
+    let key: string | null;
+    let newValue: string | null;
+    let storageArea: PreferenceStorage | null | undefined;
     try {
-      if (
-        event.storageArea != null &&
-        event.storageArea !== persistence.storage
-      ) {
+      key = event.key;
+      newValue = event.newValue;
+      storageArea = event.storageArea;
+    } catch (cause) {
+      if (!disposed && epoch === eventEpoch) {
+        report("storage-event", "operation-failed", cause);
+      }
+      return;
+    }
+    if (disposed || epoch !== eventEpoch) return;
+    try {
+      if (storageArea != null && storageArea !== persistence.storage) {
         return;
       }
-      if (event.key !== null && event.key !== persistence.key) return;
-      if (event.key === null || event.newValue === null) {
+      if (key !== null && key !== persistence.key) return;
+      if (key === null || newValue === null) {
         replace(configuredDefault);
         return;
       }
-      const next = parsePreferences(event.newValue, "storage-event", report);
-      if (next) replace(next);
+      const next = parsePreferences(newValue, "storage-event", report);
+      if (!disposed && epoch === eventEpoch && next) replace(next);
     } catch (cause) {
-      report("storage-event", "operation-failed", cause);
+      if (!disposed && epoch === eventEpoch) {
+        report("storage-event", "operation-failed", cause);
+      }
     }
   };
 
@@ -196,7 +211,7 @@ export function createPreferenceStore(
       if (disposed) throw new Error("PreferenceStore is disposed");
       const next = normalizePreferences(value);
       if (!replace(next)) return;
-      if (persistence?.storage && samePreferences(current, next)) {
+      if (!disposed && persistence?.storage && samePreferences(current, next)) {
         try {
           persistence.storage.setItem(persistence.key, JSON.stringify(next));
         } catch (cause) {
@@ -207,6 +222,7 @@ export function createPreferenceStore(
     dispose() {
       if (disposed) return;
       disposed = true;
+      eventEpoch += 1;
       listeners.clear();
       const unsubscribe = unsubscribeEvents;
       unsubscribeEvents = undefined;
@@ -300,29 +316,31 @@ function parsePreferences(
 class UnsupportedPreferenceVersionError extends TypeError {}
 
 function normalizePreferences(value: PreferenceSchemaV1): PreferenceSchemaV1 {
-  if (!isRecord(value)) throw new TypeError("Invalid preferences");
-  if (value.version !== 1)
+  const fields = snapshotPreferenceFields(value);
+  if (fields.version !== 1)
     throw new UnsupportedPreferenceVersionError(
       "Unsupported preference version",
     );
-  if (value.preset === "completion-only") {
-    if (!hasExactKeys(value, ["version", "preset"]))
+  if (fields.preset === "completion-only") {
+    if (!hasExactKeys(fields, ["version", "preset"]))
       throw new TypeError("Invalid completion-only preferences");
     return Object.freeze({ version: 1, preset: "completion-only" });
   }
-  if (!(["minimal", "balanced", "verbose"] as unknown[]).includes(value.preset))
+  if (
+    !(["minimal", "balanced", "verbose"] as unknown[]).includes(fields.preset)
+  )
     throw new TypeError("Invalid preference preset");
-  if (!hasExactKeys(value, ["version", "preset", "streaming", "tools"]))
+  if (!hasExactKeys(fields, ["version", "preset", "streaming", "tools"]))
     throw new TypeError("Invalid preference fields");
-  if (!STREAMING_VALUES.includes(value.streaming as StreamingVerbosity))
+  if (!STREAMING_VALUES.includes(fields.streaming as StreamingVerbosity))
     throw new TypeError("Invalid streaming preference");
-  if (!TOOL_VALUES.includes(value.tools as ToolVerbosity))
+  if (!TOOL_VALUES.includes(fields.tools as ToolVerbosity))
     throw new TypeError("Invalid tool preference");
   return Object.freeze({
     version: 1,
-    preset: value.preset as "minimal" | "balanced" | "verbose",
-    streaming: value.streaming as StreamingVerbosity,
-    tools: value.tools as ToolVerbosity,
+    preset: fields.preset as "minimal" | "balanced" | "verbose",
+    streaming: fields.streaming as StreamingVerbosity,
+    tools: fields.tools as ToolVerbosity,
   });
 }
 
@@ -341,8 +359,28 @@ const TOOL_VALUES: readonly ToolVerbosity[] = [
   "progress",
 ];
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function snapshotPreferenceFields(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new TypeError("Invalid preferences");
+  }
+  try {
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const fields = Object.create(null) as Record<string, unknown>;
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (typeof key !== "string")
+        throw new TypeError("Invalid preference fields");
+      const descriptor = descriptors[key];
+      if (!descriptor?.enumerable || !("value" in descriptor)) {
+        throw new TypeError(
+          "Preference fields must be enumerable data properties",
+        );
+      }
+      fields[key] = descriptor.value;
+    }
+    return fields;
+  } catch {
+    throw new TypeError("Invalid preferences");
+  }
 }
 
 function hasExactKeys(
@@ -387,8 +425,27 @@ function serializeError(cause: unknown): Readonly<{
   name: string;
   message: string;
 }> {
-  if (cause instanceof Error) {
-    return { name: cause.name || "Error", message: cause.message };
+  const fallback = { name: "Error", message: "Unknown error" } as const;
+  try {
+    if (cause instanceof Error) {
+      const name = cause.name;
+      const message = cause.message;
+      if (typeof name !== "string" || typeof message !== "string") {
+        return fallback;
+      }
+      return { name: name || "Error", message };
+    }
+    if (
+      typeof cause === "string" ||
+      typeof cause === "number" ||
+      typeof cause === "boolean" ||
+      typeof cause === "bigint" ||
+      typeof cause === "symbol"
+    ) {
+      return { name: "Error", message: String(cause) };
+    }
+  } catch {
+    return fallback;
   }
-  return { name: "Error", message: String(cause) };
+  return fallback;
 }
