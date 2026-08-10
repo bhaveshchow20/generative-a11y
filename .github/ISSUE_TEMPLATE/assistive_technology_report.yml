@@ -1,0 +1,72 @@
+name: Assistive-technology test report
+description: Share a manual screen-reader or other assistive-technology result.
+title: "[AT report]: "
+labels: [accessibility, assistive technology, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing generative-a11y with real assistive technology.
+        Please report what you observed without treating automated transcripts or DOM tests as equivalent evidence.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: e.g. 0.1.0 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Assistive technology and environment
+      description:
+        Include assistive technology, version, browser, operating system, and
+        input method.
+      placeholder: e.g. NVDA 2026.1, Firefox 148, Windows 11, keyboard
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario tested
+      description:
+        Describe the application, adapter, content, and steps needed to
+        reproduce the interaction.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What did you observe?
+      description:
+        Include spoken output, timing, focus behavior, interruptions, or other
+        relevant details.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description:
+        Explain what would make the experience clearer or more usable.
+    validations:
+      required: true
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      options:
+        - Every time
+        - Often
+        - Sometimes
+        - Once
+        - Not applicable — positive result
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description:
+        Add a minimal reproduction, recording, transcript, or notes if they are
+        safe to share.

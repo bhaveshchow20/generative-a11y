@@ -5,9 +5,15 @@
 ## Validation
 
 - [ ] Tests added or updated where appropriate
-- [ ] `npm run check` passes locally
+- [ ] `pnpm check` passes locally
 - [ ] Documentation updated where appropriate
+- [ ] Changeset added for a user-visible published-package change, or not needed
 
 ## Accessibility impact
 
-<!-- Describe the accessibility behavior affected, or write "None". -->
+<!-- Describe the user need and accessibility behavior affected, or write "None". -->
+
+## Assistive-technology validation
+
+<!-- List manual AT/browser/OS testing, or explain why it does not apply. Do not
+present deterministic transcripts or DOM tests as proof of real AT behavior. -->
