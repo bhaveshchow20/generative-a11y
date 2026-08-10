@@ -13,16 +13,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm pack
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: mkdir -p artifacts
+      - run:
+          pnpm --filter @generative-a11y/core pack --pack-destination artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: npm-package
-          path: "*.tgz"
+          path: artifacts/*.tgz
           if-no-files-found: error
           retention-days: 7

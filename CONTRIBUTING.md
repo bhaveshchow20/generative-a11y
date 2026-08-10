@@ -7,10 +7,11 @@ Thank you for helping make generative AI experiences more accessible.
 1. Open or find an issue for substantial changes so the problem and proposed API
    can be discussed first.
 2. Fork the repository and create a focused branch.
-3. Install Node.js using `.nvmrc`, then run `npm ci`.
+3. Install Node.js using `.nvmrc`, enable Corepack, then run
+   `pnpm install --frozen-lockfile`.
 4. Make the change with tests and documentation where appropriate.
-5. Run `npm run changeset` for a user-visible package change.
-6. Run `npm run check` before opening the pull request.
+5. Run `pnpm changeset` for a user-visible package change.
+6. Run `pnpm check` before opening the pull request.
 
 ## Accessibility expectations
 

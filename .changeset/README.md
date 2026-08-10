@@ -3,7 +3,7 @@
 Add a changeset for every user-visible package change:
 
 ```sh
-npm run changeset
+pnpm changeset
 ```
 
 Select the affected package, choose the semantic version impact, and write a
