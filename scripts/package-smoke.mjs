@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 for (const [packageName, expectedExport] of [
   ["@generative-a11y/core", "createGenerativeA11y"],
   ["@generative-a11y/dom", "createDOMAnnouncer"],
+  ["@generative-a11y/react", "GenerativeA11yProvider"],
 ]) {
   const esm = await import(packageName);
   const cjs = require(packageName);
