@@ -1,58 +1,43 @@
 {
-  "name": "generative-a11y",
+  "name": "generative-a11y-monorepo",
   "version": "0.0.0",
   "description": "Plug-and-play accessibility infrastructure for generative AI applications.",
   "license": "MIT",
   "private": true,
   "type": "module",
-  "sideEffects": false,
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    }
-  },
+  "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run build && npm run pack:check",
+    "build": "pnpm --filter './packages/*' build",
     "changeset": "changeset",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build && pnpm package:check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
-    "pack:check": "publint && npm pack --dry-run",
+    "package:check": "pnpm --filter './packages/*' exec publint && pnpm smoke:package",
+    "release": "pnpm check && changeset publish",
+    "smoke:package": "node scripts/package-smoke.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "version-packages": "changeset version",
-    "release": "npm run check && changeset publish"
+    "typecheck": "pnpm --filter './packages/*' typecheck",
+    "version-packages": "changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
+    "@generative-a11y/core": "workspace:*",
+    "@types/node": "24.10.1",
+    "@typescript-eslint/eslint-plugin": "8.66.0",
+    "@typescript-eslint/parser": "8.66.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.1",
-    "eslint-config-prettier": "10.1.8",
     "prettier": "3.9.6",
     "publint": "0.3.23",
     "tsup": "8.5.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.66.0",
     "vitest": "4.1.10"
   }
 }
