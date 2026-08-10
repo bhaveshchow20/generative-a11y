@@ -1,0 +1,188 @@
+import type {
+  AnnouncementIntent,
+  GenerativeA11yRuntime,
+} from "@generative-a11y/core";
+
+export type DOMAnnouncementMode = "auto" | "aria-notify" | "live-region";
+
+export interface DOMLiveRegions {
+  polite: HTMLElement;
+  assertive: HTMLElement;
+}
+
+export interface DOMDeliveryResult {
+  status: "notified" | "mutated" | "unavailable" | "disposed";
+  method: "aria-notify" | "live-region" | "none";
+  channel: AnnouncementIntent["channel"];
+  error?: { name: string; message: string };
+}
+
+export interface DOMAnnouncerOptions {
+  document?: Document;
+  mode?: DOMAnnouncementMode;
+  regions?: DOMLiveRegions;
+  onDiagnostic?: (result: DOMDeliveryResult) => void;
+}
+
+export interface DOMAnnouncer {
+  announce(intent: AnnouncementIntent): DOMDeliveryResult;
+  getRegions(): DOMLiveRegions | undefined;
+  dispose(): void;
+}
+
+export interface DOMRuntimeBinding {
+  announcer: DOMAnnouncer;
+  dispose(): void;
+}
+
+export function createDOMAnnouncer(
+  options: DOMAnnouncerOptions = {},
+): DOMAnnouncer {
+  const selectedDocument =
+    options.document ??
+    options.regions?.polite.ownerDocument ??
+    (typeof document === "undefined" ? undefined : document);
+  const ownsRegions = options.regions === undefined;
+  const regions = options.regions ?? createLiveRegions(selectedDocument);
+
+  if (regions) {
+    configureRegion(regions.polite, "polite");
+    configureRegion(regions.assertive, "assertive");
+  }
+  let notifierEnabled = true;
+  let disposed = false;
+
+  const report = (result: DOMDeliveryResult): DOMDeliveryResult => {
+    options.onDiagnostic?.(result);
+    return result;
+  };
+
+  return {
+    announce(intent) {
+      if (disposed) {
+        return report({
+          status: "disposed",
+          method: "none",
+          channel: intent.channel,
+        });
+      }
+      if (regions) {
+        const region = regions[intent.channel];
+        const ariaNotify = (region as AriaNotifyRegion).ariaNotify;
+        let error: DOMDeliveryResult["error"];
+        if (
+          notifierEnabled &&
+          options.mode !== "live-region" &&
+          typeof ariaNotify === "function"
+        ) {
+          try {
+            ariaNotify.call(region, intent.text, {
+              priority: intent.channel === "assertive" ? "high" : "normal",
+            });
+            return report({
+              status: "notified",
+              method: "aria-notify",
+              channel: intent.channel,
+            });
+          } catch (cause) {
+            notifierEnabled = false;
+            error = serializeError(cause);
+          }
+        }
+        if (intent.locale === undefined) region.removeAttribute("lang");
+        else region.setAttribute("lang", intent.locale);
+        region.textContent = intent.text;
+        return report({
+          status: "mutated",
+          method: "live-region",
+          channel: intent.channel,
+          ...(error === undefined ? {} : { error }),
+        });
+      }
+      return report({
+        status: "unavailable",
+        method: "none",
+        channel: intent.channel,
+      });
+    },
+    getRegions() {
+      return regions;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (ownsRegions) {
+        regions?.polite.remove();
+        regions?.assertive.remove();
+      }
+    },
+  };
+}
+
+function serializeError(
+  error: unknown,
+): NonNullable<DOMDeliveryResult["error"]> {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message };
+  }
+  return { name: "Error", message: String(error) };
+}
+
+interface AriaNotifyRegion extends HTMLElement {
+  ariaNotify?: (text: string, options: { priority: "normal" | "high" }) => void;
+}
+
+function createLiveRegions(
+  selectedDocument: Document | undefined,
+): DOMLiveRegions | undefined {
+  const parent = selectedDocument?.body ?? selectedDocument?.documentElement;
+  if (!selectedDocument || !parent) return undefined;
+
+  const regions = {
+    polite: selectedDocument.createElement("div"),
+    assertive: selectedDocument.createElement("div"),
+  };
+  parent.append(regions.polite, regions.assertive);
+  return regions;
+}
+
+function configureRegion(
+  region: HTMLElement,
+  channel: AnnouncementIntent["channel"],
+): void {
+  region.setAttribute("aria-live", channel);
+  region.setAttribute("aria-atomic", "true");
+  region.setAttribute("aria-relevant", "additions text");
+  Object.assign(region.style, {
+    position: "absolute",
+    width: "1px",
+    height: "1px",
+    padding: "0",
+    margin: "-1px",
+    overflow: "hidden",
+    clip: "rect(0, 0, 0, 0)",
+    whiteSpace: "nowrap",
+    border: "0",
+  });
+}
+
+export function connectRuntimeToDOM(
+  runtime: GenerativeA11yRuntime,
+  options: DOMAnnouncerOptions = {},
+): DOMRuntimeBinding {
+  const announcer = createDOMAnnouncer(options);
+  let disposed = false;
+  const unsubscribe = runtime.subscribeAnnouncements((intent) => {
+    if (!disposed) announcer.announce(intent);
+  });
+
+  return {
+    announcer,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      unsubscribe();
+      announcer.dispose();
+    },
+  };
+}
