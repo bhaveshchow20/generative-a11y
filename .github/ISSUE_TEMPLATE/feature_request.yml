@@ -3,6 +3,21 @@ description: Propose an improvement or new integration.
 title: "[Feature]: "
 labels: [enhancement, triage]
 body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core runtime
+        - DOM delivery
+        - AG-UI adapter
+        - AI SDK adapter
+        - assistant-ui adapter
+        - CopilotKit guidance
+        - Another integration
+        - Documentation or tooling
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -23,3 +38,10 @@ body:
     attributes:
       label: Alternatives considered
       description: Describe current workarounds or other approaches.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Public lifecycle evidence
+      description:
+        For integrations, link the documented public state or callback that
+        exposes this behavior. Leave blank if not applicable.

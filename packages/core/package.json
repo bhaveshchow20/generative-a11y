@@ -1,10 +1,34 @@
 {
   "name": "@generative-a11y/core",
   "version": "0.0.0",
-  "description": "Framework-independent accessibility runtime for streaming and agentic interfaces",
+  "description": "Framework-independent accessibility runtime for streaming AI and agent interfaces",
+  "keywords": [
+    "accessibility",
+    "ag-ui",
+    "ai-agents",
+    "assistant-ui",
+    "assistive-technology",
+    "generative-ai",
+    "live-region",
+    "llm",
+    "screen-reader",
+    "streaming",
+    "typescript",
+    "vercel-ai-sdk",
+    "web-accessibility"
+  ],
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
+  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/bhaveshchow20/generative-a11y/issues"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
