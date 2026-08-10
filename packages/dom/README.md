@@ -129,13 +129,21 @@ attention.dispose();
 `getServerSnapshot()`. `AttentionStore` implements
 `ExternalStore<AttentionSnapshot>` and adds:
 
+Subscribers present when a snapshot changes are invoked at most once for that
+transition. Adding, removing, or re-subscribing listeners during notification
+affects later transitions, not the stable listener snapshot already in flight.
+Listener errors remain isolated.
+
 - `registerComposer(element)` and `registerConversation(element)`. Any
   registered element containing `document.activeElement` matches. Composer wins
   when registered areas overlap. Repeated registrations of the same element are
   reference-counted. Each returned unregister function is idempotent.
 - `registerNewestResponse(element)`. Only one newest response is current; a
   later registration replaces the prior target. Unregistering an older target
-  cannot remove its replacement.
+  cannot remove its replacement. Each registration receives a fresh observer
+  epoch, including when the same element is registered again, so queued records
+  from an older registration are ignored. When one callback contains multiple
+  records for the current target, the final record is the current transition.
 - `dispose()`, which is idempotent and removes listeners, registrations,
   subscribers, and the intersection observer. Subscribing or registering after
   disposal throws. Stores created without a document are permanently inert; all
@@ -165,4 +173,7 @@ support produces `"unknown"`, never optimistic `"visible"`.
 optional `intersectionObserverInit`. The factory returns the minimal
 `AttentionIntersectionObserver` interface (`observe`, `unobserve`, and
 `disconnect`), allowing deterministic tests without browser globals. The store
-does not use timers and never changes focus or scroll position.
+does not use timers and never changes focus or scroll position. Observer
+creation, observation, and cleanup failures are treated as unavailable
+intersection evidence and deliberately suppressed; DOM listener and subscriber
+cleanup still completes.

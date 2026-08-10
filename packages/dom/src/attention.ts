@@ -89,7 +89,7 @@ export function createAttentionStore(
     );
     if (sameSnapshot(snapshot, next)) return;
     snapshot = next;
-    for (const listener of listeners) {
+    for (const listener of [...listeners]) {
       try {
         listener();
       } catch {
@@ -124,24 +124,45 @@ export function createAttentionStore(
     };
   };
 
-  const ensureObserver = (): AttentionIntersectionObserver | undefined => {
-    if (observer) return observer;
+  const createObserver = (
+    registration: number,
+    target: Element,
+  ): AttentionIntersectionObserver | undefined => {
     const factory =
       options.createIntersectionObserver ??
       defaultIntersectionObserverFactory(selectedWindow);
     if (!factory) return undefined;
+    let created: AttentionIntersectionObserver | undefined;
     try {
-      observer = factory((entries) => {
-        if (disposed || newestTarget === undefined) return;
-        const entry = entries.find(({ target }) => target === newestTarget);
-        if (!entry) return;
-        newestResult = entry.isIntersecting ? "visible" : "outside";
+      created = factory((entries) => {
+        if (
+          disposed ||
+          registration !== newestRegistration ||
+          newestTarget !== target ||
+          observer !== created
+        ) {
+          return;
+        }
+        let latest: IntersectionObserverEntry | undefined;
+        for (const entry of entries) {
+          if (entry.target === target) latest = entry;
+        }
+        if (!latest) return;
+        newestResult = latest.isIntersecting ? "visible" : "outside";
         update();
       }, options.intersectionObserverInit);
+      created.observe(target);
+      return created;
     } catch {
-      observer = undefined;
+      cleanupObserver(created, target);
+      return undefined;
     }
-    return observer;
+  };
+
+  const stopObserver = (target?: Element): void => {
+    const current = observer;
+    observer = undefined;
+    cleanupObserver(current, target);
   };
 
   return {
@@ -162,10 +183,10 @@ export function createAttentionStore(
     registerNewestResponse(element) {
       if (disposed) throw new Error("AttentionStore is disposed");
       const registration = ++newestRegistration;
-      if (newestTarget) observer?.unobserve(newestTarget);
+      stopObserver(newestTarget);
       newestTarget = element;
       newestResult = "unknown";
-      ensureObserver()?.observe(element);
+      observer = createObserver(registration, element);
       update();
       let registered = true;
       return () => {
@@ -173,7 +194,7 @@ export function createAttentionStore(
         registered = false;
         if (registration !== newestRegistration || newestTarget !== element)
           return;
-        observer?.unobserve(element);
+        stopObserver(element);
         newestTarget = undefined;
         newestResult = "unobserved";
         update();
@@ -185,7 +206,7 @@ export function createAttentionStore(
       listeners.clear();
       composers.clear();
       conversations.clear();
-      observer?.disconnect();
+      stopObserver(newestTarget);
       newestTarget = undefined;
       selectedDocument.removeEventListener("visibilitychange", update);
       selectedWindow?.removeEventListener("focus", update);
@@ -233,6 +254,25 @@ function defaultIntersectionObserverFactory(
   const Constructor = window?.IntersectionObserver;
   if (typeof Constructor !== "function") return undefined;
   return (callback, options) => new Constructor(callback, options);
+}
+
+function cleanupObserver(
+  observer: AttentionIntersectionObserver | undefined,
+  target?: Element,
+): void {
+  if (!observer) return;
+  if (target) {
+    try {
+      observer.unobserve(target);
+    } catch {
+      // Intersection cleanup errors are deliberately suppressed.
+    }
+  }
+  try {
+    observer.disconnect();
+  } catch {
+    // Intersection cleanup errors are deliberately suppressed.
+  }
 }
 
 function readFocusArea(

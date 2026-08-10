@@ -5,6 +5,13 @@ import { createAttentionStore } from "./attention.js";
 import type { AttentionIntersectionObserverFactory } from "./attention.js";
 import * as publicAPI from "./index.js";
 
+function intersectionEntry(
+  target: Element,
+  isIntersecting: boolean,
+): IntersectionObserverEntry {
+  return { target, isIntersecting } as unknown as IntersectionObserverEntry;
+}
+
 describe("createAttentionStore", () => {
   it("is exported from the package entrypoint", () => {
     expect(publicAPI.createAttentionStore).toBe(createAttentionStore);
@@ -188,7 +195,51 @@ describe("createAttentionStore", () => {
       {} as IntersectionObserver,
     );
     expect(store.getSnapshot().newestResponse).toBe("visible");
-    expect(disconnect).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledTimes(3);
+  });
+
+  it("ignores an old observer epoch when the same newest element is re-registered", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><article></article></body></html>",
+    );
+    const document = dom.window.document;
+    const target = document.querySelector("article")!;
+    const callbacks: IntersectionObserverCallback[] = [];
+    const createIntersectionObserver: AttentionIntersectionObserverFactory = (
+      callback,
+    ) => {
+      callbacks.push(callback);
+      return {
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+      };
+    };
+    const store = createAttentionStore({
+      document,
+      createIntersectionObserver,
+    });
+
+    store.registerNewestResponse(target);
+    callbacks[0]?.(
+      [intersectionEntry(target, false)],
+      {} as IntersectionObserver,
+    );
+    expect(store.getSnapshot().newestResponse).toBe("outside");
+
+    store.registerNewestResponse(target);
+    expect(store.getSnapshot().newestResponse).toBe("unknown");
+    callbacks[0]?.(
+      [intersectionEntry(target, true)],
+      {} as IntersectionObserver,
+    );
+    expect(store.getSnapshot().newestResponse).toBe("unknown");
+
+    callbacks[1]?.(
+      [intersectionEntry(target, false), intersectionEntry(target, true)],
+      {} as IntersectionObserver,
+    );
+    expect(store.getSnapshot().newestResponse).toBe("visible");
   });
 
   it("isolates listeners, preserves unchanged snapshot identity, and disposes deterministically", () => {
@@ -246,6 +297,119 @@ describe("createAttentionStore", () => {
     );
     expect(() => store.subscribe(() => undefined)).toThrow("disposed");
     expect(() => store.registerComposer(document.body)).toThrow("disposed");
+  });
+
+  it("finishes listener cleanup when observer disconnect throws", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><main></main></body></html>",
+    );
+    const document = dom.window.document;
+    const removeDocumentListener = vi.spyOn(document, "removeEventListener");
+    const removeWindowListener = vi.spyOn(dom.window, "removeEventListener");
+    const disconnect = vi.fn(() => {
+      throw new Error("observer cleanup failed");
+    });
+    const store = createAttentionStore({
+      document,
+      createIntersectionObserver: () => ({
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect,
+      }),
+    });
+    store.registerNewestResponse(document.querySelector("main")!);
+
+    expect(() => store.dispose()).not.toThrow();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(removeDocumentListener).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
+    expect(removeDocumentListener).toHaveBeenCalledWith(
+      "focusout",
+      expect.any(Function),
+    );
+    expect(removeWindowListener).toHaveBeenCalledWith(
+      "blur",
+      expect.any(Function),
+    );
+    expect(() => store.dispose()).not.toThrow();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
+  it("uses a stable subscriber snapshot during notification", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const document = dom.window.document;
+    let visibility: DocumentVisibilityState = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
+    const store = createAttentionStore({ document });
+    const calls: string[] = [];
+    const second = () => calls.push("second");
+    const added = () => calls.push("added");
+    let unsubscribeSecond: () => void = () => undefined;
+    store.subscribe(() => {
+      calls.push("first");
+      unsubscribeSecond();
+      store.subscribe(second);
+      store.subscribe(added);
+    });
+    unsubscribeSecond = store.subscribe(second);
+
+    visibility = "hidden";
+    document.dispatchEvent(new dom.window.Event("visibilitychange"));
+
+    expect(calls).toEqual(["first", "second"]);
+  });
+
+  it("keeps registration and cleanup consistent when observer methods throw", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><main></main></body></html>",
+    );
+    const document = dom.window.document;
+    const target = document.querySelector("main")!;
+    const failedDisconnect = vi.fn();
+    const unobserve = vi.fn(() => {
+      throw new Error("unobserve failed");
+    });
+    const throwingDisconnect = vi.fn(() => {
+      throw new Error("disconnect failed");
+    });
+    const createIntersectionObserver = vi
+      .fn<AttentionIntersectionObserverFactory>()
+      .mockImplementationOnce(() => ({
+        observe: () => {
+          throw new Error("observe failed");
+        },
+        unobserve: vi.fn(),
+        disconnect: failedDisconnect,
+      }))
+      .mockImplementationOnce(() => ({
+        observe: vi.fn(),
+        unobserve,
+        disconnect: throwingDisconnect,
+      }));
+    const store = createAttentionStore({
+      document,
+      createIntersectionObserver,
+    });
+
+    let unregister: () => void = () => undefined;
+    expect(() => {
+      unregister = store.registerNewestResponse(target);
+    }).not.toThrow();
+    expect(store.getSnapshot().newestResponse).toBe("unknown");
+    expect(failedDisconnect).toHaveBeenCalledOnce();
+    unregister();
+    expect(store.getSnapshot().newestResponse).toBe("unobserved");
+
+    unregister = store.registerNewestResponse(target);
+    expect(() => unregister()).not.toThrow();
+    expect(unobserve).toHaveBeenCalledOnce();
+    expect(throwingDisconnect).toHaveBeenCalledOnce();
+    expect(store.getSnapshot().newestResponse).toBe("unobserved");
   });
 
   it("uses unknown evidence when visibility, focus, or intersection support is unavailable", () => {
