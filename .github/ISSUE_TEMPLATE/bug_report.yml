@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible problem in generative-a11y.
+title: "[Bug]: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping us improve generative-a11y.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description:
+        Link to a repository or provide the smallest reproducible example.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: assistive-technology
+    attributes:
+      label: Does this involve assistive technology?
+      options:
+        - "No"
+        - "Yes — screen reader"
+        - "Yes — voice control"
+        - "Yes — switch or keyboard input"
+        - "Yes — another assistive technology"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description:
+        Browser, framework, runtime, OS, and assistive technology versions.
+    validations:
+      required: true
