@@ -37,6 +37,42 @@ async function flushCleanup(): Promise<void> {
   });
 }
 
+function createIframeRealm() {
+  const iframe = document.createElement("iframe");
+  document.body.append(iframe);
+  const realmDocument = iframe.contentDocument;
+  const realmWindow = iframe.contentWindow;
+  if (!realmDocument || !realmWindow)
+    throw new Error("iframe realm unavailable");
+  const realmStorage = {
+    getItem: vi.fn(() => null as string | null),
+    setItem: vi.fn(),
+  };
+  Object.defineProperty(realmWindow, "localStorage", {
+    configurable: true,
+    value: realmStorage,
+  });
+  const container = realmDocument.createElement("div");
+  realmDocument.body.append(container);
+  return { container, realmDocument, realmStorage, realmWindow };
+}
+
+function createRealmStorageEvent(
+  realmDocument: Document,
+  key: string,
+  newValue: string,
+  storageArea: unknown,
+): Event {
+  const event = realmDocument.createEvent("Event");
+  event.initEvent("storage", false, false);
+  Object.defineProperties(event, {
+    key: { value: key },
+    newValue: { value: newValue },
+    storageArea: { value: storageArea },
+  });
+  return event;
+}
+
 describe("GenerativeA11yProvider", () => {
   it("uses an external preference server snapshot during SSR", () => {
     const store: PreferenceStore = {
@@ -481,6 +517,36 @@ describe("DOM delivery", () => {
 });
 
 describe("preferences", () => {
+  it("normalizes a caller-controlled preference snapshot only once", () => {
+    let snapshotCount = 0;
+    const target = { version: 1, preset: "completion-only" } as const;
+    const preference = new Proxy(target, {
+      ownKeys(value) {
+        snapshotCount += 1;
+        return Reflect.ownKeys(value);
+      },
+      getOwnPropertyDescriptor(value, key) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(value, key);
+        if (key === "preset" && descriptor && snapshotCount > 1) {
+          return { ...descriptor, value: "invalid" };
+        }
+        return descriptor;
+      },
+    });
+    const { result } = renderHook(() => useGenerativeA11yRuntime(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <GenerativeA11yProvider
+          preferences={{ defaultValue: preference }}
+          dom={false}
+        >
+          {children}
+        </GenerativeA11yProvider>
+      ),
+    });
+    expect(result.current.getPolicy().text.strategy).toBe("completion");
+    expect(snapshotCount).toBe(1);
+  });
+
   it("observes defaults and updates without resetting the active runtime", () => {
     let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
     const { result } = renderHook(
@@ -729,6 +795,104 @@ describe("preferences", () => {
 });
 
 describe("attention and bindings", () => {
+  it("derives realm storage while preserving supplied preference events", () => {
+    const { container, realmDocument, realmStorage, realmWindow } =
+      createIframeRealm();
+    const realmEvents = vi.spyOn(realmWindow, "addEventListener");
+    const suppliedEvents = {
+      subscribe: vi.fn(() => () => undefined),
+    };
+    render(
+      <GenerativeA11yProvider
+        preferences={{
+          persistence: { key: "events-only", events: suppliedEvents },
+        }}
+      >
+        <span />
+      </GenerativeA11yProvider>,
+      { container, baseElement: realmDocument.body },
+    );
+    expect(realmStorage.getItem).toHaveBeenCalledWith("events-only");
+    expect(suppliedEvents.subscribe).toHaveBeenCalledTimes(1);
+    expect(
+      realmEvents.mock.calls.filter(([name]) => name === "storage"),
+    ).toHaveLength(0);
+  });
+
+  it("derives realm events for supplied storage and accepts native storageArea", () => {
+    const { container, realmDocument, realmStorage, realmWindow } =
+      createIframeRealm();
+    const suppliedStorage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+    };
+    const realmEvents = vi.spyOn(realmWindow, "addEventListener");
+    let preferenceSnapshot:
+      ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    function Probe() {
+      preferenceSnapshot = useGenerativeA11yPreferences();
+      return null;
+    }
+    render(
+      <GenerativeA11yProvider
+        preferences={{
+          persistence: { key: "storage-only", storage: suppliedStorage },
+        }}
+      >
+        <Probe />
+      </GenerativeA11yProvider>,
+      { container, baseElement: realmDocument.body },
+    );
+    expect(suppliedStorage.getItem).toHaveBeenCalledWith("storage-only");
+    expect(
+      realmEvents.mock.calls.filter(([name]) => name === "storage"),
+    ).toHaveLength(1);
+    act(() => {
+      realmWindow.dispatchEvent(
+        createRealmStorageEvent(
+          realmDocument,
+          "storage-only",
+          JSON.stringify({ version: 1, preset: "completion-only" }),
+          realmStorage,
+        ),
+      );
+    });
+    expect(preferenceSnapshot?.preferences.preset).toBe("completion-only");
+  });
+
+  it("preserves supplied preference storage and events together", () => {
+    const { container, realmDocument, realmStorage, realmWindow } =
+      createIframeRealm();
+    const suppliedStorage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+    };
+    const suppliedEvents = {
+      subscribe: vi.fn(() => () => undefined),
+    };
+    const realmEvents = vi.spyOn(realmWindow, "addEventListener");
+    render(
+      <GenerativeA11yProvider
+        preferences={{
+          persistence: {
+            key: "both",
+            storage: suppliedStorage,
+            events: suppliedEvents,
+          },
+        }}
+      >
+        <span />
+      </GenerativeA11yProvider>,
+      { container, baseElement: realmDocument.body },
+    );
+    expect(suppliedStorage.getItem).toHaveBeenCalledWith("both");
+    expect(realmStorage.getItem).not.toHaveBeenCalled();
+    expect(suppliedEvents.subscribe).toHaveBeenCalledTimes(1);
+    expect(
+      realmEvents.mock.calls.filter(([name]) => name === "storage"),
+    ).toHaveLength(0);
+  });
+
   it("derives owned browser services from the committed region document", () => {
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
