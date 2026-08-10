@@ -15,6 +15,8 @@ import {
   type DOMAnnouncerOptions,
   type DOMRuntimeBinding,
   type PreferenceSchemaV1,
+  type PreferenceStorage,
+  type PreferenceStorageEventSource,
   type PreferenceStore,
   type PreferenceStoreOptions,
 } from "@generative-a11y/dom";
@@ -25,6 +27,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
@@ -137,30 +140,71 @@ class ManagedAttentionStore implements AttentionStore {
 
   getServerSnapshot = (): AttentionSnapshot => UNKNOWN_ATTENTION;
 
-  start(): void {
+  start(defaultDocument?: Document): void {
     if (this.#disposed) throw new Error("AttentionStore is disposed");
     if (this.#store) return;
-    const store = createAttentionStore(this.#options);
-    this.#store = store;
-    this.#unsubscribe = store.subscribe(() =>
-      this.#replace(store.getSnapshot()),
-    );
-    for (const registration of this.#registrations.values()) {
-      registration.unregister = registerAttention(store, registration);
+    const options =
+      this.#options.document === undefined && defaultDocument !== undefined
+        ? { ...this.#options, document: defaultDocument }
+        : this.#options;
+    const store = createAttentionStore(options);
+    let unsubscribe: (() => void) | undefined;
+    const startedRegistrations: Array<{
+      registration: {
+        kind: "composer" | "conversation" | "newest";
+        element: Element;
+        unregister: (() => void) | undefined;
+      };
+      unregister: () => void;
+    }> = [];
+    try {
+      unsubscribe = store.subscribe(() => this.#replace(store.getSnapshot()));
+      for (const registration of this.#registrations.values()) {
+        startedRegistrations.push({
+          registration,
+          unregister: registerAttention(store, registration),
+        });
+      }
+      const nextSnapshot = store.getSnapshot();
+      this.#store = store;
+      this.#unsubscribe = unsubscribe;
+      for (const started of startedRegistrations) {
+        started.registration.unregister = started.unregister;
+      }
+      this.#replace(nextSnapshot);
+    } catch (error) {
+      for (const started of startedRegistrations.reverse()) {
+        try {
+          started.unregister();
+        } catch {
+          // A failed registration cannot block the remaining rollback.
+        }
+      }
+      unsubscribeSafely(unsubscribe);
+      disposeSafely(store);
+      throw error;
     }
-    this.#replace(store.getSnapshot());
   }
 
   stop(): void {
     const store = this.#store;
     if (!store) return;
     this.#store = undefined;
-    this.#unsubscribe?.();
+    try {
+      this.#unsubscribe?.();
+    } catch {
+      // Store cleanup remains best-effort and must continue.
+    }
     this.#unsubscribe = undefined;
     for (const registration of this.#registrations.values()) {
+      try {
+        registration.unregister?.();
+      } catch {
+        // One registration cannot block the remaining cleanup.
+      }
       registration.unregister = undefined;
     }
-    store.dispose();
+    disposeSafely(store);
     this.#replace(UNKNOWN_ATTENTION);
   }
 
@@ -176,8 +220,8 @@ class ManagedAttentionStore implements AttentionStore {
   dispose = (): void => {
     if (this.#disposed) return;
     this.#disposed = true;
-    this.stop();
     this.#listeners.clear();
+    this.stop();
     this.#registrations.clear();
   };
 
@@ -219,6 +263,7 @@ class ManagedPreferenceStore implements PreferenceStore {
   #store: PreferenceStore | undefined;
   #unsubscribe: (() => void) | undefined;
   #disposed = false;
+  #dirtyBeforeStart = false;
 
   constructor(options: PreferenceStoreOptions) {
     this.#options = options;
@@ -245,26 +290,42 @@ class ManagedPreferenceStore implements PreferenceStore {
       return;
     }
     this.#replace(normalizeManagedPreferences(value));
+    this.#dirtyBeforeStart = true;
   };
 
-  start(): void {
+  start(defaultDocument?: Document): void {
     if (this.#disposed) throw new Error("PreferenceStore is disposed");
     if (this.#store) return;
-    const store = createPreferenceStore(this.#options);
-    this.#store = store;
-    this.#unsubscribe = store.subscribe(() =>
-      this.#replace(store.getSnapshot()),
+    const store = createPreferenceStore(
+      preferenceOptionsForDocument(this.#options, defaultDocument),
     );
-    this.#replace(store.getSnapshot());
+    let unsubscribe: (() => void) | undefined;
+    try {
+      if (this.#dirtyBeforeStart) store.setPreferences(this.#snapshot);
+      const nextSnapshot = store.getSnapshot();
+      unsubscribe = store.subscribe(() => this.#replace(store.getSnapshot()));
+      this.#store = store;
+      this.#unsubscribe = unsubscribe;
+      this.#dirtyBeforeStart = false;
+      this.#replace(nextSnapshot);
+    } catch (error) {
+      unsubscribeSafely(unsubscribe);
+      disposeSafely(store);
+      throw error;
+    }
   }
 
   stop(): void {
     const store = this.#store;
     if (!store) return;
     this.#store = undefined;
-    this.#unsubscribe?.();
+    try {
+      this.#unsubscribe?.();
+    } catch {
+      // Store cleanup remains best-effort and must continue.
+    }
     this.#unsubscribe = undefined;
-    store.dispose();
+    disposeSafely(store);
   }
 
   dispose = (): void => {
@@ -281,11 +342,68 @@ class ManagedPreferenceStore implements PreferenceStore {
   }
 }
 
+function preferenceOptionsForDocument(
+  options: PreferenceStoreOptions,
+  defaultDocument: Document | undefined,
+): PreferenceStoreOptions {
+  const persistence = options.persistence;
+  const defaultView = defaultDocument?.defaultView;
+  if (
+    persistence === undefined ||
+    persistence.storage !== undefined ||
+    persistence.events !== undefined ||
+    !defaultView
+  ) {
+    return options;
+  }
+
+  let storage: PreferenceStorage;
+  try {
+    storage = defaultView.localStorage;
+  } catch (error) {
+    storage = {
+      getItem() {
+        throw error;
+      },
+      setItem() {
+        throw error;
+      },
+    };
+  }
+  const events: PreferenceStorageEventSource = {
+    subscribe(listener) {
+      const handle = (event: StorageEvent): void => listener(event);
+      defaultView.addEventListener("storage", handle);
+      return () => defaultView.removeEventListener("storage", handle);
+    },
+  };
+  return {
+    ...options,
+    persistence: { ...persistence, storage, events },
+  };
+}
+
 function safelyNotify(listener: () => void): void {
   try {
     listener();
   } catch {
     // One external-store observer cannot block the remaining observers.
+  }
+}
+
+function disposeSafely(resource: { dispose(): void } | undefined): void {
+  try {
+    resource?.dispose();
+  } catch {
+    // Cleanup errors cannot prevent disposal of sibling resources.
+  }
+}
+
+function unsubscribeSafely(unsubscribe: (() => void) | undefined): void {
+  try {
+    unsubscribe?.();
+  } catch {
+    // Cleanup errors cannot replace the startup error being rolled back.
   }
 }
 
@@ -342,6 +460,20 @@ const GenerativeA11yContext = createContext<GenerativeA11yContextValue | null>(
   null,
 );
 
+const subscribeInertly = (): (() => void) => () => undefined;
+const getDefaultPreferences = (): PreferenceSchemaV1 => defaultPreferences;
+
+interface ProviderResources {
+  readonly suppliedRuntime: GenerativeA11yRuntime | undefined;
+  readonly ownsRuntime: boolean;
+  readonly runtime: GenerativeA11yRuntime;
+  readonly dom: false | GenerativeA11yDOMOptions;
+  readonly ownsAttention: boolean;
+  readonly attentionStore: AttentionStore;
+  readonly ownsPreferences: boolean;
+  readonly preferenceStore: PreferenceStore;
+}
+
 export function GenerativeA11yProvider({
   children,
   runtime: suppliedRuntime,
@@ -352,33 +484,33 @@ export function GenerativeA11yProvider({
   preferenceStore: suppliedPreferenceStore,
   ...runtimeOptions
 }: GenerativeA11yProviderProps) {
-  const initial = useRef<
-    | {
-        suppliedRuntime: GenerativeA11yRuntime | undefined;
-        ownsRuntime: boolean;
-        runtime: GenerativeA11yRuntime;
-        dom: false | GenerativeA11yDOMOptions;
-        ownsAttention: boolean;
-        attentionStore: AttentionStore;
-        ownsPreferences: boolean;
-        preferenceStore: PreferenceStore;
-      }
-    | undefined
-  >(undefined);
-
-  if (!initial.current) {
-    const preferenceOptions = preferences ?? {};
-    const preferenceStore =
-      suppliedPreferenceStore ?? new ManagedPreferenceStore(preferenceOptions);
+  const [preferenceResource] = useState(() => ({
+    configuresRuntime:
+      suppliedRuntime === undefined &&
+      runtimeOptions.preset === undefined &&
+      runtimeOptions.policy === undefined,
+    owns: suppliedPreferenceStore === undefined,
+    store:
+      suppliedPreferenceStore ?? new ManagedPreferenceStore(preferences ?? {}),
+  }));
+  const initialPreferenceSnapshot = useSyncExternalStore(
+    preferenceResource.configuresRuntime
+      ? preferenceResource.store.subscribe
+      : subscribeInertly,
+    preferenceResource.configuresRuntime
+      ? preferenceResource.store.getSnapshot
+      : getDefaultPreferences,
+    preferenceResource.configuresRuntime
+      ? preferenceResource.store.getServerSnapshot
+      : getDefaultPreferences,
+  );
+  const [resources] = useState<ProviderResources>(() => {
     const preferenceConfiguration = preferencesToCoreConfiguration(
-      preferenceStore.getSnapshot(),
+      initialPreferenceSnapshot,
     );
-    const hasExplicitRuntimeConfiguration =
-      runtimeOptions.preset !== undefined ||
-      runtimeOptions.policy !== undefined;
     const ownedRuntimeOptions: GenerativeA11yOptions = {
       ...runtimeOptions,
-      ...(!hasExplicitRuntimeConfiguration ? preferenceConfiguration : {}),
+      ...(preferenceResource.configuresRuntime ? preferenceConfiguration : {}),
     };
     const runtime =
       suppliedRuntime ?? createGenerativeA11y(ownedRuntimeOptions);
@@ -387,7 +519,7 @@ export function GenerativeA11yProvider({
       (attention === false
         ? new InertAttentionStore()
         : new ManagedAttentionStore(attention ?? {}));
-    initial.current = {
+    return {
       suppliedRuntime,
       ownsRuntime: suppliedRuntime === undefined,
       runtime,
@@ -395,50 +527,32 @@ export function GenerativeA11yProvider({
       ownsAttention:
         suppliedAttentionStore === undefined && attention !== false,
       attentionStore,
-      ownsPreferences: suppliedPreferenceStore === undefined,
-      preferenceStore,
+      ownsPreferences: preferenceResource.owns,
+      preferenceStore: preferenceResource.store,
     };
-  }
-
-  const resources = initial.current;
+  });
   if (suppliedRuntime !== resources.suppliedRuntime) {
     throw new Error(
       "GenerativeA11yProvider runtime cannot change without a keyed remount",
     );
   }
 
-  const context = useRef<GenerativeA11yContextValue | undefined>(undefined);
-  context.current ??= Object.freeze({
-    runtime: resources.runtime,
-    attentionStore: resources.attentionStore,
-    preferenceStore: resources.preferenceStore,
-  });
-
-  const lifecycleEpoch = useRef(0);
-  useEffect(() => {
-    lifecycleEpoch.current += 1;
-    if (resources.ownsAttention)
-      (resources.attentionStore as ManagedAttentionStore).start();
-    if (resources.ownsPreferences)
-      (resources.preferenceStore as ManagedPreferenceStore).start();
-    return () => {
-      const cleanupEpoch = ++lifecycleEpoch.current;
-      queueMicrotask(() => {
-        if (lifecycleEpoch.current !== cleanupEpoch) {
-          return;
-        }
-        if (resources.ownsAttention) resources.attentionStore.dispose();
-        if (resources.ownsPreferences) resources.preferenceStore.dispose();
-        if (resources.ownsRuntime) resources.runtime.dispose();
-      });
-    };
-  }, [resources]);
+  const context = useMemo<GenerativeA11yContextValue>(
+    () =>
+      Object.freeze({
+        runtime: resources.runtime,
+        attentionStore: resources.attentionStore,
+        preferenceStore: resources.preferenceStore,
+      }),
+    [resources],
+  );
 
   const politeRegion = useRef<HTMLElement | null>(null);
   const assertiveRegion = useRef<HTMLElement | null>(null);
   const binding = useRef<DOMRuntimeBinding | undefined>(undefined);
+  const committedDocument = useRef<Document | undefined>(undefined);
   const reconcileBinding = useCallback(() => {
-    binding.current?.dispose();
+    disposeSafely(binding.current);
     binding.current = undefined;
     if (
       resources.dom !== false &&
@@ -457,6 +571,7 @@ export function GenerativeA11yProvider({
   const setPoliteRegion = useCallback(
     (node: HTMLDivElement | null) => {
       if (politeRegion.current === node) return;
+      if (node) committedDocument.current ??= node.ownerDocument;
       politeRegion.current = node;
       reconcileBinding();
     },
@@ -471,8 +586,41 @@ export function GenerativeA11yProvider({
     [reconcileBinding],
   );
 
+  const lifecycleEpoch = useRef(0);
+  useEffect(() => {
+    lifecycleEpoch.current += 1;
+    try {
+      if (resources.ownsAttention)
+        (resources.attentionStore as ManagedAttentionStore).start(
+          committedDocument.current,
+        );
+      if (resources.ownsPreferences)
+        (resources.preferenceStore as ManagedPreferenceStore).start(
+          committedDocument.current,
+        );
+    } catch (error) {
+      disposeSafely(binding.current);
+      binding.current = undefined;
+      if (resources.ownsAttention) disposeSafely(resources.attentionStore);
+      if (resources.ownsPreferences) disposeSafely(resources.preferenceStore);
+      if (resources.ownsRuntime) disposeSafely(resources.runtime);
+      throw error;
+    }
+    return () => {
+      const cleanupEpoch = ++lifecycleEpoch.current;
+      queueMicrotask(() => {
+        if (lifecycleEpoch.current !== cleanupEpoch) return;
+        disposeSafely(binding.current);
+        binding.current = undefined;
+        if (resources.ownsAttention) disposeSafely(resources.attentionStore);
+        if (resources.ownsPreferences) disposeSafely(resources.preferenceStore);
+        if (resources.ownsRuntime) disposeSafely(resources.runtime);
+      });
+    };
+  }, [resources]);
+
   return (
-    <GenerativeA11yContext.Provider value={context.current}>
+    <GenerativeA11yContext.Provider value={context}>
       {resources.dom === false ? null : (
         <>
           <div

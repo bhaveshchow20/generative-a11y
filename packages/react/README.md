@@ -98,6 +98,9 @@ provider has isolated runtime, store, and live-region state.
 For an owned runtime, an explicit `preset` or `policy` takes precedence. If
 neither is supplied, the initial external preference-store snapshot or the owned
 store's configured default is converted with `preferencesToCoreConfiguration`. A
+server renderer reads `getServerSnapshot`; a client renderer reads `getSnapshot`
+through `useSyncExternalStore`. Preference snapshots are not read for runtime
+configuration when a runtime, preset, or policy already makes them irrelevant. A
 persisted browser value loads after the client commit; it updates the preference
 hook but never mutates, disposes, or recreates the active runtime. The host can
 apply it to a future deliberate runtime replacement.
@@ -153,8 +156,19 @@ DOM binding.
 
 Owned attention and preference stores start after a client commit. Before then,
 their managed external stores expose stable server snapshots and retain binding
-registrations for replay. Storage failures are isolated by the DOM preference
-store and do not break rendering.
+registrations and valid preference writes for replay. Store startup is
+transactional: if a later owned resource fails, earlier listeners and observers
+are removed and the owned runtime is terminally disposed. Storage failures are
+isolated by the DOM preference store and do not break rendering.
+
+By default, the committed live regions select the browser realm. Owned attention
+observes their `ownerDocument`; opt-in default preference persistence uses that
+document's `defaultView.localStorage` and `storage` events. Explicitly injected
+attention documents, storage, and event sources still take precedence. With
+`dom={false}`, no region exists from which to discover a realm. A provider
+rendered into a non-global document in that mode must inject
+`attention.document` and preference persistence adapters. This does not require
+an extra visible or wrapper element.
 
 ## Strict Mode and React Activity
 
@@ -176,7 +190,7 @@ The package exports `GenerativeA11yProviderProps`, `GenerativeA11yDOMOptions`,
 `GenerativeA11yContextValue`, `GenerativeA11yPreferencesResult`,
 `GenerativeA11yBindings`, `GenerativeA11yComposerProps`,
 `GenerativeA11yConversationProps`, and `GenerativeA11yNewestResponseProps` for
-typed host integrations. Framework- independent runtime, DOM, attention, and
+typed host integrations. Framework-independent runtime, DOM, attention, and
 preference types continue to come from their owning packages.
 
 ## Limitations
