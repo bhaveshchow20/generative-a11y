@@ -197,6 +197,92 @@ describe("createDOMAnnouncer", () => {
     },
   );
 
+  it("isolates a throwing diagnostic callback from notifier delivery", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const onDiagnostic = vi.fn(() => {
+      throw new Error("diagnostic failed");
+    });
+    const announcer = createDOMAnnouncer({
+      document: dom.window.document,
+      onDiagnostic,
+    });
+    const region = announcer.getRegions()?.polite;
+    const notify = vi.fn();
+    Object.defineProperty(region, "ariaNotify", { value: notify });
+
+    expect(announcer.announce(intent("First"))).toEqual({
+      status: "notified",
+      method: "aria-notify",
+      channel: "polite",
+    });
+    expect(announcer.announce(intent("Second"))).toEqual({
+      status: "notified",
+      method: "aria-notify",
+      channel: "polite",
+    });
+    expect(notify).toHaveBeenCalledTimes(2);
+    expect(onDiagnostic).toHaveBeenCalledTimes(2);
+    expect(region?.textContent).toBe("");
+  });
+
+  it.each([
+    [
+      "hostile value",
+      () => ({
+        [Symbol.toPrimitive]() {
+          throw new Error("cannot stringify");
+        },
+      }),
+    ],
+    [
+      "hostile Error subclass",
+      () => {
+        const cause = new Error();
+        Object.defineProperties(cause, {
+          name: {
+            get() {
+              throw new Error("cannot read name");
+            },
+          },
+          message: {
+            get() {
+              throw new Error("cannot read message");
+            },
+          },
+        });
+        return cause;
+      },
+    ],
+  ] as const)(
+    "disables a throwing ariaNotify accessor with a serializable %s diagnostic",
+    (_label, createCause) => {
+      const dom = new JSDOM("<!doctype html><html><body></body></html>");
+      const announcer = createDOMAnnouncer({ document: dom.window.document });
+      const region = announcer.getRegions()?.polite;
+      const accessor = vi.fn(() => {
+        throw createCause();
+      });
+      Object.defineProperty(region, "ariaNotify", { get: accessor });
+
+      const first = announcer.announce(intent("First"));
+
+      expect(first.status).toBe("mutated");
+      expect(first.method).toBe("live-region");
+      expect(typeof first.error?.name).toBe("string");
+      expect(typeof first.error?.message).toBe("string");
+      expect(() => JSON.stringify(first)).not.toThrow();
+      expect(region?.textContent).toBe("First");
+
+      expect(announcer.announce(intent("Second"))).toEqual({
+        status: "mutated",
+        method: "live-region",
+        channel: "polite",
+      });
+      expect(region?.textContent).toBe("Second");
+      expect(accessor).toHaveBeenCalledOnce();
+    },
+  );
+
   it("disables a throwing notifier and falls back for this and later intents", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const diagnostics: unknown[] = [];
@@ -273,10 +359,10 @@ describe("createDOMAnnouncer", () => {
 
   it("removes prohibited semantics and hiding from supplied regions", () => {
     const dom = new JSDOM(`<!doctype html><html><body>
-      <div id="p" role="status" aria-busy="true" aria-hidden="true" hidden
-        style="display: none; visibility: hidden"></div>
-      <div id="a" role="alert" aria-busy="true" aria-hidden="true" hidden
-        style="display: none; visibility: hidden"></div>
+      <div id="p" role="status" aria-busy="true" aria-hidden="true" hidden inert
+        style="display: none; visibility: hidden; content-visibility: hidden"></div>
+      <div id="a" role="alert" aria-busy="true" aria-hidden="true" hidden inert
+        style="display: none; visibility: hidden; content-visibility: hidden"></div>
     </body></html>`);
     const polite = dom.window.document.querySelector<HTMLElement>("#p");
     const assertive = dom.window.document.querySelector<HTMLElement>("#a");
@@ -289,9 +375,29 @@ describe("createDOMAnnouncer", () => {
       expect(region.hasAttribute("aria-busy")).toBe(false);
       expect(region.hasAttribute("hidden")).toBe(false);
       expect(region.hasAttribute("aria-hidden")).toBe(false);
+      expect(region.hasAttribute("inert")).toBe(false);
+      expect(region.inert).toBe(false);
       expect(region.style.display).toBe("");
       expect(region.style.visibility).toBe("");
+      expect(region.style.contentVisibility).toBe("");
     }
+  });
+
+  it("rejects one supplied element used for both channels before mutation", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><div id='region' role='status'></div></body></html>",
+    );
+    const region = dom.window.document.querySelector<HTMLElement>("#region");
+    if (!region) throw new Error("fixture region missing");
+    const originalMarkup = region.outerHTML;
+
+    expect(() =>
+      createDOMAnnouncer({
+        regions: { polite: region, assertive: region },
+      }),
+    ).toThrow(TypeError);
+    expect(region.outerHTML).toBe(originalMarkup);
+    expect(dom.window.document.body.children).toHaveLength(1);
   });
 
   it("treats markup-shaped announcement text as literal text", () => {
@@ -365,6 +471,19 @@ describe("createDOMAnnouncer", () => {
 });
 
 describe("connectRuntimeToDOM", () => {
+  it("removes owned regions when subscribing to a disposed runtime fails", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const runtime = createGenerativeA11y({
+      onAnnouncement: () => undefined,
+    });
+    runtime.dispose();
+
+    expect(() =>
+      connectRuntimeToDOM(runtime, { document: dom.window.document }),
+    ).toThrow("Cannot subscribe to a disposed generative-a11y runtime");
+    expect(dom.window.document.body.children).toHaveLength(0);
+  });
+
   it("forwards once, unsubscribes deterministically, and never disposes the runtime", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const clock = new ManualClock();

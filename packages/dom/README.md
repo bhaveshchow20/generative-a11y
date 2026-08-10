@@ -34,7 +34,8 @@ runtime.dispose();
 
 `DOMRuntimeBinding` exposes the connected `announcer` and an idempotent
 `dispose()` method. Once disposed, the binding cannot mutate its regions even if
-the runtime was already delivering an event.
+the runtime was already delivering an event. If subscription fails, any regions
+created for the attempted binding are removed before the error is rethrown.
 
 ## Create an announcer directly
 
@@ -72,9 +73,10 @@ announcer.dispose();
   `"live-region"` always uses text mutation.
 - `regions`: a pre-mounted `DOMLiveRegions` pair with `polite` and `assertive`
   elements. Required live-region attributes and visually hidden inline styles
-  are applied, but the elements remain owned by the caller.
+  are applied, accessibility-tree hiding is removed, and the elements remain
+  owned by the caller. The two channels must use distinct elements.
 - `onDiagnostic`: a callback invoked with the `DOMDeliveryResult` for each
-  attempted announcement.
+  attempted announcement. Callback errors are isolated from delivery.
 
 If `ariaNotify` throws, that notifier is disabled for the announcer. The same
 intent is delivered once through live-region mutation, and later intents remain

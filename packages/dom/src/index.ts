@@ -38,6 +38,14 @@ export interface DOMRuntimeBinding {
 export function createDOMAnnouncer(
   options: DOMAnnouncerOptions = {},
 ): DOMAnnouncer {
+  if (
+    options.regions !== undefined &&
+    options.regions.polite === options.regions.assertive
+  ) {
+    throw new TypeError(
+      "Polite and assertive regions must be distinct elements",
+    );
+  }
   const selectedDocument =
     options.document ??
     options.regions?.polite.ownerDocument ??
@@ -53,7 +61,11 @@ export function createDOMAnnouncer(
   let disposed = false;
 
   const report = (result: DOMDeliveryResult): DOMDeliveryResult => {
-    options.onDiagnostic?.(result);
+    try {
+      options.onDiagnostic?.(result);
+    } catch {
+      // Diagnostics are observational and cannot affect delivery.
+    }
     return result;
   };
 
@@ -69,25 +81,27 @@ export function createDOMAnnouncer(
       if (regions) {
         const region = regions[intent.channel];
         applyLocale(region, intent.locale);
-        const ariaNotify = (region as AriaNotifyRegion).ariaNotify;
         let error: DOMDeliveryResult["error"];
-        if (
-          notifierEnabled &&
-          options.mode !== "live-region" &&
-          typeof ariaNotify === "function"
-        ) {
+        if (notifierEnabled && options.mode !== "live-region") {
+          let notified = false;
           try {
-            ariaNotify.call(region, intent.text, {
-              priority: intent.channel === "assertive" ? "high" : "normal",
-            });
+            const ariaNotify = (region as AriaNotifyRegion).ariaNotify;
+            if (typeof ariaNotify === "function") {
+              ariaNotify.call(region, intent.text, {
+                priority: intent.channel === "assertive" ? "high" : "normal",
+              });
+              notified = true;
+            }
+          } catch (cause) {
+            notifierEnabled = false;
+            error = serializeError(cause);
+          }
+          if (notified) {
             return report({
               status: "notified",
               method: "aria-notify",
               channel: intent.channel,
             });
-          } catch (cause) {
-            notifierEnabled = false;
-            error = serializeError(cause);
           }
         }
         region.textContent = intent.text;
@@ -121,10 +135,37 @@ export function createDOMAnnouncer(
 function serializeError(
   error: unknown,
 ): NonNullable<DOMDeliveryResult["error"]> {
-  if (error instanceof Error) {
-    return { name: error.name, message: error.message };
+  try {
+    if (error instanceof Error) {
+      return {
+        name: readErrorString(error, "name", "Error"),
+        message: readErrorString(error, "message", "Unknown error"),
+      };
+    }
+  } catch {
+    // Hostile proxies can throw during instanceof checks.
   }
-  return { name: "Error", message: String(error) };
+  return { name: "Error", message: safeString(error, "Unknown error") };
+}
+
+function readErrorString(
+  error: Error,
+  property: "name" | "message",
+  fallback: string,
+): string {
+  try {
+    return safeString(error[property], fallback);
+  } catch {
+    return fallback;
+  }
+}
+
+function safeString(value: unknown, fallback: string): string {
+  try {
+    return String(value);
+  } catch {
+    return fallback;
+  }
 }
 
 interface AriaNotifyRegion extends HTMLElement {
@@ -153,8 +194,11 @@ function configureRegion(
   region.removeAttribute("aria-busy");
   region.removeAttribute("hidden");
   region.removeAttribute("aria-hidden");
+  region.inert = false;
+  region.removeAttribute("inert");
   region.style.removeProperty("display");
   region.style.removeProperty("visibility");
+  region.style.removeProperty("content-visibility");
   region.setAttribute("aria-live", channel);
   region.setAttribute("aria-atomic", "true");
   region.setAttribute("aria-relevant", "additions text");
@@ -182,9 +226,15 @@ export function connectRuntimeToDOM(
 ): DOMRuntimeBinding {
   const announcer = createDOMAnnouncer(options);
   let disposed = false;
-  const unsubscribe = runtime.subscribeAnnouncements((intent) => {
-    if (!disposed) announcer.announce(intent);
-  });
+  let unsubscribe: () => void;
+  try {
+    unsubscribe = runtime.subscribeAnnouncements((intent) => {
+      if (!disposed) announcer.announce(intent);
+    });
+  } catch (cause) {
+    announcer.dispose();
+    throw cause;
+  }
 
   return {
     announcer,
