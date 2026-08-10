@@ -13,6 +13,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const packages = [
   ["@generative-a11y/core", "createGenerativeA11y"],
   ["@generative-a11y/dom", "createDOMAnnouncer"],
+  ["@generative-a11y/react", "GenerativeA11yProvider"],
 ];
 
 const workspaceExports = new Map(packages);
@@ -50,7 +51,6 @@ try {
     return join(archiveRoot, archive);
   };
 
-  const coreArchive = archiveFor("@generative-a11y/core");
   const dependencies = Object.fromEntries(
     [...workspaceExports.keys()].map((packageName) => [
       packageName,
@@ -72,11 +72,14 @@ try {
       2,
     ),
   );
-  // The DOM archive contains the rewritten 0.0.0 workspace dependency. Point
-  // that dependency at the packed core archive without consulting a registry.
+  // Workspace dependencies in the archives are rewritten to 0.0.0. Point
+  // those dependencies at local archives without consulting a registry.
+  const overrides = ["@generative-a11y/core", "@generative-a11y/dom"]
+    .map((packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`)
+    .join("\n");
   await writeFile(
     join(projectRoot, "pnpm-workspace.yaml"),
-    `overrides:\n  "@generative-a11y/core": "file:${coreArchive}"\n`,
+    `overrides:\n${overrides}\n`,
   );
 
   await execFileAsync("pnpm", ["install", "--lockfile=false", "--offline"], {
