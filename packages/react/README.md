@@ -164,7 +164,11 @@ isolated by the DOM preference store and do not break rendering.
 By default, the committed live regions select the browser realm. Owned attention
 observes their `ownerDocument`; opt-in default preference persistence uses that
 document's `defaultView.localStorage` and `storage` events. Explicitly injected
-attention documents, storage, and event sources still take precedence. With
+attention documents, storage, and event sources still take precedence. When a
+persistence configuration supplies only storage or only an event source, React
+preserves it and derives just the missing counterpart from the committed realm.
+Derived native events normalize their `storageArea` to the effective storage
+adapter after rejecting events from a different native storage area. With
 `dom={false}`, no region exists from which to discover a realm. A provider
 rendered into a non-global document in that mode must inject
 `attention.document` and preference persistence adapters. This does not require

@@ -297,7 +297,11 @@ class ManagedPreferenceStore implements PreferenceStore {
     if (this.#disposed) throw new Error("PreferenceStore is disposed");
     if (this.#store) return;
     const store = createPreferenceStore(
-      preferenceOptionsForDocument(this.#options, defaultDocument),
+      preferenceOptionsForDocument(
+        this.#options,
+        this.#serverSnapshot,
+        defaultDocument,
+      ),
     );
     let unsubscribe: (() => void) | undefined;
     try {
@@ -344,42 +348,88 @@ class ManagedPreferenceStore implements PreferenceStore {
 
 function preferenceOptionsForDocument(
   options: PreferenceStoreOptions,
+  defaultValue: PreferenceSchemaV1,
   defaultDocument: Document | undefined,
 ): PreferenceStoreOptions {
   const persistence = options.persistence;
   const defaultView = defaultDocument?.defaultView;
-  if (
-    persistence === undefined ||
-    persistence.storage !== undefined ||
-    persistence.events !== undefined ||
-    !defaultView
-  ) {
-    return options;
+  if (persistence === undefined || !defaultView) {
+    return { ...options, defaultValue };
   }
 
-  let storage: PreferenceStorage;
+  const needsStorage = persistence.storage === undefined;
+  const needsEvents = persistence.events === undefined;
+  if (!needsStorage && !needsEvents) {
+    return { ...options, defaultValue };
+  }
+
+  const realmStorage = resolveRealmStorage(defaultView);
+  const storage = persistence.storage ?? realmStorage.storage;
+  const events =
+    persistence.events ??
+    createRealmStorageEvents(defaultView, storage, realmStorage.nativeStorage);
+  return {
+    ...options,
+    defaultValue,
+    persistence: { ...persistence, storage, events },
+  };
+}
+
+function resolveRealmStorage(defaultView: Window): {
+  storage: PreferenceStorage;
+  nativeStorage?: PreferenceStorage;
+} {
   try {
-    storage = defaultView.localStorage;
+    const storage = defaultView.localStorage;
+    return { storage, nativeStorage: storage };
   } catch (error) {
-    storage = {
-      getItem() {
-        throw error;
-      },
-      setItem() {
-        throw error;
+    return {
+      storage: {
+        getItem() {
+          throw error;
+        },
+        setItem() {
+          throw error;
+        },
       },
     };
   }
-  const events: PreferenceStorageEventSource = {
+}
+
+function createRealmStorageEvents(
+  defaultView: Window,
+  effectiveStorage: PreferenceStorage,
+  nativeStorage: PreferenceStorage | undefined,
+): PreferenceStorageEventSource {
+  return {
     subscribe(listener) {
-      const handle = (event: StorageEvent): void => listener(event);
+      const handle = (event: StorageEvent): void => {
+        let storageArea: Storage | null;
+        try {
+          storageArea = event.storageArea;
+        } catch {
+          storageArea = null;
+        }
+        if (
+          storageArea !== null &&
+          nativeStorage !== undefined &&
+          storageArea !== nativeStorage
+        ) {
+          return;
+        }
+        listener({
+          get key() {
+            return event.key;
+          },
+          get newValue() {
+            return event.newValue;
+          },
+          storageArea: effectiveStorage,
+        });
+      };
       defaultView.addEventListener("storage", handle);
       return () => defaultView.removeEventListener("storage", handle);
     },
-  };
-  return {
-    ...options,
-    persistence: { ...persistence, storage, events },
   };
 }
 
@@ -420,26 +470,12 @@ function samePreferences(
 function normalizeManagedPreferences(
   value: PreferenceSchemaV1,
 ): PreferenceSchemaV1 {
-  // The DOM mapping performs the package's strict schema validation without
-  // installing storage or browser listeners.
-  preferencesToCoreConfiguration(value);
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  const preset = descriptors.preset?.value as PreferenceSchemaV1["preset"];
-  if (preset === "completion-only") {
-    return Object.freeze({ version: 1, preset: "completion-only" });
+  const store = createPreferenceStore({ defaultValue: value });
+  try {
+    return store.getSnapshot();
+  } finally {
+    disposeSafely(store);
   }
-  return Object.freeze({
-    version: 1,
-    preset,
-    streaming: descriptors.streaming?.value as Exclude<
-      PreferenceSchemaV1,
-      { preset: "completion-only" }
-    >["streaming"],
-    tools: descriptors.tools?.value as Exclude<
-      PreferenceSchemaV1,
-      { preset: "completion-only" }
-    >["tools"],
-  });
 }
 
 function registerAttention(
