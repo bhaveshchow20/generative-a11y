@@ -76,6 +76,8 @@ this slice are test tools that provide a distinct evidence layer.
 
 `@generative-a11y/dom` depends on core and browser platform APIs only. React,
 React Aria, Testing Library, Playwright, and axe-core do not enter its
-production bundle. Testing Library, Playwright, and axe-core are repository
-development dependencies because each supports a separate, meaningful test layer
-described in [testing strategy](testing-strategy.md).
+production bundle. The DOM stack adds only jsdom for deterministic DOM tests.
+Testing Library will be added with the React stack, while Playwright and
+axe-core will be added with the browser-integration stack described in
+[testing strategy](testing-strategy.md); they are not dependencies of the DOM
+stack merely because later phases plan to use them.
