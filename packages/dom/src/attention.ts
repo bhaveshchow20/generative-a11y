@@ -100,11 +100,50 @@ export function createAttentionStore(
   const handleFocusOut = (event: FocusEvent) => {
     if (event.relatedTarget === null) update();
   };
-  selectedDocument.addEventListener("visibilitychange", update);
-  selectedWindow?.addEventListener("focus", update);
-  selectedWindow?.addEventListener("blur", update);
-  selectedDocument.addEventListener("focusin", update);
-  selectedDocument.addEventListener("focusout", handleFocusOut);
+  const listenerCleanups: Array<() => void> = [];
+  const installListener = (install: () => void, cleanup: () => void): void => {
+    // Register cleanup first because a hostile EventTarget can install and then
+    // throw from addEventListener(). Removing a listener that was not installed
+    // is harmless, while omitting cleanup would leak the accepted listener.
+    listenerCleanups.push(cleanup);
+    install();
+  };
+  const cleanupListeners = (): void => {
+    for (const cleanup of listenerCleanups.splice(0).reverse()) {
+      try {
+        cleanup();
+      } catch {
+        // One hostile removal cannot strand the remaining listeners.
+      }
+    }
+  };
+  try {
+    installListener(
+      () => selectedDocument.addEventListener("visibilitychange", update),
+      () => selectedDocument.removeEventListener("visibilitychange", update),
+    );
+    if (selectedWindow) {
+      installListener(
+        () => selectedWindow.addEventListener("focus", update),
+        () => selectedWindow.removeEventListener("focus", update),
+      );
+      installListener(
+        () => selectedWindow.addEventListener("blur", update),
+        () => selectedWindow.removeEventListener("blur", update),
+      );
+    }
+    installListener(
+      () => selectedDocument.addEventListener("focusin", update),
+      () => selectedDocument.removeEventListener("focusin", update),
+    );
+    installListener(
+      () => selectedDocument.addEventListener("focusout", handleFocusOut),
+      () => selectedDocument.removeEventListener("focusout", handleFocusOut),
+    );
+  } catch (error) {
+    cleanupListeners();
+    throw error;
+  }
 
   const register = (
     elements: Map<Element, number>,
@@ -208,11 +247,7 @@ export function createAttentionStore(
       conversations.clear();
       stopObserver(newestTarget);
       newestTarget = undefined;
-      selectedDocument.removeEventListener("visibilitychange", update);
-      selectedWindow?.removeEventListener("focus", update);
-      selectedWindow?.removeEventListener("blur", update);
-      selectedDocument.removeEventListener("focusin", update);
-      selectedDocument.removeEventListener("focusout", handleFocusOut);
+      cleanupListeners();
     },
   };
 }

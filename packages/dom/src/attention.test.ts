@@ -91,6 +91,48 @@ describe("createAttentionStore", () => {
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
+  it("rolls back installed listeners when construction fails partway", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const document = dom.window.document;
+    const originalDocumentAdd = document.addEventListener.bind(document);
+    const originalDocumentRemove = document.removeEventListener.bind(document);
+    const originalWindowAdd = dom.window.addEventListener.bind(dom.window);
+    const originalWindowRemove = dom.window.removeEventListener.bind(
+      dom.window,
+    );
+    const documentRemovals: string[] = [];
+    const windowRemovals: string[] = [];
+
+    vi.spyOn(document, "addEventListener").mockImplementation(
+      (type, listener, options) => {
+        if (type === "focusin") throw new Error("focus listener rejected");
+        originalDocumentAdd(type, listener, options);
+      },
+    );
+    vi.spyOn(document, "removeEventListener").mockImplementation(
+      (type, listener, options) => {
+        documentRemovals.push(type);
+        if (type === "focusin") throw new Error("focus removal rejected");
+        originalDocumentRemove(type, listener, options);
+      },
+    );
+    vi.spyOn(dom.window, "addEventListener").mockImplementation(
+      (type, listener, options) => originalWindowAdd(type, listener, options),
+    );
+    vi.spyOn(dom.window, "removeEventListener").mockImplementation(
+      (type, listener, options) => {
+        windowRemovals.push(type);
+        originalWindowRemove(type, listener, options);
+      },
+    );
+
+    expect(() => createAttentionStore({ document })).toThrow(
+      "focus listener rejected",
+    );
+    expect(documentRemovals).toEqual(["focusin", "visibilitychange"]);
+    expect(windowRemovals).toEqual(["blur", "focus"]);
+  });
+
   it("aggregates registered focus areas and gives nested composers precedence", () => {
     const dom = new JSDOM(`<!doctype html><html><body>
       <section id="conversation"><textarea id="composer"></textarea></section>
