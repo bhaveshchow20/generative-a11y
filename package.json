@@ -41,6 +41,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "package:check": "pnpm --filter './packages/*' exec publint && pnpm smoke:package",
+    "pretest": "pnpm build",
     "pretypecheck": "pnpm build",
     "release": "pnpm check && changeset publish",
     "smoke:package": "node scripts/package-smoke.mjs",
