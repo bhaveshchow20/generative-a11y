@@ -3,6 +3,16 @@ import type {
   GenerativeA11yRuntime,
 } from "@generative-a11y/core";
 
+export {
+  createAttentionStore,
+  type AttentionIntersectionObserver,
+  type AttentionIntersectionObserverFactory,
+  type AttentionSnapshot,
+  type AttentionStore,
+  type AttentionStoreOptions,
+  type ExternalStore,
+} from "./attention.js";
+
 export type DOMAnnouncementMode = "auto" | "aria-notify" | "live-region";
 
 export interface DOMLiveRegions {

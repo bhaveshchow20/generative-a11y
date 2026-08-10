@@ -100,3 +100,69 @@ on that fallback path.
 Live-region delivery sets or clears `lang` from the intent locale and replaces
 the region's text content on every delivery, including repeated identical text.
 Announcement strings are inserted as literal text, never HTML.
+
+## Observe attention signals
+
+`createAttentionStore(options?)` returns an `AttentionStore`, an external-store
+compatible source of conservative browser signals. It observes raw visibility,
+window focus, DOM focus area, and whether the currently registered newest
+response intersects the viewport. These signals do not reveal a screen-reader
+virtual cursor or user intent.
+
+```ts
+import { createAttentionStore } from "@generative-a11y/dom";
+
+const attention = createAttentionStore();
+const unregisterComposer = attention.registerComposer(composerElement);
+const unsubscribe = attention.subscribe(() => {
+  const snapshot = attention.getSnapshot();
+  console.log(snapshot.mode);
+});
+
+// Later:
+unsubscribe();
+unregisterComposer();
+attention.dispose();
+```
+
+`ExternalStore<T>` exposes `subscribe(listener)`, `getSnapshot()`, and
+`getServerSnapshot()`. `AttentionStore` implements
+`ExternalStore<AttentionSnapshot>` and adds:
+
+- `registerComposer(element)` and `registerConversation(element)`. Any
+  registered element containing `document.activeElement` matches. Composer wins
+  when registered areas overlap. Repeated registrations of the same element are
+  reference-counted. Each returned unregister function is idempotent.
+- `registerNewestResponse(element)`. Only one newest response is current; a
+  later registration replaces the prior target. Unregistering an older target
+  cannot remove its replacement.
+- `dispose()`, which is idempotent and removes listeners, registrations,
+  subscribers, and the intersection observer. Subscribing or registering after
+  disposal throws. Stores created without a document are permanently inert; all
+  their methods remain safe no-ops.
+
+`AttentionSnapshot` is frozen and cached by value, so `getSnapshot()` returns
+the same reference until a raw or derived value changes. Its fields are:
+
+- `visibility`: `"visible"`, `"hidden"`, or `"unknown"`.
+- `windowFocus`: `"focused"`, `"blurred"`, or `"unknown"`.
+- `focusArea`: `"composer"`, `"conversation"`, `"elsewhere"`, `"none"`, or
+  `"unknown"`.
+- `newestResponse`: `"visible"`, `"outside"`, `"unobserved"`, or `"unknown"`.
+- `mode`: `"background"` when hidden; `"away"` when visible and blurred;
+  `"reading-history"` when visible, focused, and the newest response is outside;
+  `"foreground"` when visible, focused, and the newest response is visible;
+  otherwise `"unknown"`.
+
+Creation uses an injected document or the current browser document. Without
+either, client and server snapshots are the same constant all-`"unknown"` value.
+With a document but no registered newest response, `newestResponse` is
+`"unobserved"`. Registering a newest response without IntersectionObserver
+support produces `"unknown"`, never optimistic `"visible"`.
+
+`AttentionStoreOptions` accepts an injected `document`, an optional
+`createIntersectionObserver` (`AttentionIntersectionObserverFactory`), and an
+optional `intersectionObserverInit`. The factory returns the minimal
+`AttentionIntersectionObserver` interface (`observe`, `unobserve`, and
+`disconnect`), allowing deterministic tests without browser globals. The store
+does not use timers and never changes focus or scroll position.
