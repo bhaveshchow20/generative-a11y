@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose an improvement or new integration.
+title: "[Feature]: "
+labels: [enhancement, triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Accessibility problem
+      description: What user need or accessibility barrier should this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description:
+        Explain the desired API or behavior, including relevant frameworks.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches.
