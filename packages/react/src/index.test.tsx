@@ -4,6 +4,8 @@ import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
 import {
   createAttentionStore,
   createPreferenceStore,
+  type PreferenceStore,
+  type PreferenceStoreOptions,
 } from "@generative-a11y/dom";
 import { act, render, renderHook, screen } from "@testing-library/react";
 import { Activity, StrictMode, useLayoutEffect, type ReactNode } from "react";
@@ -36,6 +38,71 @@ async function flushCleanup(): Promise<void> {
 }
 
 describe("GenerativeA11yProvider", () => {
+  it("uses an external preference server snapshot during SSR", () => {
+    const store: PreferenceStore = {
+      subscribe: () => () => undefined,
+      getSnapshot: () => {
+        throw new Error("client snapshot unavailable on server");
+      },
+      getServerSnapshot: () => ({ version: 1, preset: "completion-only" }),
+      setPreferences: () => undefined,
+      dispose: () => undefined,
+    };
+    function Policy() {
+      return (
+        <span>{useGenerativeA11yRuntime().getPolicy().text.strategy}</span>
+      );
+    }
+    expect(
+      renderToString(
+        <GenerativeA11yProvider preferenceStore={store} dom={false}>
+          <Policy />
+        </GenerativeA11yProvider>,
+      ),
+    ).toContain("completion");
+  });
+
+  it("does not read an irrelevant hostile preference store", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store: PreferenceStore = {
+      subscribe: () => {
+        throw new Error("irrelevant subscribe");
+      },
+      getSnapshot: () => {
+        throw new Error("irrelevant client snapshot");
+      },
+      getServerSnapshot: () => {
+        throw new Error("irrelevant server snapshot");
+      },
+      setPreferences: () => undefined,
+      dispose: () => undefined,
+    };
+    expect(() =>
+      renderToString(
+        <GenerativeA11yProvider
+          runtime={runtime}
+          preferenceStore={store}
+          dom={false}
+        >
+          <span />
+        </GenerativeA11yProvider>,
+      ),
+    ).not.toThrow();
+    runtime.dispose();
+
+    const view = render(
+      <GenerativeA11yProvider
+        preset="verbose"
+        preferenceStore={store}
+        dom={false}
+      >
+        <span />
+      </GenerativeA11yProvider>,
+    );
+    expect(view.container.querySelector("span")).toBeTruthy();
+    view.unmount();
+  });
+
   it("creates a runtime and exposes a stable context", () => {
     const values: unknown[] = [];
     function Probe() {
@@ -206,6 +273,55 @@ describe("GenerativeA11yProvider", () => {
       </GenerativeA11yProvider>,
     );
     expect(document.querySelector("[aria-live]")).toBeNull();
+  });
+
+  it("rolls back transactional startup when a managed store fails", () => {
+    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    const preferenceOptions = {} as PreferenceStoreOptions;
+    Object.defineProperty(preferenceOptions, "persistence", {
+      enumerable: true,
+      get() {
+        throw new Error("startup failed");
+      },
+    });
+    const added = vi.spyOn(document, "addEventListener");
+    const removed = vi.spyOn(document, "removeEventListener");
+    const windowAdded = vi.spyOn(window, "addEventListener");
+    const windowRemoved = vi.spyOn(window, "removeEventListener");
+    function Probe() {
+      runtime = useGenerativeA11yRuntime();
+      return null;
+    }
+    expect(() =>
+      render(
+        <GenerativeA11yProvider preferences={preferenceOptions}>
+          <Probe />
+        </GenerativeA11yProvider>,
+      ),
+    ).toThrow("startup failed");
+    const observedEvents = new Set(["visibilitychange", "focusin", "focusout"]);
+    const addCount = added.mock.calls.filter(([name]) =>
+      observedEvents.has(name),
+    ).length;
+    const removeCount = removed.mock.calls.filter(([name]) =>
+      observedEvents.has(name),
+    ).length;
+    expect(addCount).toBeGreaterThan(0);
+    expect(removeCount).toBe(addCount);
+    const windowObservedEvents = new Set(["focus", "blur"]);
+    const windowAddCount = windowAdded.mock.calls.filter(([name]) =>
+      windowObservedEvents.has(name),
+    ).length;
+    const windowRemoveCount = windowRemoved.mock.calls.filter(([name]) =>
+      windowObservedEvents.has(name),
+    ).length;
+    expect(windowAddCount).toBeGreaterThan(0);
+    expect(windowRemoveCount).toBe(windowAddCount);
+    expect(document.querySelector("[aria-live]")).toBeNull();
+    expect(runtime?.pendingCount()).toBe(0);
+    expect(() =>
+      runtime?.dispatch({ type: "response.started", responseId: "stale" }),
+    ).toThrow("disposed");
   });
 
   it("throws clear errors for every hook outside a provider", () => {
@@ -432,6 +548,35 @@ describe("preferences", () => {
     store.dispose();
   });
 
+  it("uses the client snapshot for an initial external preference policy", () => {
+    const clientSnapshot = Object.freeze({
+      version: 1 as const,
+      preset: "completion-only" as const,
+    });
+    const getSnapshot = vi.fn(() => clientSnapshot);
+    const store: PreferenceStore = {
+      subscribe: () => () => undefined,
+      getSnapshot,
+      getServerSnapshot: () => ({
+        version: 1,
+        preset: "balanced",
+        streaming: "preset",
+        tools: "preset",
+      }),
+      setPreferences: () => undefined,
+      dispose: () => undefined,
+    };
+    const { result } = renderHook(() => useGenerativeA11yRuntime(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <GenerativeA11yProvider preferenceStore={store} dom={false}>
+          {children}
+        </GenerativeA11yProvider>
+      ),
+    });
+    expect(getSnapshot).toHaveBeenCalled();
+    expect(result.current.getPolicy().text.strategy).toBe("completion");
+  });
+
   it("explicit runtime configuration wins over preferences", () => {
     const store = createPreferenceStore({
       defaultValue: { version: 1, preset: "completion-only" },
@@ -490,6 +635,46 @@ describe("preferences", () => {
     expect(result.current.policy.text.strategy).toBe("sentence");
   });
 
+  it("preserves and persists a valid pre-start layout-effect update", () => {
+    const storage = {
+      getItem: vi.fn(() =>
+        JSON.stringify({ version: 1, preset: "completion-only" }),
+      ),
+      setItem: vi.fn(),
+    };
+    let current: ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    function SetBeforePassiveStart() {
+      current = useGenerativeA11yPreferences();
+      useLayoutEffect(() => {
+        current?.setPreferences({
+          version: 1,
+          preset: "minimal",
+          streaming: "off",
+          tools: "off",
+        });
+      }, []);
+      return null;
+    }
+    render(
+      <GenerativeA11yProvider
+        preferences={{ persistence: { key: "pre-start", storage } }}
+        dom={false}
+      >
+        <SetBeforePassiveStart />
+      </GenerativeA11yProvider>,
+    );
+    expect(current?.preferences.preset).toBe("minimal");
+    expect(storage.setItem).toHaveBeenCalledWith(
+      "pre-start",
+      JSON.stringify({
+        version: 1,
+        preset: "minimal",
+        streaming: "off",
+        tools: "off",
+      }),
+    );
+  });
+
   it("isolates storage failures from rendering and preference updates", () => {
     const storage = {
       getItem: vi.fn(() => {
@@ -544,6 +729,70 @@ describe("preferences", () => {
 });
 
 describe("attention and bindings", () => {
+  it("derives owned browser services from the committed region document", () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    const iframe = document.createElement("iframe");
+    document.body.append(iframe);
+    const realmDocument = iframe.contentDocument;
+    const realmWindow = iframe.contentWindow;
+    if (!realmDocument || !realmWindow)
+      throw new Error("iframe realm unavailable");
+    Object.defineProperty(realmDocument, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    const realmStorage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+    };
+    Object.defineProperty(realmWindow, "localStorage", {
+      configurable: true,
+      value: realmStorage,
+    });
+    const realmEvents = vi.spyOn(realmWindow, "addEventListener");
+    const parentEvents = vi.spyOn(window, "addEventListener");
+    let snapshot: ReturnType<typeof useGenerativeA11yAttention> | undefined;
+    let preferenceSnapshot:
+      ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    function Probe() {
+      snapshot = useGenerativeA11yAttention();
+      preferenceSnapshot = useGenerativeA11yPreferences();
+      return null;
+    }
+    const container = realmDocument.createElement("div");
+    realmDocument.body.append(container);
+    render(
+      <GenerativeA11yProvider preferences={{ persistence: { key: "realm" } }}>
+        <Probe />
+      </GenerativeA11yProvider>,
+      { container, baseElement: realmDocument.body },
+    );
+    expect(snapshot?.visibility).toBe("visible");
+    expect(realmStorage.getItem).toHaveBeenCalledWith("realm");
+    expect(
+      realmEvents.mock.calls.filter(([name]) => name === "storage"),
+    ).toHaveLength(1);
+    expect(
+      parentEvents.mock.calls.filter(([name]) => name === "storage"),
+    ).toHaveLength(0);
+    const storageEvent = realmDocument.createEvent("Event");
+    storageEvent.initEvent("storage", false, false);
+    Object.defineProperties(storageEvent, {
+      key: { value: "realm" },
+      newValue: {
+        value: JSON.stringify({ version: 1, preset: "completion-only" }),
+      },
+      storageArea: { value: realmStorage },
+    });
+    act(() => {
+      realmWindow.dispatchEvent(storageEvent);
+    });
+    expect(preferenceSnapshot?.preferences.preset).toBe("completion-only");
+  });
+
   it("keeps observation inert when attention is disabled", () => {
     const { result } = renderHook(() => useGenerativeA11yAttention(), {
       wrapper: ({ children }: { children: ReactNode }) => (
