@@ -177,3 +177,55 @@ does not use timers and never changes focus or scroll position. Observer
 creation, observation, and cleanup failures are treated as unavailable
 intersection evidence and deliberately suppressed; DOM listener and subscriber
 cleanup still completes.
+
+## Use conservative focus helpers
+
+Focus helpers are never invoked automatically. They are explicit host actions
+for workflows, such as restoring focus after an application-owned interaction.
+Ordinary streaming, status changes, and announcements do not move focus.
+
+```ts
+import { captureFocus, restoreFocus } from "@generative-a11y/dom";
+
+const capture = captureFocus();
+// The host opens and later closes its interaction.
+const result = restoreFocus(capture, { onlyIfFocusWithin: interactionElement });
+```
+
+`captureFocus(document?)` returns a frozen `FocusCapture` containing the exact
+originating `Document` and active `Element` references. It uses the current
+browser document when none is injected. Missing documents, throwing
+`activeElement` accessors, and focus on `body` or `documentElement` produce a
+capture with no restorable target.
+
+`focusElement(target, options?)` requests focus through the target's public
+`focus()` method. `FocusElementOptions.preventScroll` defaults to `true` and can
+be set to `false`. Success is verified with `ownerDocument.activeElement`.
+
+`restoreFocus(capture, options?)` checks that the captured target still belongs
+to its originating document, then delegates to `focusElement`. A capture can be
+used repeatedly. `RestoreFocusOptions` adds `onlyIfFocusWithin`: restoration
+proceeds only while the current active element is that guard or its descendant.
+If focus has moved elsewhere or is unavailable, restoration is skipped so a
+later user focus move is preserved.
+
+Both operations return a finite `FocusResult`: either
+`{ status: "focused", target }` or `{ status: "skipped", reason, target }`.
+`FocusSkippedReason` is one of `"unavailable"`, `"cross-document"`,
+`"disconnected"`, `"disabled"`, `"hidden"`, `"aria-hidden"`, `"inert"`,
+`"missing-focus"`, `"guard-mismatch"`, `"focus-error"`, or
+`"focus-not-applied"`.
+
+Eligibility is intentionally conservative. The target must be an element from
+its owner document, remain connected, expose a callable public focus method, not
+be disabled, and have no self or ancestor with `hidden`, `aria-hidden="true"`,
+or `inert`. These checks do not claim perfect browser focusability: layout,
+computed CSS, tab order, and device behavior require real browser and
+assistive-technology testing. Rejected targets are not focused. If a hostile
+focus call fails after moving focus, the helper makes a best-effort rollback to
+the previously active element without leaking DOM errors.
+
+`FocusElementOptions`, `RestoreFocusOptions`, `FocusCapture`, `FocusResult`, and
+`FocusSkippedReason` are exported for typed integrations. The module is safe to
+import during SSR, uses no timers, performs no scrolling itself, creates no
+focus trap, queries no host DOM, and has no automatic lifecycle behavior.

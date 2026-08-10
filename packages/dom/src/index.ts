@@ -13,6 +13,17 @@ export {
   type ExternalStore,
 } from "./attention.js";
 
+export {
+  captureFocus,
+  focusElement,
+  restoreFocus,
+  type FocusCapture,
+  type FocusElementOptions,
+  type FocusResult,
+  type FocusSkippedReason,
+  type RestoreFocusOptions,
+} from "./focus.js";
+
 export type DOMAnnouncementMode = "auto" | "aria-notify" | "live-region";
 
 export interface DOMLiveRegions {
