@@ -53,7 +53,7 @@
     "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
     "@generative-a11y/core": "workspace:*",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@typescript-eslint/eslint-plugin": "8.66.0",
     "@typescript-eslint/parser": "8.66.0",
     "@vitest/coverage-v8": "4.1.10",
