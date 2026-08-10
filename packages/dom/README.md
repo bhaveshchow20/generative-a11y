@@ -242,3 +242,71 @@ hostile DOM boundaries without leaking errors.
 `FocusSkippedReason` are exported for typed integrations. The module is safe to
 import during SSR, uses no timers, performs no scrolling itself, creates no
 focus trap, queries no host DOM, and has no automatic lifecycle behavior.
+
+## Store announcement preferences
+
+`createPreferenceStore(options?)` creates a small external store for validated,
+versioned announcement preferences. The default is the frozen v1 value
+`{ version: 1, preset: "balanced", streaming: "preset", tools: "preset" }`. The
+other granular presets are `"minimal"` and `"verbose"`; streaming can be
+`"preset"`, `"off"`, `"completion"`, `"paragraph"`, or `"sentence"`, and tool
+verbosity can be `"preset"`, `"off"`, `"failures"`, `"status"`, or `"progress"`.
+The separate `"completion-only"` schema has no granular fields. Every accepted
+`PreferenceSchemaV1` snapshot is frozen, and validation rejects missing, extra,
+invalid, or unsupported-version fields.
+
+```ts
+import {
+  createPreferenceStore,
+  preferencesToCoreConfiguration,
+} from "@generative-a11y/dom";
+
+const preferences = createPreferenceStore({
+  persistence: { key: "my-app:a11y-preferences" },
+});
+const unsubscribe = preferences.subscribe(() => {
+  console.log(preferences.getSnapshot());
+});
+
+preferences.setPreferences({
+  version: 1,
+  preset: "balanced",
+  streaming: "sentence",
+  tools: "status",
+});
+```
+
+`PreferenceStore` implements `ExternalStore<PreferenceSchemaV1>` and adds
+`setPreferences(value)` and idempotent `dispose()`. Its server snapshot is the
+configured default, while its client snapshot may contain a loaded preference.
+This deliberate split supports SSR and hydration without accessing browser
+globals during module evaluation. After disposal, snapshots remain readable; new
+subscriptions and writes throw.
+
+Persistence is opt-in through `PreferencePersistence`. It accepts a `key`, an
+optional `PreferenceStorage` (`getItem`/`setItem`), and an optional
+`PreferenceStorageEventSource`. When persistence is requested without injected
+storage, a safely available browser `localStorage` and native `storage` events
+are used. Server and restricted-browser environments remain in-memory. Injected
+event sources take precedence; custom storage without an event source has no
+cross-tab synchronization. Native storage events synchronize other documents,
+but browser storage events do not form a same-tab bus. Invalid, corrupt, and
+forward-version values are preserved in storage and reported through the
+isolated, serializable `PreferenceDiagnostic` callback.
+
+`PreferenceStoreOptions` contains `defaultValue`, `persistence`, and
+`onDiagnostic`. A `PreferenceStorageEvent` carries `key`, `newValue`, and an
+optional `storageArea`; a `PreferenceStorageEventSource` supplies a subscribing
+callback and cleanup function. `PreferenceDiagnostic` contains a
+`PreferenceDiagnosticSource`, a `PreferenceDiagnosticCode`, and an optional
+serialized `{ name, message }` error. Sources distinguish storage reads, writes,
+external events, event subscription, and event unsubscription. Codes distinguish
+operation failures, invalid JSON, invalid preferences, and unsupported versions.
+
+`preferencesToCoreConfiguration(value)` validates a preference and translates it
+to `{ preset, policy? }`. Use that result only when the host explicitly
+constructs or replaces a core runtime. A preference store never mutates,
+recreates, or disposes an active runtime. `"preset"` fields inherit the selected
+core preset; granular values override only text strategy or tool-event flags,
+leaving timing and progress thresholds inherited. The `"completion-only"`
+preference returns that preset without granular policy overrides.

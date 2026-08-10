@@ -24,6 +24,25 @@ export {
   type RestoreFocusOptions,
 } from "./focus.js";
 
+export {
+  createPreferenceStore,
+  defaultPreferences,
+  preferencesToCoreConfiguration,
+  type CorePreferenceConfiguration,
+  type PreferenceDiagnostic,
+  type PreferenceDiagnosticCode,
+  type PreferenceDiagnosticSource,
+  type PreferencePersistence,
+  type PreferenceSchemaV1,
+  type PreferenceStorage,
+  type PreferenceStorageEvent,
+  type PreferenceStorageEventSource,
+  type PreferenceStore,
+  type PreferenceStoreOptions,
+  type StreamingVerbosity,
+  type ToolVerbosity,
+} from "./preferences.js";
+
 export type DOMAnnouncementMode = "auto" | "aria-notify" | "live-region";
 
 export interface DOMLiveRegions {
