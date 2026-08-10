@@ -30,6 +30,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run build && npm run pack:check",
+    "changeset": "changeset",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
@@ -37,9 +38,12 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "version-packages": "changeset version",
+    "release": "npm run check && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.1",
