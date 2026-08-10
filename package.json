@@ -29,7 +29,7 @@
     "@changesets/cli": "2.31.1",
     "@eslint/js": "10.0.1",
     "@generative-a11y/core": "workspace:*",
-    "@types/node": "24.10.1",
+    "@types/node": "26.1.2",
     "@typescript-eslint/eslint-plugin": "8.66.0",
     "@typescript-eslint/parser": "8.66.0",
     "@vitest/coverage-v8": "4.1.10",
@@ -37,7 +37,7 @@
     "prettier": "3.9.6",
     "publint": "0.3.23",
     "tsup": "8.5.1",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
 }
