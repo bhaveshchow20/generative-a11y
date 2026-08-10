@@ -474,4 +474,97 @@ describe("focus helpers", () => {
     });
     expect(document.activeElement).toBe(redirect);
   });
+
+  it.each([
+    ["hidden", "hidden"],
+    ["aria-hidden", "aria-hidden"],
+    ["inert", "inert"],
+  ] as const)(
+    "rejects a slotted target below a %s shadow ancestor",
+    (attribute, reason) => {
+      const dom = new JSDOM(
+        "<!doctype html><html><body><button id='current'>Current</button><div id='host'><button id='target'>Target</button></div></body></html>",
+      );
+      const document = dom.window.document;
+      const current = document.querySelector<HTMLButtonElement>("#current")!;
+      const host = document.querySelector<HTMLElement>("#host")!;
+      const target = document.querySelector<HTMLButtonElement>("#target")!;
+      const shadow = host.attachShadow({ mode: "open" });
+      const ancestor = document.createElement("section");
+      if (attribute === "aria-hidden") ancestor.setAttribute(attribute, "true");
+      else ancestor.setAttribute(attribute, "");
+      ancestor.append(document.createElement("slot"));
+      shadow.append(ancestor);
+      current.focus();
+
+      expect(target.assignedSlot).not.toBeNull();
+      expect(focusElement(target)).toMatchObject({ status: "skipped", reason });
+      expect(document.activeElement).toBe(current);
+    },
+  );
+
+  it("recognizes a shadow-tree guard containing a focused slotted target", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button id='restore'>Restore</button><div id='host'><button id='slotted'>Slotted</button></div></body></html>",
+    );
+    const document = dom.window.document;
+    const restore = document.querySelector<HTMLButtonElement>("#restore")!;
+    const host = document.querySelector<HTMLElement>("#host")!;
+    const slotted = document.querySelector<HTMLButtonElement>("#slotted")!;
+    const shadow = host.attachShadow({ mode: "open" });
+    const guard = document.createElement("section");
+    guard.append(document.createElement("slot"));
+    shadow.append(guard);
+    restore.focus();
+    const capture = captureFocus(document);
+    slotted.focus();
+
+    expect(restoreFocus(capture, { onlyIfFocusWithin: guard }).status).toBe(
+      "focused",
+    );
+  });
+
+  it("contains a throwing assignedSlot accessor", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button>Target</button></body></html>",
+    );
+    const target = dom.window.document.querySelector("button")!;
+    Object.defineProperty(target, "assignedSlot", {
+      get: () => {
+        throw new Error("assignedSlot failed");
+      },
+    });
+
+    expect(() => focusElement(target)).not.toThrow();
+    expect(focusElement(target)).toMatchObject({
+      status: "skipped",
+      reason: "unavailable",
+    });
+  });
+
+  it("follows nested slots across nested open shadow roots", () => {
+    const dom = new JSDOM(`<!doctype html><html><body>
+      <button id="current">Current</button>
+      <div id="outer"><div id="inner"><button id="target">Target</button></div></div>
+    </body></html>`);
+    const document = dom.window.document;
+    const current = document.querySelector<HTMLButtonElement>("#current")!;
+    const outer = document.querySelector<HTMLElement>("#outer")!;
+    const inner = document.querySelector<HTMLElement>("#inner")!;
+    const target = document.querySelector<HTMLButtonElement>("#target")!;
+    const outerAncestor = document.createElement("section");
+    outerAncestor.hidden = true;
+    outerAncestor.append(document.createElement("slot"));
+    outer.attachShadow({ mode: "open" }).append(outerAncestor);
+    inner.attachShadow({ mode: "open" }).append(document.createElement("slot"));
+    current.focus();
+
+    expect(target.assignedSlot).not.toBeNull();
+    expect(inner.assignedSlot).not.toBeNull();
+    expect(focusElement(target)).toMatchObject({
+      status: "skipped",
+      reason: "hidden",
+    });
+    expect(document.activeElement).toBe(current);
+  });
 });

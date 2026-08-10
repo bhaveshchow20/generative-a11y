@@ -258,6 +258,10 @@ function composedContains(ancestor: Element, target: Element): boolean {
 }
 
 function composedParent(element: Element): Element | null {
+  const assignedSlot = (
+    element as Element & { assignedSlot?: HTMLSlotElement | null }
+  ).assignedSlot;
+  if (assignedSlot) return assignedSlot;
   if (element.parentElement) return element.parentElement;
   const root = element.getRootNode();
   if (root && "host" in root) {

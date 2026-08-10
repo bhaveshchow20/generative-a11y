@@ -210,7 +210,7 @@ used repeatedly. `RestoreFocusOptions` adds `onlyIfFocusWithin`: restoration
 proceeds only while the current active element is that guard or its descendant.
 If focus has moved elsewhere or is unavailable, restoration is skipped so a
 later user focus move is preserved. Guard containment follows the composed tree
-across open shadow-root hosts.
+through assigned slots and across open shadow-root hosts.
 
 Both operations return a finite `FocusResult`: either
 `{ status: "focused", target }` or `{ status: "skipped", reason, target }`.
@@ -224,9 +224,11 @@ its owner document, remain connected, expose a callable public focus method, not
 be effectively disabled, and have no self or composed ancestor with `hidden`,
 `aria-hidden="true"`, or `inert`. Effective disabled checks use the browser's
 `:disabled` matching, including disabled-fieldset and first-legend behavior,
-with guarded direct-state fallback. These checks do not claim perfect browser
-focusability: layout, computed CSS, tab order, and device behavior require real
-browser and assistive-technology testing.
+with guarded direct-state fallback. Composed ancestry follows assigned slots
+before light-DOM parents, then crosses open shadow roots through their hosts.
+These checks do not claim perfect browser focusability: layout, computed CSS,
+tab order, and device behavior require real browser and assistive-technology
+testing.
 
 Eligibility is checked both before and immediately after the focus call. If the
 target becomes ineligible while remaining deeply active, the helper restores the
