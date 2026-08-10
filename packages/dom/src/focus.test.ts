@@ -286,6 +286,192 @@ describe("focus helpers", () => {
       status: "skipped",
       reason: "focus-error",
     });
+    expect(document.activeElement).toBe(other);
+  });
+
+  it("captures and verifies the deepest active element in open shadow roots", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><div id='host'></div></body></html>",
+    );
+    const document = dom.window.document;
+    const host = document.querySelector<HTMLElement>("#host")!;
+    const shadow = host.attachShadow({ mode: "open" });
+    const target = document.createElement("button");
+    shadow.append(target);
+
+    target.focus();
+
+    expect(document.activeElement).toBe(host);
+    expect(shadow.activeElement).toBe(target);
+    expect(captureFocus(document)).toEqual({ document, target });
+    expect(focusElement(target)).toEqual({ status: "focused", target });
+  });
+
+  it("treats open shadow hosts as composed guard and eligibility ancestors", () => {
+    const dom = new JSDOM(`<!doctype html><html><body>
+      <button id="restore">Restore</button><div id="host"></div>
+    </body></html>`);
+    const document = dom.window.document;
+    const restore = document.querySelector<HTMLButtonElement>("#restore")!;
+    const host = document.querySelector<HTMLElement>("#host")!;
+    const shadow = host.attachShadow({ mode: "open" });
+    const guard = document.createElement("section");
+    const inside = document.createElement("button");
+    guard.append(inside);
+    shadow.append(guard);
+    restore.focus();
+    const capture = captureFocus(document);
+
+    inside.focus();
+    expect(restoreFocus(capture, { onlyIfFocusWithin: guard }).status).toBe(
+      "focused",
+    );
+  });
+
+  it.each([
+    ["hidden", "hidden"],
+    ["aria-hidden", "aria-hidden"],
+    ["inert", "inert"],
+  ] as const)("rejects a %s composed shadow host", (attribute, reason) => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button id='current'>Current</button><div id='host'></div></body></html>",
+    );
+    const document = dom.window.document;
+    const current = document.querySelector<HTMLButtonElement>("#current")!;
+    const host = document.querySelector<HTMLElement>("#host")!;
+    if (attribute === "aria-hidden") host.setAttribute(attribute, "true");
+    else host.setAttribute(attribute, "");
+    const target = document.createElement("button");
+    host.attachShadow({ mode: "open" }).append(target);
+    current.focus();
+
+    expect(focusElement(target)).toMatchObject({ status: "skipped", reason });
     expect(document.activeElement).toBe(current);
+  });
+
+  it("uses native effective disabled state for disabled fieldsets", () => {
+    const dom = new JSDOM(`<!doctype html><html><body>
+      <fieldset disabled>
+        <legend><button id="legend">Legend action</button></legend>
+        <button id="blocked">Blocked</button>
+      </fieldset>
+    </body></html>`);
+    const document = dom.window.document;
+    const legend = document.querySelector<HTMLButtonElement>("#legend")!;
+    const blocked = document.querySelector<HTMLButtonElement>("#blocked")!;
+
+    expect(focusElement(blocked)).toMatchObject({
+      status: "skipped",
+      reason: "disabled",
+    });
+    expect(focusElement(legend).status).toBe("focused");
+  });
+
+  it.each([
+    [
+      "disabled",
+      (target: HTMLButtonElement): void => {
+        target.disabled = true;
+      },
+    ],
+    [
+      "hidden",
+      (_target: HTMLButtonElement, parent: HTMLElement): void => {
+        parent.hidden = true;
+      },
+    ],
+    [
+      "aria-hidden",
+      (_target: HTMLButtonElement, parent: HTMLElement): void => {
+        parent.setAttribute("aria-hidden", "true");
+      },
+    ],
+    [
+      "inert",
+      (_target: HTMLButtonElement, parent: HTMLElement): void => {
+        parent.setAttribute("inert", "");
+      },
+    ],
+  ] as const)(
+    "rejects a target that becomes %s synchronously and restores eligible prior focus",
+    (reason, mutate) => {
+      const dom = new JSDOM(`<!doctype html><html><body>
+        <button id="current">Current</button><section><button id="target">Target</button></section>
+      </body></html>`);
+      const document = dom.window.document;
+      const current = document.querySelector<HTMLButtonElement>("#current")!;
+      const target = document.querySelector<HTMLButtonElement>("#target")!;
+      const parent = target.parentElement!;
+      current.focus();
+      const nativeFocus = target.focus.bind(target);
+      vi.spyOn(target, "focus").mockImplementation((options) => {
+        nativeFocus(options);
+        mutate(target, parent);
+      });
+
+      expect(focusElement(target)).toMatchObject({ status: "skipped", reason });
+      expect(document.activeElement).toBe(current);
+    },
+  );
+
+  it("reports synchronous disconnection before focus verification", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button id='current'>Current</button><button id='target'>Target</button></body></html>",
+    );
+    const document = dom.window.document;
+    const current = document.querySelector<HTMLButtonElement>("#current")!;
+    const target = document.querySelector<HTMLButtonElement>("#target")!;
+    current.focus();
+    const nativeFocus = target.focus.bind(target);
+    vi.spyOn(target, "focus").mockImplementation((options) => {
+      nativeFocus(options);
+      target.remove();
+    });
+
+    expect(focusElement(target)).toMatchObject({
+      status: "skipped",
+      reason: "disconnected",
+    });
+    expect(document.activeElement).not.toBe(target);
+  });
+
+  it("does not restore a prior target that became ineligible", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button id='current'>Current</button><button id='target'>Target</button></body></html>",
+    );
+    const document = dom.window.document;
+    const current = document.querySelector<HTMLButtonElement>("#current")!;
+    const target = document.querySelector<HTMLButtonElement>("#target")!;
+    current.focus();
+    const nativeFocus = target.focus.bind(target);
+    vi.spyOn(target, "focus").mockImplementation((options) => {
+      nativeFocus(options);
+      current.hidden = true;
+      target.hidden = true;
+    });
+
+    expect(focusElement(target)).toMatchObject({
+      status: "skipped",
+      reason: "hidden",
+    });
+    expect(document.activeElement).toBe(target);
+  });
+
+  it("preserves a non-throwing synchronous focus redirect", () => {
+    const dom = new JSDOM(
+      "<!doctype html><html><body><button id='current'>Current</button><button id='target'>Target</button><button id='redirect'>Redirect</button></body></html>",
+    );
+    const document = dom.window.document;
+    const current = document.querySelector<HTMLButtonElement>("#current")!;
+    const target = document.querySelector<HTMLButtonElement>("#target")!;
+    const redirect = document.querySelector<HTMLButtonElement>("#redirect")!;
+    current.focus();
+    Object.defineProperty(target, "focus", { value: () => redirect.focus() });
+
+    expect(focusElement(target)).toMatchObject({
+      status: "skipped",
+      reason: "focus-not-applied",
+    });
+    expect(document.activeElement).toBe(redirect);
   });
 });

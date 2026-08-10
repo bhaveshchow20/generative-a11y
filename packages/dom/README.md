@@ -193,10 +193,12 @@ const result = restoreFocus(capture, { onlyIfFocusWithin: interactionElement });
 ```
 
 `captureFocus(document?)` returns a frozen `FocusCapture` containing the exact
-originating `Document` and active `Element` references. It uses the current
-browser document when none is injected. Missing documents, throwing
-`activeElement` accessors, and focus on `body` or `documentElement` produce a
-capture with no restorable target.
+originating `Document` and deepest active `Element` references. It follows
+`activeElement` through nested open shadow roots and uses the current browser
+document when none is injected. Missing documents, throwing `activeElement`
+accessors, and focus on `body` or `documentElement` produce a capture with no
+restorable target. Closed shadow roots deliberately expose only their host, so
+their internal focused element is unavailable to these helpers.
 
 `focusElement(target, options?)` requests focus through the target's public
 `focus()` method. `FocusElementOptions.preventScroll` defaults to `true` and can
@@ -207,7 +209,8 @@ to its originating document, then delegates to `focusElement`. A capture can be
 used repeatedly. `RestoreFocusOptions` adds `onlyIfFocusWithin`: restoration
 proceeds only while the current active element is that guard or its descendant.
 If focus has moved elsewhere or is unavailable, restoration is skipped so a
-later user focus move is preserved.
+later user focus move is preserved. Guard containment follows the composed tree
+across open shadow-root hosts.
 
 Both operations return a finite `FocusResult`: either
 `{ status: "focused", target }` or `{ status: "skipped", reason, target }`.
@@ -218,12 +221,20 @@ Both operations return a finite `FocusResult`: either
 
 Eligibility is intentionally conservative. The target must be an element from
 its owner document, remain connected, expose a callable public focus method, not
-be disabled, and have no self or ancestor with `hidden`, `aria-hidden="true"`,
-or `inert`. These checks do not claim perfect browser focusability: layout,
-computed CSS, tab order, and device behavior require real browser and
-assistive-technology testing. Rejected targets are not focused. If a hostile
-focus call fails after moving focus, the helper makes a best-effort rollback to
-the previously active element without leaking DOM errors.
+be effectively disabled, and have no self or composed ancestor with `hidden`,
+`aria-hidden="true"`, or `inert`. Effective disabled checks use the browser's
+`:disabled` matching, including disabled-fieldset and first-legend behavior,
+with guarded direct-state fallback. These checks do not claim perfect browser
+focusability: layout, computed CSS, tab order, and device behavior require real
+browser and assistive-technology testing.
+
+Eligibility is checked both before and immediately after the focus call. If the
+target becomes ineligible while remaining deeply active, the helper restores the
+previous target only when that previous target is still conservatively eligible.
+A synchronous third-party redirect is never overwritten: if focus ends on
+another element, the helper reports `"focus-not-applied"` or `"focus-error"` and
+preserves that destination. All rollback and verification remain best-effort at
+hostile DOM boundaries without leaking errors.
 
 `FocusElementOptions`, `RestoreFocusOptions`, `FocusCapture`, `FocusResult`, and
 `FocusSkippedReason` are exported for typed integrations. The module is safe to

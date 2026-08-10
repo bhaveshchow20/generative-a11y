@@ -41,7 +41,7 @@ export function captureFocus(selectedDocument?: Document): FocusCapture {
   if (!document) return Object.freeze({ document: null, target: null });
   let target: Element | null = null;
   try {
-    const active = document.activeElement;
+    const active = deepActiveElement(document);
     if (
       active !== null &&
       active !== document.body &&
@@ -69,7 +69,7 @@ export function focusElement(
   let previous: Element | null;
   try {
     document = target.ownerDocument;
-    previous = document.activeElement;
+    previous = deepActiveElement(document);
     focus = (target as Element & { focus?: (options?: FocusOptions) => void })
       .focus;
   } catch {
@@ -78,15 +78,29 @@ export function focusElement(
   if (typeof focus !== "function") {
     return { status: "skipped", reason: "missing-focus", target };
   }
+  let focusThrew = false;
   try {
     focus.call(target, { preventScroll: options.preventScroll ?? true });
-    if (document.activeElement !== target) {
-      restorePreviousFocus(previous, document);
-      return { status: "skipped", reason: "focus-not-applied", target };
-    }
   } catch {
-    restorePreviousFocus(previous, document);
+    focusThrew = true;
+  }
+  if (focusThrew) {
+    restorePreviousFocus(previous, target, document);
     return { status: "skipped", reason: "focus-error", target };
+  }
+  const postFocusEligibility = focusEligibility(target);
+  let active: Element | null;
+  try {
+    active = deepActiveElement(document);
+  } catch {
+    return { status: "skipped", reason: "focus-error", target };
+  }
+  if (postFocusEligibility) {
+    if (active === target) restorePreviousFocus(previous, target, document);
+    return { status: "skipped", reason: postFocusEligibility, target };
+  }
+  if (active !== target) {
+    return { status: "skipped", reason: "focus-not-applied", target };
   }
   return { status: "focused", target };
 }
@@ -112,11 +126,11 @@ export function restoreFocus(
     }
     const guard = options.onlyIfFocusWithin;
     if (guard !== undefined) {
-      const active = document.activeElement;
+      const active = deepActiveElement(document);
       if (
         guard.ownerDocument !== document ||
         active === null ||
-        (active !== guard && !guard.contains(active))
+        !composedContains(guard, active)
       ) {
         return { status: "skipped", reason: "guard-mismatch", target };
       }
@@ -148,6 +162,14 @@ function focusEligibility(target: Element): FocusSkippedReason | undefined {
   } catch {
     return "unavailable";
   }
+  try {
+    const matches = target.matches;
+    if (typeof matches === "function" && matches.call(target, ":disabled")) {
+      return "disabled";
+    }
+  } catch {
+    // Fall back to the direct disabled checks above.
+  }
 
   try {
     let current: Element | null = target;
@@ -164,8 +186,19 @@ function focusEligibility(target: Element): FocusSkippedReason | undefined {
       ) {
         return "inert";
       }
-      current = current.parentElement;
+      current = composedParent(current);
     }
+  } catch {
+    return "unavailable";
+  }
+
+  try {
+    const focus = (
+      target as Element & {
+        focus?: (options?: FocusOptions) => void;
+      }
+    ).focus;
+    if (typeof focus !== "function") return "missing-focus";
   } catch {
     return "unavailable";
   }
@@ -174,10 +207,17 @@ function focusEligibility(target: Element): FocusSkippedReason | undefined {
 
 function restorePreviousFocus(
   previous: Element | null,
+  attempted: Element,
   document: Document,
 ): void {
   try {
-    if (!previous || document.activeElement === previous) return;
+    if (
+      !previous ||
+      deepActiveElement(document) !== attempted ||
+      focusEligibility(previous) !== undefined
+    ) {
+      return;
+    }
     const focus = (
       previous as Element & {
         focus?: (options?: FocusOptions) => void;
@@ -188,4 +228,41 @@ function restorePreviousFocus(
   } catch {
     // Focus rollback is best-effort at hostile DOM boundaries.
   }
+}
+
+function deepActiveElement(document: Document): Element | null {
+  let active = document.activeElement;
+  const visited = new Set<Element>();
+  while (active) {
+    if (visited.has(active)) throw new Error("Cyclic active element");
+    visited.add(active);
+    const shadow = (active as Element & { shadowRoot?: ShadowRoot | null })
+      .shadowRoot;
+    const nested = shadow?.activeElement;
+    if (!nested) return active;
+    active = nested;
+  }
+  return null;
+}
+
+function composedContains(ancestor: Element, target: Element): boolean {
+  let current: Element | null = target;
+  const visited = new Set<Element>();
+  while (current) {
+    if (current === ancestor) return true;
+    if (visited.has(current)) throw new Error("Cyclic composed tree");
+    visited.add(current);
+    current = composedParent(current);
+  }
+  return false;
+}
+
+function composedParent(element: Element): Element | null {
+  if (element.parentElement) return element.parentElement;
+  const root = element.getRootNode();
+  if (root && "host" in root) {
+    const host = (root as ShadowRoot).host;
+    if (host.ownerDocument === element.ownerDocument) return host;
+  }
+  return null;
 }
