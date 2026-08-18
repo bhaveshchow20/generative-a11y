@@ -16,6 +16,7 @@ const packageExports = [
   ["@generative-a11y/react", "", "GenerativeA11yProvider"],
   ["@generative-a11y/ai-sdk", "", "createObserver"],
   ["@generative-a11y/ai-sdk", "/react", "useChatAccessibility"],
+  ["@generative-a11y/assistant-ui", "", "bindThreadRuntime"],
 ];
 
 const packageNames = [
@@ -83,6 +84,7 @@ try {
     "@generative-a11y/core",
     "@generative-a11y/dom",
     "@generative-a11y/ai-sdk",
+    "@generative-a11y/assistant-ui",
   ]
     .map(
       (packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`,
