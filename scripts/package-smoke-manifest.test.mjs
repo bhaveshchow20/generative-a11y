@@ -55,6 +55,12 @@ describe("isolated packed consumer scenarios", () => {
         internalPackages: ["@generative-a11y/core"],
       }),
       expect.objectContaining({
+        id: "devtools-overlay",
+        specifier: "@generative-a11y/devtools/overlay",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
+      expect.objectContaining({
         id: "react",
         specifier: "@generative-a11y/react",
         fixtures: ["react", "react-dom", "@types/react", "@types/react-dom"],

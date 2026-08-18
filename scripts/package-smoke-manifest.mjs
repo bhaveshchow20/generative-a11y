@@ -37,6 +37,14 @@ export const packageScenarios = [
     internalPackages: ["@generative-a11y/core"],
   },
   {
+    id: "devtools-overlay",
+    packageName: "@generative-a11y/devtools",
+    specifier: "@generative-a11y/devtools/overlay",
+    expectedExport: "mountDevtoolsOverlay",
+    fixtures: [],
+    internalPackages: ["@generative-a11y/core"],
+  },
+  {
     id: "react",
     packageName: "@generative-a11y/react",
     specifier: "@generative-a11y/react",
