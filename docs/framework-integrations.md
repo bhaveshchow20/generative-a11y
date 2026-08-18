@@ -10,7 +10,7 @@ publication. The current compatibility matrix and selection guide live in
 | ------------- | ------------------------------------------------------------ | -------------------------- | ----------------------------------------------------------------- |
 | AI SDK        | `useChat` state, `UIMessage.parts`, initialization callbacks | Implemented                | Exact abort/disconnect requires `onFinish` at chat initialization |
 | assistant-ui  | `ThreadRuntime.subscribe()`/`getState()`                     | Implemented                | No stable retry/connectivity events                               |
-| AG-UI         | `agent.subscribe(AgentSubscriber)`                           | In progress                | Several optional lifecycle events are absent from the protocol    |
+| AG-UI         | `agent.subscribe(AgentSubscriber)`                           | Implemented                | Several optional lifecycle events are absent from the protocol    |
 | CopilotKit v2 | `useAgent()` exposes an AG-UI `AbstractAgent`                | AG-UI integration guidance | Generic tool-based HITL needs configuration                       |
 | CopilotKit v1 | Derived hooks                                                | Do not target              | Incomplete lifecycle surface                                      |
 
@@ -69,7 +69,7 @@ AG-UI most closely matches the normalized model through `agent.subscribe()`.
 | Normalized event          | Mapping                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
 | Start/delta/complete      | `TEXT_MESSAGE_START`, `TEXT_MESSAGE_CONTENT.delta`, `TEXT_MESSAGE_END`                     |
-| Interrupt                 | Wrap public `abortRun()`; protocol has no exact abort event                                |
+| Interrupt                 | `RUN_FINISHED` with `outcome.type === "interrupt"`; never infer a local abort              |
 | Fail                      | `RUN_ERROR`/`onRunFailed`                                                                  |
 | Tool start/complete       | `TOOL_CALL_START`, then `TOOL_CALL_RESULT`                                                 |
 | Tool progress/failure     | No generic protocol event; require explicit configured conventions                         |
