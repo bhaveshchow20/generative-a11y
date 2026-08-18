@@ -1,0 +1,7 @@
+reviews:
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    # Stacked child PRs target another branch rather than the default branch.
+    base_branches:
+      - ".*"
