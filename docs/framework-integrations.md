@@ -8,8 +8,8 @@ publication. The current compatibility matrix and selection guide live in
 
 | Integration   | Public surface                                               | v0.1 decision              | Main limitation                                                   |
 | ------------- | ------------------------------------------------------------ | -------------------------- | ----------------------------------------------------------------- |
-| AI SDK        | `useChat` state, `UIMessage.parts`, initialization callbacks | In progress                | Exact abort/disconnect requires `onFinish` at chat initialization |
-| assistant-ui  | `ThreadRuntime.subscribe()`/`getState()` or `useAuiState`    | In progress                | No stable retry/connectivity events                               |
+| AI SDK        | `useChat` state, `UIMessage.parts`, initialization callbacks | Implemented                | Exact abort/disconnect requires `onFinish` at chat initialization |
+| assistant-ui  | `ThreadRuntime.subscribe()`/`getState()`                     | Implemented                | No stable retry/connectivity events                               |
 | AG-UI         | `agent.subscribe(AgentSubscriber)`                           | In progress                | Several optional lifecycle events are absent from the protocol    |
 | CopilotKit v2 | `useAgent()` exposes an AG-UI `AbstractAgent`                | AG-UI integration guidance | Generic tool-based HITL needs configuration                       |
 | CopilotKit v1 | Derived hooks                                                | Do not target              | Incomplete lifecycle surface                                      |
@@ -39,17 +39,17 @@ Sources: [useChat](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat),
 
 ## assistant-ui
 
-Subscribe to `runtime.main`, baseline hydrated messages at mount, and track
+Subscribe to `ThreadRuntime`, baseline hydrated messages at mount, and track
 assistant messages by ID and part index instead of assuming the final item is
 active.
 
 | Normalized event        | Mapping                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------ |
-| Start/delta             | Assistant status `running`; diff text content by message/part identity         |
+| Start/delta             | New assistant message ID or append-only text content by message/part identity  |
 | Complete/interrupt/fail | `complete`; or `incomplete` reason `cancelled`/`error`                         |
 | Retry/connection        | Unavailable without owning actions or runtime-specific evidence                |
-| Tool                    | Part `running`, `complete`, or `incomplete`; only use documented progress data |
-| Interaction             | `requires-action` with unresolved approval/interrupt data                      |
+| Tool                    | New `tool-call`, then a present result → complete/fail; labels stay generic    |
+| Approval                | A newly observed unresolved `tool-call.approval`, then its observed resolution |
 | Citation                | Newly added source content parts                                               |
 
 Do not depend on `unstable_on`, `unstable_state`, `unstable_annotations` or

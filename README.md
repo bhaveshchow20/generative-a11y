@@ -81,14 +81,14 @@ the environment where it actually runs.
 
 ## Ecosystem
 
-| Source                    | Intended integration                                        | Status                                                           |
-| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
-| Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending |
-| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending |
-| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | In progress                                                      |
-| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | In progress                                                      |
-| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | In progress                                                      |
-| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                     |
+| Source                    | Intended integration                                        | Status                                                                             |
+| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending                   |
+| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending                   |
+| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | In progress                                                                        |
+| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Implemented; local browser check complete; assistive-technology validation pending |
+| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Implemented; local browser check complete; assistive-technology validation pending |
+| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                                       |
 
 [ag-ui]: https://github.com/ag-ui-protocol/ag-ui
 [ai-sdk]: https://github.com/vercel/ai
@@ -137,7 +137,7 @@ focus, and preference APIs.
 - DOM delivery, attention, focus, and preferences — implemented
 - React provider, hooks, and bindings — implemented
 - AG-UI adapter — planned first
-- AI SDK and assistant-ui adapters — planned
+- AI SDK and assistant-ui adapters — implemented
 - Devtools and documentation application — later
 
 Adapter feasibility and fidelity constraints are documented in
