@@ -27,6 +27,7 @@ export {
 export {
   createPreferenceStore,
   defaultPreferences,
+  normalizePreferences,
   preferencesToCoreConfiguration,
   type CorePreferenceConfiguration,
   type PreferenceDiagnostic,
@@ -39,6 +40,7 @@ export {
   type PreferenceStorageEventSource,
   type PreferenceStore,
   type PreferenceStoreOptions,
+  samePreferences,
   type StreamingVerbosity,
   type ToolVerbosity,
 } from "./preferences.js";

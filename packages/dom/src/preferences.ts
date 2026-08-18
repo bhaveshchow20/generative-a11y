@@ -335,7 +335,9 @@ function parsePreferences(
 
 class UnsupportedPreferenceVersionError extends TypeError {}
 
-function normalizePreferences(value: PreferenceSchemaV1): PreferenceSchemaV1 {
+export function normalizePreferences(
+  value: PreferenceSchemaV1,
+): PreferenceSchemaV1 {
   const fields = snapshotPreferenceFields(value);
   if (fields.version !== 1)
     throw new UnsupportedPreferenceVersionError(
@@ -414,7 +416,7 @@ function hasExactKeys(
   );
 }
 
-function samePreferences(
+export function samePreferences(
   left: PreferenceSchemaV1,
   right: PreferenceSchemaV1,
 ): boolean {

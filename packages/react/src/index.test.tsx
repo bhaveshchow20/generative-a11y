@@ -4,11 +4,15 @@ import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
 import {
   createAttentionStore,
   createPreferenceStore,
+  type AttentionSnapshot,
+  type AttentionStore,
   type PreferenceStore,
+  type PreferenceSchemaV1,
   type PreferenceStoreOptions,
 } from "@generative-a11y/dom";
 import { act, render, renderHook, screen } from "@testing-library/react";
-import { Activity, StrictMode, useLayoutEffect, type ReactNode } from "react";
+import * as React from "react";
+import { StrictMode, useLayoutEffect, type ReactNode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +26,13 @@ import {
   useGenerativeA11yRuntime,
 } from "./index.js";
 
+type ActivityComponent = (props: {
+  mode: "visible" | "hidden";
+  children?: ReactNode;
+}) => ReactNode;
+const Activity = (React as typeof React & { Activity?: ActivityComponent })
+  .Activity;
+
 afterEach(() => {
   document.body.replaceChildren();
   Object.defineProperty(document, "visibilityState", {
@@ -34,6 +45,7 @@ afterEach(() => {
 async function flushCleanup(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   });
 }
 
@@ -251,6 +263,7 @@ describe("GenerativeA11yProvider", () => {
   });
 
   it("keeps the provider outside a disconnected Activity boundary", async () => {
+    if (!Activity) return;
     let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
     function Probe() {
       runtime = useGenerativeA11yRuntime();
@@ -273,6 +286,40 @@ describe("GenerativeA11yProvider", () => {
     await flushCleanup();
     expect(() =>
       runtime?.dispatch({ type: "response.started", responseId: "activity" }),
+    ).not.toThrow();
+  });
+
+  it("restarts owned resources when Activity hides and shows the provider", async () => {
+    if (!Activity) return;
+    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    function Probe() {
+      runtime = useGenerativeA11yRuntime();
+      return null;
+    }
+    const view = render(
+      <Activity mode="visible">
+        <GenerativeA11yProvider dom={false}>
+          <Probe />
+        </GenerativeA11yProvider>
+      </Activity>,
+    );
+    view.rerender(
+      <Activity mode="hidden">
+        <GenerativeA11yProvider dom={false}>
+          <Probe />
+        </GenerativeA11yProvider>
+      </Activity>,
+    );
+    view.rerender(
+      <Activity mode="visible">
+        <GenerativeA11yProvider dom={false}>
+          <Probe />
+        </GenerativeA11yProvider>
+      </Activity>,
+    );
+    await flushCleanup();
+    expect(() =>
+      runtime?.dispatch({ type: "response.started", responseId: "restart" }),
     ).not.toThrow();
   });
 
@@ -376,6 +423,21 @@ describe("GenerativeA11yProvider", () => {
 });
 
 describe("DOM delivery", () => {
+  it("moves live regions outside the provider host markup", () => {
+    const host = document.createElement("section");
+    document.body.append(host);
+    const view = render(
+      <GenerativeA11yProvider>
+        <span>Host UI</span>
+      </GenerativeA11yProvider>,
+      { container: host },
+    );
+
+    expect(host.querySelector("[aria-live]")).toBeNull();
+    expect(document.body.querySelectorAll("[aria-live]")).toHaveLength(2);
+    view.unmount();
+  });
+
   it("server-renders stable hidden regions without announcements", () => {
     const html = renderToString(
       <GenerativeA11yProvider>
@@ -442,7 +504,7 @@ describe("DOM delivery", () => {
     await act(async () => {
       clock.runUntilIdle();
     });
-    expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe(
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe(
       "Assistant is responding.",
     );
     act(() => root.unmount());
@@ -506,15 +568,10 @@ describe("DOM delivery", () => {
       first.dispatch({ type: "response.started", responseId: "first" });
       firstClock.runUntilIdle();
     });
-    expect(
-      screen.getByTestId("first-provider").querySelector('[aria-live="polite"]')
-        ?.textContent,
-    ).toBe("Assistant is responding.");
-    expect(
-      screen
-        .getByTestId("second-provider")
-        .querySelector('[aria-live="polite"]')?.textContent,
-    ).toBe("");
+    const politeRegions = document.querySelectorAll('[aria-live="polite"]');
+    expect(politeRegions).toHaveLength(2);
+    expect(politeRegions[0]?.textContent).toBe("Assistant is responding.");
+    expect(politeRegions[1]?.textContent).toBe("");
     first.dispose();
     second.dispose();
   });
@@ -799,6 +856,87 @@ describe("preferences", () => {
 });
 
 describe("attention and bindings", () => {
+  it("preserves receivers for borrowed store methods", () => {
+    class ReceiverAttentionStore implements AttentionStore {
+      readonly snapshot: AttentionSnapshot = {
+        visibility: "visible",
+        windowFocus: "focused",
+        focusArea: "none",
+        newestResponse: "unobserved",
+        mode: "unknown",
+      };
+      readonly listeners = new Set<() => void>();
+
+      subscribe(listener: () => void): () => void {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+      }
+      getSnapshot(): AttentionSnapshot {
+        return this.snapshot;
+      }
+      getServerSnapshot(): AttentionSnapshot {
+        return this.snapshot;
+      }
+      registerComposer(): () => void {
+        return () => undefined;
+      }
+      registerConversation(): () => void {
+        return () => undefined;
+      }
+      registerNewestResponse(): () => void {
+        return () => undefined;
+      }
+      dispose(): void {
+        this.listeners.clear();
+      }
+    }
+
+    class ReceiverPreferenceStore implements PreferenceStore {
+      snapshot: PreferenceSchemaV1 = { version: 1, preset: "completion-only" };
+      readonly listeners = new Set<() => void>();
+
+      subscribe(listener: () => void): () => void {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+      }
+      getSnapshot() {
+        return this.snapshot;
+      }
+      getServerSnapshot() {
+        return this.snapshot;
+      }
+      setPreferences(value: PreferenceSchemaV1): void {
+        this.snapshot = value;
+        for (const listener of this.listeners) listener();
+      }
+      dispose(): void {
+        this.listeners.clear();
+      }
+    }
+
+    const attentionStore = new ReceiverAttentionStore();
+    const preferenceStore = new ReceiverPreferenceStore();
+    function Probe() {
+      const attention = useGenerativeA11yAttention();
+      const preferences = useGenerativeA11yPreferences();
+      return (
+        <output>
+          {attention.visibility}:{preferences.preferences.preset}
+        </output>
+      );
+    }
+    render(
+      <GenerativeA11yProvider
+        attentionStore={attentionStore}
+        preferenceStore={preferenceStore}
+        dom={false}
+      >
+        <Probe />
+      </GenerativeA11yProvider>,
+    );
+    expect(screen.getByText("visible:completion-only")).toBeTruthy();
+  });
+
   it("derives realm storage while preserving supplied preference events", () => {
     const { container, realmDocument, realmStorage, realmWindow } =
       createIframeRealm();

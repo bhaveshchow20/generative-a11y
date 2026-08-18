@@ -283,6 +283,11 @@ This deliberate split supports SSR and hydration without accessing browser
 globals during module evaluation. After disposal, snapshots remain readable; new
 subscriptions and writes throw.
 
+`normalizePreferences(value)` validates, canonicalizes, and freezes a v1
+snapshot. `samePreferences(left, right)` compares canonical preference values.
+These helpers are exported for thin integrations such as the React adapter to
+reuse the DOM package's schema invariants.
+
 Persistence is opt-in through `PreferencePersistence`. It accepts a `key`, an
 optional `PreferenceStorage` (`getItem`/`setItem`), and an optional
 `PreferenceStorageEventSource`. When persistence is requested without injected

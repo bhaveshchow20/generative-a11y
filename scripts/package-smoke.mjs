@@ -75,7 +75,9 @@ try {
   // Workspace dependencies in the archives are rewritten to 0.0.0. Point
   // those dependencies at local archives without consulting a registry.
   const overrides = ["@generative-a11y/core", "@generative-a11y/dom"]
-    .map((packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`)
+    .map(
+      (packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`,
+    )
     .join("\n");
   await writeFile(
     join(projectRoot, "pnpm-workspace.yaml"),

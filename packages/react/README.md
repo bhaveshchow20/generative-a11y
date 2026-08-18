@@ -11,7 +11,7 @@ React 18.2 and React 19.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/dom @generative-a11y/react react
+pnpm add @generative-a11y/core @generative-a11y/dom @generative-a11y/react react react-dom
 ```
 
 ## Quick start
@@ -182,11 +182,10 @@ cleanup cannot terminally dispose the runtime reused by the next setup. A true
 unmount disposes owned resources after that boundary. Tests flush this cleanup
 boundary explicitly.
 
-Place `GenerativeA11yProvider` **outside React 19 `<Activity>` boundaries**.
-Activity can disconnect effects while preserving state for later reconnection;
-that lifecycle is not a terminal accessibility session and cannot be reliably
-distinguished from an unmount by this provider. Keeping the provider outside the
-boundary preserves the runtime while Activity children hide and reconnect.
+The provider may be placed inside React 19 `<Activity>` boundaries. When an
+Activity hides the provider, effect cleanup stops owned observers and stores;
+when it becomes visible again, those resources restart. A true provider unmount
+disposes owned resources after the cleanup boundary.
 
 ## Public supporting types
 
@@ -204,6 +203,5 @@ preference types continue to come from their owning packages.
   intent.
 - It never steals focus or scrolls during ordinary streaming.
 - Preference changes do not reconfigure an active runtime.
-- The provider must remain outside React Activity boundaries.
 - Framework-specific adapters for AI SDKs and chat frameworks are not part of
   this package.

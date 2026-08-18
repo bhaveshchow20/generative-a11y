@@ -8,7 +8,9 @@ import {
   createAttentionStore,
   createPreferenceStore,
   defaultPreferences,
+  normalizePreferences,
   preferencesToCoreConfiguration,
+  samePreferences,
   type AttentionSnapshot,
   type AttentionStore,
   type AttentionStoreOptions,
@@ -22,10 +24,12 @@ import {
 } from "@generative-a11y/dom";
 import {
   createContext,
+  Component,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -33,6 +37,7 @@ import {
   type ReactNode,
   type RefCallback,
 } from "react";
+import { createPortal } from "react-dom";
 
 export type GenerativeA11yDOMOptions = Omit<
   DOMAnnouncerOptions,
@@ -267,7 +272,7 @@ class ManagedPreferenceStore implements PreferenceStore {
 
   constructor(options: PreferenceStoreOptions) {
     this.#options = options;
-    this.#serverSnapshot = normalizeManagedPreferences(
+    this.#serverSnapshot = normalizePreferences(
       options.defaultValue ?? defaultPreferences,
     );
     this.#snapshot = this.#serverSnapshot;
@@ -289,7 +294,7 @@ class ManagedPreferenceStore implements PreferenceStore {
       this.#store.setPreferences(value);
       return;
     }
-    this.#replace(normalizeManagedPreferences(value));
+    this.#replace(normalizePreferences(value));
     this.#dirtyBeforeStart = true;
   };
 
@@ -457,27 +462,6 @@ function unsubscribeSafely(unsubscribe: (() => void) | undefined): void {
   }
 }
 
-function samePreferences(
-  left: PreferenceSchemaV1,
-  right: PreferenceSchemaV1,
-): boolean {
-  if (left.preset !== right.preset) return false;
-  if (left.preset === "completion-only" || right.preset === "completion-only")
-    return true;
-  return left.streaming === right.streaming && left.tools === right.tools;
-}
-
-function normalizeManagedPreferences(
-  value: PreferenceSchemaV1,
-): PreferenceSchemaV1 {
-  const store = createPreferenceStore({ defaultValue: value });
-  try {
-    return store.getSnapshot();
-  } finally {
-    disposeSafely(store);
-  }
-}
-
 function registerAttention(
   store: AttentionStore,
   registration: {
@@ -490,6 +474,19 @@ function registerAttention(
   if (registration.kind === "conversation")
     return store.registerConversation(registration.element);
   return store.registerNewestResponse(registration.element);
+}
+
+class ProviderResourceLifetime extends Component<{
+  readonly children?: ReactNode;
+  readonly onUnmount: () => void;
+}> {
+  override componentWillUnmount(): void {
+    this.props.onUnmount();
+  }
+
+  override render(): ReactNode {
+    return this.props.children;
+  }
 }
 
 const GenerativeA11yContext = createContext<GenerativeA11yContextValue | null>(
@@ -529,15 +526,27 @@ export function GenerativeA11yProvider({
     store:
       suppliedPreferenceStore ?? new ManagedPreferenceStore(preferences ?? {}),
   }));
+  const preferenceSubscribe = useCallback(
+    (listener: () => void) => preferenceResource.store.subscribe(listener),
+    [preferenceResource.store],
+  );
+  const preferenceGetSnapshot = useCallback(
+    () => preferenceResource.store.getSnapshot(),
+    [preferenceResource.store],
+  );
+  const preferenceGetServerSnapshot = useCallback(
+    () => preferenceResource.store.getServerSnapshot(),
+    [preferenceResource.store],
+  );
   const initialPreferenceSnapshot = useSyncExternalStore(
     preferenceResource.configuresRuntime
-      ? preferenceResource.store.subscribe
+      ? preferenceSubscribe
       : subscribeInertly,
     preferenceResource.configuresRuntime
-      ? preferenceResource.store.getSnapshot
+      ? preferenceGetSnapshot
       : getDefaultPreferences,
     preferenceResource.configuresRuntime
-      ? preferenceResource.store.getServerSnapshot
+      ? preferenceGetServerSnapshot
       : getDefaultPreferences,
   );
   const [resources] = useState<ProviderResources>(() => {
@@ -622,7 +631,24 @@ export function GenerativeA11yProvider({
     [reconcileBinding],
   );
 
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (resources.dom === false || portalHost) return;
+    const ownerDocument = committedDocument.current;
+    if (!ownerDocument) return;
+    const parent = ownerDocument.body ?? ownerDocument.documentElement;
+    if (!parent) return;
+    const host = ownerDocument.createElement("div");
+    host.dataset.generativeA11yLiveRegions = "true";
+    parent.append(host);
+    setPortalHost(host);
+  }, [portalHost, resources]);
+
   const lifecycleEpoch = useRef(0);
+  const lifetimeEpoch = useRef(0);
+  useLayoutEffect(() => {
+    lifetimeEpoch.current += 1;
+  }, [resources]);
   useEffect(() => {
     lifecycleEpoch.current += 1;
     try {
@@ -648,35 +674,54 @@ export function GenerativeA11yProvider({
         if (lifecycleEpoch.current !== cleanupEpoch) return;
         disposeSafely(binding.current);
         binding.current = undefined;
-        if (resources.ownsAttention) disposeSafely(resources.attentionStore);
-        if (resources.ownsPreferences) disposeSafely(resources.preferenceStore);
-        if (resources.ownsRuntime) disposeSafely(resources.runtime);
+        if (resources.ownsAttention)
+          (resources.attentionStore as ManagedAttentionStore).stop();
+        if (resources.ownsPreferences)
+          (resources.preferenceStore as ManagedPreferenceStore).stop();
       });
     };
   }, [resources]);
 
+  const disposeOwnedResources = useCallback(() => {
+    const cleanupEpoch = lifetimeEpoch.current;
+    setTimeout(() => {
+      if (lifetimeEpoch.current !== cleanupEpoch) return;
+      if (resources.ownsAttention) disposeSafely(resources.attentionStore);
+      if (resources.ownsPreferences) disposeSafely(resources.preferenceStore);
+      if (resources.ownsRuntime) disposeSafely(resources.runtime);
+      portalHost?.remove();
+    }, 0);
+  }, [portalHost, resources]);
+
+  const regionMarkup =
+    resources.dom === false ? null : (
+      <>
+        <div
+          ref={setPoliteRegion}
+          aria-live="polite"
+          aria-atomic="true"
+          aria-relevant="additions text"
+          style={visuallyHiddenStyle}
+        />
+        <div
+          ref={setAssertiveRegion}
+          aria-live="assertive"
+          aria-atomic="true"
+          aria-relevant="additions text"
+          style={visuallyHiddenStyle}
+        />
+      </>
+    );
+
   return (
-    <GenerativeA11yContext.Provider value={context}>
-      {resources.dom === false ? null : (
-        <>
-          <div
-            ref={setPoliteRegion}
-            aria-live="polite"
-            aria-atomic="true"
-            aria-relevant="additions text"
-            style={visuallyHiddenStyle}
-          />
-          <div
-            ref={setAssertiveRegion}
-            aria-live="assertive"
-            aria-atomic="true"
-            aria-relevant="additions text"
-            style={visuallyHiddenStyle}
-          />
-        </>
-      )}
-      {children}
-    </GenerativeA11yContext.Provider>
+    <ProviderResourceLifetime onUnmount={disposeOwnedResources}>
+      <GenerativeA11yContext.Provider value={context}>
+        {portalHost && regionMarkup
+          ? createPortal(regionMarkup, portalHost)
+          : regionMarkup}
+        {children}
+      </GenerativeA11yContext.Provider>
+    </ProviderResourceLifetime>
   );
 }
 
@@ -696,19 +741,39 @@ export function useGenerativeA11yRuntime(): GenerativeA11yRuntime {
 
 export function useGenerativeA11yAttention(): AttentionSnapshot {
   const { attentionStore } = useGenerativeA11y();
-  return useSyncExternalStore(
-    attentionStore.subscribe,
-    attentionStore.getSnapshot,
-    attentionStore.getServerSnapshot,
+  const subscribe = useCallback(
+    (listener: () => void) => attentionStore.subscribe(listener),
+    [attentionStore],
   );
+  const getSnapshot = useCallback(
+    () => attentionStore.getSnapshot(),
+    [attentionStore],
+  );
+  const getServerSnapshot = useCallback(
+    () => attentionStore.getServerSnapshot(),
+    [attentionStore],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult {
   const { preferenceStore } = useGenerativeA11y();
+  const subscribe = useCallback(
+    (listener: () => void) => preferenceStore.subscribe(listener),
+    [preferenceStore],
+  );
+  const getSnapshot = useCallback(
+    () => preferenceStore.getSnapshot(),
+    [preferenceStore],
+  );
+  const getServerSnapshot = useCallback(
+    () => preferenceStore.getServerSnapshot(),
+    [preferenceStore],
+  );
   const snapshot = useSyncExternalStore(
-    preferenceStore.subscribe,
-    preferenceStore.getSnapshot,
-    preferenceStore.getServerSnapshot,
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
   );
   const setPreferences = useCallback(
     (next: PreferenceSchemaV1) => preferenceStore.setPreferences(next),
@@ -722,14 +787,24 @@ export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult 
 
 export function useGenerativeA11yBindings(): GenerativeA11yBindings {
   const { attentionStore } = useGenerativeA11y();
-  const composerRef = useAttentionRegistration<HTMLTextAreaElement>(
-    attentionStore.registerComposer,
+  const registerComposer = useCallback(
+    (element: Element) => attentionStore.registerComposer(element),
+    [attentionStore],
   );
-  const conversationRef = useAttentionRegistration<HTMLElement>(
-    attentionStore.registerConversation,
+  const registerConversation = useCallback(
+    (element: Element) => attentionStore.registerConversation(element),
+    [attentionStore],
   );
+  const registerNewestResponse = useCallback(
+    (element: Element) => attentionStore.registerNewestResponse(element),
+    [attentionStore],
+  );
+  const composerRef =
+    useAttentionRegistration<HTMLTextAreaElement>(registerComposer);
+  const conversationRef =
+    useAttentionRegistration<HTMLElement>(registerConversation);
   const newestResponseRef = useAttentionRegistration<HTMLElement>(
-    attentionStore.registerNewestResponse,
+    registerNewestResponse,
   );
   return useMemo(
     () => ({

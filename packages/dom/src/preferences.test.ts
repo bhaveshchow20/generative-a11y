@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createPreferenceStore,
   defaultPreferences,
+  normalizePreferences,
   preferencesToCoreConfiguration,
+  samePreferences,
   type PreferenceSchemaV1,
   type PreferenceStorage,
   type PreferenceStorageEvent,
@@ -55,9 +57,11 @@ describe("preference schema and core mapping", () => {
   it("exports one frozen balanced default with stable store identities", () => {
     expect(publicAPI.createPreferenceStore).toBe(createPreferenceStore);
     expect(publicAPI.defaultPreferences).toBe(defaultPreferences);
+    expect(publicAPI.normalizePreferences).toBe(normalizePreferences);
     expect(publicAPI.preferencesToCoreConfiguration).toBe(
       preferencesToCoreConfiguration,
     );
+    expect(publicAPI.samePreferences).toBe(samePreferences);
     expect(defaultPreferences).toEqual(balanced());
     expect(Object.isFrozen(defaultPreferences)).toBe(true);
 
