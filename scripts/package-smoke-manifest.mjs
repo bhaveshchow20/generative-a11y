@@ -29,6 +29,14 @@ export const packageScenarios = [
     internalPackages: ["@generative-a11y/core"],
   },
   {
+    id: "devtools",
+    packageName: "@generative-a11y/devtools",
+    specifier: "@generative-a11y/devtools",
+    expectedExport: "createDevtoolsStore",
+    fixtures: [],
+    internalPackages: ["@generative-a11y/core"],
+  },
+  {
     id: "react",
     packageName: "@generative-a11y/react",
     specifier: "@generative-a11y/react",

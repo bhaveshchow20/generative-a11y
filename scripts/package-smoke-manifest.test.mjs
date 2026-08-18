@@ -48,6 +48,13 @@ describe("isolated packed consumer scenarios", () => {
         internalPackages: ["@generative-a11y/core"],
       }),
       expect.objectContaining({
+        id: "devtools",
+        specifier: "@generative-a11y/devtools",
+        expectedExport: "createDevtoolsStore",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
+      expect.objectContaining({
         id: "react",
         specifier: "@generative-a11y/react",
         fixtures: ["react", "react-dom", "@types/react", "@types/react-dom"],
@@ -92,9 +99,9 @@ describe("isolated packed consumer scenarios", () => {
       }),
     ]);
 
-    expect(smoke.packageScenarios[3].fixtures).not.toContain("@ai-sdk/react");
-    expect(smoke.packageScenarios[3].fixtures).not.toContain("react");
-    expect(smoke.packageScenarios[6].fixtures).not.toContain("@ag-ui/core");
+    expect(scenarioById("ai-sdk").fixtures).not.toContain("@ai-sdk/react");
+    expect(scenarioById("ai-sdk").fixtures).not.toContain("react");
+    expect(scenarioById("ag-ui").fixtures).not.toContain("@ag-ui/core");
   });
 
   it("creates a JSON-only manifest with relative packed dependencies and overrides", () => {
