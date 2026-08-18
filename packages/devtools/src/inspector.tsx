@@ -132,7 +132,7 @@ function TraceMap({ store }: { readonly store: DevtoolsStore }) {
       <svg
         aria-label="Trace events arranged from observed input through runtime decisions to browser delivery"
         className="ga-trace-map-svg"
-        role="img"
+        role="group"
         viewBox={`0 0 ${width} ${height}`}
       >
         {lanes.map((lane, index) => (
@@ -492,7 +492,7 @@ export function DevtoolsInspector({
 }: DevtoolsInspectorProps) {
   const snapshot = useStoreSnapshot(store);
   const [feedback, setFeedback] = React.useState<string>();
-  const copyRequest = React.useRef(0);
+  const feedbackRevision = React.useRef(0);
   const copyStatusTimer = React.useRef<number | undefined>(undefined);
   React.useEffect(() => {
     if (!feedback || feedback === "Copying trace") return;
@@ -505,9 +505,9 @@ export function DevtoolsInspector({
         window.clearTimeout(copyStatusTimer.current);
       copyStatusTimer.current = undefined;
     };
-  }, [copyStatus]);
+  }, [feedback]);
   const closeInspector = () => {
-    copyRequest.current += 1;
+    feedbackRevision.current += 1;
     if (copyStatusTimer.current !== undefined)
       window.clearTimeout(copyStatusTimer.current);
     copyStatusTimer.current = undefined;
@@ -523,19 +523,21 @@ export function DevtoolsInspector({
     (record) => record.kind === "dom-delivery",
   ).length;
   const copyTrace = async () => {
-    const request = ++copyRequest.current;
     const serialized = JSON.stringify(store.exportTrace(), null, 2);
+    const revision = ++feedbackRevision.current;
     setFeedback(onCopy ? "Copying trace" : "Copy unavailable");
     if (!onCopy) return;
     try {
       await onCopy(serialized);
-      if (request === copyRequest.current)
+      if (feedbackRevision.current === revision)
         setFeedback("Trace copied to the local clipboard");
     } catch {
-      if (request === copyRequest.current) setFeedback("Copy unavailable");
+      if (feedbackRevision.current === revision)
+        setFeedback("Copy unavailable");
     }
   };
   const toggleCapture = () => {
+    feedbackRevision.current += 1;
     if (snapshot.paused) {
       store.resumeCapture();
       setFeedback("Capture resumed");
@@ -545,10 +547,12 @@ export function DevtoolsInspector({
     }
   };
   const refresh = () => {
+    feedbackRevision.current += 1;
     store.refreshSnapshots();
     setFeedback("Runtime snapshot refreshed");
   };
   const clear = () => {
+    feedbackRevision.current += 1;
     store.clear();
     setFeedback("Local trace cleared");
   };
@@ -623,7 +627,7 @@ export function DevtoolsInspector({
             <TabsTrigger value="traces">Library</TabsTrigger>
           </TabsList>
           <div className="ga-inspector-primary-actions">
-            <Button onClick={copyTrace} size="sm" variant="ghost">
+            <Button onClick={() => void copyTrace()} size="sm" variant="ghost">
               <Download aria-hidden="true" size={14} /> Export
             </Button>
           </div>
@@ -671,7 +675,11 @@ export function DevtoolsInspector({
                     <Button onClick={clear} size="sm" variant="ghost">
                       Clear trace
                     </Button>
-                    <Button onClick={copyTrace} size="sm" variant="outline">
+                    <Button
+                      onClick={() => void copyTrace()}
+                      size="sm"
+                      variant="outline"
+                    >
                       <Copy aria-hidden="true" size={14} /> Export trace
                     </Button>
                   </div>
@@ -713,7 +721,7 @@ export function DevtoolsInspector({
                   include response deltas, labels, errors, DOM text, or stacks.
                 </p>
                 <div className="ga-inspector-inline-actions">
-                  <Button onClick={copyTrace} variant="secondary">
+                  <Button onClick={() => void copyTrace()} variant="secondary">
                     <Copy aria-hidden="true" size={14} /> Copy trace JSON
                   </Button>
                   <Button onClick={() => store.clear()} variant="outline">

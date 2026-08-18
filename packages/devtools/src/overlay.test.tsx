@@ -47,6 +47,8 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
     mounted.host.shadowRoot?.querySelector<HTMLButtonElement>("button");
   if (!button) throw new Error("launcher missing");
   expect(button.textContent).toBe("Open workspace");
+  fireEvent.pointerDown(button);
+  button.focus();
   fireEvent.click(button);
   expect(panel?.hidden).toBe(false);
   expect(panel?.getAttribute("data-state")).toBe("expanded");
@@ -74,7 +76,9 @@ test("renders a visual trace map and confirms local workspace actions", async ()
   if (!root || !launcher) throw new Error("workspace launcher missing");
 
   fireEvent.click(launcher);
-  expect(root.querySelector('[data-testid="trace-map"]')).not.toBeNull();
+  const traceMap = root.querySelector('[data-testid="trace-map"] svg');
+  expect(traceMap).not.toBeNull();
+  expect(traceMap?.getAttribute("role")).toBe("group");
   expect(root.textContent).toContain("Trace map");
   const traceNode = root.querySelector<SVGGElement>("[data-trace-key]");
   if (!traceNode) throw new Error("trace node missing");
@@ -93,6 +97,124 @@ test("renders a visual trace map and confirms local workspace actions", async ()
       root.querySelector('[data-testid="workspace-feedback"]')?.textContent,
     ).toContain("Capture paused"),
   );
+  expect(
+    root.querySelector('[role="status"][aria-live="polite"]'),
+  ).not.toBeNull();
+  mounted.dispose();
+});
+
+test("cancels feedback cleanup when the workspace unmounts", async () => {
+  const clearTimeout = vi.spyOn(window, "clearTimeout");
+  const setTimeout = vi.spyOn(window, "setTimeout");
+  const mounted = mountDevtoolsOverlay({
+    store: createDevtoolsStore(),
+    document,
+  });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const pause = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+    (button) => button.textContent === "Pause capture",
+  );
+  if (!pause) throw new Error("pause action missing");
+  fireEvent.click(pause);
+  await waitFor(() =>
+    expect(
+      root.querySelector('[data-testid="workspace-feedback"]'),
+    ).not.toBeNull(),
+  );
+  const feedbackTimerIndex = setTimeout.mock.calls.findIndex(
+    ([, delay]) => delay === 2_200,
+  );
+  expect(feedbackTimerIndex).toBeGreaterThanOrEqual(0);
+  const feedbackTimer = setTimeout.mock.results[feedbackTimerIndex]?.value;
+
+  mounted.dispose();
+
+  expect(clearTimeout).toHaveBeenCalledWith(feedbackTimer);
+  clearTimeout.mockRestore();
+  setTimeout.mockRestore();
+});
+
+test("unmounts feedback when the launcher collapses the workspace", async () => {
+  const clearTimeout = vi.spyOn(window, "clearTimeout");
+  const setTimeout = vi.spyOn(window, "setTimeout");
+  const mounted = mountDevtoolsOverlay({
+    store: createDevtoolsStore(),
+    document,
+  });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const pause = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+    (button) => button.textContent === "Pause capture",
+  );
+  if (!pause) throw new Error("pause action missing");
+  fireEvent.click(pause);
+  await waitFor(() =>
+    expect(
+      root.querySelector('[data-testid="workspace-feedback"]'),
+    ).not.toBeNull(),
+  );
+  const timerIndex = setTimeout.mock.calls.findIndex(
+    ([, delay]) => delay === 2_200,
+  );
+  expect(timerIndex).toBeGreaterThanOrEqual(0);
+  const timer = setTimeout.mock.results[timerIndex]?.value;
+
+  fireEvent.click(launcher);
+
+  expect(clearTimeout).toHaveBeenCalledWith(timer);
+  expect(root.querySelector('[data-testid="workspace-feedback"]')).toBeNull();
+  fireEvent.click(launcher);
+  expect(root.querySelector('[data-testid="workspace-feedback"]')).toBeNull();
+  mounted.dispose();
+  clearTimeout.mockRestore();
+  setTimeout.mockRestore();
+});
+
+test("reports clipboard rejection only after the operation settles", async () => {
+  let rejectCopy: ((reason?: unknown) => void) | undefined;
+  const pendingCopy = new Promise<void>((_resolve, reject) => {
+    rejectCopy = reject;
+  });
+  const mounted = mountDevtoolsOverlay({
+    store: createDevtoolsStore(),
+    document,
+    copyText: () => pendingCopy,
+  });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const exportButton = [
+    ...root.querySelectorAll<HTMLButtonElement>("button"),
+  ].find((button) => button.textContent?.includes("Export trace"));
+  if (!exportButton) throw new Error("export action missing");
+
+  fireEvent.click(exportButton);
+  expect(root.textContent).toContain("Copying trace");
+  expect(root.textContent).not.toContain("Trace copied to the local clipboard");
+  rejectCopy?.(new Error("clipboard denied"));
+  await waitFor(() => expect(root.textContent).toContain("Copy unavailable"));
+  expect(root.textContent).not.toContain("Copying trace");
+  mounted.dispose();
+});
+
+test("renders the visual trace surface as a distinct workspace region", () => {
+  const mounted = mountDevtoolsOverlay({
+    store: createDevtoolsStore(),
+    document,
+  });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const traceMap = root.querySelector('[data-testid="trace-map"]');
+  expect(traceMap?.classList.contains("ga-trace-map")).toBe(true);
+  expect(traceMap?.querySelector("svg")).not.toBeNull();
   mounted.dispose();
 });
 
