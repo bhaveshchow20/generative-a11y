@@ -224,4 +224,32 @@ describe("announcement scheduler", () => {
       }),
     ).toThrow(RangeError);
   });
+
+  it("exposes immutable, content-free pending timing diagnostics", () => {
+    const { scheduler } = setup();
+    scheduler.schedule({
+      channel: "polite",
+      text: "secret response text",
+      sourceType: "response.completed",
+      responseId: "r1",
+      delayMs: 250,
+    });
+
+    const snapshot = scheduler.getDiagnosticSnapshot();
+
+    expect(snapshot).toEqual([
+      {
+        id: "announcement-1",
+        channel: "polite",
+        sourceType: "response.completed",
+        responseId: "r1",
+        scheduledAt: 0,
+        dueAt: 250,
+        delayMs: 250,
+        sequence: 0,
+      },
+    ]);
+    expect(JSON.stringify(snapshot)).not.toContain("secret");
+    expect(Object.isFrozen(snapshot[0])).toBe(true);
+  });
 });

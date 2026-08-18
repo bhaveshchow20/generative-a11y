@@ -24,13 +24,35 @@ function intent(
 }
 
 describe("createDOMAnnouncer", () => {
+  it("correlates every delivery attempt with the source intent without a wall clock", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const announcer = createDOMAnnouncer({
+      document: dom.window.document,
+      mode: "live-region",
+    });
+    const result = announcer.announce({
+      ...intent("Ready"),
+      id: "announcement-42",
+      at: 123,
+      responseId: "r1",
+    });
+
+    expect(result).toMatchObject({
+      status: "mutated",
+      announcementId: "announcement-42",
+      sourceType: "response.text.delta",
+      responseId: "r1",
+      at: 123,
+    });
+  });
+
   it("is inert without a document", () => {
     const onDiagnostic = vi.fn();
     const announcer = createDOMAnnouncer({ onDiagnostic });
 
     expect(announcer.getRegions()).toBeUndefined();
     const result = announcer.announce(intent());
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: "unavailable",
       method: "none",
       channel: "polite",
@@ -83,7 +105,7 @@ describe("createDOMAnnouncer", () => {
         value: notify,
       });
 
-      expect(announcer.announce(intent("Ready", channel))).toEqual({
+      expect(announcer.announce(intent("Ready", channel))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel,
@@ -186,7 +208,7 @@ describe("createDOMAnnouncer", () => {
       const notify = vi.fn();
       Object.defineProperty(region, "ariaNotify", { value: notify });
 
-      expect(announcer.announce(intent("Finished", channel))).toEqual({
+      expect(announcer.announce(intent("Finished", channel))).toMatchObject({
         status: "notified",
         method: "aria-notify",
         channel,
@@ -210,12 +232,12 @@ describe("createDOMAnnouncer", () => {
     const notify = vi.fn();
     Object.defineProperty(region, "ariaNotify", { value: notify });
 
-    expect(announcer.announce(intent("First"))).toEqual({
+    expect(announcer.announce(intent("First"))).toMatchObject({
       status: "notified",
       method: "aria-notify",
       channel: "polite",
     });
-    expect(announcer.announce(intent("Second"))).toEqual({
+    expect(announcer.announce(intent("Second"))).toMatchObject({
       status: "notified",
       method: "aria-notify",
       channel: "polite",
@@ -273,7 +295,7 @@ describe("createDOMAnnouncer", () => {
       expect(() => JSON.stringify(first)).not.toThrow();
       expect(region?.textContent).toBe("First");
 
-      expect(announcer.announce(intent("Second"))).toEqual({
+      expect(announcer.announce(intent("Second"))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel: "polite",
@@ -296,7 +318,7 @@ describe("createDOMAnnouncer", () => {
     });
     Object.defineProperty(region, "ariaNotify", { value: notify });
 
-    expect(announcer.announce(intent("First"))).toEqual({
+    expect(announcer.announce(intent("First"))).toMatchObject({
       status: "mutated",
       method: "live-region",
       channel: "polite",
@@ -304,7 +326,7 @@ describe("createDOMAnnouncer", () => {
     });
     expect(region?.textContent).toBe("First");
 
-    expect(announcer.announce(intent("Second"))).toEqual({
+    expect(announcer.announce(intent("Second"))).toMatchObject({
       status: "mutated",
       method: "live-region",
       channel: "polite",
@@ -326,7 +348,7 @@ describe("createDOMAnnouncer", () => {
 
     expect(regions?.polite.isConnected).toBe(false);
     expect(regions?.assertive.isConnected).toBe(false);
-    expect(announcer.announce(intent())).toEqual({
+    expect(announcer.announce(intent())).toMatchObject({
       status: "disposed",
       method: "none",
       channel: "polite",
@@ -479,7 +501,7 @@ describe("createDOMAnnouncer", () => {
         document: dom.window.document,
         mode,
       });
-      expect(announcer.announce(intent(mode))).toEqual({
+      expect(announcer.announce(intent(mode))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel: "polite",

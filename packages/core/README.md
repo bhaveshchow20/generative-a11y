@@ -52,6 +52,13 @@ optional injected `Clock`, and optional delivery callbacks:
 - `subscribeDiagnostics(listener)` observes subsequent diagnostic decisions and
   returns an idempotent unsubscribe function. Diagnostic listener failures are
   isolated.
+- `subscribeDiagnosticEvents(listener)` observes a versioned, ordered stream of
+  normalized source events and diagnostic decisions. It is explicitly opt-in;
+  listener failures are isolated and it never changes scheduling.
+- `getDiagnosticSnapshot()` returns an immutable, serializable snapshot of the
+  active response/tool lifecycle plus pending announcement and flush timing. It
+  intentionally excludes buffered response text, labels, errors, scopes,
+  deduplication keys, and timer handles.
 - `dispose()` is idempotent, cancels owned timers/queues and makes later
   dispatch or subscription attempts throw.
 
@@ -97,6 +104,13 @@ before exceeding its safety limit.
 `transcript()` contains delivered intents; `diagnosticTranscript()` also exposes
 stable dispositions and reason codes. These records prove runtime policy
 behavior, not actual assistive-technology speech.
+
+For development tooling, `RuntimeDiagnosticEventV1` has an explicit schema
+version and monotonically increasing sequence. A source event is emitted before
+the decisions caused by its dispatch. `RuntimeDiagnosticSnapshotV1` exposes only
+safe lifecycle and queue timing metadata; core retains no diagnostic history.
+Capture tools should bound their own history and redact conversation content by
+default.
 
 ## Segmentation
 

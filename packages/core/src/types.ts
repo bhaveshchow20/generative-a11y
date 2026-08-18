@@ -150,7 +150,73 @@ export interface AnnouncementDiagnostic {
   sourceEventId?: string;
   responseId?: string;
   toolId?: string;
+  interactionId?: string;
+  scheduledAt?: number;
+  dueAt?: number;
+  delayMs?: number;
+  queueSequence?: number;
 }
+
+/** A content-free queued announcement projection for diagnostic consumers. */
+export interface DiagnosticPendingAnnouncement {
+  id: string;
+  channel: AnnouncementChannel;
+  sourceType: GenerativeA11yEvent["type"];
+  sourceEventId?: string;
+  responseId?: string;
+  toolId?: string;
+  interactionId?: string;
+  locale?: string;
+  scheduledAt: number;
+  dueAt: number;
+  delayMs: number;
+  sequence: number;
+}
+
+export interface DiagnosticResponseSnapshot {
+  responseId: string;
+  epoch: number;
+  instanceId?: string;
+  status: "active" | "completed" | "interrupted" | "failed";
+  locale?: string;
+}
+
+export interface DiagnosticToolSnapshot {
+  toolId: string;
+  instanceId?: string;
+  status: "active" | "completed" | "failed";
+  locale?: string;
+  lastProgressBucket: number;
+}
+
+export interface RuntimeDiagnosticSnapshotV1 {
+  schemaVersion: 1;
+  at: number;
+  policy: ReadonlyAnnouncementPolicy;
+  pending: {
+    announcements: readonly DiagnosticPendingAnnouncement[];
+    flushes: readonly { responseId: string; epoch: number; dueAt: number }[];
+  };
+  responses: readonly DiagnosticResponseSnapshot[];
+  tools: readonly DiagnosticToolSnapshot[];
+  pendingCount: number;
+}
+
+export type RuntimeDiagnosticEventV1 =
+  | {
+      schemaVersion: 1;
+      sequence: number;
+      at: number;
+      kind: "event-observed";
+      event: GenerativeA11yEvent;
+    }
+  | {
+      schemaVersion: 1;
+      sequence: number;
+      at: number;
+      kind: "decision";
+      decision: AnnouncementDiagnostic;
+    };
 
 export interface TextPolicy {
   strategy: TextStrategy;
