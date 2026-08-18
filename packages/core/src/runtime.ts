@@ -10,9 +10,13 @@ import { normalizeAnnouncementText, segmentText } from "./segmenter.js";
 import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
+  DiagnosticResponseSnapshot,
+  DiagnosticToolSnapshot,
   GenerativeA11yEvent,
   PresetName,
   ReadonlyAnnouncementPolicy,
+  RuntimeDiagnosticEventV1,
+  RuntimeDiagnosticSnapshotV1,
 } from "./types.js";
 
 interface ResponseState {
@@ -24,6 +28,7 @@ interface ResponseState {
   fullText: string;
   locale?: string;
   flushTimer?: ClockTimer;
+  flushDueAt?: number;
 }
 
 interface ToolState {
@@ -47,6 +52,9 @@ export interface GenerativeA11yOptions {
 
 export type AnnouncementListener = (announcement: AnnouncementIntent) => void;
 export type DiagnosticListener = (diagnostic: AnnouncementDiagnostic) => void;
+export type RuntimeDiagnosticListener = (
+  event: RuntimeDiagnosticEventV1,
+) => void;
 
 export interface GenerativeA11yRuntime {
   dispatch(event: GenerativeA11yEvent): boolean;
@@ -54,6 +62,8 @@ export interface GenerativeA11yRuntime {
   pendingCount(): number;
   subscribeAnnouncements(listener: AnnouncementListener): () => void;
   subscribeDiagnostics(listener: DiagnosticListener): () => void;
+  subscribeDiagnosticEvents(listener: RuntimeDiagnosticListener): () => void;
+  getDiagnosticSnapshot(): RuntimeDiagnosticSnapshotV1;
   dispose(): void;
 }
 
@@ -83,6 +93,9 @@ export function createGenerativeA11y(
   if (options.onDiagnostic) diagnosticListeners.set(0, options.onDiagnostic);
   let nextAnnouncementListenerId = 1;
   let nextDiagnosticListenerId = 1;
+  const diagnosticEventListeners = new Map<number, RuntimeDiagnosticListener>();
+  let nextDiagnosticEventListenerId = 1;
+  let diagnosticSequence = 0;
   let nextResponseEpoch = 1;
   let disposed = false;
   let dispatching = false;
@@ -97,6 +110,7 @@ export function createGenerativeA11y(
   function clearListeners(): void {
     announcementListeners.clear();
     diagnosticListeners.clear();
+    diagnosticEventListeners.clear();
     clearListenersAfterDeliveryDiagnostic = false;
   }
 
@@ -153,6 +167,13 @@ export function createGenerativeA11y(
         // Diagnostic observers are best-effort and cannot alter scheduling.
       }
     }
+    emitDiagnosticEvent({
+      schemaVersion: 1,
+      sequence: diagnosticSequence++,
+      at: clock.now(),
+      kind: "decision",
+      decision: Object.freeze({ ...diagnostic }),
+    });
     if (
       clearListenersAfterDeliveryDiagnostic &&
       announcementEmissionDepth === 0 &&
@@ -161,6 +182,26 @@ export function createGenerativeA11y(
     ) {
       clearListeners();
     }
+  }
+
+  function emitDiagnosticEvent(event: RuntimeDiagnosticEventV1): void {
+    for (const listener of [...diagnosticEventListeners.values()]) {
+      try {
+        listener(event);
+      } catch {
+        // Diagnostic observers are best-effort and cannot alter scheduling.
+      }
+    }
+  }
+
+  function observeEvent(event: GenerativeA11yEvent): void {
+    emitDiagnosticEvent({
+      schemaVersion: 1,
+      sequence: diagnosticSequence++,
+      at: clock.now(),
+      kind: "event-observed",
+      event: Object.freeze({ ...event }) as GenerativeA11yEvent,
+    });
   }
 
   const scheduler: AnnouncementScheduler = createAnnouncementScheduler({
@@ -228,6 +269,7 @@ export function createGenerativeA11y(
   function clearFlushTimer(state: ResponseState): void {
     if (state.flushTimer !== undefined) clock.clearTimeout(state.flushTimer);
     state.flushTimer = undefined;
+    delete state.flushDueAt;
   }
 
   function responseScope(responseId: string, epoch: number): string {
@@ -290,8 +332,10 @@ export function createGenerativeA11y(
     if (state.flushTimer !== undefined) return;
     if (policy.text.maximumDelayMs <= 0) return;
     const epoch = state.epoch;
+    state.flushDueAt = clock.now() + policy.text.maximumDelayMs;
     state.flushTimer = clock.setTimeout(() => {
       state.flushTimer = undefined;
+      delete state.flushDueAt;
       const current = responses.get(event.responseId);
       if (!current || current.epoch !== epoch || current.status !== "active")
         return;
@@ -733,6 +777,8 @@ export function createGenerativeA11y(
         while (!disposed) {
           const next = dispatchQueue.shift();
           if (!next) break;
+          observeEvent(next);
+          if (disposed) break;
           dispatchOne(next);
         }
         reportingDispatchOverflow = true;
@@ -789,6 +835,74 @@ export function createGenerativeA11y(
         subscribed = false;
         diagnosticListeners.delete(listenerId);
       };
+    },
+    subscribeDiagnosticEvents(listener) {
+      if (disposed)
+        throw new Error(
+          "Cannot subscribe to a disposed generative-a11y runtime",
+        );
+      const listenerId = nextDiagnosticEventListenerId++;
+      diagnosticEventListeners.set(listenerId, listener);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        diagnosticEventListeners.delete(listenerId);
+      };
+    },
+    getDiagnosticSnapshot() {
+      const responsesSnapshot = [...responses.entries()]
+        .map(([responseId, state]): DiagnosticResponseSnapshot =>
+          Object.freeze({
+            responseId,
+            epoch: state.epoch,
+            ...(state.instanceId ? { instanceId: state.instanceId } : {}),
+            status: state.status,
+            ...(state.locale ? { locale: state.locale } : {}),
+          }),
+        )
+        .sort((left, right) => left.responseId.localeCompare(right.responseId));
+      const toolsSnapshot = [...tools.entries()]
+        .map(([toolId, state]): DiagnosticToolSnapshot =>
+          Object.freeze({
+            toolId,
+            ...(state.instanceId ? { instanceId: state.instanceId } : {}),
+            status: state.status,
+            ...(state.locale ? { locale: state.locale } : {}),
+            lastProgressBucket: state.lastProgressBucket,
+          }),
+        )
+        .sort((left, right) => left.toolId.localeCompare(right.toolId));
+      const flushes = [...responses.entries()]
+        .flatMap(([responseId, state]) =>
+          state.flushDueAt === undefined
+            ? []
+            : [
+                Object.freeze({
+                  responseId,
+                  epoch: state.epoch,
+                  dueAt: state.flushDueAt,
+                }),
+              ],
+        )
+        .sort(
+          (left, right) =>
+            left.dueAt - right.dueAt ||
+            left.responseId.localeCompare(right.responseId),
+        );
+      const announcements = scheduler.getDiagnosticSnapshot();
+      return Object.freeze({
+        schemaVersion: 1 as const,
+        at: clock.now(),
+        policy,
+        pending: Object.freeze({
+          announcements,
+          flushes: Object.freeze(flushes),
+        }),
+        responses: Object.freeze(responsesSnapshot),
+        tools: Object.freeze(toolsSnapshot),
+        pendingCount: announcements.length + flushes.length,
+      });
     },
     dispose() {
       if (disposed) return;

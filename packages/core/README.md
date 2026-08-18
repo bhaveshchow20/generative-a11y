@@ -64,8 +64,18 @@ optional injected `Clock`, and optional delivery callbacks:
 - `subscribeDiagnostics(listener)` observes subsequent diagnostic decisions and
   returns an idempotent unsubscribe function. Diagnostic listener failures are
   isolated.
-- `dispose()` is idempotent and cancels owned timers/queues. Later dispatches
-  return `false`; later subscription attempts throw.
+- `subscribeDiagnosticEvents(listener)` observes a versioned, ordered stream of
+  normalized source events and diagnostic decisions. It is explicitly opt-in;
+  listener failures are isolated and it never changes scheduling.
+- `getDiagnosticSnapshot()` returns an immutable, serializable snapshot of the
+  active response/tool lifecycle plus pending announcement and flush timing. It
+  intentionally excludes buffered response text, labels, errors, scopes,
+  deduplication keys, and timer handles. Each pending announcement includes its
+  stable ID, channel, source type, correlation IDs when present, scheduling
+  time, due time, delay and queue sequence. Entries are ordered by due time and
+  then queue sequence. The returned array and every entry are frozen.
+- `dispose()` is idempotent, cancels owned timers/queues and makes later
+  subscription attempts throw; later dispatches return `false`.
 
 Announcement listeners run from a stable snapshot. A throwing listener does not
 prevent later listeners from receiving the same intent, and every listener
@@ -97,6 +107,13 @@ clears it. The scheduler validates bounds, preserves assertive work under
 capacity pressure, isolates callback failures and defaults deduplication to the
 candidate's semantic entity.
 
+`getDiagnosticSnapshot()` returns the scheduler's current pending work without
+announcement text, deduplication keys, scopes, or timer handles. Each entry
+contains stable delivery and correlation metadata plus scheduling, due-time,
+delay, and queue-sequence values. Entries are ordered by due time and then queue
+sequence. The returned array and each entry are frozen so diagnostic consumers
+cannot mutate scheduler state.
+
 Most applications should use the runtime rather than schedule announcement text
 directly.
 
@@ -113,6 +130,13 @@ stable dispositions and reason codes. A capacity diagnostic may include a
 serializable `count` when it represents multiple suppressed decisions, including
 dropped nested runtime events. These records prove runtime policy behavior, not
 actual assistive-technology speech.
+
+For development tooling, `RuntimeDiagnosticEventV1` has an explicit schema
+version and monotonically increasing sequence. A source event is emitted before
+the decisions caused by its dispatch. `RuntimeDiagnosticSnapshotV1` exposes only
+safe lifecycle and queue timing metadata; core retains no diagnostic history.
+Capture tools should bound their own history and redact conversation content by
+default.
 
 ## Segmentation
 

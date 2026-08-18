@@ -24,13 +24,132 @@ function intent(
 }
 
 describe("createDOMAnnouncer", () => {
+  it("correlates every delivery attempt with the source intent without a wall clock", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const announcer = createDOMAnnouncer({
+      document: dom.window.document,
+      mode: "live-region",
+    });
+    const result = announcer.announce({
+      ...intent("Ready"),
+      id: "announcement-42",
+      at: 123,
+      responseId: "r1",
+    });
+
+    expect(result).toMatchObject({
+      status: "mutated",
+      announcementId: "announcement-42",
+      sourceType: "response.text.delta",
+      responseId: "r1",
+      at: 123,
+    });
+  });
+
+  it("preserves explicitly supplied empty correlation identifiers", () => {
+    const result = createDOMAnnouncer().announce({
+      ...intent(),
+      sourceEventId: "",
+      responseId: "",
+      toolId: "",
+      interactionId: "",
+    });
+
+    expect(result).toMatchObject({
+      status: "unavailable",
+      announcementId: "announcement-1",
+      sourceType: "response.text.delta",
+      at: 1,
+      sourceEventId: "",
+      responseId: "",
+      toolId: "",
+      interactionId: "",
+    });
+  });
+
+  it("retains correlation metadata for every delivery outcome", () => {
+    const sourceIntent: AnnouncementIntent = {
+      ...intent(),
+      id: "announcement-correlated",
+      at: 42,
+      sourceEventId: "event-1",
+      responseId: "response-1",
+      toolId: "tool-1",
+      interactionId: "interaction-1",
+    };
+    const expectedContext = {
+      announcementId: "announcement-correlated",
+      sourceType: "response.text.delta",
+      at: 42,
+      sourceEventId: "event-1",
+      responseId: "response-1",
+      toolId: "tool-1",
+      interactionId: "interaction-1",
+    };
+
+    const unavailable = createDOMAnnouncer().announce(sourceIntent);
+
+    const notifyDOM = new JSDOM("<!doctype html><html><body></body></html>");
+    const notifying = createDOMAnnouncer({
+      document: notifyDOM.window.document,
+      mode: "aria-notify",
+    });
+    Object.defineProperty(notifying.getRegions()?.polite, "ariaNotify", {
+      value: vi.fn(),
+    });
+
+    const fallbackDOM = new JSDOM("<!doctype html><html><body></body></html>");
+    const fallback = createDOMAnnouncer({
+      document: fallbackDOM.window.document,
+      mode: "aria-notify",
+    });
+
+    const liveRegionDOM = new JSDOM(
+      "<!doctype html><html><body></body></html>",
+    );
+    const liveRegion = createDOMAnnouncer({
+      document: liveRegionDOM.window.document,
+      mode: "live-region",
+    });
+
+    const disposedDOM = new JSDOM("<!doctype html><html><body></body></html>");
+    const disposed = createDOMAnnouncer({
+      document: disposedDOM.window.document,
+    });
+    disposed.dispose();
+
+    expect(unavailable).toMatchObject({
+      status: "unavailable",
+      ...expectedContext,
+    });
+    expect(notifying.announce(sourceIntent)).toMatchObject({
+      status: "notified",
+      method: "aria-notify",
+      ...expectedContext,
+    });
+    expect(fallback.announce(sourceIntent)).toMatchObject({
+      status: "mutated",
+      method: "live-region",
+      ...expectedContext,
+    });
+    expect(liveRegion.announce(sourceIntent)).toMatchObject({
+      status: "mutated",
+      method: "live-region",
+      ...expectedContext,
+    });
+    expect(disposed.announce(sourceIntent)).toMatchObject({
+      status: "disposed",
+      ...expectedContext,
+    });
+  });
+
   it("is inert without a document", () => {
     const onDiagnostic = vi.fn();
     const announcer = createDOMAnnouncer({ onDiagnostic });
 
     expect(announcer.getRegions()).toBeUndefined();
     const result = announcer.announce(intent());
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: "unavailable",
       method: "none",
       channel: "polite",
@@ -83,7 +202,7 @@ describe("createDOMAnnouncer", () => {
         value: notify,
       });
 
-      expect(announcer.announce(intent("Ready", channel))).toEqual({
+      expect(announcer.announce(intent("Ready", channel))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel,
@@ -186,7 +305,7 @@ describe("createDOMAnnouncer", () => {
       const notify = vi.fn();
       Object.defineProperty(region, "ariaNotify", { value: notify });
 
-      expect(announcer.announce(intent("Finished", channel))).toEqual({
+      expect(announcer.announce(intent("Finished", channel))).toMatchObject({
         status: "notified",
         method: "aria-notify",
         channel,
@@ -210,12 +329,12 @@ describe("createDOMAnnouncer", () => {
     const notify = vi.fn();
     Object.defineProperty(region, "ariaNotify", { value: notify });
 
-    expect(announcer.announce(intent("First"))).toEqual({
+    expect(announcer.announce(intent("First"))).toMatchObject({
       status: "notified",
       method: "aria-notify",
       channel: "polite",
     });
-    expect(announcer.announce(intent("Second"))).toEqual({
+    expect(announcer.announce(intent("Second"))).toMatchObject({
       status: "notified",
       method: "aria-notify",
       channel: "polite",
@@ -273,7 +392,7 @@ describe("createDOMAnnouncer", () => {
       expect(() => JSON.stringify(first)).not.toThrow();
       expect(region?.textContent).toBe("First");
 
-      expect(announcer.announce(intent("Second"))).toEqual({
+      expect(announcer.announce(intent("Second"))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel: "polite",
@@ -296,7 +415,7 @@ describe("createDOMAnnouncer", () => {
     });
     Object.defineProperty(region, "ariaNotify", { value: notify });
 
-    expect(announcer.announce(intent("First"))).toEqual({
+    expect(announcer.announce(intent("First"))).toMatchObject({
       status: "mutated",
       method: "live-region",
       channel: "polite",
@@ -304,7 +423,7 @@ describe("createDOMAnnouncer", () => {
     });
     expect(region?.textContent).toBe("First");
 
-    expect(announcer.announce(intent("Second"))).toEqual({
+    expect(announcer.announce(intent("Second"))).toMatchObject({
       status: "mutated",
       method: "live-region",
       channel: "polite",
@@ -326,7 +445,7 @@ describe("createDOMAnnouncer", () => {
 
     expect(regions?.polite.isConnected).toBe(false);
     expect(regions?.assertive.isConnected).toBe(false);
-    expect(announcer.announce(intent())).toEqual({
+    expect(announcer.announce(intent())).toMatchObject({
       status: "disposed",
       method: "none",
       channel: "polite",
@@ -479,7 +598,7 @@ describe("createDOMAnnouncer", () => {
         document: dom.window.document,
         mode,
       });
-      expect(announcer.announce(intent(mode))).toEqual({
+      expect(announcer.announce(intent(mode))).toMatchObject({
         status: "mutated",
         method: "live-region",
         channel: "polite",

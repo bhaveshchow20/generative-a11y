@@ -3,6 +3,7 @@ import type {
   AnnouncementChannel,
   AnnouncementDiagnostic,
   AnnouncementIntent,
+  DiagnosticPendingAnnouncement,
   DiagnosticReason,
   GenerativeA11yEvent,
 } from "./types.js";
@@ -27,6 +28,7 @@ export interface ScheduleAnnouncement {
 
 interface ScheduledItem extends ScheduleAnnouncement {
   id: string;
+  scheduledAt: number;
   dueAt: number;
   sequence: number;
 }
@@ -46,6 +48,7 @@ export interface AnnouncementScheduler {
   cancelScope(scope: string): void;
   dispose(): void;
   pendingCount(): number;
+  getDiagnosticSnapshot(): readonly DiagnosticPendingAnnouncement[];
 }
 
 export function createAnnouncementScheduler(
@@ -96,6 +99,15 @@ export function createAnnouncementScheduler(
       ...(item?.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
       ...(item?.responseId ? { responseId: item.responseId } : {}),
       ...(item?.toolId ? { toolId: item.toolId } : {}),
+      ...(item?.interactionId ? { interactionId: item.interactionId } : {}),
+      ...(item
+        ? {
+            scheduledAt: item.scheduledAt,
+            dueAt: item.dueAt,
+            delayMs: item.delayMs ?? 0,
+            queueSequence: item.sequence,
+          }
+        : {}),
     };
     if (diagnosticQueue.length >= diagnosticDrainBudget) {
       suppressedDiagnosticCount += 1;
@@ -266,6 +278,7 @@ export function createAnnouncementScheduler(
             ...candidate,
             id: existing.id,
             sequence: existing.sequence,
+            scheduledAt: clock.now(),
             dueAt: clock.now() + Math.max(0, candidate.delayMs ?? 0),
           };
           queue[existingIndex] = replacement;
@@ -278,6 +291,7 @@ export function createAnnouncementScheduler(
       const item: ScheduledItem = {
         ...candidate,
         id: `announcement-${nextId++}`,
+        scheduledAt: clock.now(),
         dueAt: clock.now() + Math.max(0, candidate.delayMs ?? 0),
         sequence: sequence++,
       };
@@ -334,5 +348,34 @@ export function createAnnouncementScheduler(
       drainDiagnostics();
     },
     pendingCount: () => queue.length,
+    getDiagnosticSnapshot() {
+      return Object.freeze(
+        queue
+          .map((item): DiagnosticPendingAnnouncement =>
+            Object.freeze({
+              id: item.id,
+              channel: item.channel,
+              sourceType: item.sourceType,
+              ...(item.sourceEventId
+                ? { sourceEventId: item.sourceEventId }
+                : {}),
+              ...(item.responseId ? { responseId: item.responseId } : {}),
+              ...(item.toolId ? { toolId: item.toolId } : {}),
+              ...(item.interactionId
+                ? { interactionId: item.interactionId }
+                : {}),
+              ...(item.locale ? { locale: item.locale } : {}),
+              scheduledAt: item.scheduledAt,
+              dueAt: item.dueAt,
+              delayMs: item.delayMs ?? 0,
+              sequence: item.sequence,
+            }),
+          )
+          .sort(
+            (left, right) =>
+              left.dueAt - right.dueAt || left.sequence - right.sequence,
+          ),
+      );
+    },
   };
 }
