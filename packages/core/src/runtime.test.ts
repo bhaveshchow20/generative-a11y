@@ -390,6 +390,42 @@ describe("generative accessibility runtime", () => {
     ).toBe("en");
   });
 
+  it("does not adopt the locale from invalid tool progress", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "en",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.progress",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "fr",
+      label: "Search",
+      progress: 2,
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "one",
+      label: "Search",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder.transcript().find(({ text }) => text === "Search complete.")
+        ?.locale,
+    ).toBe("en");
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .some(({ reason }) => reason === "invalid-event"),
+    ).toBe(true);
+  });
+
   it("enforces tool lifecycle ordering and safe failure announcements", () => {
     const recorder = createAnnouncementRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
