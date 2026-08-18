@@ -516,6 +516,10 @@ export function createGenerativeA11y(
       return;
     }
     if (event.type === "tool.progress") {
+      if (!policy.tools.announceProgress) {
+        diagnose(event, "policy-silent");
+        return;
+      }
       if (event.progress !== undefined) {
         if (
           !Number.isFinite(event.progress) ||
@@ -527,10 +531,6 @@ export function createGenerativeA11y(
         }
       }
       if (event.locale) state.locale = event.locale;
-      if (!policy.tools.announceProgress) {
-        diagnose(event, "policy-silent");
-        return;
-      }
       if (event.progress !== undefined) {
         const progress = event.progress;
         const percent = progress * 100;
