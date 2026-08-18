@@ -164,6 +164,23 @@ describe("createAttentionStore", () => {
     unregisterConversation();
   });
 
+  it("classifies focus inside an open shadow root", () => {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>");
+    const document = dom.window.document;
+    const host = document.createElement("section");
+    const shadow = host.attachShadow({ mode: "open" });
+    const input = document.createElement("input");
+    shadow.append(input);
+    document.body.append(host);
+
+    const store = createAttentionStore({ document });
+    store.registerComposer(host);
+    input.focus();
+
+    expect(store.getSnapshot().focusArea).toBe("composer");
+    store.dispose();
+  });
+
   it("observes one current newest response and ignores stale callbacks", () => {
     const dom = new JSDOM(`<!doctype html><html><body>
       <article id="first"></article><article id="second"></article>

@@ -182,9 +182,16 @@ describe("focus helpers", () => {
       status: "skipped",
       reason: "guard-mismatch",
     });
-    Object.defineProperty(guard, "contains", {
-      value: () => {
-        throw new Error("contains failed");
+    const active = document.createElement("button");
+    document.body.append(active);
+    Object.defineProperty(document, "activeElement", {
+      configurable: true,
+      get: () => active,
+    });
+    Object.defineProperty(active, "assignedSlot", {
+      configurable: true,
+      get: () => {
+        throw new Error("assignedSlot failed");
       },
     });
     expect(() =>

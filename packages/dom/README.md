@@ -127,11 +127,6 @@ attention.dispose();
 `getServerSnapshot()`. `AttentionStore` implements
 `ExternalStore<AttentionSnapshot>` and adds:
 
-Subscribers present when a snapshot changes are invoked at most once for that
-transition. Adding, removing, or re-subscribing listeners during notification
-affects later transitions, not the stable listener snapshot already in flight.
-Listener errors remain isolated.
-
 - `registerComposer(element)` and `registerConversation(element)`. Any
   registered element containing `document.activeElement` matches. Composer wins
   when registered areas overlap. Repeated registrations of the same element are
@@ -146,6 +141,11 @@ Listener errors remain isolated.
   subscribers, and the intersection observer. Subscribing or registering after
   disposal throws. Stores created without a document are permanently inert; all
   their methods remain safe no-ops.
+
+Subscribers present when a snapshot changes are invoked at most once for that
+transition. Adding, removing, or re-subscribing listeners during notification
+affects later transitions, not the stable listener snapshot already in flight.
+Listener errors remain isolated.
 
 `AttentionSnapshot` is frozen and cached by value, so `getSnapshot()` returns
 the same reference until a raw or derived value changes. Its fields are:

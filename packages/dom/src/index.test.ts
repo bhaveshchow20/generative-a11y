@@ -405,6 +405,7 @@ describe("createDOMAnnouncer", () => {
       "different-option-document",
       "must belong to the provided document",
     ],
+    ["a supplied region is disconnected", "disconnected", "must be connected"],
   ] as const)(
     "rejects supplied regions when %s before mutation",
     (_label, relationship, expectedMessage) => {
@@ -427,7 +428,7 @@ describe("createDOMAnnouncer", () => {
         assertive = secondDOM.window.document.createElement("div");
         firstDOM.window.document.body.append(polite);
         secondDOM.window.document.body.append(assertive);
-      } else {
+      } else if (relationship === "different-option-document") {
         firstDOM.window.document.body.append(polite, assertive);
         suppliedDocument = secondDOM.window.document;
       }

@@ -396,11 +396,15 @@ describe("preference persistence", () => {
     ]);
   });
 
-  it("updates and notifies before writing canonical JSON, with semantic no-ops", () => {
+  it("updates and notifies before writing canonical JSON", () => {
     const order: string[] = [];
+    let stored: string | null = null;
     const storage: PreferenceStorage = {
-      getItem: () => null,
-      setItem: (_key, value) => order.push(`write:${value}`),
+      getItem: () => stored,
+      setItem: (_key, value) => {
+        stored = value;
+        order.push(`write:${value}`);
+      },
     };
     const store = createPreferenceStore({ persistence: { key: "p", storage } });
     store.subscribe(() => order.push(`notify:${store.getSnapshot().preset}`));
@@ -412,6 +416,33 @@ describe("preference persistence", () => {
       "notify:balanced",
       `write:${JSON.stringify(value)}`,
     ]);
+  });
+
+  it("persists an explicit unchanged selection when storage is missing", () => {
+    const storage = new MemoryStorage();
+    const value = balanced("sentence", "progress");
+    const store = createPreferenceStore({
+      defaultValue: value,
+      persistence: { key: "p", storage },
+    });
+
+    store.setPreferences({ ...value });
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+    store.setPreferences({ ...value });
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rewrite an unchanged selection already stored canonically", () => {
+    const storage = new MemoryStorage();
+    const value = balanced("sentence", "progress");
+    storage.values.set("p", JSON.stringify(value));
+    const store = createPreferenceStore({
+      defaultValue: value,
+      persistence: { key: "p", storage },
+    });
+
+    store.setPreferences({ ...value });
+    expect(storage.setItem).not.toHaveBeenCalled();
   });
 
   it("does not let a reentrant listener persist an obsolete outer transition", () => {

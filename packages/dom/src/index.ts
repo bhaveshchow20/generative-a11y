@@ -173,6 +173,9 @@ function validateSuppliedRegions(options: DOMAnnouncerOptions): void {
       "Polite and assertive regions must be distinct elements",
     );
   }
+  if (!polite.isConnected || !assertive.isConnected) {
+    throw new TypeError("Supplied regions must be connected");
+  }
   if (polite.contains(assertive) || assertive.contains(polite)) {
     throw new TypeError(
       "Polite and assertive regions must not contain one another",
@@ -231,7 +234,10 @@ function safeString(value: unknown, fallback: string): string {
 }
 
 interface AriaNotifyRegion extends HTMLElement {
-  ariaNotify?: (text: string, options: { priority: "normal" | "high" }) => void;
+  ariaNotify?: (
+    text: string,
+    options?: { priority: "normal" | "high" },
+  ) => void;
 }
 
 function createLiveRegions(

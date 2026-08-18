@@ -28,7 +28,9 @@ The default is:
 Validation rejects arrays, non-objects, missing or extra fields, accessors,
 symbol-keyed fields, invalid enum values, and unsupported versions. Accepted
 snapshots are normalized and frozen. A semantically unchanged set preserves the
-snapshot identity and performs no notification or write.
+snapshot identity and performs no notification. If persistence is enabled, an
+explicit unchanged selection is still written when the canonical stored value is
+absent or differs.
 
 ## Core configuration mapping
 

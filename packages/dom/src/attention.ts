@@ -1,3 +1,5 @@
+import { composedContains, deepActiveElement } from "./composed-tree.js";
+
 export interface ExternalStore<T> {
   subscribe(listener: () => void): () => void;
   getSnapshot(): T;
@@ -317,7 +319,7 @@ function readFocusArea(
 ): AttentionSnapshot["focusArea"] {
   let activeElement: Element | null;
   try {
-    activeElement = document.activeElement;
+    activeElement = deepActiveElement(document);
   } catch {
     return "unknown";
   }
@@ -329,12 +331,16 @@ function readFocusArea(
     return "none";
   }
   if (
-    [...composers.keys()].some((element) => element.contains(activeElement))
+    [...composers.keys()].some((element) =>
+      composedContains(element, activeElement),
+    )
   ) {
     return "composer";
   }
   if (
-    [...conversations.keys()].some((element) => element.contains(activeElement))
+    [...conversations.keys()].some((element) =>
+      composedContains(element, activeElement),
+    )
   ) {
     return "conversation";
   }

@@ -79,13 +79,13 @@ the environment where it actually runs.
 
 ## Ecosystem
 
-| Source                   | Intended integration                                        | Status           |
-| ------------------------ | ----------------------------------------------------------- | ---------------- |
-| Custom applications      | Dispatch events to core and deliver through the DOM package | Core + DOM ready |
-| [AG-UI][ag-ui]           | Translate protocol events through a thin adapter            | Planned          |
-| [AI SDK][ai-sdk]         | Observe documented chat state and lifecycle callbacks       | Planned          |
-| [assistant-ui][aui]      | Subscribe to documented runtime and message state           | Planned          |
-| [CopilotKit][copilotkit] | Reuse its public AG-UI agent surface where fidelity allows  | Guidance planned |
+| Source                   | Intended integration                                        | Status                                                           |
+| ------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| Custom applications      | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending |
+| [AG-UI][ag-ui]           | Translate protocol events through a thin adapter            | Planned                                                          |
+| [AI SDK][ai-sdk]         | Observe documented chat state and lifecycle callbacks       | Planned                                                          |
+| [assistant-ui][aui]      | Subscribe to documented runtime and message state           | Planned                                                          |
+| [CopilotKit][copilotkit] | Reuse its public AG-UI agent surface where fidelity allows  | Guidance planned                                                 |
 
 [ag-ui]: https://github.com/ag-ui-protocol/ag-ui
 [ai-sdk]: https://github.com/vercel/ai

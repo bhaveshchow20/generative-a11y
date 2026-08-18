@@ -210,10 +210,20 @@ export function createPreferenceStore(
     setPreferences(value) {
       if (disposed) throw new Error("PreferenceStore is disposed");
       const next = normalizePreferences(value);
-      if (!replace(next)) return;
+      const changed = replace(next);
       if (!disposed && persistence?.storage && samePreferences(current, next)) {
+        const serialized = JSON.stringify(next);
+        if (!changed) {
+          try {
+            if (persistence.storage.getItem(persistence.key) === serialized) {
+              return;
+            }
+          } catch (cause) {
+            report("storage-read", "operation-failed", cause);
+          }
+        }
         try {
-          persistence.storage.setItem(persistence.key, JSON.stringify(next));
+          persistence.storage.setItem(persistence.key, serialized);
         } catch (cause) {
           report("storage-write", "operation-failed", cause);
         }
