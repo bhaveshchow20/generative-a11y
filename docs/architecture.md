@@ -86,7 +86,11 @@ browser evidence.
 Adapters declare whether interruption, retries, and connectivity are `exact`,
 require an `action-wrapper`, are `inferred`, or are `unavailable`. A missing
 protocol feature stays missing; it is not guessed from text or private state.
-See [framework integration research](framework-integrations.md).
+Adapter controllers borrow the core dispatch target, use stable source identity,
+silently baseline historical snapshots, and clean up only their own
+subscriptions. They do not import the DOM package, mutate host DOM, own a host
+runtime, or move focus. See [framework adapters](framework-adapters.md) and
+[framework integration research](framework-integrations.md).
 
 ## Tooling and publication
 

@@ -18,7 +18,8 @@ application's visual UI alone.
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
 [Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
-· [Contributing](CONTRIBUTING.md)
+· [Framework adapters](docs/framework-adapters.md) ·
+[Contributing](CONTRIBUTING.md)
 
 ## Why generative-a11y?
 
@@ -83,10 +84,10 @@ the environment where it actually runs.
 | ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
 | Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending |
 | Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending |
-| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | Planned                                                          |
-| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Planned                                                          |
-| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Planned                                                          |
-| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | Guidance planned                                                 |
+| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | In progress                                                      |
+| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | In progress                                                      |
+| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | In progress                                                      |
+| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                     |
 
 [ag-ui]: https://github.com/ag-ui-protocol/ag-ui
 [ai-sdk]: https://github.com/vercel/ai
