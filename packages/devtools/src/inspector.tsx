@@ -6,9 +6,9 @@ import {
   Play,
   RefreshCw,
   Search,
-  Settings2,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import {
   ResizableHandle,
@@ -104,6 +96,149 @@ function SnapshotCard({
       </CardHeader>
       <CardContent>{detail}</CardContent>
     </Card>
+  );
+}
+
+function traceStage(record: DevtoolsRecord): 0 | 1 | 2 {
+  if (record.kind === "event-observed") return 0;
+  if (record.kind === "dom-delivery") return 2;
+  return 1;
+}
+
+function TraceMap({ store }: { readonly store: DevtoolsStore }) {
+  const snapshot = useStoreSnapshot(store);
+  const prefersReducedMotion = useReducedMotion();
+  const [selectedKey, setSelectedKey] = React.useState<string>();
+  const records = snapshot.records.slice(-24);
+  const selected = records.find((record) => recordKey(record) === selectedKey);
+  const width = 960;
+  const height = 214;
+  const left = 102;
+  const right = 40;
+  const lanes = [54, 108, 162] as const;
+  const labels = ["Observed", "Runtime", "Browser"] as const;
+  const range = Math.max(1, records.length - 1);
+  return (
+    <section
+      aria-label="Visual trace map"
+      className="ga-trace-map"
+      data-testid="trace-map"
+    >
+      <div className="ga-trace-map-heading">
+        <div>
+          <p>Trace map</p>
+          <h3>Follow a runtime decision across its delivery path.</h3>
+        </div>
+        <span>{records.length} recent signals</span>
+      </div>
+      <svg
+        aria-label="Trace events arranged from observed input through runtime decisions to browser delivery"
+        className="ga-trace-map-svg"
+        role="img"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        {lanes.map((lane, index) => (
+          <g key={labels[index]}>
+            <text className="ga-trace-map-label" x="0" y={lane + 4}>
+              {labels[index]}
+            </text>
+            <line
+              className="ga-trace-map-lane"
+              x1={left}
+              x2={width - right}
+              y1={lane}
+              y2={lane}
+            />
+          </g>
+        ))}
+        {records.map((record, index) => {
+          const stage = traceStage(record);
+          const x = left + ((width - left - right) * index) / range;
+          const y = lanes[stage];
+          const previous = records[index - 1];
+          const previousStage = previous ? traceStage(previous) : stage;
+          const previousX =
+            left + ((width - left - right) * Math.max(0, index - 1)) / range;
+          const previousY = lanes[previousStage];
+          const tone =
+            record.kind === "dom-delivery"
+              ? "delivery"
+              : record.kind === "decision"
+                ? "decision"
+                : "observed";
+          return (
+            <g
+              aria-label={`Inspect ${recordTitle(record)}`}
+              className={`ga-trace-map-event ga-trace-map-event-${tone}`}
+              data-trace-key={recordKey(record)}
+              key={recordKey(record)}
+              onClick={() => setSelectedKey(recordKey(record))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedKey(recordKey(record));
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              {previous ? (
+                <path
+                  className="ga-trace-map-path"
+                  d={`M ${previousX} ${previousY} C ${(previousX + x) / 2} ${previousY}, ${(previousX + x) / 2} ${y}, ${x} ${y}`}
+                />
+              ) : null}
+              <motion.circle
+                animate={
+                  prefersReducedMotion ? false : { opacity: 1, scale: 1 }
+                }
+                cx={x}
+                cy={y}
+                initial={
+                  prefersReducedMotion ? false : { opacity: 0, scale: 0.6 }
+                }
+                r="6"
+                transition={{
+                  delay: Math.min(index * 0.025, 0.28),
+                  duration: 0.18,
+                }}
+              >
+                <title>{`${recordTitle(record)} at ${formatTime(record.at)}`}</title>
+              </motion.circle>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="ga-trace-map-legend" aria-label="Trace map legend">
+        <span>
+          <i className="ga-tone-observed" />
+          Input
+        </span>
+        <span>
+          <i className="ga-tone-decision" />
+          Decision
+        </span>
+        <span>
+          <i className="ga-tone-delivery" />
+          Delivery
+        </span>
+      </div>
+      <div className="ga-trace-map-selection" data-testid="trace-map-selection">
+        {selected ? (
+          <>
+            <strong>Selected signal</strong>
+            <span>
+              {recordTitle(selected)} · {formatTime(selected.at)} ·{" "}
+              {recordSummary(selected)}
+            </span>
+          </>
+        ) : (
+          <span>
+            Select a signal to inspect its safe correlation and timing.
+          </span>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -358,8 +493,7 @@ export function DevtoolsInspector({
   onCopy,
 }: DevtoolsInspectorProps) {
   const snapshot = useStoreSnapshot(store);
-  const [commandOpen, setCommandOpen] = React.useState(false);
-  const [copyStatus, setCopyStatus] = React.useState<string>();
+  const [feedback, setFeedback] = React.useState<string>();
   const runtimeCount = snapshot.runtimeIds.length;
   const queued = Object.values(snapshot.runtimeSnapshots).reduce(
     (count, runtime) => count + runtime.pendingCount,
@@ -373,21 +507,30 @@ export function DevtoolsInspector({
     try {
       const result = onCopy?.(serialized);
       if (result && "catch" in result)
-        void result.catch(() => setCopyStatus("Copy unavailable"));
-      setCopyStatus(onCopy ? "Trace copied" : "Copy unavailable");
+        void result.catch(() => setFeedback("Copy unavailable"));
+      setFeedback(
+        onCopy ? "Trace copied to the local clipboard" : "Copy unavailable",
+      );
     } catch {
-      setCopyStatus("Copy unavailable");
+      setFeedback("Copy unavailable");
     }
   };
-  const runCommand = (command: "capture" | "refresh" | "clear" | "export") => {
-    if (command === "capture") {
-      if (snapshot.paused) store.resumeCapture();
-      else store.pauseCapture();
+  const toggleCapture = () => {
+    if (snapshot.paused) {
+      store.resumeCapture();
+      setFeedback("Capture resumed");
+    } else {
+      store.pauseCapture();
+      setFeedback("Capture paused");
     }
-    if (command === "refresh") store.refreshSnapshots();
-    if (command === "clear") store.clear();
-    if (command === "export") copyTrace();
-    setCommandOpen(false);
+  };
+  const refresh = () => {
+    store.refreshSnapshots();
+    setFeedback("Runtime snapshot refreshed");
+  };
+  const clear = () => {
+    store.clear();
+    setFeedback("Local trace cleared");
   };
 
   return (
@@ -395,37 +538,32 @@ export function DevtoolsInspector({
       aria-label="Generative accessibility runtime inspector"
       className="ga-inspector"
       onKeyDown={(event) => {
-        if (event.key === "Escape" && !commandOpen) onClose();
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === "k"
-        ) {
-          event.preventDefault();
-          setCommandOpen((open) => !open);
-        }
+        if (event.key === "Escape") onClose();
       }}
     >
       <header className="ga-inspector-header">
         <div className="ga-inspector-title-group">
-          <div className="ga-inspector-mark" aria-hidden="true">
-            GA
-          </div>
           <div>
-            <p>LOCAL DIAGNOSTICS</p>
-            <h2>Runtime inspector</h2>
+            <p>Local workspace</p>
+            <h2>Runtime trace</h2>
           </div>
         </div>
         <div className="ga-inspector-header-actions">
-          <Badge variant={snapshot.paused ? "outline" : "secondary"}>
-            {snapshot.paused ? "Capture paused" : "Capturing"}
-          </Badge>
+          <Button onClick={toggleCapture} size="sm" variant="outline">
+            {snapshot.paused ? (
+              <Play aria-hidden="true" size={14} />
+            ) : (
+              <Pause aria-hidden="true" size={14} />
+            )}
+            {snapshot.paused ? "Resume capture" : "Pause capture"}
+          </Button>
           <Button
-            onClick={() => setCommandOpen((open) => !open)}
-            size="sm"
-            variant="outline"
+            aria-label="Refresh runtime snapshot"
+            onClick={refresh}
+            size="icon-sm"
+            variant="ghost"
           >
-            <Settings2 aria-hidden="true" size={14} />
-            Commands
+            <RefreshCw aria-hidden="true" size={15} />
           </Button>
           <Button
             aria-label="Close inspector"
@@ -437,67 +575,41 @@ export function DevtoolsInspector({
           </Button>
         </div>
       </header>
-      {commandOpen ? (
-        <div
-          className="ga-inspector-command"
-          role="dialog"
-          aria-label="Inspector commands"
-        >
-          <Command>
-            <CommandInput placeholder="Find an inspector action" />
-            <CommandList>
-              <CommandEmpty>No local action found.</CommandEmpty>
-              <CommandGroup heading="Capture session">
-                <CommandItem onSelect={() => runCommand("capture")}>
-                  {snapshot.paused ? <Play size={14} /> : <Pause size={14} />}
-                  {snapshot.paused ? "Resume capture" : "Pause capture"}
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand("refresh")}>
-                  <RefreshCw size={14} /> Refresh runtime snapshots
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand("clear")}>
-                  <X size={14} /> Clear local trace
-                </CommandItem>
-                <CommandItem onSelect={() => runCommand("export")}>
-                  <Download size={14} /> Export trace
-                </CommandItem>
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </div>
-      ) : null}
-      <Tabs className="ga-inspector-tabs" defaultValue="overview">
+      <AnimatePresence>
+        {feedback ? (
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="ga-workspace-feedback"
+            data-testid="workspace-feedback"
+            exit={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 6 }}
+            key={feedback}
+            onAnimationComplete={() =>
+              window.setTimeout(() => setFeedback(undefined), 2200)
+            }
+          >
+            {feedback}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <Tabs className="ga-inspector-tabs" defaultValue="trace">
         <div className="ga-inspector-tabs-bar">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="trace">Trace</TabsTrigger>
+            <TabsTrigger value="timeline">Events</TabsTrigger>
             <TabsTrigger value="runtime">Runtime</TabsTrigger>
-            <TabsTrigger value="traces">Traces</TabsTrigger>
+            <TabsTrigger value="traces">Library</TabsTrigger>
           </TabsList>
           <div className="ga-inspector-primary-actions">
-            <Button
-              onClick={() =>
-                snapshot.paused ? store.resumeCapture() : store.pauseCapture()
-              }
-              size="sm"
-              variant={snapshot.paused ? "secondary" : "outline"}
-            >
-              {snapshot.paused ? <Play size={14} /> : <Pause size={14} />}
-              {snapshot.paused ? "Resume capture" : "Pause capture"}
-            </Button>
-            <Button
-              onClick={() => store.refreshSnapshots()}
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Refresh runtime snapshots"
-            >
-              <RefreshCw aria-hidden="true" size={15} />
+            <Button onClick={copyTrace} size="sm" variant="ghost">
+              <Download aria-hidden="true" size={14} /> Export
             </Button>
           </div>
         </div>
-        <TabsContent value="overview">
+        <TabsContent value="trace">
           <div className="ga-inspector-overview">
-            <div className="ga-inspector-metrics">
+            <TraceMap store={store} />
+            <div className="ga-inspector-metrics ga-inspector-evidence-strip">
               <SnapshotCard
                 detail="attached sources"
                 label="Runtimes"
@@ -522,9 +634,9 @@ export function DevtoolsInspector({
             <div className="ga-inspector-overview-grid">
               <Card>
                 <CardHeader>
-                  <CardDescription>Capture session</CardDescription>
+                  <CardDescription>Capture</CardDescription>
                   <CardTitle>
-                    {snapshot.paused ? "Paused locally" : "Collecting locally"}
+                    {snapshot.paused ? "Paused" : "Running"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -534,26 +646,19 @@ export function DevtoolsInspector({
                       : "The buffer is bounded and currently has no evicted entries."}
                   </p>
                   <div className="ga-inspector-inline-actions">
-                    <Button
-                      onClick={() => store.clear()}
-                      size="sm"
-                      variant="ghost"
-                    >
+                    <Button onClick={clear} size="sm" variant="ghost">
                       Clear trace
                     </Button>
                     <Button onClick={copyTrace} size="sm" variant="outline">
                       <Copy aria-hidden="true" size={14} /> Export trace
                     </Button>
                   </div>
-                  {copyStatus ? (
-                    <p className="ga-inspector-status">{copyStatus}</p>
-                  ) : null}
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
                   <CardDescription>Evidence boundary</CardDescription>
-                  <CardTitle>Runtime decisions, not speech</CardTitle>
+                  <CardTitle>Observed delivery, not speech</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p>
