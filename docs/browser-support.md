@@ -5,6 +5,12 @@ dated result is recorded from the [manual AT test plan](manual-at-test-plan.md).
 Automated Chromium, Firefox, and WebKit results are structural evidence only;
 Playwright WebKit is not branded Safari.
 
+The repository's browser fixture runs against the pinned Playwright browser
+versions in the lockfile. It verifies the React provider's pre-mounted regions,
+forced live-region delivery, streamed completion behavior, focus preservation,
+and host-interface axe results. These checks are CI evidence for DOM behavior,
+not a browser/AT support claim.
+
 ## Announcement delivery
 
 `DOMAnnouncementMode` controls one announcer instance:

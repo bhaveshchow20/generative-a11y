@@ -3,6 +3,8 @@ dist/
 node_modules/
 *.log
 *.tsbuildinfo
+playwright-report/
+test-results/
 .DS_Store
 .env
 .env.*

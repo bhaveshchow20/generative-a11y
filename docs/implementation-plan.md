@@ -28,10 +28,10 @@ build all pass.
 
 ## Phase 2 — DOM and React
 
-Status: **in progress**. The deterministic DOM and React slices are implemented
-and independently reviewed. Real-browser execution, the integration example, and
-manual AT verification remain incomplete; Phase 2 as a whole is not yet
-complete.
+Status: **in progress**. The deterministic DOM and React slices, browser
+fixture, axe scan, and integration example are implemented and independently
+reviewed. Manual AT verification remains incomplete; Phase 2 as a whole is not
+yet complete.
 
 - Implemented DOM delivery: `ariaNotify()` progressive enhancement, stable
   polite/assertive regions, runtime binding, and deterministic jsdom coverage.
@@ -43,9 +43,13 @@ complete.
   Strict Mode behavior, SSR/hydration, preference persistence, and Testing
   Library coverage. The provider remains a thin lifecycle layer and does not
   render host UI.
-- Remaining browser work: Chromium, Firefox, and WebKit Playwright fixtures plus
-  axe scans. See [testing strategy](testing-strategy.md). These dependencies are
-  intentionally kept in the follow-up browser stack until the fixture is ready.
+- Implemented browser work: a Vite-served existing-interface fixture, Chromium,
+  Firefox, and WebKit Playwright coverage, and an axe-core scan. WebKit results
+  are not branded Safari results.
+- Implemented example work:
+  [React integration example](../examples/react-integration/README.md)
+  demonstrates unchanged host UI, live infrastructure, a runtime transcript,
+  attention state, and focus preservation.
 - Remaining assistive-technology work: execute and publish dated results from
   the [manual AT test plan](manual-at-test-plan.md).
 

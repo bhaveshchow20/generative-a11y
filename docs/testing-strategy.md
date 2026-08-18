@@ -7,8 +7,8 @@
 | Core transcript          | Policy, order, timing, cancellation, reason codes                                    | Browser or screen-reader delivery                | Implemented           |
 | jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup                 | Browser accessibility tree or speech             | Implemented           |
 | React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration     | Real-browser or AT behavior                      | Implemented           |
-| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Planned               |
-| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Planned               |
+| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Implemented           |
+| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Implemented           |
 | Manual AT                | Observed output and workflow behavior in one dated configuration                     | All versions, settings, or universal conformance | Planned, not executed |
 
 The boundary is deliberate: a delivered core intent, successful `ariaNotify()`
@@ -70,8 +70,8 @@ inspection. These tests prove React contracts, not browser speech.
 
 ## Real-browser tests
 
-The next browser stack will run the same focused fixture in Chromium, Firefox,
-and WebKit. WebKit results are not reported as Safari results
+The browser stack runs the focused existing-interface fixture in Chromium,
+Firefox, and WebKit. WebKit results are not reported as Safari results
 ([Playwright browsers](https://playwright.dev/docs/browsers)). Cover:
 
 - region mount and mutation order, repeated text, locale, and literal text;
@@ -85,9 +85,10 @@ and WebKit. WebKit results are not reported as Safari results
 - accessibility-tree structure through targeted
   [ARIA snapshots](https://playwright.dev/docs/aria-snapshots).
 
-Run Chromium, Firefox, and WebKit in CI. Keep a smaller Chromium smoke shard for
-pull-request latency only if the full matrix remains a required merge or nightly
-gate. Pin tool/browser versions in CI artifacts so a result can be reproduced.
+Chromium, Firefox, and WebKit run in CI through `pnpm browser:test`. Keep a
+smaller Chromium smoke shard for pull-request latency only if the full matrix
+remains a required merge or nightly gate. Pin tool/browser versions in CI
+artifacts so a result can be reproduced.
 
 `@axe-core/playwright` scans the rendered example after each meaningful UI
 state, not the isolated visually hidden announcer alone. Axe findings are

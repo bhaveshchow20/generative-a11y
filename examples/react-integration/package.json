@@ -1,0 +1,15 @@
+{
+  "name": "@generative-a11y/example-react-integration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@generative-a11y/core": "workspace:*",
+    "@generative-a11y/dom": "workspace:*",
+    "@generative-a11y/react": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

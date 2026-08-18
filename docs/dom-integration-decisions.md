@@ -79,6 +79,6 @@ React Aria, Testing Library, Playwright, and axe-core do not enter its
 production bundle. The DOM stack adds only jsdom for deterministic DOM tests.
 The React stack adds React, ReactDOM, React type declarations, React Testing
 Library, Testing Library DOM, and the React Hooks ESLint plugin as development
-tooling. Playwright and axe-core remain reserved for the browser-integration
-stack described in [testing strategy](testing-strategy.md); they are not
-dependencies of a published runtime package.
+tooling. The browser stack adds Playwright, `@axe-core/playwright`, and Vite for
+the Vite-served example and cross-browser fixture. None of these tools enter a
+published runtime package.
