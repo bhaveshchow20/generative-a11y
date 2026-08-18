@@ -515,13 +515,7 @@ export function createGenerativeA11y(
       diagnose(event, "stale-tool");
       return;
     }
-    if (event.locale) state.locale = event.locale;
-
     if (event.type === "tool.progress") {
-      if (!policy.tools.announceProgress) {
-        diagnose(event, "policy-silent");
-        return;
-      }
       if (event.progress !== undefined) {
         if (
           !Number.isFinite(event.progress) ||
@@ -531,6 +525,13 @@ export function createGenerativeA11y(
           diagnose(event, "invalid-event");
           return;
         }
+      }
+      if (event.locale) state.locale = event.locale;
+      if (!policy.tools.announceProgress) {
+        diagnose(event, "policy-silent");
+        return;
+      }
+      if (event.progress !== undefined) {
         const progress = event.progress;
         const percent = progress * 100;
         const bucket = Math.floor(percent / policy.tools.progressEveryPercent);
@@ -554,6 +555,7 @@ export function createGenerativeA11y(
       });
       return;
     }
+    if (event.locale) state.locale = event.locale;
     scheduler.cancelScope(startScope);
     scheduler.cancelScope(progressScope);
     scheduler.cancelScope(toolLifecycleScope(event.toolId));
