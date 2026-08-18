@@ -2,14 +2,14 @@
 
 ## Evidence layers
 
-| Layer                    | What it proves                                                                       | What it does not prove                           | Status                            |
-| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------- |
-| Core transcript          | Policy, order, timing, cancellation, reason codes                                    | Browser or screen-reader delivery                | Implemented                       |
-| jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup                 | Browser accessibility tree or speech             | Implemented                       |
-| React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration     | Real-browser or AT behavior                      | Planned; React slice not complete |
-| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Planned                           |
-| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Planned                           |
-| Manual AT                | Observed output and workflow behavior in one dated configuration                     | All versions, settings, or universal conformance | Planned, not executed             |
+| Layer                    | What it proves                                                                       | What it does not prove                           | Status                |
+| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------ | --------------------- |
+| Core transcript          | Policy, order, timing, cancellation, reason codes                                    | Browser or screen-reader delivery                | Implemented           |
+| jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup                 | Browser accessibility tree or speech             | Implemented           |
+| React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration     | Real-browser or AT behavior                      | Implemented           |
+| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Planned               |
+| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Planned               |
+| Manual AT                | Observed output and workflow behavior in one dated configuration                     | All versions, settings, or universal conformance | Planned, not executed |
 
 The boundary is deliberate: a delivered core intent, successful `ariaNotify()`
 call, live-region mutation, ARIA snapshot, or zero axe violations never proves
@@ -59,18 +59,19 @@ or stubbed rather than controlled by sleeps.
 
 ## React tests
 
-When the React slice is implemented, use React Testing Library and
-`useSyncExternalStore` through the public provider/hooks. Cover default and
-external runtime ownership, hooks inside/outside a provider, Strict Mode
-mount/remount cleanup, rerenders and configuration changes, SSR/hydration, and
-multiple providers. Semantic queries are preferred over implementation-state
-inspection. This layer must not be marked complete merely because the DOM stores
-already expose the external-store shape.
+The React slice uses React Testing Library and `useSyncExternalStore` through
+the public provider/hooks. The current fixture runs React 19.2.8 and the
+published peer range also covers React 18.2. It covers default and external
+runtime ownership, hooks inside/outside a provider, Strict Mode mount/remount
+cleanup, rerenders and configuration changes, SSR/hydration, multiple providers,
+pre-commit writes, preference failures, cross-realm defaults, attention updates,
+and ref-only bindings. Semantic queries are preferred over implementation-state
+inspection. These tests prove React contracts, not browser speech.
 
 ## Real-browser tests
 
-Playwright projects will run the same focused fixture in Chromium, Firefox, and
-WebKit. WebKit results are not reported as Safari results
+The next browser stack will run the same focused fixture in Chromium, Firefox,
+and WebKit. WebKit results are not reported as Safari results
 ([Playwright browsers](https://playwright.dev/docs/browsers)). Cover:
 
 - region mount and mutation order, repeated text, locale, and literal text;

@@ -8,10 +8,11 @@ framework adapter -> react -> dom -> core
 custom JavaScript ----------------> core
 ```
 
-In package terms, the Phase 2 stack is `core <- dom <- react`. React may also
-depend directly on core for runtime types and behavior. Core never imports DOM
-or React code, DOM never imports React, and no package may create a dependency
-circle.
+In package terms, the Phase 2 stack is `core <- dom <- react`. React depends
+directly on both `core` and `dom`: it needs the runtime's public types and
+ownership APIs as well as the DOM stores and delivery binding. Core never
+imports DOM or React code, DOM never imports React, and no package may create a
+dependency circle.
 
 ## Package responsibilities
 
@@ -71,6 +72,14 @@ browser evidence.
 - React providers will own only objects they create. Externally supplied
   runtimes remain externally owned, including across unmount and Strict Mode
   remounts.
+- `@generative-a11y/react` uses `useSyncExternalStore` for attention and
+  preference snapshots. The provider connects stable callback refs to the DOM
+  announcer before child layout effects, then starts owned browser stores after
+  commit. Server rendering stays inert and hydration receives the same region
+  structure without announcing during render.
+- Nested providers are isolated and use the nearest context. The provider is
+  intentionally outside React 19 `<Activity>` boundaries because Activity can
+  disconnect effects without representing a terminal runtime unmount.
 
 ## Adapter fidelity
 
@@ -82,8 +91,9 @@ See [framework integration research](framework-integrations.md).
 ## Tooling and publication
 
 The repository uses pnpm workspaces, strict TypeScript, tsup for ESM/CommonJS
-bundles and declarations, Vitest for deterministic tests, and Playwright for the
-browser layer. Public packages use explicit exports and do not import another
-package's source files. Browser and assistive-technology support is published
-only from dated test results; see [browser support](browser-support.md) and the
+bundles and declarations, Vitest for deterministic tests, React Testing Library
+for component contracts, and Playwright for the browser layer. Public packages
+use explicit exports and do not import another package's source files. Browser
+and assistive-technology support is published only from dated test results; see
+[browser support](browser-support.md) and the
 [manual AT test plan](manual-at-test-plan.md).

@@ -2,7 +2,8 @@
 
 `createPreferenceStore()` provides a versioned, frozen preference snapshot and
 optional persistence. Persistence is opt-in; a store without a `persistence`
-option is memory-only.
+option is memory-only. `GenerativeA11yProvider` can own this store and expose it
+through `useGenerativeA11yPreferences()`, or borrow a host-managed store.
 
 ## Version 1 schema
 
@@ -103,9 +104,11 @@ event or disposal wins over a reentrant outer event.
 
 `getServerSnapshot()` always returns the exact configured default used by the
 store. `getSnapshot()` may contain a synchronously loaded browser preference.
-This is the intended external-store contract: a future React binding supplies
-the server snapshot during server rendering and hydration, then observes the
-client snapshot. Hosts should not read storage independently during render.
+This is the external-store contract used by the React provider: server rendering
+and hydration use the server snapshot, then the client observes the browser
+snapshot after commit. Hosts should not read storage independently during
+render. A persisted value updates the preference hook but does not silently
+reconfigure an active runtime.
 
 ## Runtime boundary
 

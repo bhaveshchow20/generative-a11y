@@ -1,9 +1,11 @@
 # Attention model
 
 `createAttentionStore()` exposes conservative browser observations through an
-`ExternalStore<AttentionSnapshot>`. These are raw signals for a host or future
+`ExternalStore<AttentionSnapshot>`. These are raw signals for a host or the
 React integration. They are not core policy decisions, proof that content was
-read, or a model of user intent.
+read, or a model of user intent. `useGenerativeA11yAttention()` subscribes with
+React's `useSyncExternalStore` and preserves the stable server snapshot during
+SSR and hydration.
 
 ## Snapshot fields
 
@@ -75,7 +77,9 @@ idempotent: it clears registrations and subscribers, removes document/window
 listeners, and disconnects the observer. Stale callbacks become no-ops.
 Subscribing or registering after disposal throws for a document-backed store.
 
-The store uses no timers and never focuses or scrolls anything.
+The store uses no timers and never focuses or scrolls anything. The React
+provider owns an attention store only when it creates one; an injected store is
+borrowed and remains host-owned after unmount.
 
 ## Policy boundary
 
