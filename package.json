@@ -64,6 +64,7 @@
     "@generative-a11y/ag-ui": "workspace:*",
     "@generative-a11y/core": "workspace:*",
     "@generative-a11y/dom": "workspace:*",
+    "@generative-a11y/devtools": "workspace:*",
     "@generative-a11y/react": "workspace:*",
     "@generative-a11y/test": "workspace:*",
     "@testing-library/dom": "10.4.1",

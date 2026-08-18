@@ -13,6 +13,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const packageExports = [
   ["@generative-a11y/core", "", "createGenerativeA11y"],
   ["@generative-a11y/dom", "", "createDOMAnnouncer"],
+  ["@generative-a11y/devtools", "", "createDevtoolsStore"],
   ["@generative-a11y/react", "", "GenerativeA11yProvider"],
   ["@generative-a11y/ai-sdk", "", "createObserver"],
   ["@generative-a11y/ai-sdk", "/react", "useChatAccessibility"],
@@ -85,6 +86,7 @@ try {
   const overrides = [
     "@generative-a11y/core",
     "@generative-a11y/dom",
+    "@generative-a11y/devtools",
     "@generative-a11y/ai-sdk",
     "@generative-a11y/assistant-ui",
     "@generative-a11y/ag-ui",
