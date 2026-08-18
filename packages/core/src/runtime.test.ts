@@ -315,6 +315,81 @@ describe("generative accessibility runtime", () => {
     );
   });
 
+  it("propagates locale metadata introduced by later response and tool events", () => {
+    const recorder = createAnnouncementRecorder({
+      preset: "verbose",
+      policy: { text: { minimumCharacters: 1 } },
+    });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      locale: "en",
+    });
+    recorder.runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "r1",
+      locale: "fr",
+      delta: "Bonjour.",
+    });
+    recorder.runtime.dispatch({
+      type: "response.completed",
+      responseId: "r1",
+      locale: "fr",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      label: "Recherche",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      locale: "de",
+      label: "Recherche",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder
+        .transcript()
+        .filter(({ responseId }) => responseId === "r1")
+        .map(({ locale }) => locale),
+    ).toEqual(["en", "fr", "fr"]);
+    expect(
+      recorder.transcript().find(({ toolId }) => toolId === "t1")?.locale,
+    ).toBe("de");
+  });
+
+  it("does not let stale tool events overwrite the active locale", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "en",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "two",
+      locale: "fr",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "one",
+      label: "Search",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder.transcript().find(({ text }) => text === "Search complete.")
+        ?.locale,
+    ).toBe("en");
+  });
+
   it("enforces tool lifecycle ordering and safe failure announcements", () => {
     const recorder = createAnnouncementRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({

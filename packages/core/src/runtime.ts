@@ -125,6 +125,15 @@ export function createGenerativeA11y(
       }
     } finally {
       announcementEmissionDepth -= 1;
+      if (
+        announcementEmissionDepth === 0 &&
+        clearListenersAfterDeliveryDiagnostic
+      ) {
+        // Preserve diagnostic observers until the scheduler reports the
+        // terminal delivery result, but release announcement callbacks as soon
+        // as a reentrant dispose has finished unwinding.
+        announcementListeners.clear();
+      }
     }
     if (!delivered && failed) throw firstError;
   }
@@ -329,6 +338,7 @@ export function createGenerativeA11y(
         announce(event, "Assistant is responding.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
+          ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
         diagnose(event, "policy-silent");
@@ -340,6 +350,7 @@ export function createGenerativeA11y(
     if (!state) return;
 
     if (event.type === "response.text.delta") {
+      if (event.locale) state.locale = event.locale;
       if (!event.delta) return;
       if (policy.text.strategy === "completion") state.fullText += event.delta;
       if (policy.text.strategy === "silent") {
@@ -363,6 +374,7 @@ export function createGenerativeA11y(
     }
 
     clearFlushTimer(state);
+    if (event.locale) state.locale = event.locale;
     const scope = responseScope(event.responseId, state.epoch);
 
     if (event.type === "response.completed") {
@@ -479,6 +491,7 @@ export function createGenerativeA11y(
           delayMs: policy.tools.announceStartAfterMs,
           scope: startScope,
           coalesceKey: startScope,
+          ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
         diagnose(event, "policy-silent");
@@ -502,6 +515,7 @@ export function createGenerativeA11y(
       diagnose(event, "stale-tool");
       return;
     }
+    if (event.locale) state.locale = event.locale;
 
     if (event.type === "tool.progress") {
       if (!policy.tools.announceProgress) {
@@ -536,6 +550,7 @@ export function createGenerativeA11y(
         delayMs: policy.minimumGapMs,
         scope: progressScope,
         coalesceKey: progressScope,
+        ...(state.locale ? { locale: state.locale } : {}),
       });
       return;
     }
