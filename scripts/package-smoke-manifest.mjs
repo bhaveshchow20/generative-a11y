@@ -68,6 +68,14 @@ export const packageScenarios = [
     fixtures: ["@ag-ui/client"],
     internalPackages: ["@generative-a11y/core"],
   },
+  {
+    id: "test",
+    packageName: "@generative-a11y/test",
+    specifier: "@generative-a11y/test",
+    expectedExport: "recordRuntime",
+    fixtures: [],
+    internalPackages: ["@generative-a11y/core"],
+  },
 ];
 
 export const typescriptConsumerModes = [

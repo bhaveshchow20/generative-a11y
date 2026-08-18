@@ -83,6 +83,13 @@ describe("isolated packed consumer scenarios", () => {
         fixtures: ["@ag-ui/client"],
         internalPackages: ["@generative-a11y/core"],
       }),
+      expect.objectContaining({
+        id: "test",
+        specifier: "@generative-a11y/test",
+        expectedExport: "recordRuntime",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
     ]);
 
     expect(smoke.packageScenarios[3].fixtures).not.toContain("@ai-sdk/react");
