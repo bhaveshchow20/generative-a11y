@@ -25,3 +25,17 @@ The store only subscribes through `subscribeDiagnosticEvents()` and does not
 monkey-patch dispatch, access browser globals, create UI, retain a core history,
 or alter accessibility policy. A captured DOM/API delivery remains evidence of
 an action, not proof that assistive technology spoke it.
+
+## Explicit overlay
+
+`@generative-a11y/devtools/overlay` is an optional browser-only mounting helper.
+It creates one open Shadow DOM host only when called, starts collapsed, and uses
+a non-modal neutral diagnostic panel. It does not auto-focus, trap focus, create
+a live region, modify host layout, or install global shortcuts.
+
+```ts
+import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+
+const overlay = mountDevtoolsOverlay({ store });
+overlay.dispose();
+```
