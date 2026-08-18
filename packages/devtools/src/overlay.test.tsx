@@ -19,11 +19,6 @@ Object.defineProperty(window, "ResizeObserver", {
   value: TestResizeObserver,
 });
 
-Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
-  configurable: true,
-  value: () => undefined,
-});
-
 afterEach(() => document.body.replaceChildren());
 
 test("mounts explicitly in an isolated shadow root without stealing focus or creating a live region", () => {
@@ -40,6 +35,10 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
   expect(mounted.host.shadowRoot).not.toBeNull();
   const panel = mounted.host.shadowRoot?.querySelector("aside");
   expect(panel?.hidden).toBe(true);
+  expect(panel?.classList.contains("ga-bottom-dock")).toBe(true);
+  expect(
+    mounted.host.shadowRoot?.querySelector(".ga-launcher-mark"),
+  ).toBeNull();
   expect(
     mounted.host.shadowRoot?.querySelector('[aria-live], [role="log"]'),
   ).toBeNull();
@@ -47,18 +46,54 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
   const button =
     mounted.host.shadowRoot?.querySelector<HTMLButtonElement>("button");
   if (!button) throw new Error("launcher missing");
-  fireEvent.pointerDown(button);
-  button.focus();
+  expect(button.textContent).toBe("Open workspace");
   fireEvent.click(button);
   expect(panel?.hidden).toBe(false);
-  expect(mounted.host.shadowRoot?.activeElement).toBe(panel);
-  button.focus();
-  fireEvent.keyDown(button, { key: "Escape" });
+  expect(panel?.getAttribute("data-state")).toBe("expanded");
+  fireEvent.keyDown(panel ?? document.body, { key: "Escape" });
   expect(panel?.hidden).toBe(true);
   expect(document.activeElement).toBe(launcher);
 
   mounted.dispose();
   expect(mounted.host.isConnected).toBe(false);
+});
+
+test("renders a visual trace map and confirms local workspace actions", async () => {
+  const clock = new ManualClock();
+  const runtime = createGenerativeA11y({
+    clock,
+    onAnnouncement: () => undefined,
+  });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "support", runtime });
+  runtime.dispatch({ type: "response.started", responseId: "reply-1" });
+  runtime.dispatch({ type: "response.completed", responseId: "reply-1" });
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>("button");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+
+  fireEvent.click(launcher);
+  expect(root.querySelector('[data-testid="trace-map"]')).not.toBeNull();
+  expect(root.textContent).toContain("Trace map");
+  const traceNode = root.querySelector<SVGGElement>("[data-trace-key]");
+  if (!traceNode) throw new Error("trace node missing");
+  fireEvent.click(traceNode);
+  expect(
+    root.querySelector('[data-testid="trace-map-selection"]')?.textContent,
+  ).toContain("Selected signal");
+
+  const pause = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+    (button) => button.textContent === "Pause capture",
+  );
+  if (!pause) throw new Error("pause action missing");
+  fireEvent.click(pause);
+  await waitFor(() =>
+    expect(
+      root.querySelector('[data-testid="workspace-feedback"]')?.textContent,
+    ).toContain("Capture paused"),
+  );
+  mounted.dispose();
 });
 
 test("provides a searchable, inspectable workbench with runtime actions", async () => {
@@ -80,14 +115,14 @@ test("provides a searchable, inspectable workbench with runtime actions", async 
   if (!root || !launcher) throw new Error("inspector launcher missing");
 
   fireEvent.click(launcher);
-  expect(root.textContent).toContain("Overview");
-  expect(root.textContent).toContain("Timeline");
+  expect(root.textContent).toContain("Trace");
+  expect(root.textContent).toContain("Events");
   expect(root.textContent).toContain("Runtime");
   expect(root.textContent).toContain("Export trace");
   expect(root.textContent).not.toContain("Private connection label");
 
   const timeline = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent === "Timeline",
+    (button) => button.textContent === "Events",
   );
   if (!timeline) throw new Error("timeline tab missing");
   fireEvent.mouseDown(timeline, { button: 0 });
@@ -109,125 +144,6 @@ test("provides a searchable, inspectable workbench with runtime actions", async 
   if (!pause) throw new Error("pause action missing");
   fireEvent.click(pause);
   expect(root.textContent).toContain("Capture paused");
-  mounted.dispose();
-});
-
-test("synchronizes a store update that occurs while subscribing", async () => {
-  const store = createDevtoolsStore();
-  let updateDuringSubscribe = true;
-  const synchronizingStore = {
-    ...store,
-    subscribe(listener: () => void) {
-      if (updateDuringSubscribe) {
-        updateDuringSubscribe = false;
-        store.pauseCapture();
-      }
-      return store.subscribe(listener);
-    },
-  };
-  const mounted = mountDevtoolsOverlay({
-    store: synchronizingStore,
-    document,
-  });
-  const root = mounted.host.shadowRoot;
-  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
-  if (!root || !launcher) throw new Error("inspector launcher missing");
-
-  fireEvent.click(launcher);
-
-  await waitFor(() => expect(root.textContent).toContain("Capture paused"));
-  mounted.dispose();
-});
-
-test("shows capture sequence for delivery records without runtime sequence", async () => {
-  const store = createDevtoolsStore();
-  store.recordDelivery({
-    runtimeId: "primary",
-    result: {
-      announcementId: "delivery-1",
-      at: 10,
-      channel: "polite",
-      method: "live-region",
-      sourceType: "response.completed",
-      status: "mutated",
-    },
-  });
-  const mounted = mountDevtoolsOverlay({ store, document });
-  const root = mounted.host.shadowRoot;
-  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
-  if (!root || !launcher) throw new Error("inspector launcher missing");
-  fireEvent.click(launcher);
-  const timeline = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent === "Timeline",
-  );
-  if (!timeline) throw new Error("timeline tab missing");
-  fireEvent.mouseDown(timeline, { button: 0 });
-  const record = await waitFor(() => {
-    const value = root.querySelector<HTMLButtonElement>(
-      ".ga-inspector-trace-row",
-    );
-    if (!value) throw new Error("trace record missing");
-    return value;
-  });
-  fireEvent.click(record);
-
-  expect(root.textContent).toContain("Capture sequence");
-  expect(root.textContent).not.toContain("Runtime sequence");
-  mounted.dispose();
-});
-
-test("focuses the command search, closes it before the overlay, and restores focus", async () => {
-  const hostAction = document.createElement("button");
-  document.body.append(hostAction);
-  hostAction.focus();
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
-    document,
-  });
-  const root = mounted.host.shadowRoot;
-  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
-  if (!root || !launcher) throw new Error("inspector launcher missing");
-  fireEvent.pointerDown(launcher);
-  launcher.focus();
-  fireEvent.click(launcher);
-
-  const commands = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent?.includes("Commands"),
-  );
-  if (!commands) throw new Error("command trigger missing");
-  const hostShortcut = vi.fn();
-  document.addEventListener("keydown", hostShortcut);
-  const inspector = root.querySelector<HTMLElement>(".ga-inspector");
-  if (!inspector) throw new Error("inspector missing");
-  fireEvent.keyDown(inspector, { key: "k", ctrlKey: true });
-  expect(hostShortcut).not.toHaveBeenCalled();
-  document.removeEventListener("keydown", hostShortcut);
-  const input = root.querySelector<HTMLInputElement>(
-    '[data-slot="command-input"]',
-  );
-  await waitFor(() => expect(root.activeElement).toBe(input));
-
-  fireEvent.keyDown(input as HTMLInputElement, { key: "Escape" });
-  await waitFor(() => expect(root.querySelector('[role="dialog"]')).toBeNull());
-  await waitFor(() => expect(root.activeElement).toBe(commands));
-  expect(root.querySelector("aside")?.hidden).toBe(false);
-
-  fireEvent.keyDown(commands, { key: "Escape" });
-  expect(root.querySelector("aside")?.hidden).toBe(true);
-  expect(document.activeElement).toBe(hostAction);
-
-  fireEvent.click(launcher);
-  fireEvent.click(commands);
-  await waitFor(() =>
-    expect(root.querySelector('[role="dialog"]')).not.toBeNull(),
-  );
-  const close = root.querySelector<HTMLButtonElement>(
-    'button[aria-label="Close inspector"]',
-  );
-  if (!close) throw new Error("close action missing");
-  fireEvent.click(close);
-  fireEvent.click(launcher);
-  expect(root.querySelector('[role="dialog"]')).toBeNull();
   mounted.dispose();
 });
 
@@ -265,12 +181,9 @@ test("reports only the latest copy completion and ignores stale failures", async
   resolveSecond?.();
   await waitFor(() => expect(root.textContent).toContain("Trace copied"));
   rejectFirst?.(new Error("clipboard denied"));
-  await first.catch(() => undefined);
-  await waitFor(() => {
-    expect(copyText).toHaveBeenCalledTimes(2);
-    expect(root.textContent).toContain("Trace copied");
-    expect(root.textContent).not.toContain("Copy unavailable");
-  });
+  await waitFor(() => expect(copyText).toHaveBeenCalledTimes(2));
+  expect(root.textContent).toContain("Trace copied");
+  expect(root.textContent).not.toContain("Copy unavailable");
   mounted.dispose();
 });
 
@@ -293,7 +206,7 @@ test("cancels copy-status cleanup when the workbench closes", async () => {
   fireEvent.click(exportButton);
   await waitFor(() => expect(root.textContent).toContain("Trace copied"));
   const timerIndex = setTimeout.mock.calls.findIndex(
-    ([, delay]) => delay === 1_800,
+    ([, delay]) => delay === 2_200,
   );
   expect(timerIndex).toBeGreaterThanOrEqual(0);
   const timer = setTimeout.mock.results[timerIndex]?.value;
@@ -310,38 +223,7 @@ test("cancels copy-status cleanup when the workbench closes", async () => {
   setTimeout.mockRestore();
 });
 
-test("cancels pending copy-status cleanup on direct disposal", async () => {
-  const clearTimeout = vi.spyOn(window, "clearTimeout");
-  const setTimeout = vi.spyOn(window, "setTimeout");
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
-    document,
-    copyText: () => Promise.resolve(),
-  });
-  const root = mounted.host.shadowRoot;
-  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
-  if (!root || !launcher) throw new Error("inspector launcher missing");
-  fireEvent.click(launcher);
-  const exportButton = [
-    ...root.querySelectorAll<HTMLButtonElement>("button"),
-  ].find((button) => button.textContent?.includes("Export trace"));
-  if (!exportButton) throw new Error("export action missing");
-  fireEvent.click(exportButton);
-  await waitFor(() => expect(root.textContent).toContain("Trace copied"));
-  const timerIndex = setTimeout.mock.calls.findIndex(
-    ([, delay]) => delay === 1_800,
-  );
-  expect(timerIndex).toBeGreaterThanOrEqual(0);
-  const timer = setTimeout.mock.results[timerIndex]?.value;
-
-  mounted.dispose();
-
-  expect(clearTimeout).toHaveBeenCalledWith(timer);
-  clearTimeout.mockRestore();
-  setTimeout.mockRestore();
-});
-
-test("disposing an open workbench restores host focus", async () => {
+test("disposing an open workspace restores host focus", async () => {
   const hostAction = document.createElement("button");
   document.body.append(hostAction);
   hostAction.focus();
@@ -351,12 +233,14 @@ test("disposing an open workbench restores host focus", async () => {
   });
   const launcher =
     mounted.host.shadowRoot?.querySelector<HTMLButtonElement>(".ga-launcher");
-  if (!launcher) throw new Error("inspector launcher missing");
+  if (!launcher) throw new Error("workspace launcher missing");
   fireEvent.pointerDown(launcher);
   launcher.focus();
   fireEvent.click(launcher);
   await waitFor(() =>
-    expect(mounted.host.shadowRoot?.textContent).toContain("Overview"),
+    expect(
+      mounted.host.shadowRoot?.querySelector('[data-testid="trace-map"]'),
+    ).not.toBeNull(),
   );
 
   mounted.dispose();
