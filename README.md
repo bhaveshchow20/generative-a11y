@@ -12,11 +12,12 @@ prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
 > [!IMPORTANT] This project is in pre-release development and is not yet
-> published to npm. The browser-independent core runtime and DOM integration are
-> implemented; React bindings and framework adapters remain in progress.
+> published to npm. The browser-independent core runtime, DOM integration, and
+> React bindings are implemented; framework adapters remain in progress.
 
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
-[Architecture](docs/architecture.md) · [Events](docs/events.md) ·
+[React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
+[Events](docs/events.md) ·
 [Accessibility policy](docs/accessibility-policy.md) ·
 [Contributing](CONTRIBUTING.md)
 
@@ -82,6 +83,7 @@ the environment where it actually runs.
 | Source                   | Intended integration                                        | Status                                                           |
 | ------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------- |
 | Custom applications      | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending |
+| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending |
 | [AG-UI][ag-ui]           | Translate protocol events through a thin adapter            | Planned                                                          |
 | [AI SDK][ai-sdk]         | Observe documented chat state and lifecycle callbacks       | Planned                                                          |
 | [assistant-ui][aui]      | Subscribe to documented runtime and message state           | Planned                                                          |
@@ -132,7 +134,7 @@ focus, and preference APIs.
 
 - Browser-independent event runtime — implemented
 - DOM delivery, attention, focus, and preferences — implemented
-- React provider, hooks, and bindings — in progress
+- React provider, hooks, and bindings — implemented
 - AG-UI adapter — planned first
 - AI SDK and assistant-ui adapters — planned
 - Devtools and documentation application — later

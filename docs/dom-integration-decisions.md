@@ -1,6 +1,6 @@
 # DOM integration decisions
 
-Decision review date: **2026-08-09**. Links below point to standards or primary
+Decision review date: **2026-08-17**. Links below point to standards or primary
 project documentation. They support the design decision; they are not an
 evergreen browser-support claim.
 
@@ -77,7 +77,8 @@ this slice are test tools that provide a distinct evidence layer.
 `@generative-a11y/dom` depends on core and browser platform APIs only. React,
 React Aria, Testing Library, Playwright, and axe-core do not enter its
 production bundle. The DOM stack adds only jsdom for deterministic DOM tests.
-Testing Library will be added with the React stack, while Playwright and
-axe-core will be added with the browser-integration stack described in
-[testing strategy](testing-strategy.md); they are not dependencies of the DOM
-stack merely because later phases plan to use them.
+The React stack adds React, ReactDOM, React type declarations, React Testing
+Library, Testing Library DOM, and the React Hooks ESLint plugin as development
+tooling. Playwright and axe-core remain reserved for the browser-integration
+stack described in [testing strategy](testing-strategy.md); they are not
+dependencies of a published runtime package.
