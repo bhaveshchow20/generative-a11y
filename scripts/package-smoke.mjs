@@ -10,16 +10,21 @@ import { fileURLToPath } from "node:url";
 
 const execFileAsync = promisify(execFile);
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const packages = [
-  ["@generative-a11y/core", "createGenerativeA11y"],
-  ["@generative-a11y/dom", "createDOMAnnouncer"],
-  ["@generative-a11y/react", "GenerativeA11yProvider"],
+const packageExports = [
+  ["@generative-a11y/core", "", "createGenerativeA11y"],
+  ["@generative-a11y/dom", "", "createDOMAnnouncer"],
+  ["@generative-a11y/react", "", "GenerativeA11yProvider"],
+  ["@generative-a11y/ai-sdk", "", "createObserver"],
+  ["@generative-a11y/ai-sdk", "/react", "useChatAccessibility"],
 ];
 
-const workspaceExports = new Map(packages);
-for (const [packageName, expectedExport] of workspaceExports) {
-  const esm = await import(packageName);
-  const cjs = createRequire(import.meta.url)(packageName);
+const packageNames = [
+  ...new Set(packageExports.map(([packageName]) => packageName)),
+];
+for (const [packageName, subpath, expectedExport] of packageExports) {
+  const specifier = `${packageName}${subpath}`;
+  const esm = await import(specifier);
+  const cjs = createRequire(import.meta.url)(specifier);
   assert.equal(typeof esm[expectedExport], "function");
   assert.equal(typeof cjs[expectedExport], "function");
   assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
@@ -33,7 +38,7 @@ const projectRoot = join(tempRoot, "project");
 await Promise.all([mkdir(archiveRoot), mkdir(projectRoot)]);
 
 try {
-  for (const packageName of workspaceExports.keys()) {
+  for (const packageName of packageNames) {
     await execFileAsync(
       "pnpm",
       ["--filter", packageName, "pack", "--pack-destination", archiveRoot],
@@ -52,7 +57,7 @@ try {
   };
 
   const dependencies = Object.fromEntries(
-    [...workspaceExports.keys()].map((packageName) => [
+    packageNames.map((packageName) => [
       packageName,
       `file:${archiveFor(packageName)}`,
     ]),
@@ -74,7 +79,11 @@ try {
   );
   // Workspace dependencies in the archives are rewritten to 0.0.0. Point
   // those dependencies at local archives without consulting a registry.
-  const overrides = ["@generative-a11y/core", "@generative-a11y/dom"]
+  const overrides = [
+    "@generative-a11y/core",
+    "@generative-a11y/dom",
+    "@generative-a11y/ai-sdk",
+  ]
     .map(
       (packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`,
     )
@@ -93,9 +102,10 @@ try {
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-for (const [packageName, expectedExport] of ${JSON.stringify(packages)}) {
-  const esm = await import(packageName);
-  const cjs = require(packageName);
+for (const [packageName, subpath, expectedExport] of ${JSON.stringify(packageExports)}) {
+  const specifier = \`${"${packageName}"}\${subpath}\`;
+  const esm = await import(specifier);
+  const cjs = require(specifier);
   assert.equal(typeof esm[expectedExport], "function");
   assert.equal(typeof cjs[expectedExport], "function");
   assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
