@@ -390,7 +390,7 @@ describe("DOM delivery", () => {
     expect(html).not.toContain('role="');
   });
 
-  it("pre-mounts regions before a child layout effect dispatches", () => {
+  it("pre-mounts regions before a child layout effect dispatches", async () => {
     const clock = new ManualClock();
     function Dispatch() {
       const runtime = useGenerativeA11yRuntime();
@@ -404,7 +404,9 @@ describe("DOM delivery", () => {
         <Dispatch />
       </GenerativeA11yProvider>,
     );
-    act(() => clock.runUntilIdle());
+    await act(async () => {
+      clock.runUntilIdle();
+    });
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe(
       "Assistant is responding.",
     );
@@ -434,10 +436,12 @@ describe("DOM delivery", () => {
     await act(async () => {
       root = hydrateRoot(container, app);
     });
-    act(() =>
-      runtime.dispatch({ type: "response.started", responseId: "one" }),
-    );
-    act(() => clock.runUntilIdle());
+    await act(async () => {
+      runtime.dispatch({ type: "response.started", responseId: "one" });
+    });
+    await act(async () => {
+      clock.runUntilIdle();
+    });
     expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe(
       "Assistant is responding.",
     );
