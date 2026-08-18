@@ -445,6 +445,30 @@ describe("preference persistence", () => {
     expect(storage.setItem).not.toHaveBeenCalled();
   });
 
+  it("does not persist a stale value after a reentrant storage read", () => {
+    const storage = new MemoryStorage();
+    const events = new StorageEvents();
+    const value = balanced("paragraph", "status");
+    const newer = balanced("sentence", "progress");
+    const store = createPreferenceStore({
+      defaultValue: value,
+      persistence: { key: "p", storage, events },
+    });
+    storage.getItem.mockImplementation(() => {
+      events.emit({
+        key: "p",
+        newValue: JSON.stringify(newer),
+        storageArea: storage,
+      });
+      return null;
+    });
+
+    store.setPreferences({ ...value });
+
+    expect(store.getSnapshot()).toEqual(newer);
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
   it("does not let a reentrant listener persist an obsolete outer transition", () => {
     const storage = new MemoryStorage();
     const store = createPreferenceStore({ persistence: { key: "p", storage } });

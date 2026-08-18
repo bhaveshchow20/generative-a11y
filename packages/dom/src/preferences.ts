@@ -214,14 +214,24 @@ export function createPreferenceStore(
       if (!disposed && persistence?.storage && samePreferences(current, next)) {
         const serialized = JSON.stringify(next);
         if (!changed) {
+          const epoch = eventEpoch;
+          let matchesStoredValue = false;
           try {
-            if (persistence.storage.getItem(persistence.key) === serialized) {
-              return;
-            }
+            matchesStoredValue =
+              persistence.storage.getItem(persistence.key) === serialized;
           } catch (cause) {
             report("storage-read", "operation-failed", cause);
           }
+          if (
+            matchesStoredValue ||
+            disposed ||
+            epoch !== eventEpoch ||
+            !samePreferences(current, next)
+          ) {
+            return;
+          }
         }
+        if (disposed || !samePreferences(current, next)) return;
         try {
           persistence.storage.setItem(persistence.key, serialized);
         } catch (cause) {
