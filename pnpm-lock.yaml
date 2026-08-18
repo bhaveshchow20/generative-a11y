@@ -41,6 +41,9 @@ importers:
       '@generative-a11y/core':
         specifier: workspace:*
         version: link:packages/core
+      '@generative-a11y/devtools':
+        specifier: workspace:*
+        version: link:packages/devtools
       '@generative-a11y/dom':
         specifier: workspace:*
         version: link:packages/dom
@@ -145,6 +148,12 @@ importers:
         version: link:../core
 
   packages/core: {}
+
+  packages/devtools:
+    dependencies:
+      '@generative-a11y/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/dom:
     dependencies:
