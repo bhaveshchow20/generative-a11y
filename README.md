@@ -85,7 +85,7 @@ the environment where it actually runs.
 | ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending                   |
 | Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending                   |
-| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | In progress                                                                        |
+| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | Implemented; local browser check complete; assistive-technology validation pending |
 | [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Implemented; local browser check complete; assistive-technology validation pending |
 | [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Implemented; local browser check complete; assistive-technology validation pending |
 | [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                                       |
@@ -136,7 +136,7 @@ focus, and preference APIs.
 - Browser-independent event runtime — implemented
 - DOM delivery, attention, focus, and preferences — implemented
 - React provider, hooks, and bindings — implemented
-- AG-UI adapter — planned first
+- AG-UI adapter — implemented
 - AI SDK and assistant-ui adapters — implemented
 - Devtools and documentation application — later
 
