@@ -12,8 +12,9 @@ prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
 > [!IMPORTANT] This project is in pre-release development and is not yet
-> published to npm. The browser-independent core runtime, DOM integration, and
-> React bindings are implemented; framework adapters remain in progress.
+> published to npm. The browser-independent core runtime, DOM integration, React
+> bindings, and initial framework adapters are implemented; compatibility and
+> assistive-technology validation remain in progress.
 
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·

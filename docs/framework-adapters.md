@@ -48,11 +48,11 @@ labels use a host-provided localized mapping or a conservative generic label.
 Research access date: **2026-08-17**. Declared ranges are deliberately narrow
 and must be tested at their endpoints before publication.
 
-| Adapter      | Framework peer range                                | Exact versions under test           | React requirement                                             |
-| ------------ | --------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------- |
-| AI SDK       | `ai >=7.0.0 <7.1.0`, `@ai-sdk/react >=4.0.0 <4.1.0` | `ai@7.0.66`, `@ai-sdk/react@4.0.69` | React 18 or 19; React subpath only                            |
-| assistant-ui | `@assistant-ui/core >=0.3.13 <0.4.0`                | `@assistant-ui/core@0.3.13`         | none for root; optional future helper supports React 18 or 19 |
-| AG-UI        | `@ag-ui/core`, `@ag-ui/client >=0.0.57 <0.0.59`     | `0.0.57`, `0.0.58`                  | none                                                          |
+| Adapter      | Framework peer range                                             | Exact versions under test           | React requirement                                             |
+| ------------ | ---------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------- |
+| AI SDK       | `ai >=7.0.0 <7.1.0`, `@ai-sdk/react >=4.0.0 <4.1.0`              | `ai@7.0.66`, `@ai-sdk/react@4.0.69` | React 18 or 19; React subpath only                            |
+| assistant-ui | `@assistant-ui/core >=0.3.13 <0.4.0`                             | `@assistant-ui/core@0.3.13`         | none for root; optional future helper supports React 18 or 19 |
+| AG-UI        | `@ag-ui/core >=0.0.57 <0.0.59`, `@ag-ui/client >=0.0.57 <0.0.59` | `0.0.57`, `0.0.58`                  | none                                                          |
 
 Framework libraries remain peer dependencies plus development dependencies for
 integration/type checks. They are not bundled. Module imports remain safe on the
@@ -60,13 +60,13 @@ server: browser globals are not read during evaluation.
 
 ## Fidelity and known limits
 
-Adapters declare exact, partial, action-wrapper, and unavailable fidelity from
+Adapters declare exact, action-wrapper, inferred, and unavailable fidelity from
 real evidence. They do not infer a missing lifecycle from UI text or private
 state. The package READMEs contain the tested event-level mapping tables.
 
 - AI SDK: assistant-message and tool IDs are public; exact terminal distinction
-  requires composed `onFinish`/`onError` callbacks. Chat status alone does not
-  identify a response terminal state. `regenerate()` is not a retry event
+  requires `onFinish`/`onError` callbacks to be composed. Chat status alone does
+  not identify a response terminal state. `regenerate()` is not a retry event
   without explicit host action evidence.
 - assistant-ui: documented message and tool state supports streaming and
   terminal observation. Hydration/thread switching is baseline-only. Retry and
@@ -83,12 +83,21 @@ No `@generative-a11y/copilotkit` package is planned. CopilotKit v2 documents
 the hook reports `isReady`, and clean it up in the React effect:
 
 ```tsx
+import { useEffect, useId } from "react";
+import { bindAgent } from "@generative-a11y/ag-ui";
+
+const bindingScopeId = useId();
 const { agent, isReady } = useAgent({ agentId });
 
 useEffect(() => {
   if (!isReady) return;
-  return observeAgUiAgent({ agent, runtime, scopeId: agentId }).dispose;
-}, [agent, isReady, runtime, agentId]);
+  const binding = bindAgent({
+    agent,
+    runtime,
+    scopeId: `copilotkit:${bindingScopeId}`,
+  });
+  return () => binding.dispose();
+}, [agent, isReady, runtime, bindingScopeId]);
 ```
 
 Generic CopilotKit human-in-the-loop tools cannot reliably be distinguished from
