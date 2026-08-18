@@ -91,13 +91,20 @@ on that fallback path.
 - `status`: `"notified"`, `"mutated"`, `"unavailable"`, or `"disposed"`.
 - `method`: `"aria-notify"`, `"live-region"`, or `"none"`.
 - `channel`: the selected core announcement channel.
+- `announcementId`, `sourceType`, `at`, and any source/entity IDs from the
+  intent, so diagnostic consumers can correlate a DOM action with the runtime
+  decision that requested it. `at` is the core intent timestamp, not a DOM
+  delivery or speech timestamp.
 - `error`, when notifier invocation failed, with serializable `name` and
   `message` strings.
 
 `DOMLiveRegions` contains the stable outer `polite` and `assertive` elements.
 Live-region delivery sets or clears `lang` from the intent locale and replaces
 the region's text content on every delivery, including repeated identical text.
-Announcement strings are inserted as literal text, never HTML.
+Announcement strings are inserted as literal text, never HTML. The result
+records a browser/API action only; even a correlated successful `ariaNotify()`
+call or live-region mutation does not establish that assistive technology spoke
+the announcement.
 
 ## Observe attention signals
 
