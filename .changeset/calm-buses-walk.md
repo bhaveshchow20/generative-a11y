@@ -1,6 +1,6 @@
 ---
-"@generative-a11y/devtools": patch
+"@generative-a11y/devtools": minor
 ---
 
-Add an explicit, isolated development diagnostics overlay with conservative
-keyboard and focus behavior.
+Add the initial explicit, isolated browser diagnostics overlay with capture
+controls, keyboard dismissal, and focus restoration.

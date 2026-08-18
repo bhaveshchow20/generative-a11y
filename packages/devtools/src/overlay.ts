@@ -41,7 +41,7 @@ export function mountDevtoolsOverlay(
   panel.tabIndex = -1;
   panel.setAttribute("aria-label", "Generative accessibility diagnostics");
   panel.innerHTML =
-    '<header><h2>Diagnostics</h2><button type="button" data-close>Close</button></header><div class=row><button type="button" data-capture>Pause capture</button><button type="button" data-clear>Clear</button></div><ol></ol>';
+    '<header><h2>Diagnostics</h2><button type="button" data-close>Close</button></header><div class="row"><button type="button" data-capture>Pause capture</button><button type="button" data-clear>Clear</button></div><ol></ol>';
   shadow.append(style, launcher, panel);
   const list = panel.querySelector("ol");
   const close = panel.querySelector<HTMLButtonElement>("[data-close]");
@@ -49,7 +49,14 @@ export function mountDevtoolsOverlay(
   const clear = panel.querySelector<HTMLButtonElement>("[data-clear]");
   let open = false;
   let disposed = false;
-  let previousFocus: Element | null = null;
+  let previousFocus: HTMLElement | null = null;
+  let focusBeforePointer: HTMLElement | null = null;
+  const asHTMLElement = (element: Element | null): HTMLElement | null => {
+    const HTMLElementConstructor = selectedDocument.defaultView?.HTMLElement;
+    return HTMLElementConstructor && element instanceof HTMLElementConstructor
+      ? element
+      : null;
+  };
   const render = () => {
     const snapshot = options.store.getSnapshot();
     if (list)
@@ -69,10 +76,19 @@ export function mountDevtoolsOverlay(
     open = next;
     panel.hidden = !next;
     launcher.setAttribute("aria-expanded", String(next));
-    if (!next && previousFocus instanceof HTMLElement) previousFocus.focus();
+    if (next) panel.focus();
+    else previousFocus?.focus();
   };
+  launcher.addEventListener("pointerdown", () => {
+    const active = asHTMLElement(selectedDocument.activeElement);
+    focusBeforePointer = active === host ? null : active;
+  });
   launcher.addEventListener("click", () => {
-    previousFocus = selectedDocument.activeElement;
+    previousFocus =
+      focusBeforePointer ??
+      asHTMLElement(shadow.activeElement) ??
+      asHTMLElement(selectedDocument.activeElement);
+    focusBeforePointer = null;
     setOpen(!open);
   });
   close?.addEventListener("click", () => setOpen(false));
@@ -81,8 +97,8 @@ export function mountDevtoolsOverlay(
     else options.store.pauseCapture();
   });
   clear?.addEventListener("click", () => options.store.clear());
-  panel.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") setOpen(false);
+  shadow.addEventListener("keydown", (event) => {
+    if (open && (event as KeyboardEvent).key === "Escape") setOpen(false);
   });
   const unsubscribe = options.store.subscribe(render);
   render();
@@ -92,6 +108,7 @@ export function mountDevtoolsOverlay(
     dispose() {
       if (disposed) return;
       disposed = true;
+      if (open) setOpen(false);
       unsubscribe();
       host.remove();
     },

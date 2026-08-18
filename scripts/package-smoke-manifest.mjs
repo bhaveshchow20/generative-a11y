@@ -257,6 +257,7 @@ export function createConsumerManifest({
   rootPackage,
   scenario,
   targetDependency,
+  internalOverrides = {},
   targetManifest,
 }) {
   const fixtureDependencies = Object.fromEntries(
@@ -285,6 +286,7 @@ export function createConsumerManifest({
     packageManager: rootPackage.packageManager,
     dependencies: {
       [scenario.packageName]: targetDependency,
+      ...internalOverrides,
       ...fixtureDependencies,
     },
   };

@@ -136,6 +136,8 @@ describe("isolated packed consumer scenarios", () => {
       packageManager: "pnpm@11.21.0",
       dependencies: {
         "@generative-a11y/react": "file:../../archives/react.tgz",
+        "@generative-a11y/core": "file:../../archives/core.tgz",
+        "@generative-a11y/dom": "file:../../archives/dom.tgz",
         react: "19.2.8",
         "react-dom": "19.2.8",
         "@types/react": "19.2.18",
