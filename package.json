@@ -52,7 +52,7 @@
     "version-packages": "changeset version"
   },
   "devDependencies": {
-    "@changesets/cli": "2.31.1",
+    "@changesets/cli": "3.0.0",
     "@eslint/js": "10.0.1",
     "@generative-a11y/core": "workspace:*",
     "@generative-a11y/dom": "workspace:*",
@@ -62,8 +62,8 @@
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@typescript-eslint/eslint-plugin": "8.66.0",
-    "@typescript-eslint/parser": "8.66.0",
+    "@typescript-eslint/eslint-plugin": "8.67.0",
+    "@typescript-eslint/parser": "8.67.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.1",
     "eslint-plugin-react-hooks": "7.1.1",
