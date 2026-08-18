@@ -22,10 +22,11 @@ jobs:
       - run: pnpm check
       - run: mkdir -p artifacts
       - run:
-          pnpm --filter @generative-a11y/core pack --pack-destination artifacts
+          pnpm --filter './packages/*' pack --pack-destination
+          "$GITHUB_WORKSPACE/artifacts"
       - uses: actions/upload-artifact@v7
         with:
-          name: npm-package
+          name: npm-packages
           path: artifacts/*.tgz
           if-no-files-found: error
           retention-days: 7

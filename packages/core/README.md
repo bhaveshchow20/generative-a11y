@@ -31,18 +31,34 @@ event's `announcement` field for short, localized, user-safe spoken error copy.
 ## Runtime contract
 
 `createGenerativeA11y(options)` accepts a preset, nested policy overrides, an
-optional injected `Clock`, and delivery callbacks:
+optional injected `Clock`, and optional delivery callbacks:
 
-- `onAnnouncement(intent)` delivers a prepared polite/assertive intent. If it
-  throws, scheduling continues and `onDeliveryError(error, intent)` is called.
+- `onAnnouncement(intent)` optionally installs an initial listener for prepared
+  polite/assertive intents. If it throws, scheduling continues and
+  `onDeliveryError(error, intent)` is called. A runtime intended for
+  `subscribeAnnouncements()` or `connectRuntimeToDOM()` does not need a no-op
+  construction listener. An announcement emitted while no listener is attached
+  receives a `delivery-error` diagnostic.
 - `onDiagnostic(decision)` observes best-effort queued, merged, suppressed,
   cancelled and announced decisions. Observer errors are isolated.
 - `dispatch(event)` accepts normalized response, tool, interaction, connection
   and citation events.
 - `getPolicy()` returns a deeply frozen policy snapshot.
 - `pendingCount()` counts scheduler candidates and response flush timers.
+- `subscribeAnnouncements(listener)` adds an isolated output listener and
+  returns an idempotent unsubscribe function. This is the attachment point used
+  by browser delivery integrations; the optional construction callback is an
+  initial listener when supplied.
+- `subscribeDiagnostics(listener)` observes subsequent diagnostic decisions and
+  returns an idempotent unsubscribe function. Diagnostic listener failures are
+  isolated.
 - `dispose()` is idempotent, cancels owned timers/queues and makes later
-  dispatch throw.
+  dispatch or subscription attempts throw.
+
+Announcement listeners run from a stable snapshot. A throwing listener does not
+prevent later listeners from receiving the same intent, and every listener
+failure is reported through `onDeliveryError`. A delivery is diagnosed as failed
+only when every current announcement listener throws.
 
 Responses and tools should always receive a terminal event. `maxActiveEntities`
 also prevents missing terminal events from growing active state without bound.

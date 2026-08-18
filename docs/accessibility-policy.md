@@ -40,19 +40,43 @@ speaks.
   sentence streaming on the same subtree and must always be cleaned up.
 - Treat
   [`ariaNotify()`](https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaNotify)
-  as experimental progressive enhancement. Scheduling, coalescing and fallback
-  regions remain necessary.
-- Detect or allow opt-out when the host already announces the same lifecycle to
-  prevent duplicate speech.
+  as limited-availability progressive enhancement. Scheduling and coalescing
+  remain in core, and stable fallback regions remain necessary.
+- Hosts must not connect this delivery path alongside another system that
+  announces the same lifecycle, which would risk duplicate speech.
+
+The DOM layer inserts announcement strings as literal text, applies locale
+before delivery, and replaces region content for repeated identical messages. A
+`DOMDeliveryResult` reports an API call or DOM mutation; it is not confirmation
+that assistive technology produced speech. See
+[browser support and fallbacks](browser-support.md).
 
 ## Attention and focus
 
-Visibility, DOM focus and scroll position are heuristic policy inputs; none
-reveals a screen-reader virtual cursor. Hidden/scrolled-away modes may coalesce
-details into a short summary. Ordinary response, tool, completion and
-non-actionable error updates never move focus. A host application's accessible
-modal interaction may move and restore focus according to the
+Document visibility, window focus, DOM focus and target intersection are
+conservative inputs; none reveals a screen-reader virtual cursor or user intent.
+The DOM attention store does not change policy itself. See the exact
+[attention model](attention-model.md).
+
+Ordinary response, tool, completion and non-actionable error updates never move
+focus. A host application's accessible modal interaction may explicitly capture,
+move and restore focus according to the
 [WAI-ARIA dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+Guarded restoration must preserve a later user focus move.
 
 Stopping can cancel the library's unannounced queue, but cannot reliably retract
 speech already delivered to assistive technology.
+
+## Preferences
+
+Stored preferences are validated configuration for a future runtime construction
+or replacement boundary. They never mutate or dispose an active runtime. Storage
+is opt-in, corruption never becomes policy, and unavailable storage degrades to
+memory-only behavior. See [preference storage](preference-storage.md).
+
+## Verification claims
+
+Deterministic transcript and DOM tests are required but cannot establish actual
+speech, usability, or conformance. Browser/AT statements require dated manual
+records from the [manual test plan](manual-at-test-plan.md); automated findings
+remain a separate evidence layer in the [testing strategy](testing-strategy.md).

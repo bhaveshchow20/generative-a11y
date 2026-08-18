@@ -1,0 +1,68 @@
+{
+  "name": "@generative-a11y/dom",
+  "version": "0.0.0",
+  "description": "DOM announcement delivery for the generative accessibility runtime",
+  "keywords": [
+    "accessibility",
+    "aria-live",
+    "aria-notify",
+    "assistive-technology",
+    "generative-ai",
+    "live-region",
+    "screen-reader",
+    "typescript",
+    "web-accessibility"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",
+    "directory": "packages/dom"
+  },
+  "bugs": {
+    "url": "https://github.com/bhaveshchow20/generative-a11y/issues"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist/index.cjs",
+    "dist/index.js",
+    "dist/index.d.cts",
+    "dist/index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@generative-a11y/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jsdom": "30.0.0",
+    "jsdom": "30.0.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

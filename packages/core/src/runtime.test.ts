@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { ManualClock } from "./clock.js";
+import { createGenerativeA11y } from "./index.js";
 import { createAnnouncementRecorder } from "./recorder.js";
-import type { PresetName } from "./types.js";
+import type {
+  AnnouncementDiagnostic,
+  AnnouncementIntent,
+  PresetName,
+} from "./types.js";
 
 function spoken(recorder: ReturnType<typeof createAnnouncementRecorder>) {
   return recorder.transcript().map(({ channel, text }) => ({ channel, text }));
@@ -309,6 +315,117 @@ describe("generative accessibility runtime", () => {
     );
   });
 
+  it("propagates locale metadata introduced by later response and tool events", () => {
+    const recorder = createAnnouncementRecorder({
+      preset: "verbose",
+      policy: { text: { minimumCharacters: 1 } },
+    });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      locale: "en",
+    });
+    recorder.runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "r1",
+      locale: "fr",
+      delta: "Bonjour.",
+    });
+    recorder.runtime.dispatch({
+      type: "response.completed",
+      responseId: "r1",
+      locale: "fr",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      label: "Recherche",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      locale: "de",
+      label: "Recherche",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder
+        .transcript()
+        .filter(({ responseId }) => responseId === "r1")
+        .map(({ locale }) => locale),
+    ).toEqual(["en", "fr", "fr"]);
+    expect(
+      recorder.transcript().find(({ toolId }) => toolId === "t1")?.locale,
+    ).toBe("de");
+  });
+
+  it("does not let stale tool events overwrite the active locale", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "en",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "two",
+      locale: "fr",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "one",
+      label: "Search",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder.transcript().find(({ text }) => text === "Search complete.")
+        ?.locale,
+    ).toBe("en");
+  });
+
+  it("does not adopt the locale from invalid tool progress", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "en",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.progress",
+      toolId: "t1",
+      toolInstanceId: "one",
+      locale: "fr",
+      label: "Search",
+      progress: 2,
+    });
+    recorder.runtime.dispatch({
+      type: "tool.completed",
+      toolId: "t1",
+      toolInstanceId: "one",
+      label: "Search",
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(
+      recorder.transcript().find(({ text }) => text === "Search complete.")
+        ?.locale,
+    ).toBe("en");
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .some(({ reason }) => reason === "invalid-event"),
+    ).toBe(true);
+  });
+
   it("enforces tool lifecycle ordering and safe failure announcements", () => {
     const recorder = createAnnouncementRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
@@ -489,5 +606,333 @@ describe("generative accessibility runtime", () => {
     expect(() =>
       recorder.runtime.dispatch({ type: "response.started", responseId: "r2" }),
     ).toThrow("disposed");
+  });
+
+  it("delivers announcements to subscribed listeners until they unsubscribe", () => {
+    const clock = new ManualClock();
+    const initial: AnnouncementIntent[] = [];
+    const subscribed: AnnouncementIntent[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: (announcement) => initial.push(announcement),
+    });
+    const unsubscribe = runtime.subscribeAnnouncements((announcement) =>
+      subscribed.push(announcement),
+    );
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({
+      type: "response.interrupted",
+      responseId: "r1",
+    });
+    clock.runUntilIdle();
+    unsubscribe();
+    unsubscribe();
+    runtime.dispatch({ type: "response.started", responseId: "r2" });
+    runtime.dispatch({
+      type: "response.interrupted",
+      responseId: "r2",
+    });
+    clock.runUntilIdle();
+
+    expect(initial.map(({ text }) => text)).toEqual([
+      "Response stopped.",
+      "Response stopped.",
+    ]);
+    expect(subscribed.map(({ text }) => text)).toEqual(["Response stopped."]);
+  });
+
+  it("supports attaching the first announcement listener after construction", () => {
+    const clock = new ManualClock();
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    const delivered: string[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    const unsubscribe = runtime.subscribeAnnouncements(({ text }) =>
+      delivered.push(text),
+    );
+    runtime.dispatch({ type: "response.started", responseId: "r2" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r2" });
+    clock.runUntilIdle();
+    unsubscribe();
+
+    expect(delivered).toEqual(["Response stopped."]);
+    expect(
+      diagnostics
+        .filter(
+          ({ reason }) => reason === "delivery-error" || reason === "delivered",
+        )
+        .map(({ reason }) => reason),
+    ).toEqual(["delivery-error", "delivered"]);
+  });
+
+  it("keeps identical listener registrations independent", () => {
+    const clock = new ManualClock();
+    const delivered: string[] = [];
+    const listener = ({ text }: AnnouncementIntent) => delivered.push(text);
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: listener,
+    });
+    const unsubscribe = runtime.subscribeAnnouncements(listener);
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+    unsubscribe();
+    runtime.dispatch({ type: "response.started", responseId: "r2" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r2" });
+    clock.runUntilIdle();
+
+    expect(delivered).toEqual([
+      "Response stopped.",
+      "Response stopped.",
+      "Response stopped.",
+    ]);
+  });
+
+  it("uses a listener snapshot when subscriptions change during delivery", () => {
+    const clock = new ManualClock();
+    const delivered: string[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => undefined,
+    });
+    let unsubscribeSecond: () => void = () => undefined;
+    runtime.subscribeAnnouncements(() => {
+      delivered.push("first");
+      unsubscribeSecond();
+    });
+    unsubscribeSecond = runtime.subscribeAnnouncements(() =>
+      delivered.push("second"),
+    );
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+    runtime.dispatch({ type: "response.started", responseId: "r2" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r2" });
+    clock.runUntilIdle();
+
+    expect(delivered).toEqual(["first", "second", "first"]);
+  });
+
+  it("isolates announcement listener failures and reports each delivery error", () => {
+    const clock = new ManualClock();
+    const delivered: string[] = [];
+    const errors: Array<{ error: unknown; text: string }> = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => {
+        throw new Error("initial listener failed");
+      },
+      onDeliveryError: (error, announcement) =>
+        errors.push({ error, text: announcement.text }),
+    });
+    runtime.subscribeAnnouncements(() => {
+      throw new Error("subscriber failed");
+    });
+    runtime.subscribeAnnouncements(({ text }) => delivered.push(text));
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(delivered).toEqual(["Response stopped."]);
+    expect(errors).toHaveLength(2);
+    expect(errors.map(({ text }) => text)).toEqual([
+      "Response stopped.",
+      "Response stopped.",
+    ]);
+  });
+
+  it("keeps the delivery-error diagnostic when every listener fails", () => {
+    const clock = new ManualClock();
+    const reasons: string[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => {
+        throw new Error("delivery failed");
+      },
+      onDiagnostic: ({ reason }) => reasons.push(reason),
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(reasons).toContain("delivery-error");
+    expect(reasons).not.toContain("delivered");
+  });
+
+  it("keeps the delivery-error diagnostic when a listener throws undefined", () => {
+    const clock = new ManualClock();
+    const reasons: string[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => {
+        throw undefined;
+      },
+      onDiagnostic: ({ reason }) => reasons.push(reason),
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(reasons).toContain("delivery-error");
+    expect(reasons).not.toContain("delivered");
+  });
+
+  it("emits the terminal delivery diagnostic when an error observer disposes reentrantly", () => {
+    const clock = new ManualClock();
+    const reasons: string[] = [];
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => {
+        throw new Error("delivery failed");
+      },
+      onDeliveryError: () => runtime.dispose(),
+    });
+    runtime.subscribeDiagnostics(({ reason }) => reasons.push(reason));
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(reasons).toContain("delivery-error");
+    expect(reasons).not.toContain("delivered");
+    expect(clock.pendingCount()).toBe(0);
+    expect(() => runtime.subscribeDiagnostics(() => undefined)).toThrow(
+      "disposed",
+    );
+  });
+
+  it("preserves the outer terminal diagnostic across nested delivery and disposal", () => {
+    const clock = new ManualClock();
+    const terminalDiagnostics: string[] = [];
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: ({ text }) => {
+        if (text !== "Response stopped.") return;
+        runtime.dispatch({ type: "connection.restored", label: "Nested." });
+        clock.runUntilIdle();
+      },
+    });
+    runtime.subscribeAnnouncements(({ text }) => {
+      if (text === "Response stopped.") runtime.dispose();
+    });
+    runtime.subscribeDiagnostics((diagnostic) => {
+      if (
+        diagnostic.reason === "delivered" ||
+        diagnostic.reason === "delivery-error"
+      ) {
+        terminalDiagnostics.push(diagnostic.announcement?.text ?? "missing");
+      }
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(terminalDiagnostics).toEqual(["Nested.", "Response stopped."]);
+    expect(clock.pendingCount()).toBe(0);
+  });
+
+  it("preserves the outer terminal diagnostic when nested delivery disposes", () => {
+    const clock = new ManualClock();
+    const terminalDiagnostics: string[] = [];
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: ({ text }) => {
+        if (text !== "Response stopped.") return;
+        runtime.dispatch({ type: "connection.restored", label: "Nested." });
+        clock.runUntilIdle();
+      },
+    });
+    runtime.subscribeAnnouncements(({ text }) => {
+      if (text === "Nested.") runtime.dispose();
+    });
+    runtime.subscribeDiagnostics((diagnostic) => {
+      if (
+        diagnostic.reason === "delivered" ||
+        diagnostic.reason === "delivery-error"
+      ) {
+        terminalDiagnostics.push(diagnostic.announcement?.text ?? "missing");
+      }
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+
+    expect(terminalDiagnostics).toEqual(["Nested.", "Response stopped."]);
+    expect(clock.pendingCount()).toBe(0);
+  });
+
+  it("subscribes to diagnostics and rejects new subscriptions after disposal", () => {
+    const clock = new ManualClock();
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => undefined,
+    });
+    const unsubscribe = runtime.subscribeDiagnostics((diagnostic) =>
+      diagnostics.push(diagnostic),
+    );
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+    clock.runUntilIdle();
+    unsubscribe();
+    unsubscribe();
+
+    expect(diagnostics.map(({ disposition }) => disposition)).toEqual([
+      "suppressed",
+      "queued",
+      "announced",
+    ]);
+
+    runtime.dispose();
+    expect(() => runtime.subscribeAnnouncements(() => undefined)).toThrow(
+      "disposed",
+    );
+    expect(() => runtime.subscribeDiagnostics(() => undefined)).toThrow(
+      "disposed",
+    );
+  });
+
+  it("isolates diagnostic failures and emits disposal cancellations before clearing listeners", () => {
+    const clock = new ManualClock();
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => undefined,
+      onDiagnostic: () => {
+        throw new Error("diagnostic listener failed");
+      },
+    });
+    runtime.subscribeDiagnostics((diagnostic) => diagnostics.push(diagnostic));
+    runtime.dispatch({
+      type: "tool.started",
+      toolId: "tool-1",
+      label: "Search",
+    });
+
+    runtime.dispose();
+
+    expect(diagnostics.map(({ reason }) => reason)).toContain(
+      "runtime-disposed",
+    );
   });
 });

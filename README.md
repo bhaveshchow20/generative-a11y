@@ -12,10 +12,11 @@ prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
 > [!IMPORTANT] This project is in pre-release development and is not yet
-> published to npm. The browser-independent core runtime is implemented; DOM
-> delivery and framework adapters are on the roadmap.
+> published to npm. The browser-independent core runtime, DOM integration, and
+> React bindings are implemented; framework adapters remain in progress.
 
-[Core API](packages/core/README.md) · [Architecture](docs/architecture.md) ·
+[Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
+[React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
 [Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
 · [Contributing](CONTRIBUTING.md)
 
@@ -78,31 +79,30 @@ the environment where it actually runs.
 
 ## Ecosystem
 
-| Source                   | Intended integration                                       | Status           |
-| ------------------------ | ---------------------------------------------------------- | ---------------- |
-| Custom applications      | Dispatch normalized events directly to the core runtime    | Core ready       |
-| [AG-UI][ag-ui]           | Translate protocol events through a thin adapter           | Planned          |
-| [AI SDK][ai-sdk]         | Observe documented chat state and lifecycle callbacks      | Planned          |
-| [assistant-ui][aui]      | Subscribe to documented runtime and message state          | Planned          |
-| [CopilotKit][copilotkit] | Reuse its public AG-UI agent surface where fidelity allows | Guidance planned |
+| Source                    | Intended integration                                        | Status                                                           |
+| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending |
+| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending |
+| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | Planned                                                          |
+| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Planned                                                          |
+| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Planned                                                          |
+| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | Guidance planned                                                 |
 
 [ag-ui]: https://github.com/ag-ui-protocol/ag-ui
 [ai-sdk]: https://github.com/vercel/ai
 [aui]: https://github.com/assistant-ui/assistant-ui
 [copilotkit]: https://github.com/CopilotKit/CopilotKit
 
-## Core example
+## Core and DOM example
 
 The current package can be exercised from this workspace:
 
 ```ts
 import { createGenerativeA11y } from "@generative-a11y/core";
+import { connectRuntimeToDOM } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({
-  onAnnouncement(intent) {
-    deliveryDriver.announce(intent);
-  },
-});
+const runtime = createGenerativeA11y({});
+const delivery = connectRuntimeToDOM(runtime);
 
 runtime.dispatch({ type: "response.started", responseId: "response-1" });
 runtime.dispatch({
@@ -111,10 +111,14 @@ runtime.dispatch({
   delta: "A complete sentence.",
 });
 runtime.dispatch({ type: "response.completed", responseId: "response-1" });
+
+delivery.dispose();
+runtime.dispose();
 ```
 
-See [`@generative-a11y/core`](packages/core/README.md) for the runtime contract,
-policies, scheduler, recorder, and deterministic clock APIs.
+See [`@generative-a11y/core`](packages/core/README.md) for the runtime contract
+and [`@generative-a11y/dom`](packages/dom/README.md) for delivery, attention,
+focus, and preference APIs.
 
 ## Principles
 
@@ -128,10 +132,11 @@ policies, scheduler, recorder, and deterministic clock APIs.
 ## Roadmap
 
 - Browser-independent event runtime — implemented
-- DOM announcement delivery — planned
+- DOM delivery, attention, focus, and preferences — implemented
+- React provider, hooks, and bindings — implemented
 - AG-UI adapter — planned first
 - AI SDK and assistant-ui adapters — planned
-- React bindings, devtools, examples, and documentation application — later
+- Devtools and documentation application — later
 
 Adapter feasibility and fidelity constraints are documented in
 [framework integration research](docs/framework-integrations.md).
