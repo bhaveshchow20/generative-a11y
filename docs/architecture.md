@@ -3,16 +3,21 @@
 ## Dependency direction
 
 ```text
-framework adapter -> react -> dom -> core
-                            \------> core
-custom JavaScript ----------------> core
+assistant-ui adapter ----------------> core
+AG-UI adapter ----------------------> core
+AI SDK adapter ---------------------> core
+AI SDK optional React binding ------> AI SDK adapter
+                                 \---> React (peer)
+@generative-a11y/react -------------> dom -> core
+custom JavaScript ------------------> core
 ```
 
-In package terms, the Phase 2 stack is `core <- dom <- react`. React depends
-directly on both `core` and `dom`: it needs the runtime's public types and
-ownership APIs as well as the DOM stores and delivery binding. Core never
-imports DOM or React code, DOM never imports React, and no package may create a
-dependency circle.
+In package terms, the Phase 2 stack is `core <- dom <- react`. The
+framework-adapter roots depend only on core; the optional AI SDK React subpath
+also has React as a peer and uses the AI SDK adapter. React depends directly on
+both `core` and `dom`: it needs the runtime's public types and ownership APIs as
+well as the DOM stores and delivery binding. Core never imports DOM or React
+code, DOM never imports React, and no package may create a dependency circle.
 
 ## Package responsibilities
 
@@ -86,7 +91,11 @@ browser evidence.
 Adapters declare whether interruption, retries, and connectivity are `exact`,
 require an `action-wrapper`, are `inferred`, or are `unavailable`. A missing
 protocol feature stays missing; it is not guessed from text or private state.
-See [framework integration research](framework-integrations.md).
+Adapter controllers borrow the core dispatch target, use stable source identity,
+silently baseline historical snapshots, and clean up only their own
+subscriptions. They do not import the DOM package, mutate host DOM, own a host
+runtime, or move focus. See [framework adapters](framework-adapters.md) and
+[framework integration research](framework-integrations.md).
 
 ## Tooling and publication
 

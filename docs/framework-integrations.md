@@ -1,17 +1,18 @@
 # Framework integration research
 
-Research date: 2026-08-09. Adapters must re-verify compatibility before
-publication.
+Research updated: 2026-08-17. Adapters must re-verify compatibility before
+publication. The current compatibility matrix and selection guide live in
+[framework adapters](framework-adapters.md).
 
 ## Feasibility
 
-| Integration   | Public surface                                               | v0.1 decision                       | Main limitation                                                   |
-| ------------- | ------------------------------------------------------------ | ----------------------------------- | ----------------------------------------------------------------- |
-| AI SDK        | `useChat` state, `UIMessage.parts`, initialization callbacks | Implement                           | Exact abort/disconnect requires `onFinish` at chat initialization |
-| assistant-ui  | `ThreadRuntime.subscribe()`/`getState()` or `useAuiState`    | Implement                           | No stable retry/connectivity events                               |
-| AG-UI         | `agent.subscribe(AgentSubscriber)`                           | Implement first                     | Several optional lifecycle events are absent from the protocol    |
-| CopilotKit v2 | `useAgent()` exposes an AG-UI `AbstractAgent`                | Begin as AG-UI integration guidance | Generic tool-based HITL needs configuration                       |
-| CopilotKit v1 | Derived hooks                                                | Do not target                       | Incomplete lifecycle surface                                      |
+| Integration   | Public surface                                               | v0.1 decision              | Main limitation                                                   |
+| ------------- | ------------------------------------------------------------ | -------------------------- | ----------------------------------------------------------------- |
+| AI SDK        | `useChat` state, `UIMessage.parts`, initialization callbacks | In progress                | Exact abort/disconnect requires `onFinish` at chat initialization |
+| assistant-ui  | `ThreadRuntime.subscribe()`/`getState()` or `useAuiState`    | In progress                | No stable retry/connectivity events                               |
+| AG-UI         | `agent.subscribe(AgentSubscriber)`                           | In progress                | Several optional lifecycle events are absent from the protocol    |
+| CopilotKit v2 | `useAgent()` exposes an AG-UI `AbstractAgent`                | AG-UI integration guidance | Generic tool-based HITL needs configuration                       |
+| CopilotKit v1 | Derived hooks                                                | Do not target              | Incomplete lifecycle surface                                      |
 
 ## AI SDK
 
