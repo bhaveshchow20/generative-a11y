@@ -96,6 +96,17 @@ test("renders a visual trace map and confirms local workspace actions", async ()
   mounted.dispose();
 });
 
+test("keeps the trace surface intentionally spacious instead of compressing it into a dashboard", () => {
+  const mounted = mountDevtoolsOverlay({
+    store: createDevtoolsStore(),
+    document,
+  });
+  const styles = mounted.host.shadowRoot?.querySelector("style")?.textContent;
+  expect(styles).toContain("min-height: 260px");
+  expect(styles).toContain("padding: 22px 24px 16px");
+  mounted.dispose();
+});
+
 test("provides a searchable, inspectable workbench with runtime actions", async () => {
   const clock = new ManualClock();
   const runtime = createGenerativeA11y({

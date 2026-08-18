@@ -47,7 +47,8 @@ button:focus-visible, input:focus-visible, [role="separator"]:focus-visible { ou
 [data-slot="tabs-trigger"][data-state="active"] { color: #fafaf9; background: #404040; box-shadow: 0 1px 1px #0004; }
 [data-slot="tabs-content"] { min-height: 0; flex: 1; overflow: auto; outline: none; }
 .ga-inspector-primary-actions { gap: 4px; }
-.ga-inspector-overview, .ga-inspector-runtime-grid, .ga-inspector-traces { padding: 14px 18px; }
+.ga-inspector-overview { padding: 22px 24px 24px; }
+.ga-inspector-runtime-grid, .ga-inspector-traces { padding: 18px 24px; }
 .ga-inspector-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 [data-slot="card"] { overflow: hidden; color: #e7e5e4; background: #20201f; border: 1px solid #3f3f46; border-radius: 10px; }
 [data-slot="card-header"] { padding: 13px 14px 0; }
@@ -56,16 +57,16 @@ button:focus-visible, input:focus-visible, [role="separator"]:focus-visible { ou
 [data-slot="card-description"] { color: #a8a29e; font: 650 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
 .ga-inspector-metric [data-slot="card-title"] { font-size: 19px; font-weight: 620; }
 .ga-inspector-metric [data-slot="card-content"] { padding-top: 7px; color: #a8a29e; font-size: 11px; }
-.ga-inspector-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.ga-inspector-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
 .ga-inspector-overview-grid p, .ga-inspector-traces p { margin: 0; }
 .ga-inspector-inline-actions { flex-wrap: wrap; gap: 7px; margin-top: 14px; }
 .ga-inspector-status { margin-top: 9px !important; color: #d6d3d1; font-size: 11px; }
-.ga-trace-map { overflow: hidden; padding: 14px 16px 10px; background: #1c1c1b; border: 1px solid #3f3f46; border-radius: 9px; }
+.ga-trace-map { min-height: 260px; overflow: hidden; padding: 22px 24px 16px; background: #1c1c1b; border: 1px solid #3f3f46; border-radius: 9px; }
 .ga-trace-map-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .ga-trace-map-heading p { margin: 0 0 3px; color: #a8a29e; font-size: 11px; }
 .ga-trace-map-heading h3 { margin: 0; color: #fafaf9; font-size: 13px; font-weight: 560; letter-spacing: -.01em; }
 .ga-trace-map-heading > span { padding-top: 2px; color: #a8a29e; font-size: 11px; white-space: nowrap; }
-.ga-trace-map-svg { display: block; width: 100%; height: 158px; margin-top: 6px; overflow: visible; }
+.ga-trace-map-svg { display: block; width: 100%; height: 176px; margin-top: 12px; overflow: visible; }
 .ga-trace-map-label { fill: #a8a29e; font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .ga-trace-map-lane { stroke: #3f3f46; stroke-width: 1; stroke-dasharray: 2 5; }
 .ga-trace-map-path { fill: none; stroke: #52525b; stroke-width: 1.5; }
