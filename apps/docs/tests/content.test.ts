@@ -106,6 +106,7 @@ describe("documentation registry", () => {
     expect(JSON.stringify(visibleContent)).not.toMatch(
       /Phase\s+\d|implemented|deferred|pre-release/i,
     );
+    expect(JSON.stringify(visibleContent)).not.toMatch(/\bpnpm\b/i);
   });
 
   it("documents major APIs and explains every substantial code sample", () => {
@@ -173,7 +174,7 @@ describe("documentation registry", () => {
 
     const contributing = getDocPage("/project/contributing")!;
     expect(contributing.sections.find(({ id }) => id === "workflow")?.code?.value).toMatch(
-      /pnpm test:browser/,
+      /npm run test:browser/,
     );
   });
 

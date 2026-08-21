@@ -36,6 +36,8 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /Chromium, Firefox, and WebKit/i);
   assert.match(html, /manual assistive-technology evidence/i);
   assert.match(html, /href="\/api"[^>]*>API</i);
+  assert.match(html, /npm install @generative-a11y\/core/i);
+  assert.match(html, /aria-label="Package"/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 

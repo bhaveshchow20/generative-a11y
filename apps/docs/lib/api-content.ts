@@ -49,7 +49,7 @@ const pages: DocPage[] = [
         id: "install",
         title: "Install and import",
         body: ["Core has no DOM, React, or AI framework dependency. It accepts normalized lifecycle evidence and emits AnnouncementIntent values."],
-        code: { language: "shell", value: "pnpm add @generative-a11y/core" },
+        code: { language: "shell", value: "npm install @generative-a11y/core" },
         walkthrough: [{ label: "Install policy only", description: "Use core in any JavaScript runtime, including deterministic tests without a document." }, { label: "Add delivery separately", description: "Browser applications normally pair core with @generative-a11y/dom or @generative-a11y/react." }],
       },
       {
@@ -304,7 +304,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     description: "Browser delivery, runtime binding, conservative focus helpers, attention evidence, and validated preference storage.",
     keywords: ["DOM", "ariaNotify", "live region", "focus", "preferences"],
     sections: [
-      { id: "install", title: "Install browser delivery", body: ["The DOM package depends on core and remains independent of React and AI frameworks."], code: { language: "shell", value: "pnpm add @generative-a11y/core @generative-a11y/dom" }, walkthrough: [{ label: "Keep policy separate", description: "Core produces intents without browser globals." }, { label: "Add observable delivery", description: "DOM converts those intents into ariaNotify attempts or stable live-region mutations." }] },
+      { id: "install", title: "Install browser delivery", body: ["The DOM package depends on core and remains independent of React and AI frameworks."], code: { language: "shell", value: "npm install @generative-a11y/core @generative-a11y/dom" }, walkthrough: [{ label: "Keep policy separate", description: "Core produces intents without browser globals." }, { label: "Add observable delivery", description: "DOM converts those intents into ariaNotify attempts or stable live-region mutations." }] },
       { id: "exports", title: "Public export map", body: ["Choose direct announcing or bind an existing runtime."], table: { headers: ["Category", "Exports", "Reference"], rows: [["Delivery", "createDOMAnnouncer", "/api/dom/create-dom-announcer"], ["Runtime binding", "connectRuntimeToDOM", "/api/dom/connect-runtime-to-dom"], ["Focus", "captureFocus, focusElement, restoreFocus", "/api/dom/focus"], ["Attention", "createAttentionStore", "/api/dom/attention"], ["Preferences", "createPreferenceStore and mapping helpers", "/api/dom/preferences"]] } },
     ],
   },

@@ -28,7 +28,12 @@ body {
   min-width: 320px;
   margin: 0;
   background:
-    linear-gradient(90deg, transparent 49.8%, rgb(0 0 0 / 0.035) 50%, transparent 50.2%),
+    linear-gradient(
+      90deg,
+      transparent 49.8%,
+      rgb(0 0 0 / 0.035) 50%,
+      transparent 50.2%
+    ),
     var(--paper);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
@@ -186,6 +191,190 @@ h1 span {
   line-height: 1.65;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.install-command {
+  position: relative;
+  z-index: 5;
+  max-width: 510px;
+  margin: 0 0 18px;
+}
+
+.install-command-shell {
+  display: flex;
+  min-height: 51px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  box-shadow: 0 5px 18px rgb(0 0 0 / 0.045);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.install-command-shell:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.install-prompt {
+  padding-left: 16px;
+  color: #929292;
+}
+
+.install-prefix {
+  padding-left: 10px;
+  color: var(--ink);
+  font: inherit;
+  white-space: nowrap;
+}
+
+.install-package-select {
+  position: relative;
+  display: inline-flex;
+  min-width: 105px;
+  align-items: center;
+  margin-left: 1px;
+}
+
+.install-package-trigger {
+  display: inline-flex;
+  width: 100%;
+  min-height: 33px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  padding: 5px 9px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #eeeeee;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.install-package-trigger:hover,
+.install-package-trigger[aria-expanded="true"] {
+  border-color: #9a9a9a;
+  background: #e3e3e3;
+}
+
+.install-package-trigger svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+  transition: transform 160ms ease;
+}
+
+.install-package-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.install-package-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 9px);
+  right: 0;
+  display: grid;
+  width: 226px;
+  padding: 6px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 8px 8px 0 rgb(0 0 0 / 0.13);
+  animation: package-menu-in 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.install-package-menu p {
+  margin: 3px 7px 5px;
+  color: #777777;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.install-package-menu button {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.install-package-menu button:hover,
+.install-package-menu button:focus-visible {
+  background: var(--paper-strong);
+  outline: none;
+}
+
+.install-package-menu button[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+.install-copy {
+  display: inline-flex;
+  min-width: 78px;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  margin-left: auto;
+  background: transparent;
+  color: #656565;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.install-copy:hover {
+  background: var(--paper-strong);
+  color: var(--ink);
+}
+
+.install-copy svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
@@ -256,7 +445,9 @@ h1 span {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  transition: opacity 240ms ease, transform 240ms ease;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
 }
 
 .demo-running[data-state="ready"] i,
@@ -281,7 +472,10 @@ h1 span {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .demo-controls button:hover {
@@ -694,7 +888,9 @@ h2 {
   border: 1px solid var(--docs-line);
   background: var(--docs-panel);
   color: var(--docs-muted);
-  font: 11px var(--font-mono), monospace;
+  font:
+    11px var(--font-mono),
+    monospace;
 }
 
 .framework-heading {
@@ -744,7 +940,9 @@ h2 {
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--muted);
-  font: 600 12px var(--font-mono), monospace;
+  font:
+    600 12px var(--font-mono),
+    monospace;
   cursor: pointer;
 }
 
@@ -793,7 +991,9 @@ h2 {
   border: 1px solid #3d3d3d;
   background: #202020;
   color: #dcdcdc;
-  font: 12px/1.75 var(--font-mono), monospace;
+  font:
+    12px/1.75 var(--font-mono),
+    monospace;
   white-space: pre-wrap;
 }
 
@@ -803,7 +1003,9 @@ h2 {
   border-radius: 4px;
   background: var(--acid);
   color: #1a1a1a;
-  font: 700 11px var(--font-mono), monospace;
+  font:
+    700 11px var(--font-mono),
+    monospace;
   cursor: pointer;
 }
 
@@ -835,7 +1037,9 @@ h2 {
 .framework-output li small {
   overflow: hidden;
   color: #a1a1a1;
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -846,7 +1050,9 @@ h2 {
   border-top: 1px solid #3d3d3d;
   color: #b3b3b3;
   gap: 24px;
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -882,7 +1088,9 @@ h2 {
   border-radius: 999px;
   background: var(--docs-panel);
   color: var(--docs-muted);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   gap: 7px;
 }
 
@@ -920,7 +1128,10 @@ h2 {
   text-align: left;
   cursor: pointer;
   gap: 5px;
-  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 
 .example-picker button + button {
@@ -972,7 +1183,9 @@ h2 {
   display: inline-flex;
   align-items: center;
   color: #595959;
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   gap: 7px;
 }
 
@@ -1018,7 +1231,9 @@ h2 {
   border-radius: 7px;
   background: var(--forest);
   color: var(--acid);
-  font: 700 10px var(--font-mono), monospace;
+  font:
+    700 10px var(--font-mono),
+    monospace;
 }
 
 .product-answer p {
@@ -1050,7 +1265,9 @@ h2 {
   align-items: center;
   justify-content: space-between;
   color: #b3b3b3;
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -1069,7 +1286,9 @@ h2 {
 .trace-guide span {
   display: grid;
   color: #c7c7c7;
-  font: 8px/1.35 var(--font-mono), monospace;
+  font:
+    8px/1.35 var(--font-mono),
+    monospace;
   gap: 5px;
   text-align: center;
 }
@@ -1152,7 +1371,9 @@ h2 {
 
 .adapter-trace summary em {
   color: var(--acid);
-  font: normal 15px var(--font-mono), monospace;
+  font:
+    normal 15px var(--font-mono),
+    monospace;
   transition: transform 160ms ease;
 }
 
@@ -1176,7 +1397,9 @@ h2 {
   display: block;
   margin-bottom: 3px;
   color: var(--acid);
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1198,7 +1421,9 @@ h2 {
 
 .event-explanation dt {
   color: #898989;
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -1222,7 +1447,9 @@ h2 {
 
 .announcement-preview span {
   color: #9c9c9c;
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -1323,7 +1550,9 @@ h2 {
   display: flex;
   align-items: center;
   gap: 4px;
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1587,7 +1816,9 @@ h2 {
   justify-content: space-between;
   padding: 0 18px;
   border-bottom: 1px solid var(--docs-line);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1616,7 +1847,13 @@ h2 {
 
 .runtime-flow li:last-child {
   border-right: 0;
-  background-image: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgb(127 127 127 / 0.08) 8px, rgb(127 127 127 / 0.08) 9px);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgb(127 127 127 / 0.08) 8px,
+    rgb(127 127 127 / 0.08) 9px
+  );
 }
 
 .runtime-flow li:not(:last-child)::after {
@@ -1637,7 +1874,9 @@ h2 {
 .runtime-flow li small {
   display: block;
   color: var(--docs-muted);
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1662,7 +1901,9 @@ h2 {
 .runtime-flow-evidence {
   display: grid;
   border-top: 1px solid var(--docs-line);
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
   grid-template-columns: 4fr 1fr;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1679,7 +1920,9 @@ h2 {
 .runtime-flow figcaption {
   padding: 14px 18px;
   border-top: 1px solid var(--docs-line);
-  font: 10px/1.6 var(--font-mono), monospace;
+  font:
+    10px/1.6 var(--font-mono),
+    monospace;
 }
 
 @media (max-width: 700px) {
@@ -1801,7 +2044,9 @@ h2 {
 
 .code-walkthrough li > span {
   color: var(--forest);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
 }
 
 .code-walkthrough strong {
@@ -1852,7 +2097,9 @@ h2 {
 .api-list summary span {
   overflow-wrap: anywhere;
   color: var(--docs-muted);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
 }
 
 .api-list summary b {
@@ -1860,7 +2107,9 @@ h2 {
   border: 1px solid var(--docs-line);
   border-radius: 999px;
   color: var(--docs-muted);
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -1884,7 +2133,9 @@ h2 {
 
 .api-list dt {
   color: var(--docs-muted);
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
   text-transform: uppercase;
 }
 
@@ -2065,7 +2316,9 @@ tbody tr:last-child td {
   outline: 0;
   background: transparent;
   color: var(--docs-ink);
-  font: 17px var(--font-body), sans-serif;
+  font:
+    17px var(--font-body),
+    sans-serif;
 }
 
 .search-field button {
@@ -2074,7 +2327,9 @@ tbody tr:last-child td {
   border-radius: 4px;
   background: transparent;
   color: var(--docs-muted);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
 }
 
 .search-results {
@@ -2109,7 +2364,9 @@ tbody tr:last-child td {
 
 .search-results small {
   color: var(--docs-muted);
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -2176,7 +2433,9 @@ tbody tr:last-child td {
   border-radius: 4px;
   background: var(--docs-panel);
   color: var(--docs-ink);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
   font-weight: 600;
 }
 
@@ -2242,7 +2501,9 @@ tbody tr:last-child td {
 .timeline-head p {
   margin: 0;
   color: var(--docs-muted);
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2291,7 +2552,9 @@ tbody tr:last-child td {
   border-radius: 50%;
   background: var(--forest);
   color: white;
-  font: 8px var(--font-mono), monospace;
+  font:
+    8px var(--font-mono),
+    monospace;
 }
 
 .assistant-message p {
@@ -2309,7 +2572,9 @@ tbody tr:last-child td {
   padding: 11px 13px;
   border: 1px solid var(--docs-line);
   border-radius: 5px;
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
 }
 
 .tool-row b {
@@ -2374,7 +2639,9 @@ tbody tr:last-child td {
 .announcement-list p {
   margin: 5px 0 0;
   color: #d0d0d0;
-  font: 10px/1.55 var(--font-mono), monospace;
+  font:
+    10px/1.55 var(--font-mono),
+    monospace;
 }
 
 .announcement-list > li > span {
@@ -2393,7 +2660,9 @@ tbody tr:last-child td {
   display: block;
   border: 0;
   color: #919191;
-  font: 11px var(--font-mono), monospace;
+  font:
+    11px var(--font-mono),
+    monospace;
 }
 
 .delivery-summary {
@@ -2415,7 +2684,9 @@ tbody tr:last-child td {
   padding-top: 14px;
   border-top: 1px solid var(--docs-line);
   color: var(--docs-muted);
-  font: 9px/1.5 var(--font-mono), monospace;
+  font:
+    9px/1.5 var(--font-mono),
+    monospace;
 }
 
 .a11y-surface .surface-caption {
@@ -2447,7 +2718,9 @@ tbody tr:last-child td {
 
 .timeline-head > span {
   color: var(--docs-muted);
-  font: 9px var(--font-mono), monospace;
+  font:
+    9px var(--font-mono),
+    monospace;
 }
 
 .timeline-scroll {
@@ -2463,7 +2736,9 @@ tbody tr:last-child td {
 .diagnostics {
   margin-top: 16px;
   color: var(--docs-muted);
-  font: 10px var(--font-mono), monospace;
+  font:
+    10px var(--font-mono),
+    monospace;
 }
 
 .diagnostics summary {
@@ -2647,7 +2922,12 @@ tbody tr:last-child td {
 .stream-caret.is-active::after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgb(35 35 35 / 0.85), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(35 35 35 / 0.85),
+    transparent
+  );
   content: "";
   transform: translateX(-100%);
   animation: stream-progress 2.4s ease-in-out infinite;
@@ -2657,7 +2937,10 @@ tbody tr:last-child td {
 .package-card,
 .architecture-flow li,
 .docs-sidebar a {
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease,
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
     transform 180ms ease;
 }
 
@@ -2674,6 +2957,13 @@ tbody tr:last-child td {
 @keyframes gentle-rise {
   from {
     transform: translateY(10px);
+  }
+}
+
+@keyframes package-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
   }
 }
 
@@ -2728,6 +3018,7 @@ tbody tr:last-child td {
   .hero-copy,
   .hero-demo,
   .motion-orbit,
+  .install-package-menu,
   .demo-running i,
   .stream-caret::after,
   .streaming-copy,
@@ -2739,6 +3030,9 @@ tbody tr:last-child td {
   }
 
   .button,
+  .install-command-shell,
+  .install-package-trigger,
+  .install-copy,
   .demo-controls button,
   .package-card,
   .architecture-flow li,

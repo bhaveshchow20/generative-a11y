@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeroRuntimeDemo } from "../components/hero-runtime-demo";
+import { InstallCommand } from "../components/install-command";
 
 const architecture = [
   "AI framework",
@@ -59,6 +60,7 @@ export default function Home() {
               tools, approvals, and failures into paced announcement intents,
               while your existing UI stays exactly where it is.
             </p>
+            <InstallCommand />
             <div className="hero-actions">
               <Link className="button button-primary" href="/docs/getting-started">
                 Get started <span aria-hidden="true">→</span>

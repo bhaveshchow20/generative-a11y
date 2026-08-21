@@ -150,7 +150,7 @@ const pages: DocPage[] = [
         ],
         code: {
           language: "shell",
-          value: "pnpm add @generative-a11y/core @generative-a11y/dom",
+          value: "npm install @generative-a11y/core @generative-a11y/dom",
         },
         walkthrough: [
           { label: "Install policy", description: "core owns normalized lifecycle policy and produces announcement intents." },
@@ -1055,8 +1055,8 @@ binding.dispose();` },
     keywords: ["testing", "ManualClock", "Vitest", "Playwright", "screen reader"],
     sections: [
       { id: "test-layers", title: "Test each boundary separately", body: ["A passing runtime transcript cannot prove DOM delivery, and a DOM mutation cannot prove what assistive technology announced."], table: { headers: ["Layer", "Assert", "Do not claim"], rows: [["Adapter", "Normalized events and stable IDs", "Announcements"], ["Core", "Intents, pacing, suppression, cancellation", "DOM behavior"], ["DOM", "Delivery results and mutations", "Screen-reader speech"], ["Browser", "Keyboard, landmarks, focus, live regions", "All AT combinations"], ["Manual AT", "Observed user workflow", "Universal behavior"]] } },
-      { id: "browser-matrix", title: "Run the browser matrix", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard operation, focus stability, landmarks, live-region structure, and DOM delivery evidence in each engine."], code: { language: "shell", value: `pnpm exec playwright install chromium firefox webkit
-pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "Playwright supplies pinned Chromium, Firefox, and WebKit binaries for repeatable local and CI runs." }, { label: "Run repository fixtures", description: "The command executes the cross-browser accessibility fixture and the documentation site's browser tests." }, { label: "Read the boundary", description: "A passing engine matrix proves observable browser behavior, not screen-reader speech." }] },
+      { id: "browser-matrix", title: "Run the browser matrix", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard operation, focus stability, landmarks, live-region structure, and DOM delivery evidence in each engine."], code: { language: "shell", value: `npx playwright install chromium firefox webkit
+npm run test:browser` }, walkthrough: [{ label: "Install engines", description: "Playwright supplies pinned Chromium, Firefox, and WebKit binaries for repeatable local and CI runs." }, { label: "Run repository fixtures", description: "The command executes the cross-browser accessibility fixture and the documentation site's browser tests." }, { label: "Read the boundary", description: "A passing engine matrix proves observable browser behavior, not screen-reader speech." }] },
       { id: "at-fixture", title: "Exercise the assistive-technology fixture", body: ["The fixture models a real host surface with streaming output, tool status, interruption, retry, and browser delivery. Assertions stay at the event, intent, focus, and DOM boundaries."], bullets: ["Run the same lifecycle scenarios in all three browser engines.", "Assert ordinary streaming and status changes do not steal focus.", "Correlate normalized events, announcement intents, and DOM delivery results.", "Keep application controls and visible status semantically usable without the library."] },
       { id: "manual-evidence", title: "Record manual assistive-technology evidence", body: ["Release evidence records a dated browser, operating system, assistive technology, version, workflow, expected result, observed result, and outcome. The repository validator checks that required observations are complete before release."], note: "Manual evidence describes one tested environment and workflow. It is not a universal compatibility guarantee." },
       { id: "clock", title: "Use ManualClock for time-dependent policy", body: ["Advance deterministic time instead of waiting for real timers. Assert diagnostics when behavior is intentionally suppressed."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({ preset: "balanced" });
@@ -1350,23 +1350,23 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     title: "Contributing",
     description:
       "Contribute focused changes that preserve package boundaries, event serializability, deterministic timing, honest adapter fidelity, and complete documentation.",
-    keywords: ["contributing", "development", "tests", "pull request", "pnpm check"],
+    keywords: ["contributing", "development", "tests", "pull request", "npm run check"],
     sections: [
       {
         id: "workflow",
         title: "Development workflow",
         body: [
-          "Use the Node version in .nvmrc, install from the pnpm lockfile, add tests for exported behavior, and run the full repository check before requesting review.",
+          "Use the Node version in .nvmrc, install repository dependencies, add tests for exported behavior, and run the full repository check before requesting review.",
         ],
         code: {
           language: "shell",
-          value: "corepack enable\npnpm install --frozen-lockfile\npnpm check\npnpm exec playwright install chromium firefox webkit\npnpm test:browser",
+          value: "npm install\nnpm run check\nnpx playwright install chromium firefox webkit\nnpm run test:browser",
         },
         walkthrough: [
-          { label: "Install exactly", description: "frozen-lockfile verifies the repository dependency graph without silently rewriting versions." },
-          { label: "Run deterministic checks", description: "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation." },
+          { label: "Install dependencies", description: "npm installs the repository dependency graph before local validation." },
+          { label: "Run deterministic checks", description: "npm run check covers formatting, lint, types, package builds, unit behavior, and rendered documentation." },
           { label: "Install browser engines", description: "Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable fixtures." },
-          { label: "Run browser checks", description: "pnpm test:browser verifies observable keyboard, focus, structure, and delivery behavior separately." },
+          { label: "Run browser checks", description: "npm run test:browser verifies observable keyboard, focus, structure, and delivery behavior separately." },
         ],
       },
       {
