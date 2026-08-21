@@ -1,4 +1,5 @@
 import type {
+  AdapterFidelity,
   GenerativeA11yRuntime,
   RuntimeDiagnosticEventV1,
   RuntimeDiagnosticSnapshotV1,
@@ -9,6 +10,8 @@ export type DevtoolsRecordKind =
 
 export interface DevtoolsRecord {
   readonly runtimeId: string;
+  /** Opaque key for the immutable adapter evidence captured with this record. */
+  readonly runtimeSourceId?: string;
   readonly sequence?: number;
   readonly captureSequence: number;
   readonly at: number;
@@ -19,8 +22,16 @@ export interface DevtoolsRecord {
   readonly reason?: string;
   readonly announcementId?: string;
   readonly responseId?: string;
+  readonly responseInstanceId?: string;
+  readonly nextResponseInstanceId?: string;
+  readonly attempt?: number;
   readonly toolId?: string;
+  readonly toolInstanceId?: string;
   readonly interactionId?: string;
+  readonly approvalId?: string;
+  readonly progress?: number;
+  readonly outcome?: string;
+  readonly count?: number;
   readonly scheduledAt?: number;
   readonly dueAt?: number;
   readonly delayMs?: number;
@@ -29,6 +40,22 @@ export interface DevtoolsRecord {
   readonly deliveryStatus?: "notified" | "mutated" | "unavailable" | "disposed";
   readonly deliveryMethod?: "aria-notify" | "live-region" | "none";
   readonly errorName?: string;
+}
+
+/**
+ * Explicit, serializable evidence declared by an integration. Devtools never
+ * detects framework state or infers fidelity on its own.
+ */
+export interface DevtoolsRuntimeSource {
+  readonly adapter: string;
+  readonly evidence: readonly string[];
+  readonly fidelity: Readonly<
+    Omit<AdapterFidelity, "optionalEvents"> & {
+      readonly optionalEvents?: readonly NonNullable<
+        AdapterFidelity["optionalEvents"]
+      >[number][];
+    }
+  >;
 }
 
 export interface DeliveryRecordInput {
@@ -56,6 +83,7 @@ export interface DevtoolsSnapshot {
   readonly runtimeSnapshots: Readonly<
     Record<string, RuntimeDiagnosticSnapshotV1>
   >;
+  readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;
 }
 
 export interface DevtoolsTraceExportV1 {
@@ -67,6 +95,7 @@ export interface DevtoolsTraceExportV1 {
   readonly runtimeSnapshots: Readonly<
     Record<string, RuntimeDiagnosticSnapshotV1>
   >;
+  readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;
 }
 
 export interface DevtoolsStoreOptions {
@@ -79,6 +108,7 @@ export interface AttachRuntimeOptions {
     GenerativeA11yRuntime,
     "subscribeDiagnosticEvents" | "getDiagnosticSnapshot"
   >;
+  readonly source?: DevtoolsRuntimeSource;
 }
 
 export interface DevtoolsStore {
@@ -98,26 +128,51 @@ function asRecord(
   runtimeId: string,
   event: RuntimeDiagnosticEventV1,
   captureSequence: number,
+  runtimeSourceId?: string,
 ): DevtoolsRecord {
   if (event.kind === "event-observed") {
     return Object.freeze({
       runtimeId,
+      ...(runtimeSourceId ? { runtimeSourceId } : {}),
       sequence: event.sequence,
       captureSequence,
       at: event.at,
       kind: event.kind,
       sourceType: event.event.type,
+      ...(event.event.eventId ? { sourceEventId: event.event.eventId } : {}),
       ...("responseId" in event.event
         ? { responseId: event.event.responseId }
         : {}),
+      ...("responseInstanceId" in event.event && event.event.responseInstanceId
+        ? { responseInstanceId: event.event.responseInstanceId }
+        : {}),
+      ...("nextResponseInstanceId" in event.event &&
+      event.event.nextResponseInstanceId
+        ? { nextResponseInstanceId: event.event.nextResponseInstanceId }
+        : {}),
+      ...("attempt" in event.event && event.event.attempt !== undefined
+        ? { attempt: event.event.attempt }
+        : {}),
       ...("toolId" in event.event ? { toolId: event.event.toolId } : {}),
+      ...("toolInstanceId" in event.event && event.event.toolInstanceId
+        ? { toolInstanceId: event.event.toolInstanceId }
+        : {}),
       ...("interactionId" in event.event
         ? { interactionId: event.event.interactionId }
         : {}),
+      ...("approvalId" in event.event
+        ? { approvalId: event.event.approvalId }
+        : {}),
+      ...("progress" in event.event && event.event.progress !== undefined
+        ? { progress: event.event.progress }
+        : {}),
+      ...("outcome" in event.event ? { outcome: event.event.outcome } : {}),
+      ...("count" in event.event ? { count: event.event.count } : {}),
     });
   }
   return Object.freeze({
     runtimeId,
+    ...(runtimeSourceId ? { runtimeSourceId } : {}),
     sequence: event.sequence,
     captureSequence,
     at: event.at,
@@ -125,10 +180,16 @@ function asRecord(
     ...(event.decision.sourceType
       ? { sourceType: event.decision.sourceType }
       : {}),
+    ...(event.decision.sourceEventId
+      ? { sourceEventId: event.decision.sourceEventId }
+      : {}),
     disposition: event.decision.disposition,
     reason: event.decision.reason,
     ...(event.decision.announcement
       ? { announcementId: event.decision.announcement.id }
+      : {}),
+    ...(event.decision.announcement
+      ? { channel: event.decision.announcement.channel }
       : {}),
     ...(event.decision.responseId
       ? { responseId: event.decision.responseId }
@@ -152,13 +213,78 @@ function asRecord(
   });
 }
 
+function copyRuntimeSource(
+  source: DevtoolsRuntimeSource | undefined,
+): DevtoolsRuntimeSource | undefined {
+  if (source === undefined) return undefined;
+  if (
+    typeof source.adapter !== "string" ||
+    !source.adapter.trim() ||
+    source.adapter.length > 80
+  )
+    throw new TypeError("source adapter must be a non-empty string");
+  if (!Array.isArray(source.evidence))
+    throw new TypeError("source evidence must be an array");
+  if (
+    source.evidence.length > 12 ||
+    source.evidence.some(
+      (item) => typeof item !== "string" || !item.trim() || item.length > 120,
+    )
+  )
+    throw new TypeError(
+      "source evidence entries must be public strings up to 120 characters",
+    );
+  const { fidelity } = source;
+  if (typeof fidelity !== "object" || fidelity === null)
+    throw new TypeError("source fidelity must be an object");
+  const lifecycleFidelity = new Set(["exact", "action-wrapper", "unavailable"]);
+  const connectionFidelity = new Set([...lifecycleFidelity, "inferred"]);
+  if (!lifecycleFidelity.has(fidelity.interruption))
+    throw new TypeError(
+      "source interruption fidelity contains an unsupported value",
+    );
+  if (!lifecycleFidelity.has(fidelity.retries))
+    throw new TypeError("source retry fidelity contains an unsupported value");
+  if (!connectionFidelity.has(fidelity.connection))
+    throw new TypeError(
+      "source connection fidelity contains an unsupported value",
+    );
+  const optionalEvents = fidelity.optionalEvents;
+  const validOptionalEvents = new Set([
+    "tool.progress",
+    "tool.failed",
+    "citation.available",
+    "interaction.requested",
+  ]);
+  if (
+    optionalEvents !== undefined &&
+    (!Array.isArray(optionalEvents) ||
+      optionalEvents.some((event) => !validOptionalEvents.has(event)))
+  )
+    throw new TypeError("source optional events contain an unsupported value");
+  return Object.freeze({
+    adapter: source.adapter.trim(),
+    evidence: Object.freeze(source.evidence.map((item) => item.trim())),
+    fidelity: Object.freeze({
+      interruption: fidelity.interruption,
+      retries: fidelity.retries,
+      connection: fidelity.connection,
+      ...(optionalEvents
+        ? { optionalEvents: Object.freeze([...optionalEvents]) }
+        : {}),
+    }),
+  });
+}
+
 function asDeliveryRecord(
   input: DeliveryRecordInput,
   captureSequence: number,
+  runtimeSourceId?: string,
 ): DevtoolsRecord {
   const { result } = input;
   return Object.freeze({
     runtimeId: input.runtimeId,
+    ...(runtimeSourceId ? { runtimeSourceId } : {}),
     captureSequence,
     at: result.at,
     kind: "dom-delivery" as const,
@@ -216,8 +342,12 @@ export function createDevtoolsStore(
     {
       readonly runtime: AttachRuntimeOptions["runtime"];
       readonly unsubscribe: () => void;
+      readonly source: DevtoolsRuntimeSource | undefined;
+      readonly sourceId: string | undefined;
     }
   >();
+  const runtimeSources = new Map<string, DevtoolsRuntimeSource>();
+  const sourceRevisions = new Map<string, number>();
   const runtimeSnapshots = new Map<string, RuntimeDiagnosticSnapshotV1>();
   const listeners = new Set<() => void>();
   let paused = false;
@@ -245,12 +375,20 @@ export function createDevtoolsStore(
           .map(([id, value]) => [id, value]),
       ),
     ) as Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>;
+    const sources = Object.freeze(
+      Object.fromEntries(
+        [...runtimeSources.entries()]
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([id, source]) => [id, source]),
+      ),
+    ) as Readonly<Record<string, DevtoolsRuntimeSource>>;
     cachedSnapshot = Object.freeze({
       paused,
       droppedCount,
       records: Object.freeze([...records]),
       runtimeIds: Object.freeze([...runtimes.keys()].sort()),
       runtimeSnapshots: snapshots,
+      runtimeSources: sources,
     });
     return cachedSnapshot;
   };
@@ -278,29 +416,68 @@ export function createDevtoolsStore(
     }
     records.push(record);
   };
+  const pruneRuntimeSources = () => {
+    const retained = new Set(
+      records.flatMap((record) =>
+        record.runtimeSourceId ? [record.runtimeSourceId] : [],
+      ),
+    );
+    for (const attachment of runtimes.values())
+      if (attachment.sourceId) retained.add(attachment.sourceId);
+    for (const sourceId of runtimeSources.keys())
+      if (!retained.has(sourceId)) runtimeSources.delete(sourceId);
+  };
   const capture = (
     runtimeId: string,
     runtime: AttachRuntimeOptions["runtime"],
+    runtimeSourceId: string | undefined,
     event: RuntimeDiagnosticEventV1,
   ) => {
     if (paused || disposed) return;
-    appendRecord(asRecord(runtimeId, event, nextCaptureSequence++));
+    appendRecord(
+      asRecord(runtimeId, event, nextCaptureSequence++, runtimeSourceId),
+    );
+    pruneRuntimeSources();
     refreshRuntimeSnapshot(runtimeId, runtime);
     notify();
   };
 
   return {
-    attachRuntime({ id, runtime }) {
+    attachRuntime({ id, runtime, source }) {
       if (disposed)
         throw new Error("Cannot attach to a disposed devtools store");
       if (!id.trim()) throw new TypeError("runtime id must be non-empty");
-      runtimes.get(id)?.unsubscribe();
-      const unsubscribe = runtime.subscribeDiagnosticEvents((event) =>
-        capture(id, runtime, event),
-      );
-      const attachment = { runtime, unsubscribe };
+      const copiedSource = copyRuntimeSource(source);
+      let revision = (sourceRevisions.get(id) ?? 0) + 1;
+      let sourceId = copiedSource
+        ? revision === 1
+          ? id
+          : `${id}#${revision}`
+        : undefined;
+      while (sourceId && runtimeSources.has(sourceId)) {
+        revision += 1;
+        sourceId = `${id}#${revision}`;
+      }
+      let active = false;
+      const unsubscribe = runtime.subscribeDiagnosticEvents((event) => {
+        if (active) capture(id, runtime, sourceId, event);
+      });
+      const previous = runtimes.get(id);
+      const attachment = {
+        runtime,
+        unsubscribe,
+        source: copiedSource,
+        sourceId,
+      };
+      active = true;
+      previous?.unsubscribe();
       runtimes.set(id, attachment);
+      if (copiedSource && sourceId) {
+        runtimeSources.set(sourceId, copiedSource);
+        sourceRevisions.set(id, revision);
+      }
       refreshRuntimeSnapshot(id, runtime);
+      pruneRuntimeSources();
       notify();
       let attached = true;
       return () => {
@@ -311,6 +488,7 @@ export function createDevtoolsStore(
           runtimes.delete(id);
           runtimeSnapshots.delete(id);
         }
+        pruneRuntimeSources();
         notify();
       };
     },
@@ -342,13 +520,21 @@ export function createDevtoolsStore(
       if (!Number.isFinite(input.result.at))
         throw new TypeError("delivery at must be finite");
       if (paused || disposed) return;
-      appendRecord(asDeliveryRecord(input, nextCaptureSequence++));
+      appendRecord(
+        asDeliveryRecord(
+          input,
+          nextCaptureSequence++,
+          runtimes.get(input.runtimeId)?.sourceId,
+        ),
+      );
+      pruneRuntimeSources();
       notify();
     },
     clear() {
       if (disposed) return;
       records.length = 0;
       droppedCount = 0;
+      pruneRuntimeSources();
       notify();
     },
     exportTrace() {
@@ -362,6 +548,7 @@ export function createDevtoolsStore(
         droppedCount: current.droppedCount,
         records: current.records,
         runtimeSnapshots: current.runtimeSnapshots,
+        runtimeSources: current.runtimeSources,
       });
     },
     dispose() {
@@ -370,6 +557,8 @@ export function createDevtoolsStore(
       for (const { unsubscribe } of runtimes.values()) unsubscribe();
       runtimes.clear();
       runtimeSnapshots.clear();
+      runtimeSources.clear();
+      sourceRevisions.clear();
       records.length = 0;
       notify();
       listeners.clear();

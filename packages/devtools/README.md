@@ -8,9 +8,18 @@ assistant text, labels, error messages, tool data, stacks, or DOM content.
 
 ```ts
 import { createDevtoolsStore } from "@generative-a11y/devtools";
+import { THREAD_ADAPTER_METADATA } from "@generative-a11y/assistant-ui";
 
 const store = createDevtoolsStore({ maxEntries: 250 });
-const detach = store.attachRuntime({ id: "support", runtime });
+const detach = store.attachRuntime({
+  id: "support",
+  runtime,
+  source: {
+    adapter: THREAD_ADAPTER_METADATA.name,
+    fidelity: THREAD_ADAPTER_METADATA.fidelity,
+    evidence: THREAD_ADAPTER_METADATA.observedRuntimeMethods,
+  },
+});
 const unsubscribe = store.subscribe(renderDiagnostics);
 
 store.pauseCapture(); // Does not pause or alter the runtime.
@@ -31,7 +40,8 @@ store.dispose();
   ring buffer. `droppedCount` reports records evicted since the last `clear()`.
 - `attachRuntime({ id, runtime })` validates a non-empty ID, subscribes only to
   public diagnostics, captures an initial safe snapshot, and returns an
-  idempotent detach function. Attaching the same ID replaces its subscription.
+  idempotent detach function. Attaching the same ID replaces its subscription
+  only after the replacement subscribes successfully.
 - `subscribe(listener)` observes store snapshot changes and returns an
   idempotent unsubscribe function. Listener failures do not alter capture.
 - `getSnapshot()` returns a cached, immutable, content-free view until captured
@@ -54,6 +64,29 @@ The store only subscribes through `subscribeDiagnosticEvents()` and does not
 monkey-patch dispatch, access browser globals, create UI, retain a core history,
 or alter accessibility policy. A captured DOM/API delivery remains evidence of
 an action, not proof that assistive technology spoke it.
+
+## Declared adapter evidence
+
+Pass `source` when attaching a runtime driven by an adapter. This is an
+explicit, serializable declaration from the integration, not framework detection
+by devtools. It lets an inspector show the adapter name, documented public
+evidence and declared fidelity without filling gaps in the lifecycle trace.
+`interruption` and `retries` accept `exact`, `action-wrapper`, or `unavailable`.
+`connection` accepts those values plus `inferred`, because some integrations can
+only derive connection state from another documented public signal. The store
+freezes a copy of this metadata and includes it in its redacted export. Each
+captured record references an opaque `runtimeSourceId`. Source revisions remain
+immutable and exportable for as long as a retained record references them, even
+after a runtime detaches or the same runtime ID is reattached with different
+metadata. Unreferenced revisions are removed with ring-buffer eviction so
+repeated attachment cannot create unbounded source history.
+
+Use an adapter package's exported metadata where it fits the integration. For
+custom adapters, provide only public signals that justify normalized events. Do
+not put user content, internal URLs, or private framework state in `evidence`.
+The store accepts at most 12 public evidence strings, each at most 120
+characters, and rejects unsupported fidelity or optional-event values before it
+subscribes to a runtime.
 
 ## Browser delivery correlation
 
@@ -78,18 +111,17 @@ establish what a screen reader announced.
 `@generative-a11y/devtools/overlay` is an optional browser-only mounting helper.
 It creates one open Shadow DOM host only when called and starts collapsed. The
 mounted workbench is built from package-local shadcn/Radix components, with its
-styles contained inside that Shadow DOM. It provides Overview, Timeline,
-Runtime, and Traces views; searchable/filterable redacted records; selected
-record detail; queue/entity snapshots; keyboard-accessible resize controls; a
-local command menu; capture pause/resume/clear/refresh actions; and explicit
-trace copy/export. These actions affect only devtools capture, never runtime
-policy, queueing, focus, or host UI.
+styles contained inside that Shadow DOM. It provides Trace, Events, Runtime, and
+Library views; a visual causal map; searchable/filterable redacted records;
+selected-record detail; queue/entity snapshots; keyboard-accessible resize
+controls; capture pause/resume/clear/refresh actions; and explicit trace export.
+These actions affect only devtools capture, never runtime policy, queueing,
+focus, or host UI.
 
 Opening the overlay moves focus into the workbench; closing it restores the
 element focused before the launcher was activated. Streaming records never move
 focus. The overlay does not trap focus, create a live region, modify host
-layout, or install global shortcuts. `Cmd/Ctrl+K` is handled only while the open
-inspector itself has focus.
+layout, or install global shortcuts.
 
 ```ts
 import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
