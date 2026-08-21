@@ -10,7 +10,7 @@ host runtime actions.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/assistant-ui @assistant-ui/core
+npm install @generative-a11y/core @generative-a11y/assistant-ui @assistant-ui/core
 ```
 
 ## Bind a thread runtime

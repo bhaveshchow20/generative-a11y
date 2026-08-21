@@ -1,11 +1,11 @@
 # Maintainer setup
 
-Repository files configure the automated checks. A maintainer must complete the
-following one-time settings in GitHub after this pull request is merged.
+Repository files configure the automated checks. Maintainers should verify that
+the following repository settings remain enabled.
 
 ## Protect `main`
 
-Create a branch ruleset for `main` that:
+Keep a branch ruleset for `main` that:
 
 - requires a pull request with at least one approval;
 - dismisses stale approvals when new commits are pushed;
@@ -20,24 +20,29 @@ Enable auto-merge and automatically delete head branches if desired.
 
 ## Security
 
-Enable private vulnerability reporting under **Settings → Security → Code
-security**. Dependabot version updates are configured in the repository;
-Dependabot alerts and security updates should also be enabled in repository
-settings.
+Keep private vulnerability reporting enabled under **Settings → Security → Code
+security**. Dependabot version updates are configured in the repository; keep
+Dependabot alerts and security updates enabled in repository settings.
 
 ## npm publishing
 
 The workspace root stays private; the six leaf packages are public and use the
-`@generative-a11y` scope. Before the first release:
+`@generative-a11y` scope.
 
-1. Create the npm organization and reserve all six package names.
-2. Configure `.github/workflows/publish.yml` and the `npm-production`
-   environment as the trusted publisher for every package.
-3. Protect `npm-production` with required reviewer approval.
-4. Run the `Release dry run` workflow and inspect every package artifact.
-5. Merge the generated release pull request, then execute the manual matrix
+The initial package names and trusted-publishing configuration are in place.
+Verify these settings whenever the package matrix or release workflow changes:
+
+1. The npm organization contains all six public package names.
+2. Every package trusts `.github/workflows/publish.yml` in the `npm-production`
+   environment.
+3. `npm-production` requires reviewer approval.
+
+For the first functional release:
+
+1. Run the `Release dry run` workflow and inspect every package artifact.
+2. Merge the generated release pull request, then execute the manual matrix
    against that exact release-candidate commit.
-6. Commit the resulting `docs/assistive-technology-results.json` without
+3. Commit the resulting `docs/assistive-technology-results.json` without
    changing any other file, merge it, and dispatch `Publish packages` from
    `main`.
 

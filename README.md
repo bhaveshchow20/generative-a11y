@@ -11,10 +11,10 @@ AI and agent interfaces. It translates existing lifecycle state into paced,
 prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
-> [!IMPORTANT] This project is in pre-release development and is not yet
-> published to npm. The browser-independent core runtime, DOM integration, React
-> bindings, initial framework adapters, and cross-browser fixtures are
-> implemented; external assistive-technology validation remains in progress.
+> [!IMPORTANT] This project is in pre-1.0 development. Packages publish under
+> the `@generative-a11y` npm scope, beginning with the first functional release
+> at version 0.1.0. External assistive-technology validation remains in
+> progress.
 
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
@@ -97,7 +97,14 @@ the environment where it actually runs.
 
 ## Core and DOM example
 
-The current package can be exercised from this workspace:
+Install the framework-independent runtime and browser delivery packages:
+
+```sh
+npm install @generative-a11y/core @generative-a11y/dom
+```
+
+Then connect the runtime to the DOM without replacing the application's visual
+interface:
 
 ```ts
 import { createGenerativeA11y } from "@generative-a11y/core";

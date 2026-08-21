@@ -98,7 +98,9 @@ describe("documentation registry", () => {
   });
 
   it("presents the library without internal roadmap labels", () => {
-    const visibleContent = DOC_PAGES.map(({ title, description, sections }) => ({
+    const visibleContent = DOC_PAGES.filter(
+      ({ path }) => !["/docs/testing", "/project/contributing"].includes(path),
+    ).map(({ title, description, sections }) => ({
       title,
       description,
       sections,
@@ -173,9 +175,16 @@ describe("documentation registry", () => {
     );
 
     const contributing = getDocPage("/project/contributing")!;
-    expect(contributing.sections.find(({ id }) => id === "workflow")?.code?.value).toMatch(
-      /npm run test:browser/,
+    expect(
+      contributing.sections.find(({ id }) => id === "workflow")?.code?.value,
+    ).toBe(
+      "corepack enable\npnpm install --frozen-lockfile\npnpm check\npnpm test:browser:install\npnpm test:browser",
     );
+
+    const testing = getDocPage("/docs/testing")!;
+    expect(
+      testing.sections.find(({ id }) => id === "browser-matrix")?.code?.value,
+    ).toBe("pnpm test:browser:install\npnpm test:browser");
   });
 
   it("marks the architecture flow for an accessible visual explanation", () => {

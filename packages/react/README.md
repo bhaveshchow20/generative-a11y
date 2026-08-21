@@ -11,7 +11,7 @@ React 18.2 and React 19.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/dom @generative-a11y/react react react-dom
+npm install @generative-a11y/core @generative-a11y/dom @generative-a11y/react react react-dom
 ```
 
 ## Quick start
