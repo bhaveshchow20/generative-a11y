@@ -15,13 +15,12 @@ pnpm add @generative-a11y/core @generative-a11y/assistant-ui @assistant-ui/core
 
 ## Bind a thread runtime
 
+The host owns both the core `runtime` and assistant-ui `thread`; this binding
+only translates documented public thread state.
+
 ```ts
 import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
-import { createGenerativeA11y } from "@generative-a11y/core";
 
-const runtime = createGenerativeA11y({
-  onAnnouncement: (announcement) => delivery.announce(announcement),
-});
 const binding = bindThreadRuntime({ runtime, scopeId: "support", thread });
 // Later: binding.dispose(); // unsubscribes only
 ```

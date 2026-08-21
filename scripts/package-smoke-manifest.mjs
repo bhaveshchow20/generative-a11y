@@ -57,7 +57,7 @@ export const packageScenarios = [
     packageName: "@generative-a11y/ag-ui",
     specifier: "@generative-a11y/ag-ui",
     expectedExport: "bindAgent",
-    fixtures: ["@ag-ui/client", "@ag-ui/core"],
+    fixtures: ["@ag-ui/client"],
     internalPackages: ["@generative-a11y/core"],
   },
 ];

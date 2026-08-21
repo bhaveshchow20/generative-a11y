@@ -12,13 +12,12 @@ pnpm add @generative-a11y/core @generative-a11y/ag-ui @ag-ui/client
 
 ## Bind an agent
 
+The host owns both the core `runtime` and AG-UI `agent`; this binding only
+translates the agent's public subscription events.
+
 ```ts
 import { bindAgent } from "@generative-a11y/ag-ui";
-import { createGenerativeA11y } from "@generative-a11y/core";
 
-const runtime = createGenerativeA11y({
-  onAnnouncement: (announcement) => delivery.announce(announcement),
-});
 const binding = bindAgent({ runtime, scopeId: "support", agent });
 // Later: binding.dispose(); // unsubscribes only
 ```

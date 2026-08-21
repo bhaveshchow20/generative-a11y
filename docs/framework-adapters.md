@@ -48,15 +48,17 @@ labels use a host-provided localized mapping or a conservative generic label.
 Research access date: **2026-08-17**. Declared ranges are deliberately narrow
 and must be tested at their endpoints before publication.
 
-| Adapter      | Framework peer range                                             | Exact versions under test           | React requirement                                             |
-| ------------ | ---------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------- |
-| AI SDK       | `ai >=7.0.0 <7.1.0`, `@ai-sdk/react >=4.0.0 <4.1.0`              | `ai@7.0.66`, `@ai-sdk/react@4.0.69` | React 18 or 19; React subpath only                            |
-| assistant-ui | `@assistant-ui/core >=0.3.13 <0.4.0`                             | `@assistant-ui/core@0.3.13`         | none for root; optional future helper supports React 18 or 19 |
-| AG-UI        | `@ag-ui/core >=0.0.57 <0.0.59`, `@ag-ui/client >=0.0.57 <0.0.59` | `0.0.57`, `0.0.58`                  | none                                                          |
+| Adapter      | Framework peer range                                | Exact versions under test           | React requirement                                             |
+| ------------ | --------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------- |
+| AI SDK       | `ai >=7.0.0 <7.1.0`, `@ai-sdk/react >=4.0.0 <4.1.0` | `ai@7.0.66`, `@ai-sdk/react@4.0.69` | React 18 or 19; React subpath only                            |
+| assistant-ui | `@assistant-ui/core >=0.3.13 <0.4.0`                | `@assistant-ui/core@0.3.13`         | none for root; optional future helper supports React 18 or 19 |
+| AG-UI        | `@ag-ui/client >=0.0.57 <0.0.59`                    | `@ag-ui/client@0.0.58`              | none                                                          |
 
-Framework libraries remain peer dependencies plus development dependencies for
-integration/type checks. They are not bundled. Module imports remain safe on the
-server: browser globals are not read during evaluation.
+Directly consumed framework libraries remain peer dependencies plus development
+dependencies for integration/type checks. They are not bundled. AG-UI's matching
+`@ag-ui/core` version is supplied transitively by `@ag-ui/client`; the adapter
+does not import it directly. Module imports remain safe on the server: browser
+globals are not read during evaluation.
 
 ## Fidelity and known limits
 
