@@ -469,6 +469,60 @@ describe("generative accessibility runtime", () => {
     ]);
   });
 
+  it("aggregates overflow beyond diagnostic capacity without callback runaway", () => {
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    let dispatchedBurst = false;
+    let overflowCallbackDispatches = 0;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      policy: { maxQueueSize: 2 },
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push(diagnostic);
+        if (!dispatchedBurst && diagnostic.sourceEventId === "e0") {
+          dispatchedBurst = true;
+          for (let index = 1; index <= 10; index += 1) {
+            runtime.dispatch({
+              type: "response.started",
+              responseId: `r${index}`,
+              eventId: `e${index}`,
+            });
+          }
+        }
+        if (diagnostic.reason === "queue-capacity") {
+          overflowCallbackDispatches += 1;
+          runtime.dispatch({
+            type: "response.started",
+            responseId: `overflow-${overflowCallbackDispatches}`,
+            eventId: `overflow-${overflowCallbackDispatches}`,
+          });
+        }
+      },
+    });
+
+    runtime.dispatch({
+      type: "response.started",
+      responseId: "r0",
+      eventId: "e0",
+    });
+
+    expect(
+      diagnostics.map(({ reason, sourceEventId, count }) => ({
+        reason,
+        sourceEventId,
+        ...(count === undefined ? {} : { count }),
+      })),
+    ).toEqual([
+      { reason: "policy-silent", sourceEventId: "e0" },
+      { reason: "policy-silent", sourceEventId: "e1" },
+      { reason: "policy-silent", sourceEventId: "e2" },
+      { reason: "queue-capacity", sourceEventId: "e3" },
+      { reason: "queue-capacity", sourceEventId: "e4" },
+      { reason: "queue-capacity", sourceEventId: "e5", count: 6 },
+    ]);
+    expect(overflowCallbackDispatches).toBe(3);
+  });
+
   it("does not retain terminal response state after diagnostic disposal", () => {
     const mapSet = vi.spyOn(Map.prototype, "set");
     let setCountAfterDispose: number | undefined;

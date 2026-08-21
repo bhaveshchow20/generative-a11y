@@ -270,6 +270,111 @@ describe("announcement scheduler", () => {
     ]);
   });
 
+  it("does not report a scheduled result after reentrant eviction", () => {
+    const clock = new ManualClock();
+    const diagnostics: Array<{ reason: string; text?: string }> = [];
+    const announcements: string[] = [];
+    let nestedId: string | undefined;
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: ({ text }) => announcements.push(text),
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push({
+          reason: diagnostic.reason,
+          ...(diagnostic.announcement
+            ? { text: diagnostic.announcement.text }
+            : {}),
+        });
+        if (
+          nestedId === undefined &&
+          diagnostic.reason === "queue-capacity" &&
+          diagnostic.announcement?.text === "Old status"
+        ) {
+          nestedId = scheduler.schedule({
+            channel: "assertive",
+            text: "Urgent action",
+            sourceType: "interaction.requested",
+            capacityPriority: "content",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Old status",
+      sourceType: "tool.progress",
+      capacityPriority: "status",
+      delayMs: 10,
+    });
+
+    const incomingId = scheduler.schedule({
+      channel: "polite",
+      text: "Answer content",
+      sourceType: "response.completed",
+      capacityPriority: "content",
+      delayMs: 10,
+    });
+
+    expect(incomingId).toBeUndefined();
+    expect(nestedId).toBe("announcement-3");
+    expect(scheduler.pendingCount()).toBe(1);
+    expect(diagnostics.filter(({ text }) => text === "Answer content")).toEqual(
+      [{ reason: "queue-capacity", text: "Answer content" }],
+    );
+    clock.runUntilIdle();
+    expect(announcements).toEqual(["Urgent action"]);
+  });
+
+  it("does not return a coalesced ID after reentrant eviction", () => {
+    const clock = new ManualClock();
+    let nestedId: string | undefined;
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        if (nestedId === undefined && diagnostic.reason === "coalesced") {
+          nestedId = scheduler.schedule({
+            channel: "assertive",
+            text: "Urgent action",
+            sourceType: "interaction.requested",
+            capacityPriority: "content",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Old progress",
+      sourceType: "tool.progress",
+      capacityPriority: "status",
+      coalesceKey: "progress",
+      delayMs: 10,
+    });
+
+    const replacementId = scheduler.schedule({
+      channel: "polite",
+      text: "New progress",
+      sourceType: "tool.progress",
+      capacityPriority: "status",
+      coalesceKey: "progress",
+      delayMs: 10,
+    });
+
+    expect(replacementId).toBeUndefined();
+    expect(nestedId).toBe("announcement-2");
+    expect(scheduler.pendingCount()).toBe(1);
+  });
+
   it("continues after a delivery callback throws", () => {
     const clock = new ManualClock();
     const announcements: string[] = [];

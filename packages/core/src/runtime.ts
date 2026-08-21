@@ -90,6 +90,8 @@ export function createGenerativeA11y(
   let nestedDispatchCount = 0;
   const dispatchQueue: GenerativeA11yEvent[] = [];
   const dispatchOverflowQueue: GenerativeA11yEvent[] = [];
+  let dispatchOverflowAggregateEvent: GenerativeA11yEvent | undefined;
+  let dispatchOverflowAggregateCount = 0;
   let announcementEmissionDepth = 0;
   let clearListenersAfterDeliveryDiagnostic = false;
 
@@ -174,11 +176,13 @@ export function createGenerativeA11y(
   function diagnose(
     event: GenerativeA11yEvent,
     reason: AnnouncementDiagnostic["reason"],
+    count?: number,
   ): void {
     emitDiagnostic({
       at: clock.now(),
       disposition: "suppressed",
       reason,
+      ...(count === undefined ? {} : { count }),
       sourceType: event.type,
       ...(event.eventId ? { sourceEventId: event.eventId } : {}),
       ...("responseId" in event ? { responseId: event.responseId } : {}),
@@ -710,6 +714,9 @@ export function createGenerativeA11y(
         if (nestedDispatchCount >= policy.maxQueueSize) {
           if (dispatchOverflowQueue.length < policy.maxQueueSize) {
             dispatchOverflowQueue.push(event);
+          } else {
+            dispatchOverflowAggregateEvent ??= event;
+            dispatchOverflowAggregateCount += 1;
           }
           return;
         }
@@ -732,11 +739,24 @@ export function createGenerativeA11y(
           if (!overflow) break;
           diagnose(overflow, "queue-capacity");
         }
+        if (
+          !disposed &&
+          dispatchOverflowAggregateEvent !== undefined &&
+          dispatchOverflowAggregateCount > 0
+        ) {
+          const aggregateEvent = dispatchOverflowAggregateEvent;
+          const aggregateCount = dispatchOverflowAggregateCount;
+          dispatchOverflowAggregateEvent = undefined;
+          dispatchOverflowAggregateCount = 0;
+          diagnose(aggregateEvent, "queue-capacity", aggregateCount);
+        }
       } finally {
         reportingDispatchOverflow = false;
         nestedDispatchCount = 0;
         dispatchQueue.length = 0;
         dispatchOverflowQueue.length = 0;
+        dispatchOverflowAggregateEvent = undefined;
+        dispatchOverflowAggregateCount = 0;
         dispatching = false;
       }
     },
@@ -779,6 +799,8 @@ export function createGenerativeA11y(
       disposed = true;
       dispatchQueue.length = 0;
       dispatchOverflowQueue.length = 0;
+      dispatchOverflowAggregateEvent = undefined;
+      dispatchOverflowAggregateCount = 0;
       for (const response of responses.values()) clearFlushTimer(response);
       scheduler.dispose();
       responses.clear();

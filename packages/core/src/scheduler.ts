@@ -224,7 +224,7 @@ export function createAnnouncementScheduler(
           queue[existingIndex] = replacement;
           diagnostic("merged", "coalesced", replacement);
           scheduleTimer();
-          return replacement.id;
+          return queue.includes(replacement) ? replacement.id : undefined;
         }
       }
       const item: ScheduledItem = {
@@ -255,12 +255,13 @@ export function createAnnouncementScheduler(
           queue.splice(queue.indexOf(dropped), 1, item);
           queued = true;
           diagnostic("cancelled", "queue-capacity", dropped);
+          if (!queue.includes(item)) return undefined;
         }
       }
       if (!queued) queue.push(item);
       diagnostic("queued", "scheduled", item);
       scheduleTimer();
-      return item.id;
+      return queue.includes(item) ? item.id : undefined;
     },
     cancelScope(scope) {
       for (let index = queue.length - 1; index >= 0; index -= 1) {

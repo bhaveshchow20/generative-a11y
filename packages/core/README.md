@@ -97,8 +97,9 @@ before exceeding its safety limit.
 
 `createAnnouncementRecorder()` returns a runtime wired to a `ManualClock`.
 `transcript()` contains delivered intents; `diagnosticTranscript()` also exposes
-stable dispositions and reason codes. These records prove runtime policy
-behavior, not actual assistive-technology speech.
+stable dispositions and reason codes. A capacity diagnostic may include a
+serializable `count` when it represents multiple dropped nested events. These
+records prove runtime policy behavior, not actual assistive-technology speech.
 
 ## Segmentation
 
