@@ -1,12 +1,26 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { execPath } from "node:process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
+
+import {
+  createConsumerManifest,
+  createTypeScriptConsumerSource,
+  typescriptConsumerModes,
+} from "./package-smoke-manifest.mjs";
 
 const execFileAsync = promisify(execFile);
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -64,20 +78,12 @@ try {
       `file:${archiveFor(packageName)}`,
     ]),
   );
+  const rootPackage = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8"),
+  );
   await writeFile(
     join(projectRoot, "package.json"),
-    JSON.stringify(
-      {
-        name: "generative-a11y-package-smoke",
-        version: "0.0.0",
-        private: true,
-        type: "module",
-        packageManager: "pnpm@11.21.0",
-        dependencies,
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(createConsumerManifest(rootPackage, dependencies), null, 2),
   );
   // Workspace dependencies in the archives are rewritten to 0.0.0. Point
   // those dependencies at local archives without consulting a registry.
@@ -119,6 +125,33 @@ for (const [packageName, subpath, expectedExport] of ${JSON.stringify(packageExp
   await execFileAsync(execPath, [join(projectRoot, "smoke.mjs")], {
     cwd: projectRoot,
   });
+
+  const typeScriptSource = createTypeScriptConsumerSource();
+  for (const mode of typescriptConsumerModes) {
+    const consumerPath = join(projectRoot, mode.fileName);
+    await writeFile(consumerPath, typeScriptSource);
+    const compilerOptions = {
+      module: ts.ModuleKind[mode.module],
+      moduleResolution: ts.ModuleResolutionKind[mode.moduleResolution],
+      noEmit: true,
+      skipLibCheck: true,
+      strict: true,
+      target: ts.ScriptTarget.ES2022,
+      types: [],
+    };
+    const program = ts.createProgram([consumerPath], compilerOptions);
+    const diagnostics = ts.getPreEmitDiagnostics(program);
+    if (diagnostics.length > 0) {
+      const formatted = ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: (fileName) => fileName,
+        getCurrentDirectory: () => projectRoot,
+        getNewLine: () => "\n",
+      });
+      throw new Error(
+        `TypeScript packed consumer failed in ${mode.name}:\n${formatted}`,
+      );
+    }
+  }
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }
