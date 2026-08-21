@@ -11,11 +11,6 @@ AI and agent interfaces. It translates existing lifecycle state into paced,
 prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
-> [!IMPORTANT] This project is in pre-release development and is not yet
-> published to npm. The browser-independent core runtime, DOM integration, React
-> bindings, and initial framework adapters are implemented; compatibility and
-> assistive-technology validation remain in progress.
-
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
 [Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
@@ -32,15 +27,15 @@ region is noisy; moving focus on routine status changes is disruptive.
 This project provides the orchestration layer between AI lifecycle events and
 accessible delivery:
 
-- **Meaningful announcements** — segment streaming text into useful units
+- **Meaningful announcements:** segment streaming text into useful units
   instead of announcing tokens.
-- **Agent-aware status** — represent tool progress, approvals, retries,
+- **Agent-aware status:** represent tool progress, approvals, retries,
   connection changes, citations, and terminal states.
-- **Predictable behavior** — prioritize, deduplicate, coalesce, and bound queued
+- **Predictable behavior:** prioritize, deduplicate, coalesce, and bound queued
   work with injected time for deterministic tests.
-- **Framework independence** — keep accessibility policy in the core and make
+- **Framework independence:** keep accessibility policy in the core and make
   adapters translate documented public framework state.
-- **Honest fidelity** — declare missing lifecycle evidence instead of guessing,
+- **Honest fidelity:** declare missing lifecycle evidence instead of guessing,
   and keep automated transcripts distinct from real assistive-technology tests.
 
 ## How it fits
@@ -70,7 +65,7 @@ The core never touches the DOM and never claims that assistive technology spoke
 an announcement. That boundary keeps policy portable and delivery testable in
 the environment where it actually runs.
 
-## What it is — and what it is not
+## What it is and what it is not
 
 | generative-a11y is                                       | generative-a11y is not                                   |
 | -------------------------------------------------------- | -------------------------------------------------------- |
@@ -130,18 +125,6 @@ focus, and preference APIs.
 - Make timing deterministic and inspectable.
 - Treat real screen-reader testing as a release requirement, not a unit-test
   claim.
-
-## Roadmap
-
-- Browser-independent event runtime — implemented
-- DOM delivery, attention, focus, and preferences — implemented
-- React provider, hooks, and bindings — implemented
-- AG-UI adapter — implemented
-- AI SDK and assistant-ui adapters — implemented
-- Devtools and documentation application — later
-
-Adapter feasibility and fidelity constraints are documented in
-[framework integration research](docs/framework-integrations.md).
 
 ## Development
 
