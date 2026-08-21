@@ -129,3 +129,62 @@ workflow usability.
 Only the completed records above support a dated AT/browser statement. Even a
 passing matrix does not establish WCAG conformance or behavior for untested
 versions and user settings.
+
+## Release evidence file
+
+Store completed required results in `docs/assistive-technology-results.json`.
+Set `sourceCommit` to the full commit tested before adding the evidence file.
+Publishing verifies that this commit is an ancestor of the release and that no
+repository content except the evidence file changed afterward. Evidence expires
+after 30 days.
+
+Each required matrix row must contain both `auto` and `live-region` paths. Each
+path must pass these scenario identifiers: `polite-and-repeated-text`,
+`assertive`, `locale`, `progressive-fallback`, `focus-preservation`, and
+`realistic-stream`. The validator also requires exact environment metadata and
+non-placeholder notes for every result. Run it locally with:
+
+```sh
+node scripts/assistive-technology-evidence.mjs \
+  --file docs/assistive-technology-results.json \
+  --source-commit <full-tested-commit-sha>
+```
+
+The JSON shape is:
+
+```json
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
+  "completedAt": "2026-08-20T23:30:00.000Z",
+  "results": [
+    {
+      "platform": "macos",
+      "browser": "safari",
+      "assistiveTechnology": "voiceover",
+      "testedAt": "2026-08-20T20:00:00.000Z",
+      "tester": "Tester's name",
+      "hardware": "Device model",
+      "osVersion": "Exact OS version and build",
+      "browserVersion": "Exact browser version",
+      "assistiveTechnologyVersion": "Exact AT version",
+      "settings": "Speech, verbosity, and navigation settings",
+      "paths": [
+        {
+          "deliveryPath": "auto",
+          "scenarios": [
+            {
+              "scenario": "polite-and-repeated-text",
+              "status": "pass",
+              "notes": "What the tester observed using synthetic fixture content"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Repeat the row for all four required combinations, both delivery paths, and all
+six scenarios. This abbreviated shape is documentation, not passing evidence.

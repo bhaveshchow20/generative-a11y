@@ -9,6 +9,16 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = await realpath(
   resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
 );
+const allowedRoutes = await Promise.all(
+  [
+    ["/examples/at-fixture/", "examples/at-fixture"],
+    ["/packages/core/dist/", "packages/core/dist"],
+    ["/packages/dom/dist/", "packages/dom/dist"],
+  ].map(async ([route, path]) => ({
+    route,
+    root: await realpath(resolve(repositoryRoot, path)),
+  })),
+);
 const argumentPort = process.argv
   .find((argument) => argument.startsWith("--port="))
   ?.slice("--port=".length);
@@ -31,8 +41,8 @@ const mimeTypes = new Map([
   [".svg", "image/svg+xml"],
 ]);
 
-function withinRepository(path) {
-  return path === repositoryRoot || path.startsWith(`${repositoryRoot}${sep}`);
+function withinRoot(path, root) {
+  return path === root || path.startsWith(`${root}${sep}`);
 }
 
 async function resolveRequestPath(requestUrl) {
@@ -46,15 +56,18 @@ async function resolveRequestPath(requestUrl) {
   }
   if (pathname.includes("\0")) return { status: 400 };
 
+  const allowed = allowedRoutes.find(({ route }) => pathname.startsWith(route));
+  if (!allowed) return { status: 404 };
+
   const candidate = resolve(repositoryRoot, `.${pathname}`);
-  if (!withinRepository(candidate)) return { status: 403 };
+  if (!withinRoot(candidate, allowed.root)) return { status: 404 };
 
   let selected = candidate;
   try {
     const details = await stat(selected);
     if (details.isDirectory()) selected = resolve(selected, "index.html");
     const canonical = await realpath(selected);
-    if (!withinRepository(canonical)) return { status: 403 };
+    if (!withinRoot(canonical, allowed.root)) return { status: 404 };
     const fileDetails = await stat(canonical);
     if (!fileDetails.isFile()) return { status: 404 };
     return { status: 200, path: canonical, size: fileDetails.size };
@@ -67,6 +80,13 @@ async function resolveRequestPath(requestUrl) {
 }
 
 const server = createServer(async (request, response) => {
+  const hostname = request.headers.host?.replace(/:\d+$/u, "").toLowerCase();
+  if (hostname !== "127.0.0.1" && hostname !== "localhost") {
+    response.writeHead(421, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Misdirected request\n");
+    return;
+  }
+
   if (request.method !== "GET" && request.method !== "HEAD") {
     response.writeHead(405, { Allow: "GET, HEAD" });
     response.end("Method not allowed\n");

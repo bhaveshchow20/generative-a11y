@@ -1,4 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const fixturePath = "/examples/at-fixture/";
@@ -9,6 +9,19 @@ test.beforeEach(async ({ page }) => {
     page.getByRole("heading", { name: "Assistive technology test console" }),
   ).toBeVisible();
   await page.evaluate(() => window.generativeA11yATFixture.reset());
+});
+
+test("serves only the fixture and required package artifacts", async ({
+  request,
+}) => {
+  await expect((await request.get("/README.md")).status()).toBe(404);
+  await expect((await request.get("/.git/config")).status()).toBe(404);
+  await expect(
+    (await request.get("/packages/core/package.json")).status(),
+  ).toBe(404);
+  await expect(
+    (await request.get("/packages/core/dist/index.js")).status(),
+  ).toBe(200);
 });
 
 test("has semantic landmarks and no serious automated accessibility findings", async ({
