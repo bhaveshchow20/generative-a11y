@@ -45,14 +45,11 @@
     }
   },
   "files": [
-    "dist/index.cjs",
-    "dist/index.js",
-    "dist/index.d.cts",
-    "dist/index.d.ts",
+    "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -60,6 +57,7 @@
     "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   }
 }

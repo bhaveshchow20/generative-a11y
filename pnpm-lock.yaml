@@ -110,9 +110,6 @@ importers:
       '@ag-ui/client':
         specifier: '>=0.0.57 <0.0.59'
         version: 0.0.58
-      '@ag-ui/core':
-        specifier: '>=0.0.57 <0.0.59'
-        version: 0.0.58
       '@generative-a11y/core':
         specifier: workspace:*
         version: link:../core
