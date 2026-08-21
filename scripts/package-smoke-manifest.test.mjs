@@ -75,13 +75,14 @@ describe("isolated packed consumer scenarios", () => {
       expect.objectContaining({
         id: "ag-ui",
         specifier: "@generative-a11y/ag-ui",
-        fixtures: ["@ag-ui/client", "@ag-ui/core"],
+        fixtures: ["@ag-ui/client"],
         internalPackages: ["@generative-a11y/core"],
       }),
     ]);
 
     expect(smoke.packageScenarios[3].fixtures).not.toContain("@ai-sdk/react");
     expect(smoke.packageScenarios[3].fixtures).not.toContain("react");
+    expect(smoke.packageScenarios[6].fixtures).not.toContain("@ag-ui/core");
   });
 
   it("creates a JSON-only manifest with relative packed dependencies and overrides", () => {
