@@ -3,6 +3,14 @@ import assert from "node:assert/strict";
 const exactVersionPattern =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
+export const packageInstallArguments = Object.freeze([
+  "install",
+  "--strict-peer-dependencies",
+  "--ignore-scripts",
+  "--prefer-offline",
+  "--lockfile=false",
+]);
+
 export const packageScenarios = [
   {
     id: "core",

@@ -24,6 +24,7 @@ import {
   createRuntimeConsumerSource,
   createTypeScriptConsumerSource,
   isKnownUpstreamDeclarationDiagnostic,
+  packageInstallArguments,
   packageScenarios,
   toPackedFileDependency,
   typescriptConsumerModes,
@@ -107,17 +108,7 @@ try {
       createPnpmWorkspaceConfig(internalOverrides),
     );
 
-    await runCommand(
-      "pnpm",
-      [
-        "install",
-        "--strict-peer-dependencies",
-        "--ignore-scripts",
-        "--offline",
-        "--lockfile=false",
-      ],
-      { cwd: projectRoot },
-    );
+    await runCommand("pnpm", packageInstallArguments, { cwd: projectRoot });
 
     for (const fixtureName of scenario.fixtures) {
       const installedManifestPath = join(

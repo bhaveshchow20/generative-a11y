@@ -28,6 +28,11 @@ function scenarioById(id) {
 }
 
 describe("isolated packed consumer scenarios", () => {
+  it("prefers the local store but can fetch newly resolved transitive packages", () => {
+    expect(smoke.packageInstallArguments).toContain("--prefer-offline");
+    expect(smoke.packageInstallArguments).not.toContain("--offline");
+  });
+
   it("defines one scenario per public entrypoint with only relevant fixtures", () => {
     expect(smoke.packageScenarios).toEqual([
       expect.objectContaining({
