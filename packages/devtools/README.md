@@ -111,12 +111,12 @@ establish what a screen reader announced.
 `@generative-a11y/devtools/overlay` is an optional browser-only mounting helper.
 It creates one open Shadow DOM host only when called and starts collapsed. The
 mounted workbench is built from package-local shadcn/Radix components, with its
-styles contained inside that Shadow DOM. It provides Trace, Events, Runtime, and
-Library views; a visual causal map; searchable/filterable redacted records;
-selected-record detail; queue/entity snapshots; keyboard-accessible resize
-controls; capture pause/resume/clear/refresh actions; and explicit trace export.
-These actions affect only devtools capture, never runtime policy, queueing,
-focus, or host UI.
+styles contained inside that Shadow DOM. It provides one searchable, filterable
+Accessibility Trace Explorer with a keyboard-managed trace list, selected causal
+evidence, plain-language policy and delivery context, collapsed raw metadata,
+capture pause/resume/clear/refresh actions, and explicit trace copy. These
+actions affect only devtools capture, never runtime policy, queueing, focus, or
+host UI.
 
 Opening the overlay moves focus into the workbench; closing it restores the
 element focused before the launcher was activated. Streaming records never move
