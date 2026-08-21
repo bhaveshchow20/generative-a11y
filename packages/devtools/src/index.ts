@@ -1,4 +1,5 @@
 import type {
+  AdapterFidelity,
   GenerativeA11yRuntime,
   RuntimeDiagnosticEventV1,
   RuntimeDiagnosticSnapshotV1,
@@ -19,8 +20,16 @@ export interface DevtoolsRecord {
   readonly reason?: string;
   readonly announcementId?: string;
   readonly responseId?: string;
+  readonly responseInstanceId?: string;
+  readonly nextResponseInstanceId?: string;
+  readonly attempt?: number;
   readonly toolId?: string;
+  readonly toolInstanceId?: string;
   readonly interactionId?: string;
+  readonly approvalId?: string;
+  readonly progress?: number;
+  readonly outcome?: string;
+  readonly count?: number;
   readonly scheduledAt?: number;
   readonly dueAt?: number;
   readonly delayMs?: number;
@@ -29,6 +38,22 @@ export interface DevtoolsRecord {
   readonly deliveryStatus?: "notified" | "mutated" | "unavailable" | "disposed";
   readonly deliveryMethod?: "aria-notify" | "live-region" | "none";
   readonly errorName?: string;
+}
+
+/**
+ * Explicit, serializable evidence declared by an integration. Devtools never
+ * detects framework state or infers fidelity on its own.
+ */
+export interface DevtoolsRuntimeSource {
+  readonly adapter: string;
+  readonly evidence: readonly string[];
+  readonly fidelity: Readonly<
+    Omit<AdapterFidelity, "optionalEvents"> & {
+      readonly optionalEvents?: readonly NonNullable<
+        AdapterFidelity["optionalEvents"]
+      >[number][];
+    }
+  >;
 }
 
 export interface DeliveryRecordInput {
@@ -56,6 +81,7 @@ export interface DevtoolsSnapshot {
   readonly runtimeSnapshots: Readonly<
     Record<string, RuntimeDiagnosticSnapshotV1>
   >;
+  readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;
 }
 
 export interface DevtoolsTraceExportV1 {
@@ -67,6 +93,7 @@ export interface DevtoolsTraceExportV1 {
   readonly runtimeSnapshots: Readonly<
     Record<string, RuntimeDiagnosticSnapshotV1>
   >;
+  readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;
 }
 
 export interface DevtoolsStoreOptions {
@@ -79,6 +106,7 @@ export interface AttachRuntimeOptions {
     GenerativeA11yRuntime,
     "subscribeDiagnosticEvents" | "getDiagnosticSnapshot"
   >;
+  readonly source?: DevtoolsRuntimeSource;
 }
 
 export interface DevtoolsStore {
@@ -107,13 +135,35 @@ function asRecord(
       at: event.at,
       kind: event.kind,
       sourceType: event.event.type,
+      ...(event.event.eventId ? { sourceEventId: event.event.eventId } : {}),
       ...("responseId" in event.event
         ? { responseId: event.event.responseId }
         : {}),
+      ...("responseInstanceId" in event.event && event.event.responseInstanceId
+        ? { responseInstanceId: event.event.responseInstanceId }
+        : {}),
+      ...("nextResponseInstanceId" in event.event &&
+      event.event.nextResponseInstanceId
+        ? { nextResponseInstanceId: event.event.nextResponseInstanceId }
+        : {}),
+      ...("attempt" in event.event && event.event.attempt !== undefined
+        ? { attempt: event.event.attempt }
+        : {}),
       ...("toolId" in event.event ? { toolId: event.event.toolId } : {}),
+      ...("toolInstanceId" in event.event && event.event.toolInstanceId
+        ? { toolInstanceId: event.event.toolInstanceId }
+        : {}),
       ...("interactionId" in event.event
         ? { interactionId: event.event.interactionId }
         : {}),
+      ...("approvalId" in event.event
+        ? { approvalId: event.event.approvalId }
+        : {}),
+      ...("progress" in event.event && event.event.progress !== undefined
+        ? { progress: event.event.progress }
+        : {}),
+      ...("outcome" in event.event ? { outcome: event.event.outcome } : {}),
+      ...("count" in event.event ? { count: event.event.count } : {}),
     });
   }
   return Object.freeze({
@@ -125,10 +175,16 @@ function asRecord(
     ...(event.decision.sourceType
       ? { sourceType: event.decision.sourceType }
       : {}),
+    ...(event.decision.sourceEventId
+      ? { sourceEventId: event.decision.sourceEventId }
+      : {}),
     disposition: event.decision.disposition,
     reason: event.decision.reason,
     ...(event.decision.announcement
       ? { announcementId: event.decision.announcement.id }
+      : {}),
+    ...(event.decision.announcement
+      ? { channel: event.decision.announcement.channel }
       : {}),
     ...(event.decision.responseId
       ? { responseId: event.decision.responseId }
@@ -149,6 +205,67 @@ function asRecord(
     ...(event.decision.queueSequence !== undefined
       ? { queueSequence: event.decision.queueSequence }
       : {}),
+  });
+}
+
+function copyRuntimeSource(
+  source: DevtoolsRuntimeSource | undefined,
+): DevtoolsRuntimeSource | undefined {
+  if (source === undefined) return undefined;
+  if (
+    typeof source.adapter !== "string" ||
+    !source.adapter.trim() ||
+    source.adapter.length > 80
+  )
+    throw new TypeError("source adapter must be a non-empty string");
+  if (!Array.isArray(source.evidence))
+    throw new TypeError("source evidence must be an array");
+  if (
+    source.evidence.length > 12 ||
+    source.evidence.some(
+      (item) => typeof item !== "string" || !item.trim() || item.length > 120,
+    )
+  )
+    throw new TypeError(
+      "source evidence entries must be public strings up to 120 characters",
+    );
+  const { fidelity } = source;
+  const lifecycleFidelity = new Set(["exact", "action-wrapper", "unavailable"]);
+  const connectionFidelity = new Set([...lifecycleFidelity, "inferred"]);
+  if (!lifecycleFidelity.has(fidelity.interruption))
+    throw new TypeError(
+      "source interruption fidelity contains an unsupported value",
+    );
+  if (!lifecycleFidelity.has(fidelity.retries))
+    throw new TypeError("source retry fidelity contains an unsupported value");
+  if (!connectionFidelity.has(fidelity.connection))
+    throw new TypeError(
+      "source connection fidelity contains an unsupported value",
+    );
+  const optionalEvents = fidelity.optionalEvents;
+  const validOptionalEvents = new Set([
+    "tool.progress",
+    "tool.failed",
+    "citation.available",
+    "interaction.requested",
+  ]);
+  if (
+    optionalEvents !== undefined &&
+    (!Array.isArray(optionalEvents) ||
+      optionalEvents.some((event) => !validOptionalEvents.has(event)))
+  )
+    throw new TypeError("source optional events contain an unsupported value");
+  return Object.freeze({
+    adapter: source.adapter.trim(),
+    evidence: Object.freeze(source.evidence.map((item) => item.trim())),
+    fidelity: Object.freeze({
+      interruption: fidelity.interruption,
+      retries: fidelity.retries,
+      connection: fidelity.connection,
+      ...(optionalEvents
+        ? { optionalEvents: Object.freeze([...optionalEvents]) }
+        : {}),
+    }),
   });
 }
 
@@ -217,6 +334,7 @@ export function createDevtoolsStore(
     {
       readonly runtime: AttachRuntimeOptions["runtime"];
       readonly unsubscribe: () => void;
+      readonly source: DevtoolsRuntimeSource | undefined;
     }
   >();
   const runtimeSnapshots = new Map<string, RuntimeDiagnosticSnapshotV1>();
@@ -244,12 +362,21 @@ export function createDevtoolsStore(
           .map(([id, value]) => [id, value]),
       ),
     ) as Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>;
+    const sources = Object.freeze(
+      Object.fromEntries(
+        [...runtimes.entries()]
+          .filter(([, attachment]) => attachment.source !== undefined)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([id, attachment]) => [id, attachment.source]),
+      ),
+    ) as Readonly<Record<string, DevtoolsRuntimeSource>>;
     return Object.freeze({
       paused,
       droppedCount,
       records: Object.freeze([...records]),
       runtimeIds: Object.freeze([...runtimes.keys()].sort()),
       runtimeSnapshots: snapshots,
+      runtimeSources: sources,
     });
   };
   const refreshRuntimeSnapshot = (
@@ -285,15 +412,16 @@ export function createDevtoolsStore(
   };
 
   return {
-    attachRuntime({ id, runtime }) {
+    attachRuntime({ id, runtime, source }) {
       if (disposed)
         throw new Error("Cannot attach to a disposed devtools store");
       if (!id.trim()) throw new TypeError("runtime id must be non-empty");
+      const copiedSource = copyRuntimeSource(source);
       runtimes.get(id)?.unsubscribe();
       const unsubscribe = runtime.subscribeDiagnosticEvents((event) =>
         capture(id, runtime, event),
       );
-      const attachment = { runtime, unsubscribe };
+      const attachment = { runtime, unsubscribe, source: copiedSource };
       runtimes.set(id, attachment);
       refreshRuntimeSnapshot(id, runtime);
       notify();
@@ -359,6 +487,7 @@ export function createDevtoolsStore(
         droppedCount: current.droppedCount,
         records: current.records,
         runtimeSnapshots: current.runtimeSnapshots,
+        runtimeSources: current.runtimeSources,
       });
     },
     dispose() {
