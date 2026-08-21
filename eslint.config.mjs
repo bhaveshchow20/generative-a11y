@@ -4,7 +4,14 @@ import tseslint from "@typescript-eslint/eslint-plugin";
 import parser from "@typescript-eslint/parser";
 
 export default [
-  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      "apps/docs/**",
+    ],
+  },
   eslint.configs.recommended,
   {
     files: ["**/*.ts", "**/*.tsx"],

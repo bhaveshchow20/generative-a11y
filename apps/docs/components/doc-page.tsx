@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { DocPage } from "../lib/content";
 import { DOC_PAGES } from "../lib/content";
+import { ArchitectureFlow } from "./architecture-flow";
 import { CodeBlock } from "./code-block";
 import { SiteShell } from "./site-shell";
 
@@ -26,6 +27,7 @@ export function DocPageView({ page }: { page: DocPage }) {
             <section className="doc-section" id={section.id} key={section.id}>
               <h2><a href={`#${section.id}`}>{section.title}</a></h2>
               {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              {section.visual === "runtime-flow" ? <ArchitectureFlow /> : null}
               {section.bullets ? (
                 <ul>{section.bullets.map((item) => <li key={item}>{item}</li>)}</ul>
               ) : null}

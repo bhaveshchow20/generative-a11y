@@ -123,6 +123,13 @@ export default function Home() {
             <strong>Built for:</strong> streaming, tools, approvals, retries,
             and honest delivery evidence.
           </p>
+          <p>
+            <strong>Browser matrix:</strong> Chromium, Firefox, and WebKit.
+          </p>
+          <p>
+            <strong>Release evidence:</strong> automated checks plus manual
+            assistive-technology evidence.
+          </p>
         </section>
       </main>
 

@@ -64,7 +64,7 @@ export function FrameworkShowcase() {
     const bridge = {
       dispatch(event: GenerativeA11yEvent) {
         setEvents((current) => [...current, event]);
-        runtime.dispatch(event);
+        return runtime.dispatch(event);
       },
     } satisfies Pick<GenerativeA11yRuntime, "dispatch">;
     return { runtime, bridge, dom, unsubscribe };

@@ -33,6 +33,8 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /without rebuilding your interface/i);
   assert.match(html, /AI framework/i);
   assert.match(html, /assistive technology/i);
+  assert.match(html, /Chromium, Firefox, and WebKit/i);
+  assert.match(html, /manual assistive-technology evidence/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
@@ -47,9 +49,12 @@ test("homepage states the evidence boundary without roadmap language", async () 
 test("server-renders documentation and project deep links", async () => {
   const routes = [
     ["/docs/getting-started", /Getting started/i],
+    ["/docs/architecture", /Automated evidence boundary/i],
     ["/docs/integrations", /Choose an integration/i],
     ["/docs/troubleshooting", /Troubleshooting/i],
     ["/docs/stability", /Stability and migrations/i],
+    ["/docs/testing", /Chromium, Firefox, and WebKit/i],
+    ["/docs/compatibility", /WebKit is not Safari/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
     ["/docs/packages/core", /createGenerativeA11y/i],
     ["/docs/integrations/ag-ui", /bindAgent/i],

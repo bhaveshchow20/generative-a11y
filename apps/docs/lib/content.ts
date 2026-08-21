@@ -26,6 +26,7 @@ export interface DocSection {
   readonly api?: readonly ApiEntry[];
   readonly walkthrough?: readonly CodeWalkthroughStep[];
   readonly note?: string;
+  readonly visual?: "runtime-flow";
 }
 
 export interface DocPage {
@@ -203,6 +204,7 @@ const pages: DocPage[] = [
           "AI framework → normalized events → core policy → DOM delivery → assistive technology.",
           "Adapters translate only documented public evidence. Core segments, prioritizes, deduplicates, coalesces, bounds, and schedules. The DOM package attempts delivery without touching the host application's visible UI.",
         ],
+        visual: "runtime-flow",
       },
       {
         id: "boundaries",
@@ -492,9 +494,9 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
           { name: "onAnnouncement", type: "(intent) => void", requirement: "Optional", defaultValue: "undefined", description: "Registers the first announcement listener during construction. Additional listeners can subscribe later." },
           { name: "onDeliveryError", type: "(error, intent) => void", requirement: "Optional", defaultValue: "undefined", description: "Observes listener failures without allowing one listener to prevent delivery to the others." },
           { name: "onDiagnostic", type: "(diagnostic) => void", requirement: "Optional", defaultValue: "undefined", description: "Receives delivered and suppressed decisions for debugging, tests, and observability." },
-          { name: "dispatch(event)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Accepts one serializable normalized lifecycle event. It never accepts rendered UI or private framework state." },
+          { name: "dispatch(event)", type: "boolean", requirement: "Method", defaultValue: "n/a", description: "Returns true when the normalized event is accepted. It returns false after disposal or when a nested dispatch transaction reaches capacity." },
           { name: "getPolicy()", type: "ReadonlyAnnouncementPolicy", requirement: "Method", defaultValue: "n/a", description: "Returns the resolved immutable policy currently used by the runtime." },
-          { name: "pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Reports queued announcements. It is useful for tests and diagnostics, not application rendering." },
+          { name: "pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Reports queued announcement candidates plus owned response flush timers. It is useful for tests and diagnostics, not application rendering." },
           { name: "subscribeAnnouncements(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Adds an announcement-intent listener and returns its idempotent unsubscribe function." },
           { name: "subscribeDiagnostics(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Adds a delivered and suppressed decision listener and returns its unsubscribe function." },
           { name: "dispose()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels timers and queued work and releases listeners. Repeated disposal is safe." },
@@ -503,9 +505,10 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
       {
         id: "lower-level-api",
         title: "Scheduling, clocks, and segmentation",
-        body: ["Lower-level exports support advanced policy hosts and deterministic tests."],
+        body: ["Lower-level exports support advanced policy hosts and deterministic tests. When a bounded queue is full, status work is evicted before response content so conversational output is preserved when possible."],
         bullets: [
           "createAnnouncementScheduler and scheduler option/types",
+          "AnnouncementCapacityPriority and ScheduleAnnouncement.capacityPriority",
           "ManualClock, systemClock, Clock, ClockTimer",
           "segmentText, normalizeAnnouncementText, SegmentationResult",
           "AdapterFidelity, PresetName, TextStrategy, AnnouncementChannel",
@@ -938,9 +941,9 @@ binding.dispose();` },
         table: {
           headers: ["Method", "Returns", "Contract"],
           rows: [
-            ["dispatch(event)", "void", "Validates and processes one normalized event synchronously"],
+            ["dispatch(event)", "boolean", "Returns whether one normalized event was accepted synchronously"],
             ["getPolicy()", "ReadonlyAnnouncementPolicy", "Returns the resolved immutable policy"],
-            ["pendingCount()", "number", "Reports scheduler queue length"],
+            ["pendingCount()", "number", "Reports scheduler candidates plus owned response flush timers"],
             ["subscribeAnnouncements(listener)", "unsubscribe", "Adds an intent listener"],
             ["subscribeDiagnostics(listener)", "unsubscribe", "Adds a decision listener"],
             ["dispose()", "void", "Cancels timers, queue, entity state, and listeners"],
@@ -1010,7 +1013,7 @@ binding.dispose();` },
       {
         id: "diagnostic",
         title: "AnnouncementDiagnostic",
-        body: ["Diagnostics are observational and safe for tests or telemetry. Diagnostic listener failures never alter runtime behavior."],
+        body: ["Diagnostics are observational and safe for tests or telemetry. Diagnostic listener failures never alter runtime behavior. Aggregated diagnostics include a count so repeated equivalent decisions remain compact without hiding their frequency."],
         table: { headers: ["Disposition", "Common reasons", "Interpretation"], rows: [
           ["queued", "scheduled", "Output entered the bounded scheduler"], ["merged", "coalesced", "Equivalent pending work was combined"], ["suppressed", "duplicate, policy-silent, stale-response", "Policy or identity intentionally prevented output"], ["cancelled", "scope-cancelled, runtime-disposed", "Pending output was invalidated"], ["announced", "delivered, delivery-error", "Listeners accepted output or all delivery attempts failed"],
         ] },
@@ -1050,15 +1053,19 @@ binding.dispose();` },
     keywords: ["testing", "ManualClock", "Vitest", "Playwright", "screen reader"],
     sections: [
       { id: "test-layers", title: "Test each boundary separately", body: ["A passing runtime transcript cannot prove DOM delivery, and a DOM mutation cannot prove what assistive technology announced."], table: { headers: ["Layer", "Assert", "Do not claim"], rows: [["Adapter", "Normalized events and stable IDs", "Announcements"], ["Core", "Intents, pacing, suppression, cancellation", "DOM behavior"], ["DOM", "Delivery results and mutations", "Screen-reader speech"], ["Browser", "Keyboard, landmarks, focus, live regions", "All AT combinations"], ["Manual AT", "Observed user workflow", "Universal behavior"]] } },
-      { id: "clock", title: "Use ManualClock for time-dependent policy", body: ["Advance deterministic time instead of waiting for real timers. Assert diagnostics when behavior is intentionally suppressed."], code: { language: "typescript", value: `const clock = new ManualClock();
-const recorder = createAnnouncementRecorder();
-const runtime = createGenerativeA11y({ clock, onAnnouncement: recorder.record });
+      { id: "browser-matrix", title: "Run the browser matrix", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard operation, focus stability, landmarks, live-region structure, and DOM delivery evidence in each engine."], code: { language: "shell", value: `pnpm exec playwright install chromium firefox webkit
+pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "Playwright supplies pinned Chromium, Firefox, and WebKit binaries for repeatable local and CI runs." }, { label: "Run repository fixtures", description: "The command executes the cross-browser accessibility fixture and the documentation site's browser tests." }, { label: "Read the boundary", description: "A passing engine matrix proves observable browser behavior, not screen-reader speech." }] },
+      { id: "at-fixture", title: "Exercise the assistive-technology fixture", body: ["The fixture models a real host surface with streaming output, tool status, interruption, retry, and browser delivery. Assertions stay at the event, intent, focus, and DOM boundaries."], bullets: ["Run the same lifecycle scenarios in all three browser engines.", "Assert ordinary streaming and status changes do not steal focus.", "Correlate normalized events, announcement intents, and DOM delivery results.", "Keep application controls and visible status semantically usable without the library."] },
+      { id: "manual-evidence", title: "Record manual assistive-technology evidence", body: ["Release evidence records a dated browser, operating system, assistive technology, version, workflow, expected result, observed result, and outcome. The repository validator checks that required observations are complete before release."], note: "Manual evidence describes one tested environment and workflow. It is not a universal compatibility guarantee." },
+      { id: "clock", title: "Use ManualClock for time-dependent policy", body: ["Advance deterministic time instead of waiting for real timers. Assert diagnostics when behavior is intentionally suppressed."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({ preset: "balanced" });
+const runtime = recorder.runtime;
+const clock = recorder.clock;
 
 runtime.dispatch(started);
 runtime.dispatch(delta);
 clock.advanceBy(2_000);
 
-expect(recorder.all()).toHaveLength(1);` }, walkthrough: [{ label: "Inject time", description: "ManualClock controls now, timeouts, and scheduler pacing." }, { label: "Record output", description: "The recorder captures intents without requiring a document." }, { label: "Advance explicitly", description: "Tests remain fast and deterministic while exercising delay behavior." }] },
+expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the harness", description: "The recorder supplies a runtime and ManualClock configured for deterministic capture." }, { label: "Dispatch evidence", description: "Use the same normalized events your integration produces in the application." }, { label: "Advance explicitly", description: "Tests remain fast and deterministic while exercising delay behavior." }] },
     ],
   },
   {
@@ -1158,16 +1165,31 @@ expect(recorder.all()).toHaveLength(1);` }, walkthrough: [{ label: "Inject time"
         ],
       },
       {
+        id: "browser-matrix",
+        title: "Browser evidence is engine-specific",
+        body: [
+          "Repository browser fixtures run in Chromium, Firefox, and WebKit. WebKit is not Safari: it provides valuable engine coverage, while shipping Safari and assistive-technology combinations still require dated manual observation.",
+        ],
+        table: {
+          headers: ["Engine", "Automated evidence", "What remains manual"],
+          rows: [
+            ["Chromium", "Keyboard, focus, structure, DOM delivery", "Named browser and AT workflow"],
+            ["Firefox", "Keyboard, focus, structure, DOM delivery", "Named browser and AT workflow"],
+            ["WebKit", "Keyboard, focus, structure, DOM delivery", "Safari and platform AT workflow"],
+          ],
+        },
+      },
+      {
         id: "matrix",
         title: "Tested integration matrix",
         body: ["Declared ranges are deliberately narrow and must be retested before publication."],
         table: {
           headers: ["Integration", "Peer range", "Tested version"],
           rows: [
-            ["React", "18.2 or 19", "19.2.8"],
-            ["AI SDK", "ai 7.0.x / @ai-sdk/react 4.0.x", "7.0.66 / 4.0.69"],
-            ["assistant-ui", "@assistant-ui/core 0.3.x", "0.3.13"],
-            ["AG-UI", "@ag-ui/core + client 0.0.57 to 0.0.58", "0.0.58"],
+            ["React", "^18.2.0 or ^19.0.0", "19.2.8"],
+            ["AI SDK", "ai >=7.0.0 <7.1.0 / @ai-sdk/react >=4.0.0 <4.1.0", "7.0.66 / 4.0.69"],
+            ["assistant-ui", "@assistant-ui/core >=0.3.13 <0.4.0", "0.3.13"],
+            ["AG-UI", "@ag-ui/client >=0.0.57 <0.0.59", "0.0.58"],
           ],
         },
       },
@@ -1185,7 +1207,7 @@ expect(recorder.all()).toHaveLength(1);` }, walkthrough: [{ label: "Inject time"
         id: "versioning",
         title: "Public packages follow semantic versioning",
         body: [
-          "Published package versions describe the public exports, event contracts, and documented behavior of that package. Patch releases preserve compatible behavior, minor releases add compatible capability, and breaking public API changes require a major release.",
+          "Published package versions describe the public exports, event contracts, and documented behavior of that package. Patch releases preserve compatible behavior and minor releases add compatible capability. Before 1.0, a documented minor release may include a breaking public API change; after 1.0, breaking public API changes require a major release.",
           "Internal implementation details, private framework state, and undocumented deep imports are not compatibility surfaces.",
         ],
       },
@@ -1200,6 +1222,35 @@ expect(recorder.all()).toHaveLength(1);` }, walkthrough: [{ label: "Inject time"
           "Pin framework versions when an application depends on exact adapter fidelity.",
           "Use the custom event boundary when an upstream framework cannot expose required evidence.",
         ],
+      },
+      {
+        id: "package-contracts",
+        title: "Package contracts are checked before publication",
+        body: [
+          "Release validation inspects package exports, declaration files, provenance-ready metadata, packed contents, dependency boundaries, and installability. Public entry points must resolve from the package consumers actually receive.",
+        ],
+        bullets: [
+          "Every exported API has tests and documentation.",
+          "Package manifests expose only supported public entry points.",
+          "Packed artifacts are inspected instead of trusting the source tree.",
+          "Framework adapters stay within their declared peer ranges.",
+        ],
+      },
+      {
+        id: "release-gates",
+        title: "Release gates combine different forms of evidence",
+        body: [
+          "A release runs repository checks, the Chromium, Firefox, and WebKit fixture, package validation, and the manual assistive-technology evidence validator. Each gate answers a different question and none substitutes for the others.",
+        ],
+        table: {
+          headers: ["Gate", "Evidence", "Boundary"],
+          rows: [
+            ["Repository check", "Types, builds, unit behavior, rendered docs", "Source and deterministic runtime"],
+            ["Browser matrix", "Keyboard, focus, semantics, DOM delivery", "Observable browser behavior"],
+            ["Package validation", "Exports, tarballs, installability", "Published consumer surface"],
+            ["Manual AT record", "Dated observed workflow", "One named user environment"],
+          ],
+        },
       },
       {
         id: "migration-checklist",
@@ -1307,11 +1358,13 @@ expect(recorder.all()).toHaveLength(1);` }, walkthrough: [{ label: "Inject time"
         ],
         code: {
           language: "shell",
-          value: "corepack enable\npnpm install --frozen-lockfile\npnpm check",
+          value: "corepack enable\npnpm install --frozen-lockfile\npnpm check\npnpm exec playwright install chromium firefox webkit\npnpm test:browser",
         },
         walkthrough: [
           { label: "Install exactly", description: "frozen-lockfile verifies the repository dependency graph without silently rewriting versions." },
-          { label: "Run the full check", description: "The check command covers package builds, types, unit behavior, rendered pages, and browser validation." },
+          { label: "Run deterministic checks", description: "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation." },
+          { label: "Install browser engines", description: "Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable fixtures." },
+          { label: "Run browser checks", description: "pnpm test:browser verifies observable keyboard, focus, structure, and delivery behavior separately." },
         ],
       },
       {

@@ -32,8 +32,8 @@ region is noisy; moving focus on routine status changes is disruptive.
 This project provides the orchestration layer between AI lifecycle events and
 accessible delivery:
 
-- **Meaningful announcements:** segment streaming text into useful units
-  instead of announcing tokens.
+- **Meaningful announcements:** segment streaming text into useful units instead
+  of announcing tokens.
 - **Agent-aware status:** represent tool progress, approvals, retries,
   connection changes, citations, and terminal states.
 - **Predictable behavior:** prioritize, deduplicate, coalesce, and bound queued

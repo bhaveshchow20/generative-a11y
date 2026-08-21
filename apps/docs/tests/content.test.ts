@@ -101,7 +101,52 @@ describe("documentation registry", () => {
       expect.arrayContaining(["nothing-announced", "repeated-output", "diagnostics"]),
     );
     expect(getDocPage("/docs/stability")?.sections.map(({ id }) => id)).toEqual(
-      expect.arrayContaining(["versioning", "compatibility", "migration-checklist"]),
+      expect.arrayContaining([
+        "versioning",
+        "compatibility",
+        "package-contracts",
+        "release-gates",
+        "migration-checklist",
+      ]),
     );
+  });
+
+  it("documents the merged browser, assistive-technology, and runtime contracts", () => {
+    expect(getDocPage("/docs/testing")?.sections.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([
+        "test-layers",
+        "browser-matrix",
+        "at-fixture",
+        "manual-evidence",
+      ]),
+    );
+    expect(getDocPage("/docs/compatibility")?.sections.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(["browser-matrix", "matrix"]),
+    );
+
+    const core = getDocPage("/docs/packages/core")!;
+    const runtimeApi = core.sections.find(({ id }) => id === "runtime-api")!;
+    expect(runtimeApi.api).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "dispatch(event)", type: "boolean" }),
+        expect.objectContaining({
+          name: "pendingCount()",
+          description: expect.stringMatching(/flush timers/i),
+        }),
+      ]),
+    );
+
+    const contributing = getDocPage("/project/contributing")!;
+    expect(contributing.sections.find(({ id }) => id === "workflow")?.code?.value).toMatch(
+      /pnpm test:browser/,
+    );
+  });
+
+  it("marks the architecture flow for an accessible visual explanation", () => {
+    expect(
+      getDocPage("/docs/architecture")?.sections.find(
+        ({ id }) => id === "flow",
+      )?.visual,
+    ).toBe("runtime-flow");
   });
 });

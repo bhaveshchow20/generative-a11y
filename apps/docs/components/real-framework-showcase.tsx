@@ -119,7 +119,7 @@ function useHarness() {
   const [events, setEvents] = useState<GenerativeA11yEvent[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
   const runtime = useMemo(() => createGenerativeA11y({ preset: "verbose", policy: { text: { minimumCharacters: 1, maximumDelayMs: 0 }, tools: { announceStartAfterMs: 0, announceProgress: true }, minimumGapMs: 0 } }), []);
-  const bridge = useMemo(() => ({ dispatch(event: GenerativeA11yEvent) { setEvents((current) => [...current, event]); runtime.dispatch(event); } }), [runtime]);
+  const bridge = useMemo(() => ({ dispatch(event: GenerativeA11yEvent) { setEvents((current) => [...current, event]); return runtime.dispatch(event); } }), [runtime]);
   useEffect(() => {
     const unsubscribe = runtime.subscribeAnnouncements((announcement) => setAnnouncements((current) => [...current, announcement]));
     const dom = connectRuntimeToDOM(runtime, { mode: "live-region" });
