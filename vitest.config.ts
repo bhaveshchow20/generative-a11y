@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    exclude: ["tests/browser/**"],
     coverage: {
       include: ["packages/*/src/**/*.{ts,tsx}"],
       provider: "v8",

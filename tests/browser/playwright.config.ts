@@ -1,6 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
-const port = Number(process.env.AT_FIXTURE_PORT ?? 4173);
+const configuredPort = process.env.AT_FIXTURE_PORT;
+const port = configuredPort === undefined ? 43_123 : Number(configuredPort);
+if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  throw new RangeError("AT_FIXTURE_PORT must be an integer from 1 to 65535");
+}
 
 export default defineConfig({
   testDir: ".",
@@ -13,7 +17,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: `node tests/browser/server.mjs --port=${port}`,
+    command: `node server.mjs --port=${port}`,
     url: `http://127.0.0.1:${port}/examples/at-fixture/`,
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
