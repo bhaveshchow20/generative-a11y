@@ -129,7 +129,7 @@ test("explicit focus capture restores only while focus remains in the guarded in
   ).toBeFocused();
   await interaction
     .getByRole("button", { name: "Resolve interaction" })
-    .click();
+    .press("Enter");
   await expect(composer).toBeFocused();
 
   await composer.focus();
@@ -196,7 +196,15 @@ test("shows normalized events and DOM delivery results without speech claims", a
 }) => {
   await page.getByRole("button", { name: "Actionable interaction" }).click();
   await page.getByRole("button", { name: "Response failure" }).click();
-  await expect(page.locator("#event-ledger li")).toHaveCount(3);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.generativeA11yATFixture
+          .snapshot()
+          .events.map(({ type }) => type),
+      ),
+    )
+    .toEqual(["interaction.requested", "response.started", "response.failed"]);
   await expect(page.locator("#delivery-ledger li")).not.toHaveCount(0);
   await expect(page.locator("#announcement-ledger li")).not.toHaveCount(0);
   await expect(
@@ -214,6 +222,7 @@ declare global {
       captureAndEnterInteraction(): void;
       restoreCapturedFocus(): void;
       actions: Readonly<Record<string, () => void>>;
+      snapshot(): { events: Array<{ type: string }> };
     };
   }
 }
