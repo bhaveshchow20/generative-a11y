@@ -13,13 +13,13 @@ The root entry is SSR-safe. The React integration is available only from
 For the framework-independent observer:
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/ai-sdk ai
+npm install @generative-a11y/core @generative-a11y/ai-sdk ai
 ```
 
 For the React integration, also install the optional React peers:
 
 ```sh
-pnpm add @ai-sdk/react react
+npm install @ai-sdk/react react
 ```
 
 ## React quick start

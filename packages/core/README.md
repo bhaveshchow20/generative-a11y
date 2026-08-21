@@ -5,7 +5,7 @@ Browser-independent event orchestration for `generative-a11y`.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core
+npm install @generative-a11y/core
 ```
 
 ## Quick start

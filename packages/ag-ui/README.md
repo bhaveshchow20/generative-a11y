@@ -7,7 +7,7 @@ protocol observable, mutate agent state, render UI, or invoke agent actions.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/ag-ui @ag-ui/client
+npm install @generative-a11y/core @generative-a11y/ag-ui @ag-ui/client
 ```
 
 ## Bind an agent

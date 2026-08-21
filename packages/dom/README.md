@@ -8,7 +8,7 @@ produced speech.
 ## Install
 
 ```sh
-pnpm add @generative-a11y/core @generative-a11y/dom
+npm install @generative-a11y/core @generative-a11y/dom
 ```
 
 ## Connect a runtime

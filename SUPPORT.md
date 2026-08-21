@@ -1,7 +1,8 @@
 # Support
 
-`generative-a11y` is in pre-release development. APIs may change, and the
-packages are not yet published to npm.
+`generative-a11y` is in pre-1.0 development. Packages publish under the
+`@generative-a11y` npm scope, and APIs may change according to the documented
+stability policy.
 
 ## Where to ask
 
