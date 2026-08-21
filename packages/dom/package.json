@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/dom",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "DOM announcement delivery for the generative accessibility runtime",
   "keywords": [
     "accessibility",

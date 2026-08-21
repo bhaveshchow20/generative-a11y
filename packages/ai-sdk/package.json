@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/ai-sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "AI SDK lifecycle translation for the generative accessibility runtime",
   "keywords": [
     "accessibility",
