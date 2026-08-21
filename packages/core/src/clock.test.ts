@@ -31,4 +31,33 @@ describe("ManualClock", () => {
     const clock = new ManualClock(10);
     expect(() => clock.advanceTo(9)).toThrow("backwards");
   });
+
+  it("remains monotonic when a callback advances beyond the outer target", () => {
+    const clock = new ManualClock();
+    const observed: number[] = [];
+    clock.setTimeout(() => {
+      clock.advanceBy(15);
+      observed.push(clock.now());
+    }, 5);
+
+    clock.advanceTo(10);
+
+    expect(observed).toEqual([20]);
+    expect(clock.now()).toBe(20);
+  });
+
+  it("runs pending tasks monotonically when a callback advances through them", () => {
+    const clock = new ManualClock();
+    const observed: number[] = [];
+    clock.setTimeout(() => {
+      clock.advanceBy(20);
+      observed.push(clock.now());
+    }, 5);
+    clock.setTimeout(() => observed.push(clock.now()), 10);
+
+    clock.runUntilIdle();
+
+    expect(observed).toEqual([10, 25]);
+    expect(clock.now()).toBe(25);
+  });
 });

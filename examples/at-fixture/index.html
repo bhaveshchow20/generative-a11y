@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Assistive technology test console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">generative-a11y / manual fixture</p>
+        <h1>Assistive technology test console</h1>
+      </div>
+      <dl class="status-strip" aria-label="Fixture state">
+        <div>
+          <dt>Delivery mode</dt>
+          <dd id="delivery-mode">auto</dd>
+        </div>
+        <div>
+          <dt>Current focus</dt>
+          <dd id="current-focus">Document body</dd>
+        </div>
+        <div>
+          <dt>Clock</dt>
+          <dd id="clock-value">0 ms</dd>
+        </div>
+      </dl>
+    </header>
+
+    <main>
+      <section class="panel controls" aria-labelledby="controls-title">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <div>
+            <h2 id="controls-title">Scenario controls</h2>
+            <p>
+              Each action emits explicit normalized events. Routine actions do
+              not move focus.
+            </p>
+          </div>
+        </div>
+
+        <div class="control-grid">
+          <fieldset>
+            <legend>Announcements</legend>
+            <button type="button" data-action="polite">Polite sample</button>
+            <button type="button" data-action="assertive">
+              Assertive sample
+            </button>
+            <button type="button" data-action="repeat">Repeat identical</button>
+            <button type="button" data-action="hostile">
+              Literal hostile HTML
+            </button>
+          </fieldset>
+
+          <fieldset>
+            <legend>Language metadata</legend>
+            <button type="button" data-action="english">English locale</button>
+            <button type="button" data-action="french">French locale</button>
+            <button type="button" data-action="non-latin">
+              Non-Latin locale
+            </button>
+            <button type="button" data-action="clear-locale">
+              Clear locale
+            </button>
+          </fieldset>
+
+          <fieldset>
+            <legend>Response lifecycle</legend>
+            <button type="button" data-action="stream">
+              Stream and complete
+            </button>
+            <button type="button" data-action="stop">Stop response</button>
+            <button type="button" data-action="retry">
+              Retry with stale delta
+            </button>
+            <button type="button" data-action="response-failure">
+              Response failure
+            </button>
+          </fieldset>
+
+          <fieldset>
+            <legend>Tools and interaction</legend>
+            <button type="button" data-action="fast-tool">Fast tool</button>
+            <button type="button" data-action="slow-tool">
+              Slow tool with progress
+            </button>
+            <button type="button" data-action="tool-failure">
+              Tool failure
+            </button>
+            <button type="button" data-action="actionable">
+              Actionable interaction
+            </button>
+          </fieldset>
+
+          <fieldset>
+            <legend>Delivery path</legend>
+            <button type="button" data-action="live-mode">
+              Force live-region mode
+            </button>
+            <button type="button" data-action="auto-mode">Auto mode</button>
+            <button type="button" data-action="auto-fallback">
+              Auto fallback mode
+            </button>
+            <button type="button" data-action="throwing-notifier">
+              Throwing ariaNotify path
+            </button>
+          </fieldset>
+
+          <fieldset id="focus-interaction" class="focus-interaction">
+            <legend>Explicit focus interaction</legend>
+            <button type="button" data-action="capture-focus">
+              Capture and enter interaction
+            </button>
+            <button
+              type="button"
+              id="interaction-resolution"
+              data-action="restore-focus"
+            >
+              Resolve interaction
+            </button>
+            <p id="focus-result">No explicit focus operation yet.</p>
+          </fieldset>
+        </div>
+      </section>
+
+      <section class="panel host" aria-labelledby="conversation-title">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <div>
+            <h2 id="conversation-title">Host conversation</h2>
+            <p>
+              The visible host interface is independent from the off-screen
+              delivery regions.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="conversation"
+          class="conversation"
+          role="log"
+          aria-label="Conversation transcript"
+        >
+          <article>
+            <p class="message-label">User</p>
+            <p>Summarize the fixture state without changing my focus.</p>
+          </article>
+          <article id="newest-response" tabindex="-1">
+            <p class="message-label">Assistant / newest response</p>
+            <p id="response-copy">No response scenario has run.</p>
+          </article>
+        </div>
+
+        <label for="composer">Message composer</label>
+        <textarea id="composer" rows="3">
+Keep focus here during routine scenarios.</textarea>
+        <div class="host-actions">
+          <button type="button" id="unrelated-focus">
+            Unrelated focus target
+          </button>
+          <button type="button" data-action="clear-ledgers">
+            Clear visible ledgers
+          </button>
+        </div>
+      </section>
+
+      <section class="panel ledgers" aria-labelledby="ledger-title">
+        <div class="section-heading">
+          <p class="section-number">03</p>
+          <div>
+            <h2 id="ledger-title">Event ledger</h2>
+            <p>
+              Delivery logs record API calls or DOM mutations, not confirmed
+              speech.
+            </p>
+          </div>
+        </div>
+
+        <div class="ledger-grid">
+          <section aria-labelledby="normalized-title">
+            <h3 id="normalized-title">Normalized events</h3>
+            <ol id="event-ledger" class="ledger"></ol>
+          </section>
+          <section aria-labelledby="intent-title">
+            <h3 id="intent-title">Announcement intents</h3>
+            <ol id="announcement-ledger" class="ledger"></ol>
+          </section>
+          <section aria-labelledby="delivery-title">
+            <h3 id="delivery-title">DOMDeliveryResult</h3>
+            <ol id="delivery-ledger" class="ledger"></ol>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div id="fixture-live-polite" class="visually-hidden"></div>
+    <div id="fixture-live-assertive" class="visually-hidden"></div>
+
+    <script type="module" src="./fixture.js"></script>
+  </body>
+</html>

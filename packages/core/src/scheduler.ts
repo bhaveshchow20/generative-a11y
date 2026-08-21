@@ -7,6 +7,8 @@ import type {
   GenerativeA11yEvent,
 } from "./types.js";
 
+export type AnnouncementCapacityPriority = "status" | "content";
+
 export interface ScheduleAnnouncement {
   channel: AnnouncementChannel;
   text: string;
@@ -20,6 +22,7 @@ export interface ScheduleAnnouncement {
   scope?: string;
   coalesceKey?: string;
   dedupeKey?: string;
+  capacityPriority?: AnnouncementCapacityPriority;
 }
 
 interface ScheduledItem extends ScheduleAnnouncement {
@@ -67,26 +70,76 @@ export function createAnnouncementScheduler(
   let disposed = false;
   const queue: ScheduledItem[] = [];
   const deliveredDedupe = new Map<string, number>();
+  const diagnosticQueue: AnnouncementDiagnostic[] = [];
+  const diagnosticDrainBudget = Math.max(16, options.maxQueueSize * 4);
+  let suppressedDiagnosticCount = 0;
+  let reportingDiagnostics = false;
+  let suppressDiagnosticEnqueue = false;
+
+  function capacityPriorityRank(item: ScheduleAnnouncement): number {
+    return item.capacityPriority === "status" ? 0 : 1;
+  }
 
   function diagnostic(
     disposition: AnnouncementDiagnostic["disposition"],
     reason: DiagnosticReason,
     item?: ScheduledItem,
   ): void {
+    if (!options.onDiagnostic || suppressDiagnosticEnqueue) return;
+    const value: AnnouncementDiagnostic = {
+      at: clock.now(),
+      disposition,
+      reason,
+      ...(item
+        ? { announcement: toIntent(item), sourceType: item.sourceType }
+        : {}),
+      ...(item?.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
+      ...(item?.responseId ? { responseId: item.responseId } : {}),
+      ...(item?.toolId ? { toolId: item.toolId } : {}),
+    };
+    if (diagnosticQueue.length >= diagnosticDrainBudget) {
+      suppressedDiagnosticCount += 1;
+      return;
+    }
+    diagnosticQueue.push(value);
+  }
+
+  function drainDiagnostics(): void {
+    if (reportingDiagnostics || !options.onDiagnostic) return;
+    reportingDiagnostics = true;
+    let delivered = 0;
     try {
-      options.onDiagnostic?.({
-        at: clock.now(),
-        disposition,
-        reason,
-        ...(item
-          ? { announcement: toIntent(item), sourceType: item.sourceType }
-          : {}),
-        ...(item?.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
-        ...(item?.responseId ? { responseId: item.responseId } : {}),
-        ...(item?.toolId ? { toolId: item.toolId } : {}),
-      });
-    } catch {
-      // Diagnostic observers are best-effort and cannot alter scheduling.
+      while (diagnosticQueue.length > 0 && delivered < diagnosticDrainBudget) {
+        const next = diagnosticQueue.shift();
+        if (!next) break;
+        delivered += 1;
+        try {
+          options.onDiagnostic(next);
+        } catch {
+          // Diagnostic observers are best-effort and cannot alter scheduling.
+        }
+      }
+      const aggregatedCount =
+        diagnosticQueue.length + suppressedDiagnosticCount;
+      diagnosticQueue.length = 0;
+      suppressedDiagnosticCount = 0;
+      if (aggregatedCount > 0) {
+        suppressDiagnosticEnqueue = true;
+        try {
+          options.onDiagnostic({
+            at: clock.now(),
+            disposition: "suppressed",
+            reason: "queue-capacity",
+            count: aggregatedCount,
+          });
+        } catch {
+          // Diagnostic observers are best-effort and cannot alter scheduling.
+        } finally {
+          suppressDiagnosticEnqueue = false;
+        }
+      }
+    } finally {
+      reportingDiagnostics = false;
     }
   }
 
@@ -118,24 +171,28 @@ export function createAnnouncementScheduler(
     timer = undefined;
     const next = selectNext(false);
     if (!next) return;
-    const gapAt =
-      next.channel === "assertive"
-        ? next.dueAt
-        : Math.max(next.dueAt, lastDeliveredAt + options.minimumGapMs);
-    timer = clock.setTimeout(pump, Math.max(0, gapAt - clock.now()));
+    timer = clock.setTimeout(pump, Math.max(0, eligibleAt(next) - clock.now()));
   }
 
-  function selectNext(onlyDue: boolean): ScheduledItem | undefined {
+  function eligibleAt(item: ScheduledItem): number {
+    return item.channel === "assertive"
+      ? item.dueAt
+      : Math.max(item.dueAt, lastDeliveredAt + options.minimumGapMs);
+  }
+
+  function selectNext(onlyEligible: boolean): ScheduledItem | undefined {
     const now = clock.now();
     return [...queue]
-      .filter((item) => !onlyDue || item.dueAt <= now)
+      .filter((item) => !onlyEligible || eligibleAt(item) <= now)
       .sort((left, right) => {
-        const leftDue = left.dueAt <= now;
-        const rightDue = right.dueAt <= now;
-        if (leftDue && rightDue && left.channel !== right.channel) {
+        if (onlyEligible && left.channel !== right.channel) {
           return left.channel === "assertive" ? -1 : 1;
         }
-        return left.dueAt - right.dueAt || left.sequence - right.sequence;
+        return (
+          eligibleAt(left) - eligibleAt(right) ||
+          left.dueAt - right.dueAt ||
+          left.sequence - right.sequence
+        );
       })[0];
   }
 
@@ -144,13 +201,6 @@ export function createAnnouncementScheduler(
     if (disposed) return;
     const item = selectNext(true);
     if (!item) {
-      scheduleTimer();
-      return;
-    }
-    if (
-      item.channel === "polite" &&
-      clock.now() < lastDeliveredAt + options.minimumGapMs
-    ) {
       scheduleTimer();
       return;
     }
@@ -194,6 +244,7 @@ export function createAnnouncementScheduler(
       }
     }
     scheduleTimer();
+    drainDiagnostics();
   }
 
   return {
@@ -220,6 +271,7 @@ export function createAnnouncementScheduler(
           queue[existingIndex] = replacement;
           diagnostic("merged", "coalesced", replacement);
           scheduleTimer();
+          drainDiagnostics();
           return replacement.id;
         }
       }
@@ -229,21 +281,35 @@ export function createAnnouncementScheduler(
         dueAt: clock.now() + Math.max(0, candidate.delayMs ?? 0),
         sequence: sequence++,
       };
+      let queued = false;
       if (queue.length >= options.maxQueueSize) {
-        const dropped = queue.find((queued) => queued.channel === "polite");
-        if (!dropped && item.channel === "polite") {
+        const capacityCandidates = [...queue, item];
+        const hasPoliteCandidate = capacityCandidates.some(
+          (entry) => entry.channel === "polite",
+        );
+        const evictionPool = capacityCandidates.filter(
+          (entry) => entry.channel === "polite" || !hasPoliteCandidate,
+        );
+        const dropped = evictionPool.sort(
+          (left, right) =>
+            capacityPriorityRank(left) - capacityPriorityRank(right) ||
+            left.sequence - right.sequence,
+        )[0];
+        if (dropped === item) {
           diagnostic("cancelled", "queue-capacity", item);
+          drainDiagnostics();
           return undefined;
         }
-        const displaced = dropped ?? queue[0];
-        if (displaced) {
-          queue.splice(queue.indexOf(displaced), 1);
-          diagnostic("cancelled", "queue-capacity", displaced);
+        if (dropped) {
+          queue.splice(queue.indexOf(dropped), 1, item);
+          queued = true;
+          diagnostic("cancelled", "queue-capacity", dropped);
         }
       }
-      queue.push(item);
+      if (!queued) queue.push(item);
       diagnostic("queued", "scheduled", item);
       scheduleTimer();
+      drainDiagnostics();
       return item.id;
     },
     cancelScope(scope) {
@@ -255,6 +321,7 @@ export function createAnnouncementScheduler(
         }
       }
       scheduleTimer();
+      drainDiagnostics();
     },
     dispose() {
       disposed = true;
@@ -264,6 +331,7 @@ export function createAnnouncementScheduler(
         diagnostic("cancelled", "runtime-disposed", item);
       queue.length = 0;
       deliveredDedupe.clear();
+      drainDiagnostics();
     },
     pendingCount: () => queue.length,
   };

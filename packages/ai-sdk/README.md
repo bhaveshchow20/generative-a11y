@@ -8,6 +8,20 @@ own a chat, invoke `regenerate()`, or inspect private chat state.
 The root entry is SSR-safe. The React integration is available only from
 `@generative-a11y/ai-sdk/react`.
 
+## Install
+
+For the framework-independent observer:
+
+```sh
+pnpm add @generative-a11y/core @generative-a11y/ai-sdk ai
+```
+
+For the React integration, also install the optional React peers:
+
+```sh
+pnpm add @ai-sdk/react react
+```
+
 ## React quick start
 
 Create the accessibility integration before `useChat()` so its composed
@@ -16,6 +30,7 @@ public snapshot returned from `useChat()`.
 
 ```tsx
 import { useChat } from "@ai-sdk/react";
+import type { GenerativeA11yRuntime } from "@generative-a11y/core";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,

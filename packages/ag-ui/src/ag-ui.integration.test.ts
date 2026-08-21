@@ -9,7 +9,12 @@ describe("AG-UI public agent integration", () => {
     const agent = new HttpAgent({ url: "http://127.0.0.1:9/ag-ui" });
     const events: GenerativeA11yEvent[] = [];
     const binding = bindAgent({
-      runtime: { dispatch: (event) => events.push(event) },
+      runtime: {
+        dispatch(event) {
+          events.push(event);
+          return true;
+        },
+      },
       scopeId: "real-agent",
       agent,
     });

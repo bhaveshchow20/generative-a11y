@@ -2,14 +2,14 @@
 
 ## Evidence layers
 
-| Layer                    | What it proves                                                                       | What it does not prove                           | Status                |
-| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------ | --------------------- |
-| Core transcript          | Policy, order, timing, cancellation, reason codes                                    | Browser or screen-reader delivery                | Implemented           |
-| jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup                 | Browser accessibility tree or speech             | Implemented           |
-| React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration     | Real-browser or AT behavior                      | Implemented           |
-| Browser integration      | Chromium/Firefox/WebKit DOM, focus, visibility, storage, accessibility-tree behavior | Branded Safari or exact speech                   | Planned               |
-| axe-core                 | Machine-detectable issues in rendered fixtures                                       | Complete WCAG coverage or speech                 | Planned               |
-| Manual AT                | Observed output and workflow behavior in one dated configuration                     | All versions, settings, or universal conformance | Planned, not executed |
+| Layer                    | What it proves                                                                     | What it does not prove                           | Status                       |
+| ------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- |
+| Core transcript          | Policy, order, timing, cancellation, reason codes                                  | Browser or screen-reader delivery                | Implemented                  |
+| jsdom DOM/API contract   | Attributes, mutations, API selection, stores, focus results, cleanup               | Browser accessibility tree or speech             | Implemented                  |
+| React component contract | Provider/hook ownership, external-store subscription, Strict Mode, SSR/hydration   | Real-browser or AT behavior                      | Implemented                  |
+| Browser integration      | Chromium/Firefox/WebKit delivery, focus, fallback, event order, rendered semantics | React/adapters, branded Safari, or exact speech  | Core/DOM fixture implemented |
+| axe-core                 | Machine-detectable issues in rendered fixtures                                     | Complete WCAG coverage or speech                 | Implemented                  |
+| Manual AT                | Observed output and workflow behavior in one dated configuration                   | All versions, settings, or universal conformance | Planned, not executed        |
 
 The boundary is deliberate: a delivered core intent, successful `ariaNotify()`
 call, live-region mutation, ARIA snapshot, or zero axe violations never proves
@@ -70,28 +70,28 @@ inspection. These tests prove React contracts, not browser speech.
 
 ## Real-browser tests
 
-The next browser stack will run the same focused fixture in Chromium, Firefox,
-and WebKit. WebKit results are not reported as Safari results
-([Playwright browsers](https://playwright.dev/docs/browsers)). Cover:
+The browser stack runs the same focused fixture in Chromium, Firefox, and
+WebKit. WebKit results are not reported as Safari results
+([Playwright browsers](https://playwright.dev/docs/browsers)). The current
+core/DOM fixture covers:
 
 - region mount and mutation order, repeated text, locale, and literal text;
-- feature-detected `ariaNotify()` versus forced fallback;
-- Page Visibility and window focus transitions where the runner can control them
-  deterministically;
-- composer/conversation focus, explicit focus helpers, open shadow roots, and
-  slot traversal;
-- Intersection Observer absence/presence and viewport transitions;
-- localStorage loading, cross-page storage events, cleanup, and hydration;
-- accessibility-tree structure through targeted
-  [ARIA snapshots](https://playwright.dev/docs/aria-snapshots).
+- missing and throwing `ariaNotify()` fallback versus forced live regions;
+- composer/conversation focus and explicit guarded focus helpers;
+- deterministic response/tool lifecycle, cancellation, retry, and stale events;
+- rendered landmark/live-region semantics and axe scans.
+
+Visibility, Intersection Observer, preference storage, React, and adapter
+contracts remain covered by deterministic jsdom or package tests rather than
+this browser fixture. Do not describe those paths as browser-tested.
 
 Run Chromium, Firefox, and WebKit in CI. Keep a smaller Chromium smoke shard for
 pull-request latency only if the full matrix remains a required merge or nightly
 gate. Pin tool/browser versions in CI artifacts so a result can be reproduced.
 
-`@axe-core/playwright` scans the rendered example after each meaningful UI
-state, not the isolated visually hidden announcer alone. Axe findings are
-triaged as violations or incomplete/manual-review items. Follow Playwright's
+`@axe-core/playwright` scans the complete initial rendered fixture, not the
+isolated visually hidden announcer alone. Axe findings are triaged as violations
+or incomplete/manual-review items. Follow Playwright's
 [accessibility guidance](https://playwright.dev/docs/accessibility-testing):
 automation complements manual assessment.
 
@@ -120,7 +120,8 @@ exports/declarations are inspected. Static gates include formatting, ESLint,
 strict TypeScript, unit coverage, builds, publint, and package smoke tests.
 
 Browser binaries and axe add CI cost and should be cached by exact lockfile/tool
-version. Browser artifacts include traces and screenshots only on failure.
-Automated AT tooling is not currently a release gate; it requires a pinned,
-maintained runner and still would not replace the
-[manual AT matrix](manual-at-test-plan.md).
+version. Browser artifacts include traces and screenshots only on failure. The
+publish workflow requires the completed
+[manual AT matrix](manual-at-test-plan.md) for an unchanged release candidate.
+Automated browser checks are also required, but cannot replace that external
+evidence.

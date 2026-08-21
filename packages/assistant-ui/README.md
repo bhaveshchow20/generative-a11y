@@ -7,7 +7,20 @@ documented terminal statuses, tool result state, approvals, and sources into a
 borrowed generative-a11y runtime. It does not render UI, access the DOM, or call
 host runtime actions.
 
+## Install
+
+```sh
+pnpm add @generative-a11y/core @generative-a11y/assistant-ui @assistant-ui/core
+```
+
+## Bind a thread runtime
+
+The host owns both the core `runtime` and assistant-ui `thread`; this binding
+only translates documented public thread state.
+
 ```ts
+import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+
 const binding = bindThreadRuntime({ runtime, scopeId: "support", thread });
 // Later: binding.dispose(); // unsubscribes only
 ```

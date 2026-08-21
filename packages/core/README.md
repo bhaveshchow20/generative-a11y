@@ -2,6 +2,14 @@
 
 Browser-independent event orchestration for `generative-a11y`.
 
+## Install
+
+```sh
+pnpm add @generative-a11y/core
+```
+
+## Quick start
+
 ```ts
 import { createGenerativeA11y } from "@generative-a11y/core";
 
@@ -41,8 +49,12 @@ optional injected `Clock`, and optional delivery callbacks:
   receives a `delivery-error` diagnostic.
 - `onDiagnostic(decision)` observes best-effort queued, merged, suppressed,
   cancelled and announced decisions. Observer errors are isolated.
-- `dispatch(event)` accepts normalized response, tool, interaction, connection
-  and citation events.
+- `dispatch(event)` returns `true` when a normalized response, tool,
+  interaction, connection or citation event is accepted for immediate or nested
+  processing. It returns `false` when the runtime is disposed or the current
+  dispatch transaction has reached capacity. Dispatch attempts from an
+  overflow-diagnostic observer also return `false`; their recursively redundant
+  overflow diagnostics are suppressed so reporting always terminates.
 - `getPolicy()` returns a deeply frozen policy snapshot.
 - `pendingCount()` counts scheduler candidates and response flush timers.
 - `subscribeAnnouncements(listener)` adds an isolated output listener and
@@ -52,8 +64,8 @@ optional injected `Clock`, and optional delivery callbacks:
 - `subscribeDiagnostics(listener)` observes subsequent diagnostic decisions and
   returns an idempotent unsubscribe function. Diagnostic listener failures are
   isolated.
-- `dispose()` is idempotent, cancels owned timers/queues and makes later
-  dispatch or subscription attempts throw.
+- `dispose()` is idempotent and cancels owned timers/queues. Later dispatches
+  return `false`; later subscription attempts throw.
 
 Announcement listeners run from a stable snapshot. A throwing listener does not
 prevent later listeners from receiving the same intent, and every listener
@@ -77,7 +89,9 @@ queue/entity ceilings must be positive integers.
 
 `createAnnouncementScheduler(options)` is the lower-level prioritized queue used
 by the runtime. `schedule(candidate)` supports delay, scope cancellation,
-coalescing and explicit dedupe keys. `cancelScope(scope)` cancels queued
+coalescing, explicit dedupe keys, and an optional `capacityPriority` of
+`"status"` or `"content"` for capacity retention. Candidates without a capacity
+priority retain the legacy content tier. `cancelScope(scope)` cancels queued
 candidates, `pendingCount()` reports queue length, and `dispose()` permanently
 clears it. The scheduler validates bounds, preserves assertive work under
 capacity pressure, isolates callback failures and defaults deduplication to the
@@ -95,8 +109,10 @@ before exceeding its safety limit.
 
 `createAnnouncementRecorder()` returns a runtime wired to a `ManualClock`.
 `transcript()` contains delivered intents; `diagnosticTranscript()` also exposes
-stable dispositions and reason codes. These records prove runtime policy
-behavior, not actual assistive-technology speech.
+stable dispositions and reason codes. A capacity diagnostic may include a
+serializable `count` when it represents multiple suppressed decisions, including
+dropped nested runtime events. These records prove runtime policy behavior, not
+actual assistive-technology speech.
 
 ## Segmentation
 
