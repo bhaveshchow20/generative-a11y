@@ -35,7 +35,27 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /assistive technology/i);
   assert.match(html, /Chromium, Firefox, and WebKit/i);
   assert.match(html, /manual assistive-technology evidence/i);
+  assert.match(html, /href="\/api"[^>]*>API</i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
+});
+
+test("server-renders the dedicated API reference and symbol pages", async () => {
+  for (const [pathname, expected] of [
+    ["/api", /API reference/i],
+    ["/api/core", /@generative-a11y\/core/i],
+    ["/api/core/create-generative-a11y", /dispatch\(event\)/i],
+    ["/api/dom/create-dom-announcer", /DOMAnnouncerOptions/i],
+    ["/api/react/hooks", /useGenerativeA11yRuntime/i],
+    ["/api/ai-sdk/use-chat-accessibility", /useChatAccessibility/i],
+    ["/api/assistant-ui/bind-thread-runtime", /bindThreadRuntime/i],
+    ["/api/ag-ui/bind-agent", /bindAgent/i],
+  ]) {
+    const response = await render(pathname);
+    assert.equal(response.status, 200, pathname);
+    const html = await response.text();
+    assert.match(html, expected, pathname);
+    assert.match(html, />Docs<.*>API</is, pathname);
+  }
 });
 
 test("homepage states the evidence boundary without roadmap language", async () => {
@@ -56,7 +76,7 @@ test("server-renders documentation and project deep links", async () => {
     ["/docs/testing", /Chromium, Firefox, and WebKit/i],
     ["/docs/compatibility", /WebKit is not Safari/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
-    ["/docs/packages/core", /createGenerativeA11y/i],
+    ["/api/core/create-generative-a11y", /createGenerativeA11y/i],
     ["/docs/integrations/ag-ui", /bindAgent/i],
     ["/project/overview", /Project overview/i],
   ];

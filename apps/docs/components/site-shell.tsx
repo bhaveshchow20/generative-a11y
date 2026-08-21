@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { NAV_GROUPS, searchDocumentation } from "../lib/content";
+import { API_NAV_GROUPS, DOC_NAV_GROUPS, searchDocumentation } from "../lib/content";
 
 const subscribeToHydration = () => () => {};
 const getClientSnapshot = () => true;
@@ -27,6 +27,8 @@ export function SiteShell({
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
   const results = searchDocumentation(query);
+  const apiSection = currentPath.startsWith("/api");
+  const navigationGroups = apiSection ? API_NAV_GROUPS : DOC_NAV_GROUPS;
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -50,9 +52,15 @@ export function SiteShell({
   return (
     <div className="docs-app" data-theme={dark ? "dark" : "light"}>
       <header className="docs-header">
-        <Link className="brand" href="/" aria-label="generative-a11y home">
-          generative-a11y
-        </Link>
+        <div className="docs-primary">
+          <Link className="brand" href="/" aria-label="generative-a11y home">
+            generative-a11y
+          </Link>
+          <nav className="section-nav" aria-label="Documentation sections">
+            <Link href="/docs/getting-started" aria-current={!apiSection ? "page" : undefined}>Docs</Link>
+            <Link href="/api" aria-current={apiSection ? "page" : undefined}>API</Link>
+          </nav>
+        </div>
         <button
           className="search-trigger"
           type="button"
@@ -91,11 +99,11 @@ export function SiteShell({
       <div className="docs-layout">
         <aside
           id="docs-navigation"
-          aria-label="Documentation sidebar"
+          aria-label={apiSection ? "API reference sidebar" : "Documentation sidebar"}
           className={`docs-sidebar${navigationOpen ? " is-open" : ""}`}
         >
-          <nav aria-label="Documentation">
-            {NAV_GROUPS.map(({ group, pages }) => (
+          <nav aria-label={apiSection ? "API reference" : "Documentation"}>
+            {navigationGroups.map(({ group, pages }) => (
               <div className="nav-group" key={group}>
                 <p>{group}</p>
                 {pages.map((page) => (
@@ -113,7 +121,7 @@ export function SiteShell({
           </nav>
           <div className="sidebar-foot">
             <Link href="/examples/lifecycle-lab">Open lifecycle lab <span aria-hidden="true">→</span></Link>
-            <span>Documentation · API reference</span>
+            <span>{apiSection ? "Package and symbol reference" : "Guides and concepts"}</span>
           </div>
         </aside>
         {children}

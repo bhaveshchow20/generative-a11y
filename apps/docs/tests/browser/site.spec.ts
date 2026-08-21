@@ -13,7 +13,7 @@ test("homepage and representative deep links render without request or console e
   for (const path of [
     "/",
     "/docs/getting-started",
-    "/docs/packages/react",
+    "/api/react/hooks",
     "/docs/integrations/ai-sdk",
     "/project/overview",
     "/examples/lifecycle-lab",
@@ -103,12 +103,24 @@ test("framework trace explains events in plain language and expands technical de
 });
 
 test("API reference expands option defaults and explanations", async ({ page }) => {
-  await page.goto("/docs/packages/core");
+  await page.goto("/api/core/create-generative-a11y");
   const preset = page.locator(".api-list details").filter({ hasText: "preset" }).first();
   await preset.locator("summary").click();
   await expect(preset).toContainText("balanced");
   await expect(preset).toContainText("Selects a complete baseline policy");
-  await expect(page.getByRole("heading", { name: "How this code works" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How this code works" }).first()).toBeVisible();
+});
+
+test("Docs and API provide separate top-level navigation and legacy reference links redirect", async ({ page }) => {
+  await page.goto("/docs/getting-started");
+  await page.getByRole("link", { name: "API", exact: true }).click();
+  await expect(page).toHaveURL(/\/api$/);
+  await expect(page.getByRole("navigation", { name: "API reference" })).toBeVisible();
+  await page.getByRole("link", { name: "createGenerativeA11y" }).click();
+  await expect(page).toHaveURL(/\/api\/core\/create-generative-a11y$/);
+
+  await page.goto("/docs/api/runtime");
+  await expect(page).toHaveURL(/\/api\/core\/create-generative-a11y$/);
 });
 
 test("release guidance covers integration choice, troubleshooting, and stability", async ({ page }) => {

@@ -7,9 +7,11 @@ import { CodeBlock } from "./code-block";
 import { SiteShell } from "./site-shell";
 
 export function DocPageView({ page }: { page: DocPage }) {
-  const index = DOC_PAGES.findIndex((entry) => entry.path === page.path);
-  const previous = index > 0 ? DOC_PAGES[index - 1] : undefined;
-  const next = index < DOC_PAGES.length - 1 ? DOC_PAGES[index + 1] : undefined;
+  const apiSection = page.path.startsWith("/api");
+  const siblingPages = DOC_PAGES.filter((entry) => entry.path.startsWith("/api") === apiSection);
+  const index = siblingPages.findIndex((entry) => entry.path === page.path);
+  const previous = index > 0 ? siblingPages[index - 1] : undefined;
+  const next = index < siblingPages.length - 1 ? siblingPages[index + 1] : undefined;
 
   return (
     <SiteShell currentPath={page.path}>

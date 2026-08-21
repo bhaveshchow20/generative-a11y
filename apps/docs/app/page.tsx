@@ -35,6 +35,7 @@ export default function Home() {
         </Link>
         <nav className="top-nav" aria-label="Primary navigation">
           <Link href="/docs/getting-started">Docs</Link>
+          <Link href="/api">API</Link>
           <Link href="/examples/lifecycle-lab">Examples</Link>
           <a href="https://github.com/bhaveshchow20/generative-a11y">
             GitHub <span aria-hidden="true">↗</span>

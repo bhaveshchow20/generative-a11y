@@ -16,20 +16,11 @@ describe("documentation registry", () => {
         "/docs/lifecycle/stop-retry",
         "/docs/lifecycle/interactions",
         "/docs/lifecycle/identity",
-        "/docs/packages/core",
-        "/docs/packages/dom",
-        "/docs/packages/react",
         "/docs/integrations/ai-sdk",
         "/docs/integrations/assistant-ui",
         "/docs/integrations/ag-ui",
         "/docs/integrations/copilotkit",
         "/docs/integrations/custom",
-        "/docs/api/events",
-        "/docs/api/runtime",
-        "/docs/api/policy",
-        "/docs/api/diagnostics",
-        "/docs/browser/delivery",
-        "/docs/browser/preferences",
         "/docs/testing",
         "/docs/troubleshooting",
         "/docs/compatibility",
@@ -39,6 +30,50 @@ describe("documentation registry", () => {
         "/project/contributing",
       ]),
     );
+  });
+
+  it("separates task documentation from package and symbol API reference", () => {
+    const paths = DOC_PAGES.map((page) => page.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "/api",
+        "/api/core",
+        "/api/core/create-generative-a11y",
+        "/api/core/events",
+        "/api/dom/create-dom-announcer",
+        "/api/react/hooks",
+        "/api/ai-sdk/use-chat-accessibility",
+        "/api/assistant-ui/bind-thread-runtime",
+        "/api/ag-ui/bind-agent",
+      ]),
+    );
+    expect(paths).not.toEqual(
+      expect.arrayContaining([
+        "/docs/packages/core",
+        "/docs/api/runtime",
+        "/docs/browser/delivery",
+      ]),
+    );
+  });
+
+  it("gives major API entries signatures, contracts, examples, and code walkthroughs", () => {
+    for (const path of [
+      "/api/core/create-generative-a11y",
+      "/api/dom/create-dom-announcer",
+      "/api/react/hooks",
+      "/api/ai-sdk/use-chat-accessibility",
+      "/api/assistant-ui/bind-thread-runtime",
+      "/api/ag-ui/bind-agent",
+    ]) {
+      const page = getDocPage(path)!;
+      expect(page, path).toBeDefined();
+      expect(page.sections.length, path).toBeGreaterThan(1);
+      expect(page.sections.some((section) => section.api?.length), path).toBe(true);
+      expect(page.sections.some((section) => section.code), path).toBe(true);
+      for (const section of page.sections.filter((entry) => entry.code)) {
+        expect(section.walkthrough?.length, `${path}#${section.id}`).toBeGreaterThan(1);
+      }
+    }
   });
 
   it("keeps every page complete and searchable", () => {
@@ -53,7 +88,7 @@ describe("documentation registry", () => {
       "/docs/lifecycle/stop-retry",
     );
     expect(searchDocumentation("bindAgent")[0]?.path).toBe(
-      "/docs/integrations/ag-ui",
+      "/api/ag-ui/bind-agent",
     );
     expect(searchDocumentation("screen reader spoke")).toEqual(
       expect.arrayContaining([
@@ -75,12 +110,12 @@ describe("documentation registry", () => {
 
   it("documents major APIs and explains every substantial code sample", () => {
     for (const path of [
-      "/docs/packages/core",
-      "/docs/packages/dom",
-      "/docs/packages/react",
-      "/docs/integrations/ai-sdk",
-      "/docs/integrations/assistant-ui",
-      "/docs/integrations/ag-ui",
+      "/api/core/create-generative-a11y",
+      "/api/dom/create-dom-announcer",
+      "/api/react",
+      "/api/ai-sdk/use-chat-accessibility",
+      "/api/assistant-ui/bind-thread-runtime",
+      "/api/ag-ui/bind-agent",
     ]) {
       const page = getDocPage(path)!;
       expect(page.sections.some((section) => section.api?.length)).toBe(true);
@@ -124,8 +159,8 @@ describe("documentation registry", () => {
       expect.arrayContaining(["browser-matrix", "matrix"]),
     );
 
-    const core = getDocPage("/docs/packages/core")!;
-    const runtimeApi = core.sections.find(({ id }) => id === "runtime-api")!;
+    const core = getDocPage("/api/core/create-generative-a11y")!;
+    const runtimeApi = core.sections.find(({ id }) => id === "runtime-methods")!;
     expect(runtimeApi.api).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "dispatch(event)", type: "boolean" }),

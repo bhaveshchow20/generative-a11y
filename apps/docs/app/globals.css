@@ -613,7 +613,7 @@ h2 {
     gap: 14px;
   }
 
-  .top-nav a:nth-child(2) {
+  .top-nav a:nth-child(3) {
     display: none;
   }
 
@@ -1309,7 +1309,39 @@ h2 {
   border-bottom: 1px solid var(--docs-line);
   background: color-mix(in srgb, var(--docs-bg) 92%, transparent);
   backdrop-filter: blur(14px);
-  grid-template-columns: 260px 1fr 260px;
+  grid-template-columns: 330px 1fr 260px;
+}
+
+.docs-primary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 28px;
+}
+
+.section-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 10px var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.section-nav a {
+  padding: 7px 9px;
+  border-radius: 4px;
+  color: var(--docs-muted);
+  text-decoration: none;
+}
+
+.section-nav a:hover {
+  color: var(--docs-ink);
+}
+
+.section-nav a[aria-current="page"] {
+  background: var(--docs-ink);
+  color: var(--docs-bg);
 }
 
 .search-trigger {
@@ -2444,7 +2476,7 @@ tbody tr:last-child td {
 
 @media (max-width: 1060px) {
   .docs-header {
-    grid-template-columns: 220px 1fr auto;
+    grid-template-columns: 300px 1fr auto;
   }
 
   .github-link {
@@ -2521,6 +2553,14 @@ tbody tr:last-child td {
 
   .docs-header .brand {
     font-size: 12px;
+  }
+
+  .docs-primary {
+    gap: 12px;
+  }
+
+  .section-nav a {
+    padding-inline: 7px;
   }
 
   .docs-actions {

@@ -1,3 +1,5 @@
+import { API_PAGES } from "./api-content";
+
 export interface DocTable {
   readonly headers: readonly string[];
   readonly rows: readonly (readonly string[])[];
@@ -1384,7 +1386,17 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
   },
 ];
 
-export const DOC_PAGES: readonly DocPage[] = Object.freeze(pages);
+const guidePages = pages.filter(
+  (page) =>
+    !page.path.startsWith("/docs/packages/") &&
+    !page.path.startsWith("/docs/api/") &&
+    !page.path.startsWith("/docs/browser/"),
+);
+
+export const DOC_PAGES: readonly DocPage[] = Object.freeze([
+  ...guidePages,
+  ...API_PAGES,
+]);
 
 const pagesByPath = new Map(DOC_PAGES.map((page) => [page.path, page]));
 
@@ -1435,6 +1447,23 @@ export function searchDocumentation(query: string): SearchResult[] {
       group: page.group,
     }));
 }
+
+function navigationGroups(source: readonly DocPage[]) {
+  return Object.freeze(
+    [...new Set(source.map((page) => page.group))].map((group) => ({
+      group,
+      pages: source.filter((page) => page.group === group),
+    })),
+  );
+}
+
+export const DOC_NAV_GROUPS = navigationGroups(
+  DOC_PAGES.filter((page) => !page.path.startsWith("/api")),
+);
+
+export const API_NAV_GROUPS = navigationGroups(
+  DOC_PAGES.filter((page) => page.path.startsWith("/api")),
+);
 
 export const NAV_GROUPS = Object.freeze(
   [...new Set(DOC_PAGES.map((page) => page.group))].map((group) => ({
