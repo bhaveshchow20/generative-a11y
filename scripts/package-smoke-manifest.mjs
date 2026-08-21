@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+
 const peerFixtureNames = [
   "@ag-ui/client",
   "@ag-ui/core",
@@ -51,6 +53,33 @@ void [
   bindAgent,
 ];
 `;
+}
+
+export function assertRuntimeExportParity({
+  specifier,
+  expectedExport,
+  esm,
+  cjs,
+}) {
+  const formatKeys = (module) => `[${Object.keys(module).sort().join(", ")}]`;
+  const esmKeys = formatKeys(esm);
+  const cjsKeys = formatKeys(cjs);
+
+  assert.equal(
+    typeof esm[expectedExport],
+    "function",
+    `${specifier} [import] expected export "${expectedExport}" to be a function; observed keys: ${esmKeys}`,
+  );
+  assert.equal(
+    typeof cjs[expectedExport],
+    "function",
+    `${specifier} [require] expected export "${expectedExport}" to be a function; observed keys: ${cjsKeys}`,
+  );
+  assert.deepEqual(
+    Object.keys(esm).sort(),
+    Object.keys(cjs).sort(),
+    `${specifier} [import/require parity] expected export "${expectedExport}"; import keys: ${esmKeys}; require keys: ${cjsKeys}`,
+  );
 }
 
 export function createConsumerManifest(rootPackage, packedDependencies) {

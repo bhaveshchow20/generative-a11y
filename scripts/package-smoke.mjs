@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 import {
+  assertRuntimeExportParity,
   createConsumerManifest,
   createTypeScriptConsumerSource,
   typescriptConsumerModes,
@@ -41,19 +42,18 @@ for (const [packageName, subpath, expectedExport] of packageExports) {
   const specifier = `${packageName}${subpath}`;
   const esm = await import(specifier);
   const cjs = createRequire(import.meta.url)(specifier);
-  assert.equal(typeof esm[expectedExport], "function");
-  assert.equal(typeof cjs[expectedExport], "function");
-  assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
+  assertRuntimeExportParity({ specifier, expectedExport, esm, cjs });
 }
 
 const tempRoot = await mkdtemp(
   join(tmpdir(), "generative-a11y-package-smoke-"),
 );
-const archiveRoot = join(tempRoot, "archives");
-const projectRoot = join(tempRoot, "project");
-await Promise.all([mkdir(archiveRoot), mkdir(projectRoot)]);
 
 try {
+  const archiveRoot = join(tempRoot, "archives");
+  const projectRoot = join(tempRoot, "project");
+  await Promise.all([mkdir(archiveRoot), mkdir(projectRoot)]);
+
   for (const packageName of packageNames) {
     await execFileAsync(
       "pnpm",
@@ -112,13 +112,13 @@ try {
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
+${assertRuntimeExportParity.toString()}
+
 for (const [packageName, subpath, expectedExport] of ${JSON.stringify(packageExports)}) {
   const specifier = \`${"${packageName}"}\${subpath}\`;
   const esm = await import(specifier);
   const cjs = require(specifier);
-  assert.equal(typeof esm[expectedExport], "function");
-  assert.equal(typeof cjs[expectedExport], "function");
-  assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
+  assertRuntimeExportParity({ specifier, expectedExport, esm, cjs });
 }
 `,
   );

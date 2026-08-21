@@ -103,3 +103,50 @@ describe("TypeScript packed consumers", () => {
     }
   });
 });
+
+describe("runtime export diagnostics", () => {
+  it("identifies a missing ESM export with observed keys", () => {
+    expect(manifestModule.assertRuntimeExportParity).toBeTypeOf("function");
+
+    expect(() =>
+      manifestModule.assertRuntimeExportParity({
+        specifier: "@generative-a11y/example",
+        expectedExport: "expectedFunction",
+        esm: { esmOnly: true },
+        cjs: { esmOnly: true },
+      }),
+    ).toThrow(
+      '@generative-a11y/example [import] expected export "expectedFunction" to be a function; observed keys: [esmOnly]',
+    );
+  });
+
+  it("identifies a missing CommonJS export with observed keys", () => {
+    expect(manifestModule.assertRuntimeExportParity).toBeTypeOf("function");
+
+    expect(() =>
+      manifestModule.assertRuntimeExportParity({
+        specifier: "@generative-a11y/example",
+        expectedExport: "expectedFunction",
+        esm: { expectedFunction() {}, esmOnly: true },
+        cjs: { cjsOnly: true },
+      }),
+    ).toThrow(
+      '@generative-a11y/example [require] expected export "expectedFunction" to be a function; observed keys: [cjsOnly]',
+    );
+  });
+
+  it("reports both key sets when import and require differ", () => {
+    expect(manifestModule.assertRuntimeExportParity).toBeTypeOf("function");
+
+    expect(() =>
+      manifestModule.assertRuntimeExportParity({
+        specifier: "@generative-a11y/example",
+        expectedExport: "expectedFunction",
+        esm: { expectedFunction() {}, esmOnly: true },
+        cjs: { expectedFunction() {}, cjsOnly: true },
+      }),
+    ).toThrow(
+      '@generative-a11y/example [import/require parity] expected export "expectedFunction"; import keys: [esmOnly, expectedFunction]; require keys: [cjsOnly, expectedFunction]',
+    );
+  });
+});
