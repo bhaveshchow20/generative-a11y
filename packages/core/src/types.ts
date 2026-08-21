@@ -145,7 +145,7 @@ export interface AnnouncementDiagnostic {
   at: number;
   disposition: DiagnosticDisposition;
   reason: DiagnosticReason;
-  /** Number of events represented when capacity diagnostics are aggregated. */
+  /** Number of suppressed decisions or events represented by an aggregate. */
   count?: number;
   announcement?: AnnouncementIntent;
   sourceType?: GenerativeA11yEvent["type"];

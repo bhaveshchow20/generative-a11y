@@ -70,6 +70,11 @@ export function createAnnouncementScheduler(
   let disposed = false;
   const queue: ScheduledItem[] = [];
   const deliveredDedupe = new Map<string, number>();
+  const diagnosticQueue: AnnouncementDiagnostic[] = [];
+  const diagnosticDrainBudget = Math.max(16, options.maxQueueSize * 4);
+  let suppressedDiagnosticCount = 0;
+  let reportingDiagnostics = false;
+  let suppressDiagnosticEnqueue = false;
 
   function capacityPriorityRank(item: ScheduleAnnouncement): number {
     return item.capacityPriority === "status" ? 0 : 1;
@@ -80,20 +85,61 @@ export function createAnnouncementScheduler(
     reason: DiagnosticReason,
     item?: ScheduledItem,
   ): void {
+    if (!options.onDiagnostic || suppressDiagnosticEnqueue) return;
+    const value: AnnouncementDiagnostic = {
+      at: clock.now(),
+      disposition,
+      reason,
+      ...(item
+        ? { announcement: toIntent(item), sourceType: item.sourceType }
+        : {}),
+      ...(item?.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
+      ...(item?.responseId ? { responseId: item.responseId } : {}),
+      ...(item?.toolId ? { toolId: item.toolId } : {}),
+    };
+    if (diagnosticQueue.length >= diagnosticDrainBudget) {
+      suppressedDiagnosticCount += 1;
+      return;
+    }
+    diagnosticQueue.push(value);
+  }
+
+  function drainDiagnostics(): void {
+    if (reportingDiagnostics || !options.onDiagnostic) return;
+    reportingDiagnostics = true;
+    let delivered = 0;
     try {
-      options.onDiagnostic?.({
-        at: clock.now(),
-        disposition,
-        reason,
-        ...(item
-          ? { announcement: toIntent(item), sourceType: item.sourceType }
-          : {}),
-        ...(item?.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
-        ...(item?.responseId ? { responseId: item.responseId } : {}),
-        ...(item?.toolId ? { toolId: item.toolId } : {}),
-      });
-    } catch {
-      // Diagnostic observers are best-effort and cannot alter scheduling.
+      while (diagnosticQueue.length > 0 && delivered < diagnosticDrainBudget) {
+        const next = diagnosticQueue.shift();
+        if (!next) break;
+        delivered += 1;
+        try {
+          options.onDiagnostic(next);
+        } catch {
+          // Diagnostic observers are best-effort and cannot alter scheduling.
+        }
+      }
+      const aggregatedCount =
+        diagnosticQueue.length + suppressedDiagnosticCount;
+      diagnosticQueue.length = 0;
+      suppressedDiagnosticCount = 0;
+      if (aggregatedCount > 0) {
+        suppressDiagnosticEnqueue = true;
+        try {
+          options.onDiagnostic({
+            at: clock.now(),
+            disposition: "suppressed",
+            reason: "queue-capacity",
+            count: aggregatedCount,
+          });
+        } catch {
+          // Diagnostic observers are best-effort and cannot alter scheduling.
+        } finally {
+          suppressDiagnosticEnqueue = false;
+        }
+      }
+    } finally {
+      reportingDiagnostics = false;
     }
   }
 
@@ -198,6 +244,7 @@ export function createAnnouncementScheduler(
       }
     }
     scheduleTimer();
+    drainDiagnostics();
   }
 
   return {
@@ -224,7 +271,8 @@ export function createAnnouncementScheduler(
           queue[existingIndex] = replacement;
           diagnostic("merged", "coalesced", replacement);
           scheduleTimer();
-          return queue.includes(replacement) ? replacement.id : undefined;
+          drainDiagnostics();
+          return replacement.id;
         }
       }
       const item: ScheduledItem = {
@@ -249,19 +297,20 @@ export function createAnnouncementScheduler(
         )[0];
         if (dropped === item) {
           diagnostic("cancelled", "queue-capacity", item);
+          drainDiagnostics();
           return undefined;
         }
         if (dropped) {
           queue.splice(queue.indexOf(dropped), 1, item);
           queued = true;
           diagnostic("cancelled", "queue-capacity", dropped);
-          if (!queue.includes(item)) return undefined;
         }
       }
       if (!queued) queue.push(item);
       diagnostic("queued", "scheduled", item);
       scheduleTimer();
-      return queue.includes(item) ? item.id : undefined;
+      drainDiagnostics();
+      return item.id;
     },
     cancelScope(scope) {
       for (let index = queue.length - 1; index >= 0; index -= 1) {
@@ -272,6 +321,7 @@ export function createAnnouncementScheduler(
         }
       }
       scheduleTimer();
+      drainDiagnostics();
     },
     dispose() {
       disposed = true;
@@ -281,6 +331,7 @@ export function createAnnouncementScheduler(
         diagnostic("cancelled", "runtime-disposed", item);
       queue.length = 0;
       deliveredDedupe.clear();
+      drainDiagnostics();
     },
     pendingCount: () => queue.length,
   };

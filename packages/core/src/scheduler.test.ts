@@ -270,7 +270,7 @@ describe("announcement scheduler", () => {
     ]);
   });
 
-  it("does not report a scheduled result after reentrant eviction", () => {
+  it("reports accepted scheduling before a stronger nested eviction", () => {
     const clock = new ManualClock();
     const diagnostics: Array<{ reason: string; text?: string }> = [];
     const announcements: string[] = [];
@@ -320,17 +320,21 @@ describe("announcement scheduler", () => {
       delayMs: 10,
     });
 
-    expect(incomingId).toBeUndefined();
+    expect(incomingId).toBe("announcement-2");
     expect(nestedId).toBe("announcement-3");
     expect(scheduler.pendingCount()).toBe(1);
-    expect(diagnostics.filter(({ text }) => text === "Answer content")).toEqual(
-      [{ reason: "queue-capacity", text: "Answer content" }],
-    );
+    expect(diagnostics.map(({ reason, text }) => ({ reason, text }))).toEqual([
+      { reason: "scheduled", text: "Old status" },
+      { reason: "queue-capacity", text: "Old status" },
+      { reason: "scheduled", text: "Answer content" },
+      { reason: "queue-capacity", text: "Answer content" },
+      { reason: "scheduled", text: "Urgent action" },
+    ]);
     clock.runUntilIdle();
     expect(announcements).toEqual(["Urgent action"]);
   });
 
-  it("does not return a coalesced ID after reentrant eviction", () => {
+  it("returns an accepted coalesced ID before reentrant eviction", () => {
     const clock = new ManualClock();
     let nestedId: string | undefined;
     let scheduler: ReturnType<typeof createAnnouncementScheduler>;
@@ -370,8 +374,189 @@ describe("announcement scheduler", () => {
       delayMs: 10,
     });
 
-    expect(replacementId).toBeUndefined();
+    expect(replacementId).toBe("announcement-1");
     expect(nestedId).toBe("announcement-2");
+    expect(scheduler.pendingCount()).toBe(1);
+  });
+
+  it("queues the complete outer sequence before same-key nested coalescing", () => {
+    const clock = new ManualClock();
+    const diagnostics: Array<{ reason: string; text?: string }> = [];
+    let nestedId: string | undefined;
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push({
+          reason: diagnostic.reason,
+          ...(diagnostic.announcement
+            ? { text: diagnostic.announcement.text }
+            : {}),
+        });
+        if (
+          nestedId === undefined &&
+          diagnostic.reason === "queue-capacity" &&
+          diagnostic.announcement?.text === "Old status"
+        ) {
+          nestedId = scheduler.schedule({
+            channel: "polite",
+            text: "Refined answer",
+            sourceType: "response.completed",
+            capacityPriority: "content",
+            coalesceKey: "answer",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Old status",
+      sourceType: "tool.progress",
+      capacityPriority: "status",
+      delayMs: 10,
+    });
+
+    const incomingId = scheduler.schedule({
+      channel: "polite",
+      text: "Answer content",
+      sourceType: "response.completed",
+      capacityPriority: "content",
+      coalesceKey: "answer",
+      delayMs: 10,
+    });
+
+    expect(incomingId).toBe("announcement-2");
+    expect(nestedId).toBe("announcement-2");
+    expect(
+      diagnostics
+        .filter(({ text }) =>
+          ["Old status", "Answer content", "Refined answer"].includes(
+            text ?? "",
+          ),
+        )
+        .map(({ reason, text }) => ({ reason, text })),
+    ).toEqual([
+      { reason: "scheduled", text: "Old status" },
+      { reason: "queue-capacity", text: "Old status" },
+      { reason: "scheduled", text: "Answer content" },
+      { reason: "coalesced", text: "Refined answer" },
+    ]);
+  });
+
+  it("allows a scheduled observer to re-coalesce after acceptance", () => {
+    const clock = new ManualClock();
+    const diagnostics: Array<{ reason: string; text?: string }> = [];
+    let nestedId: string | undefined;
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push({
+          reason: diagnostic.reason,
+          ...(diagnostic.announcement
+            ? { text: diagnostic.announcement.text }
+            : {}),
+        });
+        if (nestedId === undefined && diagnostic.reason === "scheduled") {
+          nestedId = scheduler.schedule({
+            channel: "polite",
+            text: "New progress",
+            sourceType: "tool.progress",
+            coalesceKey: "progress",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+
+    const outerId = scheduler.schedule({
+      channel: "polite",
+      text: "Old progress",
+      sourceType: "tool.progress",
+      coalesceKey: "progress",
+      delayMs: 10,
+    });
+
+    expect(outerId).toBe("announcement-1");
+    expect(nestedId).toBe("announcement-1");
+    expect(diagnostics.map(({ reason, text }) => ({ reason, text }))).toEqual([
+      { reason: "scheduled", text: "Old progress" },
+      { reason: "coalesced", text: "New progress" },
+    ]);
+  });
+
+  it("returns an accepted ID when a scheduled observer delivers it", () => {
+    const clock = new ManualClock();
+    const reasons: string[] = [];
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        reasons.push(diagnostic.reason);
+        if (diagnostic.reason === "scheduled") clock.runUntilIdle();
+      },
+    });
+
+    const id = scheduler.schedule({
+      channel: "polite",
+      text: "Deliver now",
+      sourceType: "response.completed",
+    });
+
+    expect(id).toBe("announcement-1");
+    expect(reasons).toEqual(["scheduled", "delivered"]);
+    expect(scheduler.pendingCount()).toBe(0);
+  });
+
+  it("bounds diagnostic observer self-chains", () => {
+    const clock = new ManualClock();
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push(diagnostic);
+        if (diagnostics.length < 50) {
+          scheduler.schedule({
+            channel: "polite",
+            text: `Nested ${diagnostics.length}`,
+            sourceType: "tool.progress",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+
+    scheduler.schedule({
+      channel: "polite",
+      text: "Initial",
+      sourceType: "tool.progress",
+      delayMs: 10,
+    });
+
+    expect(diagnostics.length).toBeLessThan(50);
+    expect(
+      diagnostics.some(
+        ({ reason, count }) => reason === "queue-capacity" && (count ?? 0) > 1,
+      ),
+    ).toBe(true);
     expect(scheduler.pendingCount()).toBe(1);
   });
 

@@ -6,6 +6,7 @@ import { createAnnouncementRecorder } from "./recorder.js";
 import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
+  GenerativeA11yEvent,
   PresetName,
 } from "./types.js";
 
@@ -384,6 +385,7 @@ describe("generative accessibility runtime", () => {
 
   it("bounds diagnostic-triggered nested dispatch and diagnoses overflow", () => {
     const diagnostics: AnnouncementDiagnostic[] = [];
+    const nestedResults: boolean[] = [];
     let queuedBurst = false;
     let runtime: ReturnType<typeof createGenerativeA11y>;
     runtime = createGenerativeA11y({
@@ -399,13 +401,19 @@ describe("generative accessibility runtime", () => {
             ["r4", "e4"],
             ["r5", "e5"],
           ] as const) {
-            runtime.dispatch({ type: "response.started", responseId, eventId });
+            nestedResults.push(
+              runtime.dispatch({
+                type: "response.started",
+                responseId,
+                eventId,
+              }),
+            );
           }
         }
       },
     });
 
-    runtime.dispatch({
+    const outerResult = runtime.dispatch({
       type: "response.started",
       responseId: "r1",
       eventId: "e1",
@@ -428,6 +436,8 @@ describe("generative accessibility runtime", () => {
     expect(diagnostics.some(({ reason }) => reason === "invalid-event")).toBe(
       false,
     );
+    expect(outerResult).toBe(true);
+    expect(nestedResults).toEqual([true, true, false, false]);
   });
 
   it("bounds a one-in one-out nested dispatch generation", () => {
@@ -471,6 +481,8 @@ describe("generative accessibility runtime", () => {
 
   it("aggregates overflow beyond diagnostic capacity without callback runaway", () => {
     const diagnostics: AnnouncementDiagnostic[] = [];
+    const burstResults: boolean[] = [];
+    const overflowResults: boolean[] = [];
     let dispatchedBurst = false;
     let overflowCallbackDispatches = 0;
     let runtime: ReturnType<typeof createGenerativeA11y>;
@@ -481,21 +493,46 @@ describe("generative accessibility runtime", () => {
         diagnostics.push(diagnostic);
         if (!dispatchedBurst && diagnostic.sourceEventId === "e0") {
           dispatchedBurst = true;
-          for (let index = 1; index <= 10; index += 1) {
-            runtime.dispatch({
-              type: "response.started",
-              responseId: `r${index}`,
-              eventId: `e${index}`,
-            });
+          const burst: GenerativeA11yEvent[] = [
+            { type: "response.started", responseId: "r1", eventId: "e1" },
+            { type: "response.started", responseId: "r2", eventId: "e2" },
+            { type: "response.started", responseId: "r3", eventId: "e3" },
+            {
+              type: "tool.started",
+              toolId: "t4",
+              label: "Tool four",
+              eventId: "e4",
+            },
+            { type: "connection.lost", eventId: "e5" },
+            { type: "response.started", responseId: "r6", eventId: "e6" },
+            {
+              type: "tool.started",
+              toolId: "t7",
+              label: "Tool seven",
+              eventId: "e7",
+            },
+            { type: "connection.restored", eventId: "e8" },
+            { type: "response.started", responseId: "r9", eventId: "e9" },
+            {
+              type: "tool.started",
+              toolId: "t10",
+              label: "Tool ten",
+              eventId: "e10",
+            },
+          ];
+          for (const event of burst) {
+            burstResults.push(runtime.dispatch(event));
           }
         }
         if (diagnostic.reason === "queue-capacity") {
           overflowCallbackDispatches += 1;
-          runtime.dispatch({
-            type: "response.started",
-            responseId: `overflow-${overflowCallbackDispatches}`,
-            eventId: `overflow-${overflowCallbackDispatches}`,
-          });
+          overflowResults.push(
+            runtime.dispatch({
+              type: "response.started",
+              responseId: `overflow-${overflowCallbackDispatches}`,
+              eventId: `overflow-${overflowCallbackDispatches}`,
+            }),
+          );
         }
       },
     });
@@ -507,20 +544,54 @@ describe("generative accessibility runtime", () => {
     });
 
     expect(
-      diagnostics.map(({ reason, sourceEventId, count }) => ({
+      diagnostics.map(({ reason, sourceEventId, sourceType, count }) => ({
         reason,
-        sourceEventId,
+        ...(sourceEventId === undefined ? {} : { sourceEventId }),
+        ...(sourceType === undefined ? {} : { sourceType }),
         ...(count === undefined ? {} : { count }),
       })),
     ).toEqual([
-      { reason: "policy-silent", sourceEventId: "e0" },
-      { reason: "policy-silent", sourceEventId: "e1" },
-      { reason: "policy-silent", sourceEventId: "e2" },
-      { reason: "queue-capacity", sourceEventId: "e3" },
-      { reason: "queue-capacity", sourceEventId: "e4" },
-      { reason: "queue-capacity", sourceEventId: "e5", count: 6 },
+      {
+        reason: "policy-silent",
+        sourceEventId: "e0",
+        sourceType: "response.started",
+      },
+      {
+        reason: "policy-silent",
+        sourceEventId: "e1",
+        sourceType: "response.started",
+      },
+      {
+        reason: "policy-silent",
+        sourceEventId: "e2",
+        sourceType: "response.started",
+      },
+      {
+        reason: "queue-capacity",
+        sourceEventId: "e3",
+        sourceType: "response.started",
+      },
+      {
+        reason: "queue-capacity",
+        sourceEventId: "e4",
+        sourceType: "tool.started",
+      },
+      { reason: "queue-capacity", count: 6 },
     ]);
     expect(overflowCallbackDispatches).toBe(3);
+    expect(burstResults).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(overflowResults).toEqual([false, false, false]);
   });
 
   it("does not retain terminal response state after diagnostic disposal", () => {
@@ -952,7 +1023,7 @@ describe("generative accessibility runtime", () => {
     },
   );
 
-  it("cleans all timers and rejects dispatch after disposal", () => {
+  it("cleans all timers and returns false for dispatch after disposal", () => {
     const recorder = createAnnouncementRecorder();
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
     recorder.runtime.dispatch({
@@ -963,9 +1034,9 @@ describe("generative accessibility runtime", () => {
     recorder.runtime.dispose();
 
     expect(recorder.clock.pendingCount()).toBe(0);
-    expect(() =>
+    expect(
       recorder.runtime.dispatch({ type: "response.started", responseId: "r2" }),
-    ).toThrow("disposed");
+    ).toBe(false);
   });
 
   it("delivers announcements to subscribed listeners until they unsubscribe", () => {
