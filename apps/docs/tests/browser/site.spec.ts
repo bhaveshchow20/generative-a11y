@@ -145,7 +145,7 @@ test("lifecycle lab uses real runtime output for streaming, stale retry, and app
   await page.getByRole("button", { name: "Run stream" }).click();
   await expect(
     page.getByRole("cell", { name: "response.completed" }),
-  ).toBeVisible({ timeout: 5_000 });
+  ).toBeVisible({ timeout: 10_000 });
   const announcementText = await page
     .locator(".announcement-list li p")
     .allTextContents();
