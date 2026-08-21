@@ -138,4 +138,190 @@ describe("devtools store", () => {
       "Private browser failure",
     );
   });
+
+  it("projects safe causal fields and declared adapter evidence without retaining event content", () => {
+    const clock = new ManualClock();
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => undefined,
+    });
+    const store = createDevtoolsStore();
+    const evidence = ["ThreadRuntime.getState", "ThreadRuntime.subscribe"];
+    store.attachRuntime({
+      id: "assistant-thread",
+      runtime,
+      source: {
+        adapter: "assistant-ui",
+        evidence,
+        fidelity: {
+          interruption: "exact",
+          retries: "unavailable",
+          connection: "unavailable",
+          optionalEvents: ["tool.failed", "citation.available"],
+        },
+      },
+    });
+    evidence[0] = "Private framework method";
+
+    runtime.dispatch({
+      type: "response.started",
+      eventId: "response-started-1",
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+    });
+    runtime.dispatch({
+      type: "response.failed",
+      announcement: "Private failure message.",
+      error: "Private error detail.",
+      eventId: "response-failed-1",
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+    });
+
+    const snapshot = store.getSnapshot();
+    expect(snapshot.runtimeSources["assistant-thread"]).toEqual({
+      adapter: "assistant-ui",
+      evidence: ["ThreadRuntime.getState", "ThreadRuntime.subscribe"],
+      fidelity: {
+        interruption: "exact",
+        retries: "unavailable",
+        connection: "unavailable",
+        optionalEvents: ["tool.failed", "citation.available"],
+      },
+    });
+    expect(
+      snapshot.records.find(
+        (record) => record.sourceEventId === "response-failed-1",
+      ),
+    ).toMatchObject({
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+      sourceEventId: "response-failed-1",
+    });
+    expect(
+      snapshot.records.find(
+        (record) =>
+          record.kind === "decision" &&
+          record.sourceEventId === "response-failed-1",
+      ),
+    ).toMatchObject({
+      channel: "assertive",
+      reason: "scheduled",
+      responseId: "response-1",
+    });
+    expect(JSON.stringify(store.exportTrace())).not.toContain(
+      "Private failure message.",
+    );
+    expect(JSON.stringify(store.exportTrace())).not.toContain(
+      "Private error detail.",
+    );
+  });
+
+  it("rejects an invalid declared adapter source before subscribing", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+
+    expect(() =>
+      store.attachRuntime({
+        id: "primary",
+        runtime,
+        source: {
+          adapter: "",
+          evidence: [],
+          fidelity: {
+            interruption: "exact",
+            retries: "unavailable",
+            connection: "unavailable",
+          },
+        },
+      }),
+    ).toThrow("source adapter must be a non-empty string");
+    expect(store.getSnapshot().runtimeIds).toEqual([]);
+  });
+
+  it("rejects unsupported fidelity declarations and non-public evidence", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+
+    expect(() =>
+      store.attachRuntime({
+        id: "primary",
+        runtime,
+        source: {
+          adapter: "custom",
+          evidence: ["x".repeat(121)],
+          fidelity: {
+            interruption: "inferred" as never,
+            retries: "unavailable",
+            connection: "unavailable",
+            optionalEvents: ["not-a-runtime-event" as never],
+          },
+        },
+      }),
+    ).toThrow(
+      "source evidence entries must be public strings up to 120 characters",
+    );
+    expect(() =>
+      store.attachRuntime({
+        id: "primary",
+        runtime,
+        source: {
+          adapter: "custom",
+          evidence: ["CustomAdapter.observe"],
+          fidelity: {
+            interruption: "inferred" as never,
+            retries: "unavailable",
+            connection: "unavailable",
+          },
+        },
+      }),
+    ).toThrow("source interruption fidelity contains an unsupported value");
+    expect(() =>
+      store.attachRuntime({
+        id: "primary",
+        runtime,
+        source: {
+          adapter: "custom",
+          evidence: ["CustomAdapter.observe"],
+          fidelity: {
+            interruption: "exact",
+            retries: "unavailable",
+            connection: "unavailable",
+            optionalEvents: ["not-a-runtime-event" as never],
+          },
+        },
+      }),
+    ).toThrow("source optional events contain an unsupported value");
+  });
+
+  it("retains an explicit retry transition without retaining event content", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+    store.attachRuntime({ id: "primary", runtime });
+
+    runtime.dispatch({
+      type: "response.started",
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+    });
+    runtime.dispatch({
+      type: "response.retrying",
+      attempt: 2,
+      eventId: "retry-1",
+      nextResponseInstanceId: "attempt-2",
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+    });
+
+    expect(
+      store
+        .getSnapshot()
+        .records.find((record) => record.sourceEventId === "retry-1"),
+    ).toMatchObject({
+      attempt: 2,
+      nextResponseInstanceId: "attempt-2",
+      responseId: "response-1",
+      responseInstanceId: "attempt-1",
+    });
+  });
 });

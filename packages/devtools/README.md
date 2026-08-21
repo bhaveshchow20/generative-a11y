@@ -8,9 +8,18 @@ assistant text, labels, error messages, tool data, stacks, or DOM content.
 
 ```ts
 import { createDevtoolsStore } from "@generative-a11y/devtools";
+import { THREAD_ADAPTER_METADATA } from "@generative-a11y/assistant-ui";
 
 const store = createDevtoolsStore({ maxEntries: 250 });
-const detach = store.attachRuntime({ id: "support", runtime });
+const detach = store.attachRuntime({
+  id: "support",
+  runtime,
+  source: {
+    adapter: THREAD_ADAPTER_METADATA.name,
+    fidelity: THREAD_ADAPTER_METADATA.fidelity,
+    evidence: THREAD_ADAPTER_METADATA.observedRuntimeMethods,
+  },
+});
 const unsubscribe = store.subscribe(renderDiagnostics);
 
 store.pauseCapture(); // Does not pause or alter the runtime.
@@ -29,6 +38,22 @@ The store only subscribes through `subscribeDiagnosticEvents()` and does not
 monkey-patch dispatch, access browser globals, create UI, retain a core history,
 or alter accessibility policy. A captured DOM/API delivery remains evidence of
 an action, not proof that assistive technology spoke it.
+
+## Declared adapter evidence
+
+Pass `source` when attaching a runtime driven by an adapter. This is an
+explicit, serializable declaration from the integration, not framework detection
+by devtools. It lets an inspector show the adapter name, documented public
+evidence, and exact, inferred, action-wrapper, or unavailable fidelity without
+filling gaps in the lifecycle trace. The store freezes a copy of this metadata
+and includes it in its redacted export.
+
+Use an adapter package's exported metadata where it fits the integration. For
+custom adapters, provide only public signals that justify normalized events. Do
+not put user content, internal URLs, or private framework state in `evidence`.
+The store accepts at most 12 public evidence strings, each at most 120
+characters, and rejects unsupported fidelity or optional-event values before it
+subscribes to a runtime.
 
 ## Browser delivery correlation
 
