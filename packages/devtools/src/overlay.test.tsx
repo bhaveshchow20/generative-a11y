@@ -58,7 +58,7 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
   expect(mounted.host.isConnected).toBe(false);
 });
 
-test("renders a visual trace map and confirms local workspace actions", async () => {
+test("renders a causal trace explorer and confirms local workspace actions", async () => {
   const clock = new ManualClock();
   const runtime = createGenerativeA11y({
     clock,
@@ -74,17 +74,17 @@ test("renders a visual trace map and confirms local workspace actions", async ()
   if (!root || !launcher) throw new Error("workspace launcher missing");
 
   fireEvent.click(launcher);
-  expect(root.querySelector('[data-testid="trace-map"]')).not.toBeNull();
-  expect(root.textContent).toContain("Trace map");
-  const traceNode = root.querySelector<SVGGElement>("[data-trace-key]");
-  if (!traceNode) throw new Error("trace node missing");
-  fireEvent.click(traceNode);
+  expect(root.querySelector('[data-testid="causal-chain"]')).not.toBeNull();
+  expect(root.textContent).toContain("Accessibility trace");
+  const traceList = root.querySelector<HTMLElement>('[role="listbox"]');
+  if (!traceList) throw new Error("trace list missing");
+  fireEvent.keyDown(traceList, { key: "ArrowDown" });
   expect(
-    root.querySelector('[data-testid="trace-map-selection"]')?.textContent,
-  ).toContain("Selected signal");
+    root.querySelector('[data-testid="trace-detail"]')?.textContent,
+  ).toContain("Related evidence");
 
   const pause = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent === "Pause capture",
+    (button) => button.textContent === "Pause",
   );
   if (!pause) throw new Error("pause action missing");
   fireEvent.click(pause);
@@ -102,8 +102,8 @@ test("keeps the trace surface intentionally spacious instead of compressing it i
     document,
   });
   const styles = mounted.host.shadowRoot?.querySelector("style")?.textContent;
-  expect(styles).toContain("min-height: 260px");
-  expect(styles).toContain("padding: 22px 24px 16px");
+  expect(styles).toContain("padding: 22px 24px");
+  expect(styles).toContain("grid-template-columns: 76px 110px");
   mounted.dispose();
 });
 
@@ -126,18 +126,18 @@ test("provides a searchable, inspectable workbench with runtime actions", async 
   if (!root || !launcher) throw new Error("inspector launcher missing");
 
   fireEvent.click(launcher);
-  expect(root.textContent).toContain("Trace");
-  expect(root.textContent).toContain("Events");
-  expect(root.textContent).toContain("Runtime");
-  expect(root.textContent).toContain("Export trace");
+  expect(root.textContent).toContain("Accessibility trace");
+  expect(root.textContent).toContain("Source");
+  expect(root.textContent).toContain("Decisions");
+  expect(root.textContent).toContain("Copy");
   expect(root.textContent).not.toContain("Private connection label");
 
   const timeline = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent === "Events",
+    (button) => button.textContent === "Source",
   );
   if (!timeline) throw new Error("timeline tab missing");
-  fireEvent.mouseDown(timeline, { button: 0 });
-  expect(timeline.getAttribute("data-state")).toBe("active");
+  fireEvent.click(timeline);
+  expect(timeline.getAttribute("aria-pressed")).toBe("true");
   await waitFor(() =>
     expect(
       root.querySelector<HTMLInputElement>('input[type="search"]'),
@@ -150,7 +150,7 @@ test("provides a searchable, inspectable workbench with runtime actions", async 
   expect(root.textContent).toContain("connection.lost");
 
   const pause = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
-    (button) => button.textContent === "Pause capture",
+    (button) => button.textContent === "Pause",
   );
   if (!pause) throw new Error("pause action missing");
   fireEvent.click(pause);
