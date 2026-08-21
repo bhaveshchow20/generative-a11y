@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/assistant-ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "assistant-ui lifecycle translation for the generative accessibility runtime",
   "keywords": [
     "accessibility",

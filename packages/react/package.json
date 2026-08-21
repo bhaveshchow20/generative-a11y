@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React lifecycle integration for the generative accessibility runtime",
   "keywords": [
     "accessibility",
