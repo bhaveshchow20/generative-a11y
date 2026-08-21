@@ -167,26 +167,107 @@ describe("announcement scheduler", () => {
       channel: "polite",
       text: "Response complete.",
       sourceType: "response.completed",
-      priority: "status",
+      capacityPriority: "status",
       delayMs: 10,
     });
     scheduler.schedule({
       channel: "polite",
       text: "The final answer",
       sourceType: "response.completed",
-      priority: "content",
+      capacityPriority: "content",
       delayMs: 10,
     });
     scheduler.schedule({
       channel: "polite",
       text: "Another status update",
       sourceType: "tool.progress",
-      priority: "status",
+      capacityPriority: "status",
       delayMs: 10,
     });
     clock.runUntilIdle();
 
     expect(announcements.map(({ text }) => text)).toEqual(["The final answer"]);
+  });
+
+  it("replaces a capacity victim atomically before diagnostics reenter", () => {
+    const clock = new ManualClock();
+    const diagnostics: Array<{ id?: string; reason: string; text?: string }> =
+      [];
+    const announcements: string[] = [];
+    let nested = false;
+    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
+    scheduler = createAnnouncementScheduler({
+      clock,
+      minimumGapMs: 0,
+      dedupeWindowMs: 0,
+      maxQueueSize: 1,
+      onAnnouncement: ({ text }) => announcements.push(text),
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push({
+          reason: diagnostic.reason,
+          ...(diagnostic.announcement
+            ? {
+                id: diagnostic.announcement.id,
+                text: diagnostic.announcement.text,
+              }
+            : {}),
+        });
+        if (
+          !nested &&
+          diagnostic.reason === "queue-capacity" &&
+          diagnostic.announcement?.text === "Old status"
+        ) {
+          nested = true;
+          scheduler.schedule({
+            channel: "polite",
+            text: "Nested status",
+            sourceType: "tool.progress",
+            capacityPriority: "status",
+            delayMs: 10,
+          });
+        }
+      },
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Old status",
+      sourceType: "tool.progress",
+      capacityPriority: "status",
+      delayMs: 10,
+    });
+
+    const incomingId = scheduler.schedule({
+      channel: "polite",
+      text: "Answer content",
+      sourceType: "response.completed",
+      capacityPriority: "content",
+      delayMs: 10,
+    });
+
+    expect(scheduler.pendingCount()).toBe(1);
+    clock.runUntilIdle();
+    expect(announcements).toEqual(["Answer content"]);
+    expect(incomingId).toBe("announcement-2");
+    expect(
+      diagnostics
+        .filter(
+          ({ text }) => text === "Old status" || text === "Answer content",
+        )
+        .map(({ id, reason, text }) => ({ id, reason, text })),
+    ).toEqual([
+      { id: "announcement-1", reason: "scheduled", text: "Old status" },
+      {
+        id: "announcement-1",
+        reason: "queue-capacity",
+        text: "Old status",
+      },
+      {
+        id: "announcement-2",
+        reason: "scheduled",
+        text: "Answer content",
+      },
+      { id: "announcement-2", reason: "delivered", text: "Answer content" },
+    ]);
   });
 
   it("continues after a delivery callback throws", () => {

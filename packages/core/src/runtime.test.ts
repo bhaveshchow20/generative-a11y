@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ManualClock } from "./clock.js";
 import { createGenerativeA11y } from "./index.js";
@@ -393,18 +393,114 @@ describe("generative accessibility runtime", () => {
         diagnostics.push(diagnostic);
         if (!queuedBurst && diagnostic.sourceType === "response.started") {
           queuedBurst = true;
-          for (const responseId of ["r2", "r3", "r4", "r5"]) {
-            runtime.dispatch({ type: "response.started", responseId });
+          for (const [responseId, eventId] of [
+            ["r2", "e2"],
+            ["r3", "e3"],
+            ["r4", "e4"],
+            ["r5", "e5"],
+          ] as const) {
+            runtime.dispatch({ type: "response.started", responseId, eventId });
           }
         }
       },
     });
 
-    runtime.dispatch({ type: "response.started", responseId: "r1" });
+    runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      eventId: "e1",
+    });
 
     expect(
-      diagnostics.filter(({ reason }) => reason === "invalid-event"),
-    ).toHaveLength(2);
+      diagnostics
+        .filter(
+          ({ reason }) =>
+            reason === "policy-silent" || reason === "queue-capacity",
+        )
+        .map(({ reason, sourceEventId }) => ({ reason, sourceEventId })),
+    ).toEqual([
+      { reason: "policy-silent", sourceEventId: "e1" },
+      { reason: "policy-silent", sourceEventId: "e2" },
+      { reason: "policy-silent", sourceEventId: "e3" },
+      { reason: "queue-capacity", sourceEventId: "e4" },
+      { reason: "queue-capacity", sourceEventId: "e5" },
+    ]);
+    expect(diagnostics.some(({ reason }) => reason === "invalid-event")).toBe(
+      false,
+    );
+  });
+
+  it("bounds a one-in one-out nested dispatch generation", () => {
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    let nextEvent = 1;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      policy: { maxQueueSize: 2 },
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push(diagnostic);
+        if (diagnostic.reason === "policy-silent" && nextEvent < 20) {
+          const suffix = nextEvent++;
+          runtime.dispatch({
+            type: "response.started",
+            responseId: `r${suffix}`,
+            eventId: `e${suffix}`,
+          });
+        }
+      },
+    });
+
+    runtime.dispatch({
+      type: "response.started",
+      responseId: "r0",
+      eventId: "e0",
+    });
+
+    expect(
+      diagnostics.map(({ reason, sourceEventId }) => ({
+        reason,
+        sourceEventId,
+      })),
+    ).toEqual([
+      { reason: "policy-silent", sourceEventId: "e0" },
+      { reason: "policy-silent", sourceEventId: "e1" },
+      { reason: "policy-silent", sourceEventId: "e2" },
+      { reason: "queue-capacity", sourceEventId: "e3" },
+    ]);
+  });
+
+  it("does not retain terminal response state after diagnostic disposal", () => {
+    const mapSet = vi.spyOn(Map.prototype, "set");
+    let setCountAfterDispose: number | undefined;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    try {
+      runtime = createGenerativeA11y({
+        policy: { text: { minimumCharacters: 1 } },
+        onAnnouncement: () => undefined,
+        onDiagnostic: (diagnostic) => {
+          if (
+            diagnostic.sourceType === "response.completed" &&
+            diagnostic.reason === "scheduled"
+          ) {
+            runtime.dispose();
+            setCountAfterDispose = mapSet.mock.calls.length;
+          }
+        },
+      });
+      runtime.dispatch({ type: "response.started", responseId: "r1" });
+      runtime.dispatch({
+        type: "response.text.delta",
+        responseId: "r1",
+        delta: "Final answer",
+      });
+
+      runtime.dispatch({ type: "response.completed", responseId: "r1" });
+
+      expect(setCountAfterDispose).toBeDefined();
+      expect(mapSet.mock.calls).toHaveLength(setCountAfterDispose ?? 0);
+    } finally {
+      mapSet.mockRestore();
+    }
   });
 
   it("clears nested dispatch work when disposed during a diagnostic", () => {

@@ -3,8 +3,8 @@ import { systemClock } from "./clock.js";
 import { resolvePolicy, type PolicyOverrides } from "./policy.js";
 import {
   createAnnouncementScheduler,
+  type AnnouncementCapacityPriority,
   type AnnouncementScheduler,
-  type AnnouncementPriority,
 } from "./scheduler.js";
 import { normalizeAnnouncementText, segmentText } from "./segmenter.js";
 import type {
@@ -87,7 +87,9 @@ export function createGenerativeA11y(
   let disposed = false;
   let dispatching = false;
   let reportingDispatchOverflow = false;
+  let nestedDispatchCount = 0;
   const dispatchQueue: GenerativeA11yEvent[] = [];
+  const dispatchOverflowQueue: GenerativeA11yEvent[] = [];
   let announcementEmissionDepth = 0;
   let clearListenersAfterDeliveryDiagnostic = false;
 
@@ -197,7 +199,7 @@ export function createGenerativeA11y(
       toolId?: string;
       interactionId?: string;
       locale?: string;
-      priority?: AnnouncementPriority;
+      capacityPriority?: AnnouncementCapacityPriority;
     } = {},
   ): void {
     const normalized = normalizeAnnouncementText(text);
@@ -266,7 +268,7 @@ export function createGenerativeA11y(
     announce(event, text, "polite", {
       responseId: event.responseId,
       scope: responseScope(event.responseId, state.epoch),
-      priority: "content",
+      capacityPriority: "content",
       ...(state.locale ? { locale: state.locale } : {}),
     });
   }
@@ -351,7 +353,7 @@ export function createGenerativeA11y(
         announce(event, "Assistant is responding.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
-          priority: "status",
+          capacityPriority: "status",
           ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
@@ -396,7 +398,7 @@ export function createGenerativeA11y(
         announce(event, state.fullText, "polite", {
           responseId: event.responseId,
           scope,
-          priority: "content",
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else if (policy.text.strategy !== "silent") {
@@ -407,7 +409,7 @@ export function createGenerativeA11y(
         announce(event, "Response complete.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
-          priority: "status",
+          capacityPriority: "status",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else {
@@ -416,6 +418,7 @@ export function createGenerativeA11y(
       state.buffer = "";
       state.ready.length = 0;
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
       return;
     }
@@ -431,13 +434,14 @@ export function createGenerativeA11y(
         announce(event, "Response stopped.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
-          priority: "status",
+          capacityPriority: "status",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else {
         diagnose(event, "policy-silent");
       }
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else if (event.type === "response.failed") {
       state.status = "failed";
@@ -448,11 +452,12 @@ export function createGenerativeA11y(
         {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
-          priority: "content",
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         },
       );
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else {
       state.epoch = nextResponseEpoch++;
@@ -472,7 +477,7 @@ export function createGenerativeA11y(
           {
             responseId: event.responseId,
             scope: responseLifecycleScope(event.responseId),
-            priority: "status",
+            capacityPriority: "status",
             ...(state.locale ? { locale: state.locale } : {}),
           },
         );
@@ -509,7 +514,7 @@ export function createGenerativeA11y(
           delayMs: policy.tools.announceStartAfterMs,
           scope: startScope,
           coalesceKey: startScope,
-          priority: "status",
+          capacityPriority: "status",
           ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
@@ -570,7 +575,7 @@ export function createGenerativeA11y(
         delayMs: policy.minimumGapMs,
         scope: progressScope,
         coalesceKey: progressScope,
-        priority: "status",
+        capacityPriority: "status",
         ...(state.locale ? { locale: state.locale } : {}),
       });
       return;
@@ -583,7 +588,7 @@ export function createGenerativeA11y(
       announce(event, event.summary ?? `${event.label} complete.`, "polite", {
         toolId: event.toolId,
         scope: toolLifecycleScope(event.toolId),
-        priority: "status",
+        capacityPriority: "status",
         ...(state.locale ? { locale: state.locale } : {}),
       });
     } else if (
@@ -600,13 +605,14 @@ export function createGenerativeA11y(
         {
           toolId: event.toolId,
           scope: toolLifecycleScope(event.toolId),
-          priority: "content",
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         },
       );
     } else if (event.type === "tool.failed" && !policy.tools.announceFailure) {
       diagnose(event, "policy-silent");
     }
+    if (disposed) return;
     state.status = event.type === "tool.completed" ? "completed" : "failed";
     retainTerminalState(tools, event.toolId, state);
   }
@@ -621,7 +627,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label, event.urgent ? "assertive" : "polite", {
         interactionId: event.interactionId,
-        priority: "content",
+        capacityPriority: "content",
       });
       return;
     }
@@ -633,7 +639,7 @@ export function createGenerativeA11y(
         "polite",
         {
           interactionId: event.interactionId,
-          priority: "content",
+          capacityPriority: "content",
         },
       );
       return;
@@ -642,7 +648,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label, event.urgent ? "assertive" : "polite", {
         interactionId: event.approvalId,
-        priority: "content",
+        capacityPriority: "content",
       });
       return;
     }
@@ -650,7 +656,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label ?? `Approval ${event.outcome}.`, "polite", {
         interactionId: event.approvalId,
-        priority: "content",
+        capacityPriority: "content",
       });
       return;
     }
@@ -660,14 +666,14 @@ export function createGenerativeA11y(
         event,
         event.label ?? "Connection lost. Reconnecting.",
         "polite",
-        { priority: "status" },
+        { capacityPriority: "status" },
       );
       return;
     }
     if (event.type === "connection.restored") {
       if (!policy.announceConnections) return diagnose(event, "policy-silent");
       announce(event, event.label ?? "Connection restored.", "polite", {
-        priority: "status",
+        capacityPriority: "status",
       });
       return;
     }
@@ -682,7 +688,7 @@ export function createGenerativeA11y(
       "polite",
       {
         dedupeKey: `citation-count:${event.count}`,
-        priority: "status",
+        capacityPriority: "status",
       },
     );
   }
@@ -699,29 +705,39 @@ export function createGenerativeA11y(
         throw new Error(
           "Cannot dispatch to a disposed generative-a11y runtime",
         );
-      if (dispatchQueue.length >= policy.maxQueueSize) {
-        if (!reportingDispatchOverflow) {
-          reportingDispatchOverflow = true;
-          try {
-            diagnose(event, "invalid-event");
-          } finally {
-            reportingDispatchOverflow = false;
+      if (dispatching) {
+        if (reportingDispatchOverflow) return;
+        if (nestedDispatchCount >= policy.maxQueueSize) {
+          if (dispatchOverflowQueue.length < policy.maxQueueSize) {
+            dispatchOverflowQueue.push(event);
           }
+          return;
         }
+        nestedDispatchCount += 1;
+        dispatchQueue.push(event);
         return;
       }
       dispatchQueue.push(event);
-      if (dispatching) return;
       dispatching = true;
+      nestedDispatchCount = 0;
       try {
         while (!disposed) {
           const next = dispatchQueue.shift();
           if (!next) break;
           dispatchOne(next);
         }
+        reportingDispatchOverflow = true;
+        while (!disposed) {
+          const overflow = dispatchOverflowQueue.shift();
+          if (!overflow) break;
+          diagnose(overflow, "queue-capacity");
+        }
       } finally {
+        reportingDispatchOverflow = false;
+        nestedDispatchCount = 0;
+        dispatchQueue.length = 0;
+        dispatchOverflowQueue.length = 0;
         dispatching = false;
-        if (disposed) dispatchQueue.length = 0;
       }
     },
     getPolicy: () => policy,
@@ -762,6 +778,7 @@ export function createGenerativeA11y(
       if (disposed) return;
       disposed = true;
       dispatchQueue.length = 0;
+      dispatchOverflowQueue.length = 0;
       for (const response of responses.values()) clearFlushTimer(response);
       scheduler.dispose();
       responses.clear();

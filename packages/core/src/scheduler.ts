@@ -7,7 +7,7 @@ import type {
   GenerativeA11yEvent,
 } from "./types.js";
 
-export type AnnouncementPriority = "status" | "content";
+export type AnnouncementCapacityPriority = "status" | "content";
 
 export interface ScheduleAnnouncement {
   channel: AnnouncementChannel;
@@ -22,7 +22,7 @@ export interface ScheduleAnnouncement {
   scope?: string;
   coalesceKey?: string;
   dedupeKey?: string;
-  priority?: AnnouncementPriority;
+  capacityPriority?: AnnouncementCapacityPriority;
 }
 
 interface ScheduledItem extends ScheduleAnnouncement {
@@ -71,8 +71,8 @@ export function createAnnouncementScheduler(
   const queue: ScheduledItem[] = [];
   const deliveredDedupe = new Map<string, number>();
 
-  function priorityRank(item: ScheduleAnnouncement): number {
-    return item.priority === "status" ? 0 : 1;
+  function capacityPriorityRank(item: ScheduleAnnouncement): number {
+    return item.capacityPriority === "status" ? 0 : 1;
   }
 
   function diagnostic(
@@ -233,6 +233,7 @@ export function createAnnouncementScheduler(
         dueAt: clock.now() + Math.max(0, candidate.delayMs ?? 0),
         sequence: sequence++,
       };
+      let queued = false;
       if (queue.length >= options.maxQueueSize) {
         const capacityCandidates = [...queue, item];
         const hasPoliteCandidate = capacityCandidates.some(
@@ -243,7 +244,7 @@ export function createAnnouncementScheduler(
         );
         const dropped = evictionPool.sort(
           (left, right) =>
-            priorityRank(left) - priorityRank(right) ||
+            capacityPriorityRank(left) - capacityPriorityRank(right) ||
             left.sequence - right.sequence,
         )[0];
         if (dropped === item) {
@@ -251,11 +252,12 @@ export function createAnnouncementScheduler(
           return undefined;
         }
         if (dropped) {
-          queue.splice(queue.indexOf(dropped), 1);
+          queue.splice(queue.indexOf(dropped), 1, item);
+          queued = true;
           diagnostic("cancelled", "queue-capacity", dropped);
         }
       }
-      queue.push(item);
+      if (!queued) queue.push(item);
       diagnostic("queued", "scheduled", item);
       scheduleTimer();
       return item.id;
