@@ -7,6 +7,8 @@ import type {
   GenerativeA11yEvent,
 } from "./types.js";
 
+export type AnnouncementPriority = "status" | "content";
+
 export interface ScheduleAnnouncement {
   channel: AnnouncementChannel;
   text: string;
@@ -20,6 +22,7 @@ export interface ScheduleAnnouncement {
   scope?: string;
   coalesceKey?: string;
   dedupeKey?: string;
+  priority?: AnnouncementPriority;
 }
 
 interface ScheduledItem extends ScheduleAnnouncement {
@@ -67,6 +70,10 @@ export function createAnnouncementScheduler(
   let disposed = false;
   const queue: ScheduledItem[] = [];
   const deliveredDedupe = new Map<string, number>();
+
+  function priorityRank(item: ScheduleAnnouncement): number {
+    return item.priority === "status" ? 0 : 1;
+  }
 
   function diagnostic(
     disposition: AnnouncementDiagnostic["disposition"],
@@ -118,24 +125,28 @@ export function createAnnouncementScheduler(
     timer = undefined;
     const next = selectNext(false);
     if (!next) return;
-    const gapAt =
-      next.channel === "assertive"
-        ? next.dueAt
-        : Math.max(next.dueAt, lastDeliveredAt + options.minimumGapMs);
-    timer = clock.setTimeout(pump, Math.max(0, gapAt - clock.now()));
+    timer = clock.setTimeout(pump, Math.max(0, eligibleAt(next) - clock.now()));
   }
 
-  function selectNext(onlyDue: boolean): ScheduledItem | undefined {
+  function eligibleAt(item: ScheduledItem): number {
+    return item.channel === "assertive"
+      ? item.dueAt
+      : Math.max(item.dueAt, lastDeliveredAt + options.minimumGapMs);
+  }
+
+  function selectNext(onlyEligible: boolean): ScheduledItem | undefined {
     const now = clock.now();
     return [...queue]
-      .filter((item) => !onlyDue || item.dueAt <= now)
+      .filter((item) => !onlyEligible || eligibleAt(item) <= now)
       .sort((left, right) => {
-        const leftDue = left.dueAt <= now;
-        const rightDue = right.dueAt <= now;
-        if (leftDue && rightDue && left.channel !== right.channel) {
+        if (onlyEligible && left.channel !== right.channel) {
           return left.channel === "assertive" ? -1 : 1;
         }
-        return left.dueAt - right.dueAt || left.sequence - right.sequence;
+        return (
+          eligibleAt(left) - eligibleAt(right) ||
+          left.dueAt - right.dueAt ||
+          left.sequence - right.sequence
+        );
       })[0];
   }
 
@@ -144,13 +155,6 @@ export function createAnnouncementScheduler(
     if (disposed) return;
     const item = selectNext(true);
     if (!item) {
-      scheduleTimer();
-      return;
-    }
-    if (
-      item.channel === "polite" &&
-      clock.now() < lastDeliveredAt + options.minimumGapMs
-    ) {
       scheduleTimer();
       return;
     }
@@ -230,15 +234,25 @@ export function createAnnouncementScheduler(
         sequence: sequence++,
       };
       if (queue.length >= options.maxQueueSize) {
-        const dropped = queue.find((queued) => queued.channel === "polite");
-        if (!dropped && item.channel === "polite") {
+        const capacityCandidates = [...queue, item];
+        const hasPoliteCandidate = capacityCandidates.some(
+          (candidate) => candidate.channel === "polite",
+        );
+        const evictionPool = capacityCandidates.filter(
+          (candidate) => candidate.channel === "polite" || !hasPoliteCandidate,
+        );
+        const dropped = evictionPool.sort(
+          (left, right) =>
+            priorityRank(left) - priorityRank(right) ||
+            left.sequence - right.sequence,
+        )[0];
+        if (dropped === item) {
           diagnostic("cancelled", "queue-capacity", item);
           return undefined;
         }
-        const displaced = dropped ?? queue[0];
-        if (displaced) {
-          queue.splice(queue.indexOf(displaced), 1);
-          diagnostic("cancelled", "queue-capacity", displaced);
+        if (dropped) {
+          queue.splice(queue.indexOf(dropped), 1);
+          diagnostic("cancelled", "queue-capacity", dropped);
         }
       }
       queue.push(item);

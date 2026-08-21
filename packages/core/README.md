@@ -77,10 +77,12 @@ queue/entity ceilings must be positive integers.
 
 `createAnnouncementScheduler(options)` is the lower-level prioritized queue used
 by the runtime. `schedule(candidate)` supports delay, scope cancellation,
-coalescing and explicit dedupe keys. `cancelScope(scope)` cancels queued
-candidates, `pendingCount()` reports queue length, and `dispose()` permanently
-clears it. The scheduler validates bounds, preserves assertive work under
-capacity pressure, isolates callback failures and defaults deduplication to the
+coalescing, explicit dedupe keys, and an optional `priority` of `"status"` or
+`"content"` for capacity retention. Candidates without a priority retain the
+legacy content tier. `cancelScope(scope)` cancels queued candidates,
+`pendingCount()` reports queue length, and `dispose()` permanently clears it.
+The scheduler validates bounds, preserves assertive work under capacity
+pressure, isolates callback failures and defaults deduplication to the
 candidate's semantic entity.
 
 Most applications should use the runtime rather than schedule announcement text

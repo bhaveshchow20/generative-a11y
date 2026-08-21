@@ -60,6 +60,27 @@ describe("generative accessibility runtime", () => {
     expect(recorder.clock.pendingCount()).toBe(0);
   });
 
+  it("retains a final content flush over completion status at queue capacity", () => {
+    const recorder = createAnnouncementRecorder({
+      policy: {
+        maxQueueSize: 1,
+        text: { minimumCharacters: 1, maximumDelayMs: 10_000 },
+      },
+    });
+    recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
+    recorder.runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "r1",
+      delta: "The final answer",
+    });
+    recorder.runtime.dispatch({ type: "response.completed", responseId: "r1" });
+    recorder.clock.runUntilIdle();
+
+    expect(recorder.transcript().map(({ text }) => text)).toEqual([
+      "The final answer",
+    ]);
+  });
+
   it("cancels buffered and queued text when interrupted", () => {
     const recorder = createAnnouncementRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 500 } },
@@ -281,6 +302,128 @@ describe("generative accessibility runtime", () => {
       "New answer",
       "Response complete.",
     ]);
+  });
+
+  it("serializes a response restart dispatched by a completion diagnostic", () => {
+    const clock = new ManualClock();
+    const announcements: string[] = [];
+    const diagnostics: Array<{ sourceType?: string; reason: string }> = [];
+    let restarted = false;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      clock,
+      policy: {
+        maxQueueSize: 1,
+        text: { minimumCharacters: 1, maximumDelayMs: 10_000 },
+      },
+      onAnnouncement: ({ text }) => announcements.push(text),
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push({
+          reason: diagnostic.reason,
+          ...(diagnostic.sourceType
+            ? { sourceType: diagnostic.sourceType }
+            : {}),
+        });
+        if (
+          !restarted &&
+          diagnostic.sourceType === "response.completed" &&
+          diagnostic.reason === "scheduled"
+        ) {
+          restarted = true;
+          runtime.dispatch({
+            type: "response.started",
+            responseId: "r1",
+            responseInstanceId: "new",
+          });
+        }
+      },
+    });
+
+    runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      responseInstanceId: "old",
+    });
+    diagnostics.length = 0;
+    runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "r1",
+      responseInstanceId: "old",
+      delta: "Old answer",
+    });
+    runtime.dispatch({
+      type: "response.completed",
+      responseId: "r1",
+      responseInstanceId: "old",
+    });
+    const completionTransactionDiagnostics = [...diagnostics];
+    runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "r1",
+      responseInstanceId: "new",
+      delta: "New answer",
+    });
+    runtime.dispatch({
+      type: "response.completed",
+      responseId: "r1",
+      responseInstanceId: "new",
+    });
+    clock.runUntilIdle();
+
+    expect(announcements).toEqual(["New answer"]);
+    const firstStartedDiagnostic = completionTransactionDiagnostics.findIndex(
+      ({ sourceType }) => sourceType === "response.started",
+    );
+    expect(firstStartedDiagnostic).toBeGreaterThan(0);
+    expect(
+      completionTransactionDiagnostics
+        .slice(firstStartedDiagnostic + 1)
+        .some(({ sourceType }) => sourceType === "response.completed"),
+    ).toBe(false);
+  });
+
+  it("bounds diagnostic-triggered nested dispatch and diagnoses overflow", () => {
+    const diagnostics: AnnouncementDiagnostic[] = [];
+    let queuedBurst = false;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      policy: { maxQueueSize: 2 },
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        diagnostics.push(diagnostic);
+        if (!queuedBurst && diagnostic.sourceType === "response.started") {
+          queuedBurst = true;
+          for (const responseId of ["r2", "r3", "r4", "r5"]) {
+            runtime.dispatch({ type: "response.started", responseId });
+          }
+        }
+      },
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+
+    expect(
+      diagnostics.filter(({ reason }) => reason === "invalid-event"),
+    ).toHaveLength(2);
+  });
+
+  it("clears nested dispatch work when disposed during a diagnostic", () => {
+    const seenSourceTypes: string[] = [];
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      onAnnouncement: () => undefined,
+      onDiagnostic: (diagnostic) => {
+        if (diagnostic.sourceType) seenSourceTypes.push(diagnostic.sourceType);
+        if (diagnostic.sourceType === "response.started") {
+          runtime.dispatch({ type: "connection.restored" });
+          runtime.dispose();
+        }
+      },
+    });
+
+    runtime.dispatch({ type: "response.started", responseId: "r1" });
+
+    expect(seenSourceTypes).not.toContain("connection.restored");
   });
 
   it("inherits the response locale and tolerates malformed locales", () => {
@@ -537,6 +680,73 @@ describe("generative accessibility runtime", () => {
         .diagnosticTranscript()
         .filter(({ reason }) => reason === "invalid-event"),
     ).toHaveLength(2);
+  });
+
+  it("shares the active entity ceiling across responses and tools", () => {
+    const recorder = createAnnouncementRecorder({
+      preset: "verbose",
+      policy: { maxActiveEntities: 1 },
+    });
+    recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({ type: "response.completed", responseId: "r1" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({ type: "response.started", responseId: "r2" });
+
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .filter(({ reason }) => reason === "invalid-event")
+        .map(({ sourceType }) => sourceType),
+    ).toEqual(["tool.started", "response.started"]);
+  });
+
+  it("allows active response and tool identities to be replaced at the ceiling", () => {
+    const recorder = createAnnouncementRecorder({
+      preset: "verbose",
+      policy: { maxActiveEntities: 1 },
+    });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      responseInstanceId: "old",
+    });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "r1",
+      responseInstanceId: "new",
+    });
+    recorder.runtime.dispatch({
+      type: "response.completed",
+      responseId: "r1",
+      responseInstanceId: "new",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "old",
+      label: "Search",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "t1",
+      toolInstanceId: "new",
+      label: "Search",
+    });
+
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .filter(({ reason }) => reason === "invalid-event"),
+    ).toEqual([]);
   });
 
   it("prioritizes an urgent interaction over queued polite output", () => {

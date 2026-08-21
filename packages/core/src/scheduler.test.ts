@@ -38,6 +38,36 @@ describe("announcement scheduler", () => {
     expect(announcements.map(({ text }) => text)).toEqual(["Urgent", "Normal"]);
   });
 
+  it("wakes for an assertive deadline during a polite minimum gap", () => {
+    const { scheduler, clock, announcements } = setup();
+    scheduler.schedule({
+      channel: "polite",
+      text: "First",
+      sourceType: "response.completed",
+    });
+    clock.advanceBy(0);
+    scheduler.schedule({
+      channel: "polite",
+      text: "Second",
+      sourceType: "response.completed",
+    });
+    scheduler.schedule({
+      channel: "assertive",
+      text: "Urgent",
+      sourceType: "approval.requested",
+      delayMs: 25,
+    });
+
+    clock.advanceBy(25);
+
+    expect(announcements.map(({ text, at }) => ({ text, at }))).toEqual([
+      { text: "First", at: 0 },
+      { text: "Urgent", at: 25 },
+    ]);
+    clock.advanceTo(125);
+    expect(announcements.at(-1)?.text).toBe("Second");
+  });
+
   it("coalesces queued candidates and suppresses delivered duplicates", () => {
     const { scheduler, clock, announcements, diagnostics } = setup();
     scheduler.schedule({
@@ -129,6 +159,34 @@ describe("announcement scheduler", () => {
 
     expect(announcements.map(({ text }) => text)).toEqual(["Urgent"]);
     expect(diagnostics.at(-2)?.reason).toBe("queue-capacity");
+  });
+
+  it("retains content over lifecycle status at queue capacity", () => {
+    const { scheduler, clock, announcements } = setup(1);
+    scheduler.schedule({
+      channel: "polite",
+      text: "Response complete.",
+      sourceType: "response.completed",
+      priority: "status",
+      delayMs: 10,
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "The final answer",
+      sourceType: "response.completed",
+      priority: "content",
+      delayMs: 10,
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Another status update",
+      sourceType: "tool.progress",
+      priority: "status",
+      delayMs: 10,
+    });
+    clock.runUntilIdle();
+
+    expect(announcements.map(({ text }) => text)).toEqual(["The final answer"]);
   });
 
   it("continues after a delivery callback throws", () => {
