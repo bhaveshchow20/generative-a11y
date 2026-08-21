@@ -45,4 +45,19 @@ describe("ManualClock", () => {
     expect(observed).toEqual([20]);
     expect(clock.now()).toBe(20);
   });
+
+  it("runs pending tasks monotonically when a callback advances through them", () => {
+    const clock = new ManualClock();
+    const observed: number[] = [];
+    clock.setTimeout(() => {
+      clock.advanceBy(20);
+      observed.push(clock.now());
+    }, 5);
+    clock.setTimeout(() => observed.push(clock.now()), 10);
+
+    clock.runUntilIdle();
+
+    expect(observed).toEqual([10, 25]);
+    expect(clock.now()).toBe(25);
+  });
 });

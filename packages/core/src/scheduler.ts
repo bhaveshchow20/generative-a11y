@@ -285,10 +285,10 @@ export function createAnnouncementScheduler(
       if (queue.length >= options.maxQueueSize) {
         const capacityCandidates = [...queue, item];
         const hasPoliteCandidate = capacityCandidates.some(
-          (candidate) => candidate.channel === "polite",
+          (entry) => entry.channel === "polite",
         );
         const evictionPool = capacityCandidates.filter(
-          (candidate) => candidate.channel === "polite" || !hasPoliteCandidate,
+          (entry) => entry.channel === "polite" || !hasPoliteCandidate,
         );
         const dropped = evictionPool.sort(
           (left, right) =>

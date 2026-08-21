@@ -1,4 +1,8 @@
 import { defineConfig } from "@playwright/test";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const browserTestRoot = dirname(fileURLToPath(import.meta.url));
 
 const configuredPort = process.env.AT_FIXTURE_PORT;
 const port = configuredPort === undefined ? 43_123 : Number(configuredPort);
@@ -10,7 +14,21 @@ export default defineConfig({
   testDir: ".",
   testMatch: "at-fixture.spec.ts",
   fullyParallel: true,
-  reporter: "line",
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 1 : 0,
+  outputDir: resolve(browserTestRoot, "test-results"),
+  reporter: process.env.CI
+    ? [
+        ["line"],
+        [
+          "html",
+          {
+            open: "never",
+            outputFolder: resolve(browserTestRoot, "playwright-report"),
+          },
+        ],
+      ]
+    : "line",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     trace: "retain-on-failure",

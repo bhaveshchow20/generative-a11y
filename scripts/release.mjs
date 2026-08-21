@@ -21,6 +21,9 @@ function run(command, args) {
 }
 
 async function verifyEvidence() {
+  if (git("status", "--porcelain=v1")) {
+    throw new Error("release working tree must be clean");
+  }
   git("ls-files", "--error-unmatch", evidenceFile);
   const evidence = JSON.parse(await readFile(evidenceFile, "utf8"));
   const sourceCommit = evidence?.sourceCommit;

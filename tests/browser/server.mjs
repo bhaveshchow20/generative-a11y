@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { dirname, extname, resolve, sep } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = await realpath(
@@ -110,7 +111,14 @@ const server = createServer(async (request, response) => {
       "X-Content-Type-Options": "nosniff",
     });
     if (request.method === "HEAD") response.end();
-    else createReadStream(selected.path).pipe(response);
+    else {
+      try {
+        await pipeline(createReadStream(selected.path), response);
+      } catch (error) {
+        if (!response.destroyed) response.destroy();
+        console.error(error);
+      }
+    }
   } catch (error) {
     response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Internal server error\n");

@@ -37,6 +37,7 @@ test("has semantic landmarks and no serious automated accessibility findings", a
   await expect(
     page.getByRole("region", { name: "Event ledger" }),
   ).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0);
 
   const results = await new AxeBuilder({ page }).analyze();
   expect(
