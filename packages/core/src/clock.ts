@@ -60,10 +60,10 @@ export class ManualClock implements Clock {
       const task = this.#nextTask(timestamp);
       if (!task) break;
       this.#tasks.delete(task.id);
-      this.#now = task.at;
+      this.#now = Math.max(this.#now, task.at);
       task.callback();
     }
-    this.#now = timestamp;
+    this.#now = Math.max(this.#now, timestamp);
   }
 
   runNext(): boolean {

@@ -208,9 +208,9 @@ describe("GenerativeA11yProvider", () => {
     ).not.toThrow();
     view.unmount();
     await flushCleanup();
-    expect(() =>
+    expect(
       runtime?.dispatch({ type: "response.started", responseId: "later" }),
-    ).toThrow("disposed");
+    ).toBe(false);
   });
 
   it("disposes owned attention and preference stores after a real unmount", async () => {
@@ -402,9 +402,9 @@ describe("GenerativeA11yProvider", () => {
     expect(windowRemoveCount).toBe(windowAddCount);
     expect(document.querySelector("[aria-live]")).toBeNull();
     expect(runtime?.pendingCount()).toBe(0);
-    expect(() =>
+    expect(
       runtime?.dispatch({ type: "response.started", responseId: "stale" }),
-    ).toThrow("disposed");
+    ).toBe(false);
   });
 
   it("throws clear errors for every hook outside a provider", () => {

@@ -20,6 +20,7 @@ export {
   createAnnouncementScheduler,
   type AnnouncementScheduler,
   type AnnouncementSchedulerOptions,
+  type AnnouncementCapacityPriority,
   type ScheduleAnnouncement,
 } from "./scheduler.js";
 export {

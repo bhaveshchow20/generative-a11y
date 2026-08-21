@@ -1,0 +1,44 @@
+name: Publish packages
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: npm-production
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm-production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Verify npm trusted-publishing prerequisites
+        run: |
+          node --input-type=module -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 14)) process.exit(1)"
+          npm_version="$(npm --version)"
+          node --input-type=module -e "const actual = process.argv[1].split('.').map(Number); const required = [11, 5, 1]; const difference = actual.findIndex((part, index) => part !== required[index]); const valid = difference === -1 || actual[difference] > required[difference]; if (!valid) { console.error('npm >=11.5.1 is required; found ' + process.argv[1]); process.exit(1) }" "$npm_version"
+      - name: Validate, test, and publish packages
+        uses: changesets/action/publish@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
+        with:
+          script: pnpm release
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          create-github-releases: true
+          push-git-tags: true

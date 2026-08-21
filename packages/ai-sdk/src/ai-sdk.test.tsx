@@ -25,6 +25,7 @@ function createRuntime() {
     runtime: {
       dispatch(event: GenerativeA11yEvent) {
         events.push(event);
+        return true;
       },
     } satisfies Pick<GenerativeA11yRuntime, "dispatch">,
   };

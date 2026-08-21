@@ -35,7 +35,10 @@ function eventsRuntime() {
   return {
     events,
     runtime: {
-      dispatch: (event: GenerativeA11yEvent) => events.push(event),
+      dispatch(event: GenerativeA11yEvent) {
+        events.push(event);
+        return true;
+      },
     } satisfies Pick<GenerativeA11yRuntime, "dispatch">,
   };
 }
@@ -221,7 +224,7 @@ describe("assistant-ui binding", () => {
     const thread = runtimeFor({ messages: [] });
     expect(() =>
       bindThreadRuntime({
-        runtime: { dispatch() {} },
+        runtime: { dispatch: () => false },
         scopeId: " ",
         thread: thread as unknown as ThreadRuntimeSource,
       }),

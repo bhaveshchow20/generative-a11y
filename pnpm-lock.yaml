@@ -23,6 +23,9 @@ importers:
       '@assistant-ui/react':
         specifier: 0.15.14
         version: 0.15.14(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
+      '@axe-core/playwright':
+        specifier: 4.13.0
+        version: 4.13.0(playwright-core@1.62.1)
       '@changesets/cli':
         specifier: 3.0.0
         version: 3.0.0
@@ -47,6 +50,9 @@ importers:
       '@generative-a11y/react':
         specifier: workspace:*
         version: link:packages/react
+      '@playwright/test':
+        specifier: 1.62.1
+        version: 1.62.1
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1
@@ -220,9 +226,6 @@ importers:
   packages/ag-ui:
     dependencies:
       '@ag-ui/client':
-        specifier: '>=0.0.57 <0.0.59'
-        version: 0.0.58
-      '@ag-ui/core':
         specifier: '>=0.0.57 <0.0.59'
         version: 0.0.58
       '@generative-a11y/core':

@@ -1,47 +1,59 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { execPath } from "node:process";
+import { dirname, join, relative } from "node:path";
+import { execPath, stderr } from "node:process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
-const execFileAsync = promisify(execFile);
+import {
+  assertRuntimeExportParity,
+  createCommandRunner,
+  createConsumerManifest,
+  createPnpmWorkspaceConfig,
+  createRuntimeConsumerSource,
+  createTypeScriptConsumerSource,
+  isKnownUpstreamDeclarationDiagnostic,
+  packageInstallArguments,
+  packageScenarios,
+  toPackedFileDependency,
+  typescriptConsumerModes,
+} from "./package-smoke-manifest.mjs";
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const packageExports = [
-  ["@generative-a11y/core", "", "createGenerativeA11y"],
-  ["@generative-a11y/dom", "", "createDOMAnnouncer"],
-  ["@generative-a11y/react", "", "GenerativeA11yProvider"],
-  ["@generative-a11y/ai-sdk", "", "createObserver"],
-  ["@generative-a11y/ai-sdk", "/react", "useChatAccessibility"],
-  ["@generative-a11y/assistant-ui", "", "bindThreadRuntime"],
-  ["@generative-a11y/ag-ui", "", "bindAgent"],
-];
+const runCommand = createCommandRunner(promisify(execFile));
+const require = createRequire(import.meta.url);
 
-const packageNames = [
-  ...new Set(packageExports.map(([packageName]) => packageName)),
-];
-for (const [packageName, subpath, expectedExport] of packageExports) {
-  const specifier = `${packageName}${subpath}`;
+for (const { specifier, expectedExport } of packageScenarios) {
   const esm = await import(specifier);
-  const cjs = createRequire(import.meta.url)(specifier);
-  assert.equal(typeof esm[expectedExport], "function");
-  assert.equal(typeof cjs[expectedExport], "function");
-  assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
+  const cjs = require(specifier);
+  assertRuntimeExportParity({ specifier, expectedExport, esm, cjs });
 }
 
 const tempRoot = await mkdtemp(
   join(tmpdir(), "generative-a11y-package-smoke-"),
 );
-const archiveRoot = join(tempRoot, "archives");
-const projectRoot = join(tempRoot, "project");
-await Promise.all([mkdir(archiveRoot), mkdir(projectRoot)]);
 
 try {
+  const archiveRoot = join(tempRoot, "archives");
+  const projectsRoot = join(tempRoot, "projects");
+  await Promise.all([mkdir(archiveRoot), mkdir(projectsRoot)]);
+
+  const packageNames = [
+    ...new Set(packageScenarios.map(({ packageName }) => packageName)),
+  ];
   for (const packageName of packageNames) {
-    await execFileAsync(
+    await runCommand(
       "pnpm",
       ["--filter", packageName, "pack", "--pack-destination", archiveRoot],
       { cwd: root },
@@ -57,68 +69,117 @@ try {
     assert.ok(archive, `packed archive missing for ${packageName}`);
     return join(archiveRoot, archive);
   };
+  const rootPackage = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8"),
+  );
+  const reportedUpstreamDeclarationIssues = new Set();
 
-  const dependencies = Object.fromEntries(
-    packageNames.map((packageName) => [
-      packageName,
-      `file:${archiveFor(packageName)}`,
-    ]),
-  );
-  await writeFile(
-    join(projectRoot, "package.json"),
-    JSON.stringify(
-      {
-        name: "generative-a11y-package-smoke",
-        version: "0.0.0",
-        private: true,
-        type: "module",
-        packageManager: "pnpm@11.21.0",
-        dependencies,
-      },
-      null,
-      2,
-    ),
-  );
-  // Workspace dependencies in the archives are rewritten to 0.0.0. Point
-  // those dependencies at local archives without consulting a registry.
-  const overrides = [
-    "@generative-a11y/core",
-    "@generative-a11y/dom",
-    "@generative-a11y/ai-sdk",
-    "@generative-a11y/assistant-ui",
-    "@generative-a11y/ag-ui",
-  ]
-    .map(
-      (packageName) => `  "${packageName}": "file:${archiveFor(packageName)}"`,
-    )
-    .join("\n");
-  await writeFile(
-    join(projectRoot, "pnpm-workspace.yaml"),
-    `overrides:\n${overrides}\n`,
-  );
+  for (const scenario of packageScenarios) {
+    const projectRoot = join(projectsRoot, scenario.id);
+    await mkdir(projectRoot);
+    const packedDependencyFor = (packageName) =>
+      toPackedFileDependency(relative(projectRoot, archiveFor(packageName)));
+    const internalOverrides = Object.fromEntries(
+      scenario.internalPackages.map((packageName) => [
+        packageName,
+        packedDependencyFor(packageName),
+      ]),
+    );
+    const targetPackageDirectory = scenario.packageName.split("/").at(-1);
+    const targetManifest = JSON.parse(
+      await readFile(
+        join(root, "packages", targetPackageDirectory, "package.json"),
+        "utf8",
+      ),
+    );
+    const consumerManifest = createConsumerManifest({
+      rootPackage,
+      scenario,
+      targetDependency: packedDependencyFor(scenario.packageName),
+      internalOverrides,
+      targetManifest,
+    });
+    await writeFile(
+      join(projectRoot, "package.json"),
+      JSON.stringify(consumerManifest, null, 2),
+    );
+    await writeFile(
+      join(projectRoot, "pnpm-workspace.yaml"),
+      createPnpmWorkspaceConfig(internalOverrides),
+    );
 
-  await execFileAsync("pnpm", ["install", "--lockfile=false", "--offline"], {
-    cwd: projectRoot,
-  });
-  await writeFile(
-    join(projectRoot, "smoke.mjs"),
-    `import assert from "node:assert/strict";
-import { createRequire } from "node:module";
+    await runCommand("pnpm", packageInstallArguments, { cwd: projectRoot });
 
-const require = createRequire(import.meta.url);
-for (const [packageName, subpath, expectedExport] of ${JSON.stringify(packageExports)}) {
-  const specifier = \`${"${packageName}"}\${subpath}\`;
-  const esm = await import(specifier);
-  const cjs = require(specifier);
-  assert.equal(typeof esm[expectedExport], "function");
-  assert.equal(typeof cjs[expectedExport], "function");
-  assert.deepEqual(Object.keys(esm).sort(), Object.keys(cjs).sort());
-}
-`,
-  );
-  await execFileAsync(execPath, [join(projectRoot, "smoke.mjs")], {
-    cwd: projectRoot,
-  });
+    for (const fixtureName of scenario.fixtures) {
+      const installedManifestPath = join(
+        projectRoot,
+        "node_modules",
+        ...fixtureName.split("/"),
+        "package.json",
+      );
+      const installedManifest = JSON.parse(
+        await readFile(installedManifestPath, "utf8"),
+      );
+      const expectedVersion = rootPackage.devDependencies[fixtureName];
+      assert.equal(
+        installedManifest.version,
+        expectedVersion,
+        `${scenario.id}: expected ${fixtureName}@${expectedVersion}, observed ${installedManifest.version}`,
+      );
+    }
+
+    const runtimeConsumerPath = join(projectRoot, "runtime.mjs");
+    await writeFile(runtimeConsumerPath, createRuntimeConsumerSource(scenario));
+    await runCommand(execPath, [runtimeConsumerPath], { cwd: projectRoot });
+
+    const typeScriptSource = createTypeScriptConsumerSource(scenario);
+    for (const mode of typescriptConsumerModes) {
+      const consumerPath = join(projectRoot, mode.fileName);
+      await writeFile(consumerPath, typeScriptSource);
+      const compilerOptions = {
+        module: ts.ModuleKind[mode.module],
+        moduleResolution: ts.ModuleResolutionKind[mode.moduleResolution],
+        noEmit: true,
+        skipLibCheck: false,
+        strict: true,
+        target: ts.ScriptTarget.ES2022,
+        types: scenario.fixtures
+          .filter((packageName) => packageName.startsWith("@types/"))
+          .map((packageName) => packageName.slice("@types/".length)),
+      };
+      const program = ts.createProgram([consumerPath], compilerOptions);
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+      const knownUpstreamDiagnostics = diagnostics.filter((diagnostic) =>
+        isKnownUpstreamDeclarationDiagnostic(scenario, diagnostic),
+      );
+      if (
+        knownUpstreamDiagnostics.length > 0 &&
+        !reportedUpstreamDeclarationIssues.has(scenario.id)
+      ) {
+        stderr.write(
+          `[package-smoke] ${scenario.id}: isolated upstream @ai-sdk/provider declaration defect (TS7016): json-schema has no declaration file; strict checking continues for all other diagnostics.\n`,
+        );
+        reportedUpstreamDeclarationIssues.add(scenario.id);
+      }
+      const unexpectedDiagnostics = diagnostics.filter(
+        (diagnostic) =>
+          !isKnownUpstreamDeclarationDiagnostic(scenario, diagnostic),
+      );
+      if (unexpectedDiagnostics.length > 0) {
+        const formatted = ts.formatDiagnosticsWithColorAndContext(
+          unexpectedDiagnostics,
+          {
+            getCanonicalFileName: (fileName) => fileName,
+            getCurrentDirectory: () => projectRoot,
+            getNewLine: () => "\n",
+          },
+        );
+        throw new Error(
+          `${scenario.id}: TypeScript packed consumer failed in ${mode.name}:\n${formatted}`,
+        );
+      }
+    }
+  }
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }

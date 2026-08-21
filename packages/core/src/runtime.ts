@@ -3,6 +3,7 @@ import { systemClock } from "./clock.js";
 import { resolvePolicy, type PolicyOverrides } from "./policy.js";
 import {
   createAnnouncementScheduler,
+  type AnnouncementCapacityPriority,
   type AnnouncementScheduler,
 } from "./scheduler.js";
 import { normalizeAnnouncementText, segmentText } from "./segmenter.js";
@@ -48,7 +49,7 @@ export type AnnouncementListener = (announcement: AnnouncementIntent) => void;
 export type DiagnosticListener = (diagnostic: AnnouncementDiagnostic) => void;
 
 export interface GenerativeA11yRuntime {
-  dispatch(event: GenerativeA11yEvent): void;
+  dispatch(event: GenerativeA11yEvent): boolean;
   getPolicy(): ReadonlyAnnouncementPolicy;
   pendingCount(): number;
   subscribeAnnouncements(listener: AnnouncementListener): () => void;
@@ -84,6 +85,12 @@ export function createGenerativeA11y(
   let nextDiagnosticListenerId = 1;
   let nextResponseEpoch = 1;
   let disposed = false;
+  let dispatching = false;
+  let reportingDispatchOverflow = false;
+  let nestedDispatchCount = 0;
+  const dispatchQueue: GenerativeA11yEvent[] = [];
+  const dispatchOverflowQueue: GenerativeA11yEvent[] = [];
+  let dispatchOverflowAggregateCount = 0;
   let announcementEmissionDepth = 0;
   let clearListenersAfterDeliveryDiagnostic = false;
 
@@ -180,6 +187,15 @@ export function createGenerativeA11y(
     });
   }
 
+  function diagnoseCapacityAggregate(count: number): void {
+    emitDiagnostic({
+      at: clock.now(),
+      disposition: "suppressed",
+      reason: "queue-capacity",
+      count,
+    });
+  }
+
   function announce(
     event: GenerativeA11yEvent,
     text: string,
@@ -193,6 +209,7 @@ export function createGenerativeA11y(
       toolId?: string;
       interactionId?: string;
       locale?: string;
+      capacityPriority?: AnnouncementCapacityPriority;
     } = {},
   ): void {
     const normalized = normalizeAnnouncementText(text);
@@ -261,6 +278,7 @@ export function createGenerativeA11y(
     announce(event, text, "polite", {
       responseId: event.responseId,
       scope: responseScope(event.responseId, state.epoch),
+      capacityPriority: "content",
       ...(state.locale ? { locale: state.locale } : {}),
     });
   }
@@ -306,13 +324,20 @@ export function createGenerativeA11y(
     return state;
   }
 
+  function activeEntityCount(): number {
+    return (
+      [...responses.values()].filter(({ status }) => status === "active")
+        .length +
+      [...tools.values()].filter(({ status }) => status === "active").length
+    );
+  }
+
   function dispatchResponse(event: ResponseEvent): void {
     if (event.type === "response.started") {
       const previous = responses.get(event.responseId);
       if (
         previous?.status !== "active" &&
-        [...responses.values()].filter(({ status }) => status === "active")
-          .length >= policy.maxActiveEntities
+        activeEntityCount() >= policy.maxActiveEntities
       ) {
         diagnose(event, "invalid-event");
         return;
@@ -338,6 +363,7 @@ export function createGenerativeA11y(
         announce(event, "Assistant is responding.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
+          capacityPriority: "status",
           ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
@@ -382,6 +408,7 @@ export function createGenerativeA11y(
         announce(event, state.fullText, "polite", {
           responseId: event.responseId,
           scope,
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else if (policy.text.strategy !== "silent") {
@@ -392,6 +419,7 @@ export function createGenerativeA11y(
         announce(event, "Response complete.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
+          capacityPriority: "status",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else {
@@ -400,6 +428,7 @@ export function createGenerativeA11y(
       state.buffer = "";
       state.ready.length = 0;
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
       return;
     }
@@ -415,12 +444,14 @@ export function createGenerativeA11y(
         announce(event, "Response stopped.", "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
+          capacityPriority: "status",
           ...(state.locale ? { locale: state.locale } : {}),
         });
       } else {
         diagnose(event, "policy-silent");
       }
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else if (event.type === "response.failed") {
       state.status = "failed";
@@ -431,10 +462,12 @@ export function createGenerativeA11y(
         {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         },
       );
       state.fullText = "";
+      if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else {
       state.epoch = nextResponseEpoch++;
@@ -454,6 +487,7 @@ export function createGenerativeA11y(
           {
             responseId: event.responseId,
             scope: responseLifecycleScope(event.responseId),
+            capacityPriority: "status",
             ...(state.locale ? { locale: state.locale } : {}),
           },
         );
@@ -470,8 +504,7 @@ export function createGenerativeA11y(
       const previous = tools.get(event.toolId);
       if (
         previous?.status !== "active" &&
-        [...tools.values()].filter(({ status }) => status === "active")
-          .length >= policy.maxActiveEntities
+        activeEntityCount() >= policy.maxActiveEntities
       ) {
         diagnose(event, "invalid-event");
         return;
@@ -491,6 +524,7 @@ export function createGenerativeA11y(
           delayMs: policy.tools.announceStartAfterMs,
           scope: startScope,
           coalesceKey: startScope,
+          capacityPriority: "status",
           ...(event.locale ? { locale: event.locale } : {}),
         });
       } else {
@@ -551,6 +585,7 @@ export function createGenerativeA11y(
         delayMs: policy.minimumGapMs,
         scope: progressScope,
         coalesceKey: progressScope,
+        capacityPriority: "status",
         ...(state.locale ? { locale: state.locale } : {}),
       });
       return;
@@ -563,6 +598,7 @@ export function createGenerativeA11y(
       announce(event, event.summary ?? `${event.label} complete.`, "polite", {
         toolId: event.toolId,
         scope: toolLifecycleScope(event.toolId),
+        capacityPriority: "status",
         ...(state.locale ? { locale: state.locale } : {}),
       });
     } else if (
@@ -579,12 +615,14 @@ export function createGenerativeA11y(
         {
           toolId: event.toolId,
           scope: toolLifecycleScope(event.toolId),
+          capacityPriority: "content",
           ...(state.locale ? { locale: state.locale } : {}),
         },
       );
     } else if (event.type === "tool.failed" && !policy.tools.announceFailure) {
       diagnose(event, "policy-silent");
     }
+    if (disposed) return;
     state.status = event.type === "tool.completed" ? "completed" : "failed";
     retainTerminalState(tools, event.toolId, state);
   }
@@ -599,6 +637,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label, event.urgent ? "assertive" : "polite", {
         interactionId: event.interactionId,
+        capacityPriority: "content",
       });
       return;
     }
@@ -610,6 +649,7 @@ export function createGenerativeA11y(
         "polite",
         {
           interactionId: event.interactionId,
+          capacityPriority: "content",
         },
       );
       return;
@@ -618,6 +658,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label, event.urgent ? "assertive" : "polite", {
         interactionId: event.approvalId,
+        capacityPriority: "content",
       });
       return;
     }
@@ -625,6 +666,7 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(event, event.label ?? `Approval ${event.outcome}.`, "polite", {
         interactionId: event.approvalId,
+        capacityPriority: "content",
       });
       return;
     }
@@ -634,12 +676,15 @@ export function createGenerativeA11y(
         event,
         event.label ?? "Connection lost. Reconnecting.",
         "polite",
+        { capacityPriority: "status" },
       );
       return;
     }
     if (event.type === "connection.restored") {
       if (!policy.announceConnections) return diagnose(event, "policy-silent");
-      announce(event, event.label ?? "Connection restored.", "polite");
+      announce(event, event.label ?? "Connection restored.", "polite", {
+        capacityPriority: "status",
+      });
       return;
     }
     if (!policy.announceCitations) return diagnose(event, "policy-silent");
@@ -651,19 +696,65 @@ export function createGenerativeA11y(
       event,
       `${event.count} ${event.count === 1 ? "source" : "sources"} available.`,
       "polite",
-      { dedupeKey: `citation-count:${event.count}` },
+      {
+        dedupeKey: `citation-count:${event.count}`,
+        capacityPriority: "status",
+      },
     );
+  }
+
+  function dispatchOne(event: GenerativeA11yEvent): void {
+    if ("responseId" in event) dispatchResponse(event);
+    else if ("toolId" in event) dispatchTool(event);
+    else dispatchOther(event);
   }
 
   return {
     dispatch(event) {
-      if (disposed)
-        throw new Error(
-          "Cannot dispatch to a disposed generative-a11y runtime",
-        );
-      if ("responseId" in event) dispatchResponse(event);
-      else if ("toolId" in event) dispatchTool(event);
-      else dispatchOther(event);
+      if (disposed) return false;
+      if (dispatching) {
+        if (reportingDispatchOverflow) return false;
+        if (nestedDispatchCount >= policy.maxQueueSize) {
+          if (dispatchOverflowQueue.length < policy.maxQueueSize) {
+            dispatchOverflowQueue.push(event);
+          } else {
+            dispatchOverflowAggregateCount += 1;
+          }
+          return false;
+        }
+        nestedDispatchCount += 1;
+        dispatchQueue.push(event);
+        return true;
+      }
+      dispatchQueue.push(event);
+      dispatching = true;
+      nestedDispatchCount = 0;
+      try {
+        while (!disposed) {
+          const next = dispatchQueue.shift();
+          if (!next) break;
+          dispatchOne(next);
+        }
+        reportingDispatchOverflow = true;
+        while (!disposed) {
+          const overflow = dispatchOverflowQueue.shift();
+          if (!overflow) break;
+          diagnose(overflow, "queue-capacity");
+        }
+        if (!disposed && dispatchOverflowAggregateCount > 0) {
+          const aggregateCount = dispatchOverflowAggregateCount;
+          dispatchOverflowAggregateCount = 0;
+          diagnoseCapacityAggregate(aggregateCount);
+        }
+      } finally {
+        reportingDispatchOverflow = false;
+        nestedDispatchCount = 0;
+        dispatchQueue.length = 0;
+        dispatchOverflowQueue.length = 0;
+        dispatchOverflowAggregateCount = 0;
+        dispatching = false;
+      }
+      return true;
     },
     getPolicy: () => policy,
     pendingCount: () =>
@@ -702,6 +793,9 @@ export function createGenerativeA11y(
     dispose() {
       if (disposed) return;
       disposed = true;
+      dispatchQueue.length = 0;
+      dispatchOverflowQueue.length = 0;
+      dispatchOverflowAggregateCount = 0;
       for (const response of responses.values()) clearFlushTimer(response);
       scheduler.dispose();
       responses.clear();

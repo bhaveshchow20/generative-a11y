@@ -11,6 +11,11 @@ AI and agent interfaces. It translates existing lifecycle state into paced,
 prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
+> [!IMPORTANT] This project is in pre-release development and is not yet
+> published to npm. The browser-independent core runtime, DOM integration, React
+> bindings, initial framework adapters, and cross-browser fixtures are
+> implemented; external assistive-technology validation remains in progress.
+
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
 [Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
@@ -76,14 +81,14 @@ the environment where it actually runs.
 
 ## Ecosystem
 
-| Source                    | Intended integration                                        | Status                                                                             |
-| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; browser and assistive-technology validation pending                   |
-| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; browser and assistive-technology validation pending                   |
-| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | Implemented; local browser check complete; assistive-technology validation pending |
-| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Implemented; local browser check complete; assistive-technology validation pending |
-| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Implemented; local browser check complete; assistive-technology validation pending |
-| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                                       |
+| Source                    | Intended integration                                        | Status                                                                                |
+| ------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Custom applications       | Dispatch events to core and deliver through the DOM package | Implemented; core/DOM browser fixture complete; manual AT validation pending          |
+| Custom React applications | Wrap the existing tree with the provider and hooks          | Implemented; deterministic React checks complete; browser/AT validation pending       |
+| [AG-UI][ag-ui]            | Translate protocol events through a thin adapter            | Implemented; deterministic and package checks complete; browser/AT validation pending |
+| [AI SDK][ai-sdk]          | Observe documented chat state and lifecycle callbacks       | Implemented; deterministic and package checks complete; browser/AT validation pending |
+| [assistant-ui][aui]       | Subscribe to documented runtime and message state           | Implemented; deterministic and package checks complete; browser/AT validation pending |
+| [CopilotKit][copilotkit]  | Reuse its public AG-UI agent surface where fidelity allows  | AG-UI guidance; no duplicate adapter package                                          |
 
 [ag-ui]: https://github.com/ag-ui-protocol/ag-ui
 [ai-sdk]: https://github.com/vercel/ai
@@ -134,10 +139,14 @@ Use the Node.js version in `.nvmrc` and install dependencies from the lockfile:
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
+pnpm test:browser:install
+pnpm test:browser
 ```
 
 `pnpm check` verifies formatting, linting, types, tests with coverage,
 production builds, package metadata, and ESM/CommonJS loading.
+`pnpm test:browser` runs the focused accessibility fixture in Chromium, Firefox,
+and WebKit with axe scans; it does not claim screen-reader output.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. Security
 issues should follow the private reporting process in

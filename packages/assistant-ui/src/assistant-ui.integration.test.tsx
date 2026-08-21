@@ -18,7 +18,12 @@ describe("assistant-ui public runtime integration", () => {
     );
     const events: GenerativeA11yEvent[] = [];
     const binding = bindThreadRuntime({
-      runtime: { dispatch: (event) => events.push(event) },
+      runtime: {
+        dispatch(event) {
+          events.push(event);
+          return true;
+        },
+      },
       scopeId: "real-runtime",
       thread: result.current.thread,
     });
