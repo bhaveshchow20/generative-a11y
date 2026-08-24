@@ -12,7 +12,7 @@ import {
   type DOMDeliveryResult,
   type DOMRuntimeBinding,
 } from "@generative-a11y/dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { createScenarioSteps, type ScenarioName } from "../lib/scenarios";
 
@@ -31,6 +31,10 @@ const scenarioLabels: Array<{ name: ScenarioName; label: string }> = [
   { name: "approval", label: "Request approval" },
 ];
 
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function LifecycleLab() {
   const [events, setEvents] = useState<ObservedEvent[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
@@ -40,6 +44,11 @@ export function LifecycleLab() {
   const [toolState, setToolState] = useState("Idle");
   const [running, setRunning] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const interactive = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const runtimeRef = useRef<GenerativeA11yRuntime | null>(null);
   const bindingRef = useRef<DOMRuntimeBinding | null>(null);
   const timersRef = useRef<number[]>([]);
@@ -67,7 +76,9 @@ export function LifecycleLab() {
     eventIndexRef.current = 0;
   }
 
-  useEffect(() => () => disposeSession(), []);
+  useEffect(() => {
+    return () => disposeSession();
+  }, []);
 
   function createSession() {
     const runtime = createGenerativeA11y({
@@ -196,12 +207,12 @@ export function LifecycleLab() {
     <div className="lab">
       <div className="lab-controls" aria-label="Lifecycle scenarios">
         {scenarioLabels.map((scenario) => (
-          <button key={scenario.name} type="button" onClick={() => runScenario(scenario.name)} disabled={running}>
+          <button key={scenario.name} type="button" onClick={() => runScenario(scenario.name)} disabled={!interactive || running}>
             {scenario.label}
           </button>
         ))}
-        <button className="danger-control" type="button" onClick={stop}>Stop response</button>
-        <button className="quiet-control" type="button" onClick={reset}>Reset</button>
+        <button className="danger-control" type="button" onClick={stop} disabled={!interactive}>Stop response</button>
+        <button className="quiet-control" type="button" onClick={reset} disabled={!interactive}>Reset</button>
       </div>
 
       <div className="lab-grid">
