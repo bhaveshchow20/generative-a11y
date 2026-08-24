@@ -121,7 +121,7 @@ a {
   display: inline-flex;
   overflow: hidden;
   align-items: stretch;
-  border: 1px solid currentColor;
+  border: 1px solid currentcolor;
   border-radius: 5px;
 }
 
@@ -140,7 +140,7 @@ a {
 }
 
 .project-stat + .project-stat {
-  border-left: 1px solid currentColor;
+  border-left: 1px solid currentcolor;
 }
 
 .project-stat:hover {
@@ -160,7 +160,7 @@ a {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 .project-stat-icon {
@@ -857,7 +857,7 @@ h2 {
     gap: 14px;
   }
 
-  .top-nav > a {
+  .top-nav > a:nth-child(3) {
     display: none;
   }
 

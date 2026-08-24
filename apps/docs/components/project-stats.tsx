@@ -39,6 +39,11 @@ function BrandIcon({ icon }: { icon: SimpleIcon }) {
   );
 }
 
+/**
+ * Shows GitHub stars and the combined monthly npm downloads for published
+ * packages. Live requests replace the bundled fallback counts independently,
+ * so one service can fail without hiding data from the other.
+ */
 export function ProjectStats({ className = "" }: { className?: string }) {
   const [stats, setStats] = useState<ProjectStats>(currentStats);
 

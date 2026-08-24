@@ -158,7 +158,7 @@ function ExampleSurface({ framework, active, status, messages, events, announcem
             </details>
           </li>;
         }) : <li className="empty-trace">Choose an example to follow each event and screen-reader update.</li>}</ol>
-        <div className="announcement-preview"><span>Latest screen-reader update</span><p>{announcements.at(-1)?.text ?? "Choose an example to begin"}</p></div>
+        <div className="announcement-preview"><span>Latest prepared update</span><p>{announcements.at(-1)?.text ?? "Choose an example to begin"}</p></div>
       </aside>
     </div>
   );
