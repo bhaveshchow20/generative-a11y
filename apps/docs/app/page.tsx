@@ -66,7 +66,7 @@ export default function Home() {
                 Read the setup guide <span aria-hidden="true">→</span>
               </Link>
               <Link className="button button-secondary" href="/examples/lifecycle-lab">
-                Try the live examples
+                Try live examples
               </Link>
             </div>
           </div>

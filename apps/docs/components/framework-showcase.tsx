@@ -80,11 +80,11 @@ export function FrameworkShowcase() {
     const first = {
       id: "assistant-1",
       role: "assistant",
-      parts: [{ type: "text", text: "The release report" }],
+      parts: [{ type: "text", text: "Your release report" }],
     };
     const complete = {
       ...first,
-      parts: [{ type: "text", text: "The release report is ready to review." }],
+      parts: [{ type: "text", text: "Your release report is ready to review." }],
     };
     observer.observe({ messages: [], status: "ready", error: undefined } as never);
     observer.observe({ messages: [first], status: "streaming", error: undefined } as never);
@@ -125,7 +125,7 @@ export function FrameworkShowcase() {
         id: "assistant-1",
         role: "assistant",
         content: [
-          { type: "text", text: "The report is ready." },
+          { type: "text", text: "Your report is ready." },
           {
             type: "tool-call",
             toolCallId: "publish-report",
@@ -141,7 +141,7 @@ export function FrameworkShowcase() {
         id: "assistant-1",
         role: "assistant",
         content: [
-          { type: "text", text: "The report is ready." },
+          { type: "text", text: "Your report is ready." },
           {
             type: "tool-call",
             toolCallId: "publish-report",
@@ -173,7 +173,7 @@ export function FrameworkShowcase() {
     <section className="framework-showcase" aria-labelledby="framework-title">
       <div className="framework-heading">
         <div><p>Framework adapters</p><h2 id="framework-title">See what the adapters report.</h2></div>
-        <p>Run the installed adapters with sample AI SDK and assistant-ui data. You do not need an API key or network request.</p>
+        <p>Run installed adapters with sample AI SDK and assistant-ui data. You do not need an API key or network request.</p>
       </div>
       <div className="framework-tabs" role="tablist" aria-label="Framework">
         {(["ai-sdk", "assistant-ui"] as const).map((name) => (

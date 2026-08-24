@@ -167,11 +167,6 @@ a {
   font-size: 9px;
 }
 
-.project-stat-period {
-  font-size: 8px;
-  opacity: 0.62;
-}
-
 .top-nav a:hover,
 .text-link:hover {
   text-decoration: underline;

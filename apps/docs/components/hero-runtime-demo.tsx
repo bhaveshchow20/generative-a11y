@@ -14,7 +14,7 @@ interface TraceEntry {
 }
 
 const responseChunks = [
-  "The release report ",
+  "Your release report ",
   "summarizes three outcomes. ",
   "First, the migration ",
   "completed successfully.",

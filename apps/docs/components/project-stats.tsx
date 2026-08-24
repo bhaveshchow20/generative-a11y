@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { siGithub, siNpm, type SimpleIcon } from "simple-icons/icons";
+import { siGithub, siNpm, type SimpleIcon } from "simple-icons";
 
 const repositoryUrl = "https://github.com/bhaveshchow20/generative-a11y";
 const npmUrl = "https://www.npmjs.com/org/generative-a11y";
@@ -28,6 +28,8 @@ function BrandIcon({ icon }: { icon: SimpleIcon }) {
   return (
     <svg
       className="project-brand-icon"
+      width="14"
+      height="14"
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
@@ -107,7 +109,6 @@ export function ProjectStats({ className = "" }: { className?: string }) {
         <span>npm</span>
         <span className="project-stat-value" aria-hidden="true">
           {formatCount(stats.monthlyDownloads)}
-          <span className="project-stat-period">/mo</span>
         </span>
       </a>
     </div>

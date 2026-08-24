@@ -28,8 +28,8 @@ const examples: Array<{ name: ExampleName; title: string; prompt: string; detail
 
 const answers: Record<ExampleName, string[]> = {
   support: ["Your workspace was locked after several sign-in attempts. ", "No data was changed. ", "Try again in ten minutes or reset your password now."],
-  order: ["I checked order 1842. ", "The package left the regional hub this morning ", "and is scheduled to arrive tomorrow by 6 PM."],
-  research: ["The review found strong semantic structure and keyboard support. ", "It recommends clearer progress announcements ", "for long-running assistant actions."],
+  order: ["I checked order 1842. ", "Your package left the regional hub this morning ", "and is scheduled to arrive tomorrow by 6 PM."],
+  research: ["Our review found strong semantic structure and keyboard support. ", "It recommends clearer progress announcements ", "for long-running assistant actions."],
 };
 
 export function RealFrameworkShowcase() {
@@ -38,7 +38,7 @@ export function RealFrameworkShowcase() {
     <section className="framework-showcase real-showcase" aria-labelledby="framework-title">
       <div className="framework-heading">
         <div><p>Installed framework examples</p><h2 id="framework-title">See the adapter inside a working chat.</h2></div>
-        <p>Choose a common app workflow. Your browser runs the installed framework, the adapter reports each change, and DOM adds the matching screen-reader updates.</p>
+        <p>Choose a common app workflow. Your browser runs an installed framework, its adapter reports each change, and DOM adds matching screen-reader updates.</p>
       </div>
       <div className="version-row" aria-label="Installed framework versions">
         <span><i aria-hidden="true" /> AI SDK 7.0.66</span><span><i aria-hidden="true" /> @ai-sdk/react 4.0.69</span><span><i aria-hidden="true" /> assistant-ui 0.15.14</span>
@@ -203,20 +203,20 @@ function pause(ms: number) { return new Promise<void>((resolve) => window.setTim
 
 const eventExplanations: Record<string, { title: string; summary: string; why: string }> = {
   "response.started": { title: "Response started", summary: "AI SDK or assistant-ui began a new assistant message.", why: "A stable ID keeps later updates connected to this response." },
-  "response.text.delta": { title: "New response text arrived", summary: "The framework appended text to the active answer.", why: "Core groups useful phrases instead of announcing each token or rereading the full response." },
-  "response.completed": { title: "Response complete", summary: "The framework marked the response as complete.", why: "Core can announce useful text still waiting, then close the response." },
+  "response.text.delta": { title: "New response text arrived", summary: "Your framework appended text to the active answer.", why: "Core groups useful phrases instead of announcing each token or rereading the full response." },
+  "response.completed": { title: "Response complete", summary: "Your framework marked the response as complete.", why: "Core can announce useful text still waiting, then close the response." },
   "response.interrupted": { title: "App stopped the response", summary: "A user or app action stopped the active response.", why: "Core discards text still waiting so it cannot arrive after the response stops." },
-  "response.failed": { title: "Response failed", summary: "The framework reported a failure.", why: "Your app can provide a safe message without exposing private error details." },
-  "tool.started": { title: "App action started", summary: "The assistant started an action in the app.", why: "A short update tells users that work is in progress when no result appears yet." },
-  "tool.completed": { title: "App action complete", summary: "The framework confirmed that the action succeeded.", why: "Core prepares a short result and leaves focus where the user placed it." },
-  "tool.failed": { title: "App action failed", summary: "The framework confirmed that the action failed.", why: "Your app can explain what to do next while keeping sensitive error details private." },
-  "approval.requested": { title: "Assistant needs approval", summary: "The assistant paused for a user decision.", why: "Core prepares a short update while your app controls the approval buttons and focus." },
-  "approval.resolved": { title: "User answered the request", summary: "The framework recorded the user's decision.", why: "Core connects the result to the original approval request." },
-  "citation.available": { title: "Response includes a source", summary: "The framework added source information.", why: "Core can announce that sources are available without reading each URL." },
+  "response.failed": { title: "Response failed", summary: "Your framework reported a failure.", why: "Your app can provide a safe message without exposing private error details." },
+  "tool.started": { title: "App action started", summary: "Your assistant started an action in the app.", why: "A short update tells users that work is in progress when no result appears yet." },
+  "tool.completed": { title: "App action complete", summary: "Your framework confirmed that the action succeeded.", why: "Core prepares a short result and leaves focus where the user placed it." },
+  "tool.failed": { title: "App action failed", summary: "Your framework confirmed that the action failed.", why: "Your app can explain what to do next while keeping sensitive error details private." },
+  "approval.requested": { title: "Assistant needs approval", summary: "Your assistant paused for a user decision.", why: "Core prepares a short update while your app controls the approval buttons and focus." },
+  "approval.resolved": { title: "User answered the request", summary: "Your framework recorded the user's decision.", why: "Core connects the result to the original approval request." },
+  "citation.available": { title: "Response includes a source", summary: "Your framework added source information.", why: "Core can announce that sources are available without reading each URL." },
 };
 
 function explainEvent(event: GenerativeA11yEvent) {
-  return eventExplanations[event.type] ?? { title: "App state changed", summary: "The adapter received an event the framework can confirm.", why: "One event format works across supported frameworks." };
+  return eventExplanations[event.type] ?? { title: "App state changed", summary: "Your adapter received an event its framework can confirm.", why: "One event format works across supported frameworks." };
 }
 
 function eventIdentity(event: GenerativeA11yEvent) {

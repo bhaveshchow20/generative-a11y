@@ -146,7 +146,7 @@ const pages: DocPage[] = [
         id: "install",
         title: "Install the core and browser packages",
         body: [
-          "The core package decides what to announce and when. The DOM package adds those announcements to the page. Add a framework adapter only if your app uses that framework.",
+          "Core decides what to announce and when. DOM adds those announcements to the page. Add a framework adapter only when your app needs one.",
         ],
         code: {
           language: "shell",
@@ -165,12 +165,12 @@ const pages: DocPage[] = [
         ],
         code: { language: "typescript", value: quickStart },
         walkthrough: [
-          { label: "Create one runtime", description: "The runtime keeps track of responses, prepares useful text, and controls the timing of updates." },
+          { label: "Create one runtime", description: "Your runtime tracks responses, prepares useful text, and controls update timing." },
           { label: "Connect the browser", description: "connectRuntimeToDOM creates and manages the hidden live regions used for screen-reader updates." },
           { label: "Report app events", description: "Tell the runtime when a response starts, receives text, and finishes." },
           { label: "Clean up", description: "Dispose the browser connection first, then dispose the runtime when the session ends." },
         ],
-        note: "The library can confirm that it added an announcement to the page. It cannot confirm what a particular screen reader spoke.",
+        note: "generative-a11y can confirm when it adds an announcement to the page. Test with real screen readers to confirm what people hear.",
       },
       {
         id: "choose-an-integration",
@@ -204,7 +204,7 @@ const pages: DocPage[] = [
         title: "From an app event to a screen-reader update",
         body: [
           "AI framework → standard events → core runtime → browser delivery → screen reader.",
-          "An adapter reads events from your framework. The core runtime chooses useful updates, removes repeats, and controls the timing. The DOM package adds each update to the page without changing the visible interface.",
+          "An adapter reads events from your framework. Core chooses useful updates, removes repeats, and controls timing. DOM adds each update without changing your visible interface.",
         ],
         visual: "runtime-flow",
       },
@@ -215,10 +215,10 @@ const pages: DocPage[] = [
           "generative-a11y turns confirmed app events into screen-reader updates. It records each update added to the page. Test with real screen readers to confirm what they speak.",
         ],
         bullets: [
-          "The core package does not use the DOM.",
+          "Core does not use the DOM.",
           "Adapters do not run framework actions or control your interface.",
           "Streaming and status changes do not move focus.",
-          "The library does not copy backend errors or tool results into announcements.",
+          "generative-a11y does not copy backend errors or tool results into announcements.",
         ],
       },
     ],
@@ -269,7 +269,7 @@ const pages: DocPage[] = [
         id: "installation",
         title: "Install only the layers you use",
         body: [
-          "Your app supplies the core runtime to its framework adapter. The DOM or React package handles browser announcements separately.",
+          "Your app supplies a core runtime to its framework adapter. DOM or React handles browser announcements separately.",
         ],
         bullets: [
           "Custom browser application: @generative-a11y/core and @generative-a11y/dom",
@@ -313,7 +313,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         walkthrough: [
           { label: "Start the response", description: "response.started tells the runtime that a new response is beginning." },
           { label: "Send new text only", description: "Each delta contains only new text, so earlier text is not announced again." },
-          { label: "Let the runtime group text", description: "The runtime waits for useful phrases instead of announcing every token." },
+          { label: "Let the runtime group text", description: "Your runtime waits for useful phrases instead of announcing every token." },
           { label: "Finish the response", description: "response.completed sends any useful text that is still waiting and closes the response." },
         ],
       },
@@ -321,9 +321,9 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         id: "segmentation",
         title: "Meaningful units, not tokens",
         body: [
-          "The balanced preset waits for a complete sentence when possible. It can also send a useful phrase after enough text arrives or after a short delay. Each piece is announced once.",
+          "Balanced mode waits for a complete sentence when possible. It can also send a useful phrase after enough text arrives or a short delay. Each piece is announced once.",
         ],
-        note: "The Lifecycle Lab shows the text appearing in the app and the separate screen-reader updates prepared by the real runtime.",
+        note: "Interactive examples show app text beside the screen-reader updates prepared by a real runtime.",
       },
     ],
   },
@@ -354,14 +354,14 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         walkthrough: [
           { label: "Keep one tool ID", description: "toolId keeps every progress update connected to the same app action." },
           { label: "Provide localized copy", description: "label and message are short user-facing text, not raw tool arguments or backend output." },
-          { label: "Report progress", description: "progress uses a value from 0 to 1. The runtime decides whether the change is useful enough to announce." },
+          { label: "Report progress", description: "progress uses a value from 0 to 1. Your runtime announces only useful changes." },
         ],
       },
       {
         id: "safe-errors",
         title: "Keep backend data out of announcements",
         body: [
-          "Use the error property for debugging. The library does not announce it. Set announcement only when your app has a short, translated message that is safe to share. The library does not announce raw tool results.",
+          "Use error for debugging; generative-a11y never announces it. Set announcement only when your app has a short, translated message that is safe to share. Raw tool results also stay private.",
         ],
       },
     ],
@@ -378,14 +378,14 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         id: "interruption",
         title: "Stopping a response clears pending text",
         body: [
-          "Send response.interrupted when the app stops a response. The runtime discards text that is still waiting and prepares a short status update. Adapters do not treat a generic ready state as proof that the user stopped a response.",
+          "Send response.interrupted when your app stops a response. Core discards waiting text and prepares a short status update. Adapters do not treat a generic ready state as proof that someone stopped a response.",
         ],
       },
       {
         id: "retry",
         title: "Tell the runtime when a retry starts",
         body: [
-          "response.retrying cancels the current attempt. Keep the same responseId for the logical answer and give the new attempt a new responseInstanceId. The runtime will ignore late updates from the old attempt.",
+          "response.retrying cancels the current attempt. Keep one responseId for the logical answer and give each attempt a new responseInstanceId. Core ignores late updates from older attempts.",
         ],
         code: {
           language: "typescript",
@@ -424,7 +424,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         id: "focus",
         title: "Announcements do not move focus",
         body: [
-          "The library can announce that your app needs input. Your app still opens the dialog, manages its controls, and restores focus when the dialog closes.",
+          "generative-a11y can announce when your app needs input. Your app still opens the dialog, manages its controls, and restores focus when it closes.",
         ],
       },
     ],
@@ -458,7 +458,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         id: "never-labels",
         title: "Labels are copy, not identity",
         body: [
-          "Do not use displayed text, labels, array positions, or render counts as IDs. They can change. Framework adapters keep the stable IDs supplied by the framework and stop accepting new unknown IDs if their safety limit is reached.",
+          "Do not use displayed text, labels, array positions, or render counts as IDs because they can change. Framework adapters keep stable IDs from your framework and stop accepting unknown IDs after reaching their safety limit.",
         ],
       },
     ],
@@ -696,7 +696,7 @@ binding.dispose();` },
         id: "fidelity",
         title: "What the adapter can report",
         body: [
-          "Use the supplied callbacks so the adapter knows when a response finishes, stops, or fails. The status value alone does not provide that detail. Report the regenerate action from your app if you need retry events. A successful response after an error tells the adapter that the connection returned.",
+          "Use supplied callbacks so the adapter knows when a response finishes, stops, or fails. Status alone does not provide enough detail. Report regenerate actions from your app when you need retry events. A successful response after an error tells the adapter that the connection returned.",
         ],
         bullets: [
           "Exports CHAT_ADAPTER_METADATA, createObserver, composeChatCallbacks",
@@ -718,14 +718,14 @@ binding.dispose();` },
         id: "bind",
         title: "Connect an existing thread runtime",
         body: [
-          "The binding reads only getState and subscribe. It does not run thread actions, render an interface, or dispose the core runtime supplied by your app.",
+          "bindThreadRuntime reads only getState and subscribe. It cannot run thread actions, render an interface, or dispose your core runtime.",
         ],
         code: { language: "typescript", value: assistantUiExample },
         walkthrough: [
-          { label: "Pass the public thread", description: "The adapter needs only getState and subscribe, so it cannot invoke composer, message, or run actions." },
+          { label: "Pass the public thread", description: "Your adapter needs only getState and subscribe, so it cannot invoke composer, message, or run actions." },
           { label: "Namespace framework IDs", description: "scopeId prevents identical message and tool IDs from colliding across mounted threads." },
-          { label: "Record existing history", description: "The binding records existing messages when it starts, so it does not announce old content after hydration." },
-          { label: "Dispose the subscription", description: "The returned cleanup stops observation but leaves both the assistant-ui thread and core runtime alive." },
+          { label: "Record existing history", description: "bindThreadRuntime records existing messages at startup and skips old content after hydration." },
+          { label: "Dispose the subscription", description: "Returned cleanup stops observation while leaving assistant-ui and core running." },
         ],
         api: [
           { name: "runtime", type: "Pick<GenerativeA11yRuntime, dispatch>", requirement: "Required", defaultValue: "none", description: "The runtime that receives events from this adapter. Your app owns it." },
@@ -739,7 +739,7 @@ binding.dispose();` },
         id: "limits",
         title: "What public state cannot prove",
         body: [
-          "The adapter can report streaming, known final states, tools, approvals, and sources. assistant-ui does not provide a general retry or connection event, so the adapter does not guess.",
+          "Your adapter can report streaming, known final states, tools, approvals, and sources. assistant-ui does not provide general retry or connection events, so generative-a11y does not guess.",
         ],
       },
     ],
@@ -749,7 +749,7 @@ binding.dispose();` },
     group: "Integrations",
     title: "AG-UI",
     description:
-      "Connect an AG-UI agent through its documented callbacks. The adapter keeps response, tool, and interaction IDs connected without reading private agent state.",
+      "Connect an AG-UI agent through documented callbacks. Your adapter keeps response, tool, and interaction IDs connected without reading private agent state.",
     keywords: ["AG-UI", "bindAgent", "AgentSubscriber", "interrupt", "protocol"],
     sections: [
       {
@@ -761,7 +761,7 @@ binding.dispose();` },
         code: { language: "typescript", value: agUiExample },
         walkthrough: [
           { label: "Connect the agent", description: "bindAgent uses documented AgentSubscriber callbacks and does not run agent actions." },
-          { label: "Use a stable scope", description: "The scope prefixes protocol message, tool, and interrupt IDs for this mounted agent." },
+          { label: "Use a stable scope", description: "scopeId prefixes protocol message, tool, and interrupt IDs for each mounted agent." },
           { label: "Translate confirmed events", description: "Text, tool, and interrupt callbacks become standard events when their public data confirms what happened." },
           { label: "Clean up locally", description: "dispose removes this subscriber without disposing the AG-UI agent or accessibility runtime." },
         ],
@@ -777,7 +777,7 @@ binding.dispose();` },
         id: "protocol-evidence",
         title: "What the protocol can report",
         body: [
-          "Text start, content, and end callbacks report a response. Tool start and result callbacks report tool work. Interrupt and resume callbacks report requests for user input. The adapter does not guess about replay, connection recovery, or retries when AG-UI does not report them.",
+          "Text start, content, and end callbacks report a response. Tool callbacks report work and results. Interrupt and resume callbacks report requests for user input. Your adapter does not guess about replay, connection recovery, or retries when AG-UI stays silent.",
         ],
       },
     ],
@@ -799,7 +799,7 @@ binding.dispose();` },
         code: { language: "tsx", value: copilotKitExample },
         walkthrough: [
           { label: "Create a mount identity", description: "useId supplies a stable namespace that survives normal rerenders." },
-          { label: "Wait for readiness", description: "The effect does not subscribe until CopilotKit exposes a ready AG-UI agent." },
+          { label: "Wait for readiness", description: "Your effect subscribes only after CopilotKit exposes a ready AG-UI agent." },
           { label: "Reuse the protocol adapter", description: "CopilotKit v2 exposes a public AG-UI agent, so the AG-UI adapter can connect it directly." },
           { label: "Return cleanup", description: "React effect cleanup disposes exactly the subscription created by this mount." },
         ],
@@ -831,7 +831,7 @@ binding.dispose();` },
         walkthrough: [
           { label: "Report events at the source", description: "Call dispatch from the transport or app callback that confirms what happened." },
           { label: "Preserve stable IDs", description: "Use the response and tool IDs from your app instead of labels, array positions, or render counts." },
-          { label: "Connect browser delivery", description: "The DOM binding adds announcements without changing visible rendering or app actions." },
+          { label: "Connect browser delivery", description: "DOM adds announcements without changing visible rendering or app actions." },
           { label: "Dispose by ownership", description: "Your adapter cleans up its subscriptions, then the application disposes resources it created." },
         ],
       },
@@ -1055,10 +1055,10 @@ binding.dispose();` },
     keywords: ["testing", "ManualClock", "Vitest", "Playwright", "screen reader"],
     sections: [
       { id: "test-layers", title: "Test each layer separately", body: ["A runtime transcript shows what core prepared. A DOM test shows how the page changed. Test with a real screen reader to confirm what it speaks."], table: { headers: ["Layer", "Check", "Does not confirm"], rows: [["Adapter", "Events and stable IDs", "Announcements"], ["Core", "Prepared updates, timing, suppression, cancellation", "Browser behavior"], ["DOM", "Browser results and page updates", "Screen-reader speech"], ["Browser", "Keyboard, landmarks, focus, live regions", "Every screen reader and browser combination"], ["Hands-on screen-reader test", "One user workflow", "Behavior in every environment"]] } },
-      { id: "browser-matrix", title: "Test every supported browser engine", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard use, stable focus, page landmarks, live regions, and the announcements added to the page."], code: { language: "shell", value: `pnpm test:browser:install
-pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "The repository script installs the Chromium, Firefox, and WebKit versions used by the test suite." }, { label: "Run browser tests", description: "The command runs the cross-browser accessibility fixture and the documentation browser tests." }, { label: "Interpret the result", description: "A passing browser test confirms browser behavior, not screen-reader speech." }] },
-      { id: "at-fixture", title: "Test a realistic app workflow", body: ["The fixture covers streaming text, tool updates, stopping, retrying, and browser announcements. Each assertion states the behavior it checks."], bullets: ["Run the same scenarios in all three browser engines.", "Check that streaming and status updates do not move focus.", "Connect each app event to the runtime update and the resulting page change.", "Keep controls and visible status usable without the library."] },
-      { id: "manual-evidence", title: "Record hands-on screen-reader tests", body: ["For each release, record the date, browser, operating system, screen reader and version, workflow, expected result, actual result, and outcome. The repository validator checks that every required field is complete."], note: "One test describes one setup and workflow. It does not guarantee the same result with every screen reader and browser." },
+      { id: "browser-matrix", title: "Test every supported browser engine", body: ["Browser fixtures run in Chromium, Firefox, and WebKit. They check keyboard use, stable focus, page landmarks, live regions, and page announcements."], code: { language: "shell", value: `pnpm test:browser:install
+pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "Repository scripts install the Chromium, Firefox, and WebKit versions used by tests." }, { label: "Run browser tests", description: "This command runs cross-browser accessibility fixtures and documentation checks." }, { label: "Interpret the result", description: "A passing browser test confirms browser behavior, not screen-reader speech." }] },
+      { id: "at-fixture", title: "Test a realistic app workflow", body: ["Fixtures cover streaming text, tool updates, stopping, retrying, and browser announcements. Each assertion names the behavior it checks."], bullets: ["Run the same scenarios in all three browser engines.", "Check that streaming and status updates do not move focus.", "Connect each app event to the runtime update and the resulting page change.", "Keep controls and visible status usable without the library."] },
+      { id: "manual-evidence", title: "Record hands-on screen-reader tests", body: ["For each release, record the date, browser, operating system, screen reader and version, workflow, expected result, actual result, and outcome. Repository validation checks every required field."], note: "One test describes one setup and workflow. It does not guarantee the same result with every screen reader and browser." },
       { id: "clock", title: "Use ManualClock for time-dependent behavior", body: ["Advance the test clock instead of waiting for real timers. Check diagnostics when the runtime intentionally skips an update."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({ preset: "balanced" });
 const runtime = recorder.runtime;
 const clock = recorder.clock;
@@ -1067,7 +1067,7 @@ runtime.dispatch(started);
 runtime.dispatch(delta);
 clock.advanceBy(2_000);
 
-expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the harness", description: "The recorder supplies a runtime and a ManualClock." }, { label: "Send app events", description: "Use the same events your integration sends in the application." }, { label: "Advance the clock", description: "Tests stay fast and repeatable while checking delayed updates." }] },
+expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the harness", description: "createAnnouncementRecorder supplies a runtime and ManualClock." }, { label: "Send app events", description: "Use the same events your integration sends in the application." }, { label: "Advance the clock", description: "Tests stay fast and repeatable while checking delayed updates." }] },
     ],
   },
   {
@@ -1109,7 +1109,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "stale-output",
         title: "Old output appears after retry",
         body: [
-          "A retry must replace the active response attempt. The runtime ignores late updates from the old attempt and reports them as stale-response in diagnostics.",
+          "A retry must replace the active response attempt. Core ignores late updates from older attempts and reports stale-response diagnostics.",
         ],
         bullets: [
           "Send response.retrying with the replaced and next response instance IDs.",
@@ -1139,11 +1139,11 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         table: {
           headers: ["Reason", "Meaning", "First check"],
           rows: [
-            ["policy-silent", "The active policy suppresses this lifecycle event", "Preset and explicit policy overrides"],
+            ["policy-silent", "Active policy suppresses this event", "Preset and explicit policy overrides"],
             ["unknown-response or unknown-tool", "No active matching identity exists", "Started event order and IDs"],
-            ["stale-response or stale-tool", "The event belongs to a replaced execution", "Instance identity propagation"],
+            ["stale-response or stale-tool", "Event belongs to a replaced execution", "Instance identity propagation"],
             ["progress-threshold", "Progress did not cross the configured bucket", "progressEveryPercent"],
-            ["queue-capacity", "The bounded scheduler rejected additional work", "Producer rate and maxQueueSize"],
+            ["queue-capacity", "Bounded scheduler rejected additional work", "Producer rate and maxQueueSize"],
             ["delivery-error", "Every announcement listener failed", "Listener exceptions and onDeliveryError"],
             ["delivered", "Listeners accepted the prepared announcement", "Check the DOM result, then test with a screen reader"],
           ],
@@ -1163,14 +1163,14 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "runtime",
         title: "Browser and server support",
         body: [
-          "Core works without a browser. The DOM package does nothing when document is unavailable. React renders stable hidden regions during server rendering and connects them in the browser. Importing an adapter does not require browser globals.",
+          "Core works without a browser. DOM stays inactive when document is unavailable. React renders stable hidden regions on the server and connects them in the browser. Adapter imports do not require browser globals.",
         ],
       },
       {
         id: "browser-matrix",
         title: "Automated browser tests have limits",
         body: [
-          "The test suite runs in Chromium, Firefox, and WebKit. WebKit is useful coverage, but it is not the same as testing the released Safari browser with a real screen reader. Record those hands-on tests separately.",
+          "Browser tests run in Chromium, Firefox, and WebKit. WebKit provides useful coverage, but it cannot replace Safari testing with a real screen reader. Record those hands-on tests separately.",
         ],
         table: {
           headers: ["Engine", "Automated tests cover", "Test by hand"],
@@ -1298,7 +1298,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "unsupported",
         title: "Unsupported by design",
         body: [
-          "The project does not replace semantic HTML, keyboard support, focus management, visible status messages, or your dialogs. It does not read private framework state, run remote code, guarantee what a screen reader says, or guess missing events from text on the page.",
+          "generative-a11y does not replace semantic HTML, keyboard support, focus management, visible status messages, or dialogs. It cannot read private framework state, run remote code, guarantee screen-reader speech, or guess missing events from page text.",
         ],
         bullets: [
           "No general assistant-ui retry or connection event",
@@ -1339,7 +1339,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "validation",
         title: "Test each part at the right level",
         body: [
-          "Runtime tests, adapter tests, browser tests, and hands-on screen-reader sessions answer different questions. The project keeps them separate so an automated transcript is never mistaken for what a person heard.",
+          "Runtime, adapter, browser, and hands-on screen-reader tests answer different questions. Keeping them separate prevents anyone from mistaking an automated transcript for what a person heard.",
         ],
       },
     ],

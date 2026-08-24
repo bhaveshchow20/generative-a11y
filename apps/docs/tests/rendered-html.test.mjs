@@ -76,7 +76,7 @@ test("server-renders documentation and project deep links", async () => {
     ["/docs/troubleshooting", /Troubleshooting/i],
     ["/docs/stability", /Stability and migrations/i],
     ["/docs/testing", /Chromium, Firefox, and WebKit/i],
-    ["/docs/compatibility", /not the same as testing.*Safari/i],
+    ["/docs/compatibility", /cannot replace Safari testing/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
     ["/api/core/create-generative-a11y", /createGenerativeA11y/i],
     ["/docs/integrations/ag-ui", /bindAgent/i],
