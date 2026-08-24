@@ -11,16 +11,29 @@ AI and agent interfaces. It translates existing lifecycle state into paced,
 prioritized announcement intents for screen readers while leaving the host
 application's visual UI alone.
 
-> [!IMPORTANT] This project is in pre-1.0 development. Packages publish under
-> the `@generative-a11y` npm scope, beginning with the first functional release
-> at version 0.1.0. External assistive-technology validation remains in
-> progress.
+> [!IMPORTANT] This project is in pre-1.0 development. All six packages are
+> published under the `@generative-a11y` npm scope at version 0.1.0. External
+> assistive-technology validation remains in progress.
 
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
 [Events](docs/events.md) · [Accessibility policy](docs/accessibility-policy.md)
 · [Framework adapters](docs/framework-adapters.md) ·
 [Contributing](CONTRIBUTING.md)
+
+## Packages
+
+Install the package that matches your integration. Package dependencies such as
+`@generative-a11y/core` are installed automatically.
+
+| Package                                                                                        | Version                                                                                                                                         | Use it for                                                                | Install                                     |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)                 | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fcore?label=npm)](https://www.npmjs.com/package/@generative-a11y/core)                 | Framework-independent event, policy, scheduling, and announcement runtime | `npm install @generative-a11y/core`         |
+| [`@generative-a11y/dom`](https://www.npmjs.com/package/@generative-a11y/dom)                   | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fdom?label=npm)](https://www.npmjs.com/package/@generative-a11y/dom)                   | DOM announcement delivery, focus, attention, and preference behavior      | `npm install @generative-a11y/dom`          |
+| [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)               | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Freact?label=npm)](https://www.npmjs.com/package/@generative-a11y/react)               | React provider and hooks for custom React applications                    | `npm install @generative-a11y/react`        |
+| [`@generative-a11y/ai-sdk`](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fai-sdk?label=npm)](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | Vercel AI SDK lifecycle translation and React integration                 | `npm install @generative-a11y/ai-sdk`       |
+| [`@generative-a11y/assistant-ui`](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fassistant-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | assistant-ui runtime and message-state translation                        | `npm install @generative-a11y/assistant-ui` |
+| [`@generative-a11y/ag-ui`](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fag-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | AG-UI protocol lifecycle translation                                      | `npm install @generative-a11y/ag-ui`        |
 
 ## Why generative-a11y?
 
@@ -135,8 +148,8 @@ focus, and preference APIs.
 - Announce meaningful units, not tokens.
 - Never guess lifecycle events an adapter cannot observe.
 - Make timing deterministic and inspectable.
-- Treat real screen-reader testing as a release requirement, not a unit-test
-  claim.
+- Treat real screen-reader testing as a requirement for support claims, not as
+  something deterministic tests can prove.
 
 ## Development
 
