@@ -132,11 +132,10 @@ versions and user settings.
 
 ## Release evidence file
 
-Store completed required results in `docs/assistive-technology-results.json`.
-Set `sourceCommit` to the full commit tested before adding the evidence file.
-Publishing verifies that this commit is an ancestor of the release and that no
-repository content except the evidence file changed afterward. Evidence expires
-after 30 days.
+Store completed results in `docs/assistive-technology-results.json`. Set
+`sourceCommit` to the full commit tested before adding the evidence file.
+Evidence expires after 30 days for support claims, but missing or incomplete
+manual evidence does not block package publication.
 
 Each required matrix row must contain both `auto` and `live-region` paths. Each
 path must pass these scenario identifiers: `polite-and-repeated-text`,
