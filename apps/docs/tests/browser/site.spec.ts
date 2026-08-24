@@ -142,7 +142,7 @@ test("lifecycle lab uses real runtime output for streaming, stale retry, and app
 }) => {
   await page.goto("/examples/lifecycle-lab");
 
-  await page.getByRole("button", { name: "Run stream" }).click();
+  await page.getByRole("button", { name: "Stream a response" }).click();
   await expect(
     page.getByRole("cell", { name: "response.completed" }),
   ).toBeVisible({ timeout: 10_000 });
@@ -200,15 +200,15 @@ test("framework trace explains events in plain language and expands technical de
   await page.getByRole("button", { name: /Customer support/ }).click();
 
   const event = page
-    .getByRole("group", { name: /Assistant response started/ })
+    .getByRole("group", { name: /Response started/ })
     .first();
   await expect(event).toBeVisible();
-  await event.getByText("Assistant response started").click();
+  await event.getByText("Response started").click();
   await expect(event).toContainText("Why it matters");
   await expect(event).toContainText("response.started");
-  await expect(page.locator(".trace-guide")).toContainText("Framework state");
+  await expect(page.locator(".trace-guide")).toContainText("App change");
   await expect(page.locator(".trace-guide")).toContainText(
-    "Accessible announcement",
+    "Screen-reader update",
   );
 });
 
