@@ -64,7 +64,7 @@ export function HeroRuntimeDemo() {
       onAnnouncement(intent) {
         if (generation.current !== currentGeneration) return;
         addTrace(`“${intent.text}”`, formatSeconds(intent.at));
-        setDelivery(`${intent.channel} announcement intent created`);
+        setDelivery(`${intent.channel} announcement prepared`);
       },
     });
     runtime.current = nextRuntime;
@@ -121,18 +121,18 @@ export function HeroRuntimeDemo() {
       <div className="demo-body">
         <div className="host-preview">
           <p className="panel-label">Existing application UI</p>
-          <p key={visibleText || "idle"} className={visibleText ? "streaming-copy" : undefined}>{visibleText || "The assistant response will stream here without the library replacing this interface."}</p>
+          <p key={visibleText || "idle"} className={visibleText ? "streaming-copy" : undefined}>{visibleText || "Your assistant response will stream here while the library leaves this interface unchanged."}</p>
           <div className={`stream-caret${state === "streaming" ? " is-active" : ""}`} aria-hidden="true" />
         </div>
         <div className="delivery-preview">
-          <p className="panel-label">Core policy output</p>
+          <p className="panel-label">Screen-reader updates</p>
           <ol className="trace-list" aria-live="off">
             {trace.length ? trace.map((entry) => <li className="trace-entry" key={entry.id}><time>{entry.time}</time><span>{entry.label}</span>{entry.identity ? <b>{entry.identity}</b> : null}</li>) : <li className="trace-empty"><time>00:00</time><span>Press Play to begin</span></li>}
           </ol>
           <p className="delivery-result"><span>Latest result</span><b key={delivery}>{delivery}</b></p>
         </div>
       </div>
-      <p className="evidence-note">This visual demo runs the real core policy without mounting a live region or triggering unsolicited announcements. A visual trace does not prove a screen reader spoke.</p>
+      <p className="evidence-note">This trace shows each update core prepares. Test with a real screen reader to confirm what it speaks.</p>
     </section>
   );
 }

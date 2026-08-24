@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { HeroRuntimeDemo } from "../components/hero-runtime-demo";
 import { InstallCommand } from "../components/install-command";
+import { ProjectStats } from "../components/project-stats";
 
 const architecture = [
   "AI framework",
-  "normalized events",
-  "core policy",
-  "DOM delivery",
-  "assistive technology",
+  "standard events",
+  "announcement rules",
+  "browser update",
+  "screen reader",
 ];
+
+const packages = ["core", "dom", "react", "ag-ui", "ai-sdk", "assistant-ui"] as const;
 
 const quickStart = `import { createGenerativeA11y } from "@generative-a11y/core";
 import { connectRuntimeToDOM } from "@generative-a11y/dom";
@@ -24,7 +27,7 @@ runtime.dispatch({
 export const metadata = {
   title: "generative-a11y | Accessible AI infrastructure",
   description:
-    "Paced, framework-independent accessibility delivery for streaming AI and agent interfaces.",
+    "Add clear, well-timed screen-reader updates to any AI or agent interface.",
 };
 
 export default function Home() {
@@ -38,9 +41,7 @@ export default function Home() {
           <Link href="/docs/getting-started">Docs</Link>
           <Link href="/api">API</Link>
           <Link href="/examples/lifecycle-lab">Examples</Link>
-          <a href="https://github.com/bhaveshchow20/generative-a11y">
-            GitHub <span aria-hidden="true">↗</span>
-          </a>
+          <ProjectStats className="project-stats-home" />
         </nav>
       </header>
 
@@ -49,24 +50,23 @@ export default function Home() {
           <div className="hero-copy">
             <p className="eyebrow">
               <span className="status-dot" aria-hidden="true" />
-              Accessibility infrastructure for agent interfaces
+              Accessibility for AI interfaces
             </p>
             <h1>
               Accessible AI,
               <span>without rebuilding your interface.</span>
             </h1>
             <p className="lede">
-              A framework-independent layer that turns streaming responses,
-              tools, approvals, and failures into paced announcement intents,
-              while your existing UI stays exactly where it is.
+              Give screen-reader users useful updates as responses stream,
+              tools run, and decisions need attention.
             </p>
             <InstallCommand />
             <div className="hero-actions">
               <Link className="button button-primary" href="/docs/getting-started">
-                Get started <span aria-hidden="true">→</span>
+                Read the setup guide <span aria-hidden="true">→</span>
               </Link>
               <Link className="button button-secondary" href="/examples/lifecycle-lab">
-                Run the lifecycle lab
+                Try the live examples
               </Link>
             </div>
           </div>
@@ -76,8 +76,8 @@ export default function Home() {
 
         <section className="architecture" aria-labelledby="architecture-title">
           <div className="section-heading">
-            <p className="eyebrow">One narrow layer</p>
-            <h2 id="architecture-title">Policy where your framework stops.</h2>
+            <p className="eyebrow">How it works</p>
+            <h2 id="architecture-title">From app event to screen-reader update.</h2>
           </div>
           <ol className="architecture-flow">
             {architecture.map((step, index) => (
@@ -88,19 +88,18 @@ export default function Home() {
             ))}
           </ol>
           <p className="architecture-copy">
-            Framework lifecycle state is translated into serializable events.
-            Core policy segments, prioritizes, deduplicates, and schedules.
-            Browser delivery remains a separate, observable boundary.
+            An adapter reports a response, tool, approval, or error. Core chooses
+            the text and timing. DOM adds the update to the page.
           </p>
         </section>
 
         <section className="quick-start" aria-labelledby="quick-start-title">
           <div>
-            <p className="eyebrow">Five-minute integration</p>
-            <h2 id="quick-start-title">Keep the interface. Add the layer.</h2>
+            <p className="eyebrow">Quick start</p>
+            <h2 id="quick-start-title">Connect the runtime in a few lines.</h2>
             <p>
-              Install core plus one delivery package, create a runtime, and
-              dispatch lifecycle evidence your application already has.
+              Install core and DOM, create one runtime, and dispatch the events
+              from your existing response and tool callbacks.
             </p>
             <Link className="text-link" href="/docs/getting-started">
               Read Getting Started <span aria-hidden="true">→</span>
@@ -119,26 +118,30 @@ export default function Home() {
 
         <section className="truth-strip" aria-label="Available packages">
           <p>
-            <strong>Packages:</strong> core, DOM, React, AG-UI, AI SDK, and
-            assistant-ui.
+            <strong>Packages:</strong>{" "}
+            {packages.map((packageName, index) => (
+              <span key={packageName}>
+                <a href={`https://www.npmjs.com/package/@generative-a11y/${packageName}`}>
+                  {packageName}
+                </a>
+                {index < packages.length - 1 ? ", " : "."}
+              </span>
+            ))}
           </p>
           <p>
             <strong>Built for:</strong> streaming, tools, approvals, retries,
-            and honest delivery evidence.
+            and clear status updates.
           </p>
           <p>
             <strong>Browser matrix:</strong> Chromium, Firefox, and WebKit.
           </p>
-          <p>
-            <strong>Release evidence:</strong> automated checks plus manual
-            assistive-technology evidence.
-          </p>
+          <p><strong>License:</strong> MIT.</p>
         </section>
       </main>
 
       <footer className="site-footer">
         <span>MIT licensed · TypeScript</span>
-        <span>Built for evidence, not assumptions.</span>
+        <span>Works with any AI framework.</span>
       </footer>
     </>
   );

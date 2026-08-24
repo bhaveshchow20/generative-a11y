@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { DocPage } from "../lib/content";
 import { DOC_PAGES } from "../lib/content";
@@ -22,23 +23,23 @@ export function DocPageView({ page }: { page: DocPage }) {
               <span>{page.group}</span>
             </div>
             <h1>{page.title}</h1>
-            <p>{page.description}</p>
+            <p>{formatInlineCode(page.description)}</p>
           </header>
 
           {page.sections.map((section) => (
             <section className="doc-section" id={section.id} key={section.id}>
               <h2><a href={`#${section.id}`}>{section.title}</a></h2>
-              {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              {section.body.map((paragraph) => <p key={paragraph}>{formatInlineCode(paragraph)}</p>)}
               {section.visual === "runtime-flow" ? <ArchitectureFlow /> : null}
               {section.bullets ? (
-                <ul>{section.bullets.map((item) => <li key={item}>{item}</li>)}</ul>
+                <ul>{section.bullets.map((item) => <li key={item}>{formatInlineCode(item)}</li>)}</ul>
               ) : null}
               {section.table ? (
                 <div className="table-wrap" role="region" aria-label={`${section.title} table`} tabIndex={0}>
                   <table>
                     <thead><tr>{section.table.headers.map((header) => <th scope="col" key={header}>{header}</th>)}</tr></thead>
                     <tbody>{section.table.rows.map((row) => (
-                      <tr key={row.join(":")}>{row.map((cell, cellIndex) => <td key={`${cellIndex}:${cell}`}>{cell}</td>)}</tr>
+                      <tr key={row.join(":")}>{row.map((cell, cellIndex) => <td key={`${cellIndex}:${cell}`}>{formatInlineCode(cell)}</td>)}</tr>
                     ))}</tbody>
                   </table>
                 </div>
@@ -47,7 +48,7 @@ export function DocPageView({ page }: { page: DocPage }) {
               {section.walkthrough ? (
                 <div className="code-walkthrough">
                   <h3>How this code works</h3>
-                  <ol>{section.walkthrough.map((step, stepIndex) => <li key={step.label}><span>{String(stepIndex + 1).padStart(2, "0")}</span><div><strong>{step.label}</strong><p>{step.description}</p></div></li>)}</ol>
+                  <ol>{section.walkthrough.map((step, stepIndex) => <li key={step.label}><span>{String(stepIndex + 1).padStart(2, "0")}</span><div><strong>{step.label}</strong><p>{formatInlineCode(step.description)}</p></div></li>)}</ol>
                 </div>
               ) : null}
               {section.api ? (
@@ -55,11 +56,11 @@ export function DocPageView({ page }: { page: DocPage }) {
                   <h3>Options and return values</h3>
                   <div className="api-list">{section.api.map((entry) => <details key={entry.name}>
                     <summary><code>{entry.name}</code><span>{entry.type}</span><b>{entry.requirement}</b></summary>
-                    <div><p>{entry.description}</p><dl><dt>Default</dt><dd><code>{entry.defaultValue}</code></dd></dl></div>
+                    <div><p>{formatInlineCode(entry.description)}</p><dl><dt>Default</dt><dd><code>{entry.defaultValue}</code></dd></dl></div>
                   </details>)}</div>
                 </div>
               ) : null}
-              {section.note ? <aside className="doc-note"><strong>Evidence boundary</strong><p>{section.note}</p></aside> : null}
+              {section.note ? <aside className="doc-note"><strong>Note</strong><p>{formatInlineCode(section.note)}</p></aside> : null}
             </section>
           ))}
 
@@ -76,5 +77,16 @@ export function DocPageView({ page }: { page: DocPage }) {
         </aside>
       </main>
     </SiteShell>
+  );
+}
+
+const eventNamePattern = /\b((?:(?:response|tool|interaction|approval|connection|citation|text|tools)\.[a-z][a-zA-Z.]*)|(?:response|tool|interaction|approval|scope|event)(?:Instance)?Id|nextResponseInstanceId)\b/g;
+const exactEventNamePattern = /^(?:(?:response|tool|interaction|approval|connection|citation|text|tools)\.[a-z][a-zA-Z.]*|(?:response|tool|interaction|approval|scope|event)(?:Instance)?Id|nextResponseInstanceId)$/;
+
+function formatInlineCode(text: string): ReactNode {
+  return text.split(eventNamePattern).map((part, index) =>
+    exactEventNamePattern.test(part) ? (
+      <code className="inline-api-code" key={`${part}:${index}`}>{part}</code>
+    ) : part,
   );
 }

@@ -19,12 +19,12 @@ const pages: DocPage[] = [
     sections: [
       {
         id: "packages",
-        title: "Choose the boundary you need",
-        body: ["Each package owns one narrow boundary. Start with core, add one delivery layer, then add a framework adapter only when its public lifecycle matches your host application."],
+        title: "Choose the packages you need",
+        body: ["Start with core. Add DOM or React for browser updates, then add a framework adapter if your app uses that framework."],
         table: { headers: ["Package", "Primary exports", "Use for"], rows: [
           ["@generative-a11y/core", "createGenerativeA11y, events, policy, scheduler", "Framework-independent policy"],
-          ["@generative-a11y/dom", "announcer, runtime binding, focus, attention, preferences", "Observable browser behavior"],
-          ["@generative-a11y/react", "provider and hooks", "React ownership and host element bindings"],
+          ["@generative-a11y/dom", "announcer, runtime binding, focus, attention, preferences", "Browser updates and helpers"],
+          ["@generative-a11y/react", "provider and hooks", "React setup and element bindings"],
           ["@generative-a11y/ai-sdk", "observer, callbacks, React hooks", "AI SDK useChat public state"],
           ["@generative-a11y/assistant-ui", "bindThreadRuntime", "assistant-ui ThreadRuntime"],
           ["@generative-a11y/ag-ui", "bindAgent", "AG-UI AgentSubscriber callbacks"],
@@ -33,8 +33,8 @@ const pages: DocPage[] = [
       {
         id: "reference-conventions",
         title: "How to read this reference",
-        body: ["Every symbol page identifies the import path, exact signature, parameters, return value, defaults, ownership rules, and related APIs. Examples use only public exports from the installed workspace packages."],
-        bullets: ["Method return values describe observable library behavior.", "Ownership notes identify which timers, subscriptions, DOM nodes, or framework objects are released by dispose().", "Evidence notes distinguish deterministic intents and DOM results from manual assistive-technology observation.", "Deep links remain stable for sharing in issues and code review."],
+        body: ["Each symbol page lists the import path, signature, parameters, return value, defaults, cleanup rules, and related APIs. Every example uses public exports from the installed packages."],
+        bullets: ["Method return values describe behavior the library can confirm.", "Cleanup notes list the timers, subscriptions, DOM nodes, or framework objects released by dispose().", "Test notes separate runtime and browser results from hands-on screen-reader tests.", "You can link to any API page from an issue or code review."],
       },
     ],
   },
@@ -42,15 +42,15 @@ const pages: DocPage[] = [
     path: "/api/core",
     group: "Core",
     title: "@generative-a11y/core",
-    description: "Browser-independent event policy, streaming segmentation, bounded scheduling, diagnostics, deterministic clocks, and test recording.",
+    description: "Core events, announcement rules, streaming text, scheduling, diagnostics, test clocks, and recorders.",
     keywords: ["core", "exports", "runtime", "events", "scheduler"],
     sections: [
       {
         id: "install",
         title: "Install and import",
-        body: ["Core has no DOM, React, or AI framework dependency. It accepts normalized lifecycle evidence and emits AnnouncementIntent values."],
+        body: ["Core does not depend on the DOM, React, or an AI framework. Your app sends it GenerativeA11yEvent objects, and it creates AnnouncementIntent objects when there is something useful to announce."],
         code: { language: "shell", value: "npm install @generative-a11y/core" },
-        walkthrough: [{ label: "Install policy only", description: "Use core in any JavaScript runtime, including deterministic tests without a document." }, { label: "Add delivery separately", description: "Browser applications normally pair core with @generative-a11y/dom or @generative-a11y/react." }],
+        walkthrough: [{ label: "Install core", description: "Use core in any JavaScript runtime, including tests that do not have a document." }, { label: "Add browser delivery", description: "Browser apps pair core with @generative-a11y/dom or @generative-a11y/react." }],
       },
       {
         id: "exports",
@@ -71,13 +71,13 @@ const pages: DocPage[] = [
     path: "/api/core/create-generative-a11y",
     group: "Core",
     title: "createGenerativeA11y",
-    description: "Create and own the framework-independent runtime that turns normalized lifecycle events into paced announcement intents and diagnostics.",
+    description: "Create the core runtime that turns app events into well-timed AnnouncementIntent objects and useful debugging details.",
     keywords: ["createGenerativeA11y", "GenerativeA11yRuntime", "dispatch", "dispose"],
     sections: [
       {
         id: "signature",
         title: "Signature and import",
-        body: ["Create one runtime per application or intentionally isolated conversation scope. Register delivery before dispatching events that can produce output."],
+        body: ["Create one runtime for your app or for each conversation that needs separate settings. Connect delivery before sending events that can produce output."],
         code: { language: "typescript", value: `import { createGenerativeA11y } from "@generative-a11y/core";
 
 const runtime = createGenerativeA11y({
@@ -86,7 +86,7 @@ const runtime = createGenerativeA11y({
     deliver(intent);
   },
 });` },
-        walkthrough: [{ label: "Import the public constructor", description: "The package root is the supported import path." }, { label: "Resolve one policy", description: "A preset supplies a complete baseline before explicit overrides are applied." }, { label: "Attach output", description: "onAnnouncement is the first listener. Browser integrations usually use connectRuntimeToDOM instead." }],
+        walkthrough: [{ label: "Import the constructor", description: "Import createGenerativeA11y from the package root." }, { label: "Choose a preset", description: "The preset supplies default behavior. The policy option changes only the settings you provide." }, { label: "Connect output", description: "onAnnouncement registers the first listener. Browser apps usually use connectRuntimeToDOM instead." }],
         api: [
           { name: "options", type: "GenerativeA11yOptions", requirement: "Required", defaultValue: "{} is not implicit", description: "Construction options for policy, time, announcement delivery, delivery errors, and diagnostics." },
           { name: "return", type: "GenerativeA11yRuntime", requirement: "Return", defaultValue: "n/a", description: "An owned runtime with synchronous dispatch, subscriptions, policy inspection, pending work inspection, and disposal." },
@@ -114,7 +114,7 @@ const runtime = createGenerativeA11y({
       {
         id: "complete-lifecycle",
         title: "Complete response lifecycle",
-        body: ["Deltas contain only the new suffix. A terminal event flushes eligible buffered text and closes the response identity."],
+        body: ["Each delta contains only new text. A completed event announces useful text that is still waiting, then closes the response."],
         code: { language: "typescript", value: `const accepted = runtime.dispatch({
   type: "response.started",
   responseId: "report-1",
@@ -133,8 +133,8 @@ runtime.dispatch({
 
 console.log({ accepted, pending: runtime.pendingCount() });
 runtime.dispose();` },
-        walkthrough: [{ label: "Open stable identity", description: "response.started must precede text and terminal events for this responseId." }, { label: "Dispatch append-only text", description: "The runtime segments the new suffix without rereading accumulated content." }, { label: "Close the lifecycle", description: "Completion flushes useful buffered text and cancels owned response timers." }, { label: "Release ownership", description: "Dispose when the application scope that owns the runtime ends." }],
-        note: "AnnouncementIntent delivery is deterministic policy output. It does not prove what assistive technology spoke.",
+        walkthrough: [{ label: "Start the response", description: "Send response.started before text or final events for this responseId." }, { label: "Send new text", description: "Each delta contains only the text added since the last event." }, { label: "Finish the response", description: "Completion announces useful text that is still waiting and cancels response timers." }, { label: "Clean up", description: "Call dispose when the app no longer needs the runtime." }],
+        note: "AnnouncementIntent describes an update prepared by core. Test with a real screen reader to confirm what it speaks.",
       },
     ],
   },
@@ -142,10 +142,10 @@ runtime.dispose();` },
     path: "/api/core/events",
     group: "Core",
     title: "GenerativeA11yEvent",
-    description: "Serializable normalized event union for responses, tools, interactions, approvals, connections, and citations.",
+    description: "The event type used to report responses, tools, interactions, approvals, connection changes, and citations.",
     keywords: ["GenerativeA11yEvent", "response.started", "tool.started", "interaction.requested"],
     sections: [
-      { id: "families", title: "Event families", body: ["Events report host-owned evidence. They do not contain rendered components or private framework state."], table: { headers: ["Family", "Events", "Required identity"], rows: [
+      { id: "families", title: "Event families", body: ["Events describe actions and changes your app can confirm. They contain serializable data, not rendered components or private framework state."], table: { headers: ["Family", "Events", "Required identity"], rows: [
         ["Response", "started, text.delta, completed, interrupted, failed, retrying", "responseId"],
         ["Tool", "started, progress, completed, failed", "toolId"],
         ["Interaction", "requested, resolved", "interactionId"],
@@ -160,11 +160,11 @@ runtime.dispose();` },
   nextResponseInstanceId: "attempt-2",
   attempt: 2,
 });` }, walkthrough: [{ label: "Keep logical identity", description: "responseId continues to identify the answer being regenerated." }, { label: "Replace the epoch", description: "nextResponseInstanceId becomes the accepted attempt for later deltas and terminals." }] },
-      { id: "common-fields", title: "Common fields", body: ["Identity fields define lifecycle scope; labels and messages remain localized user-facing copy."], api: [
+      { id: "common-fields", title: "Common fields", body: ["ID fields connect related events. Labels and messages contain translated text for users."], api: [
         { name: "type", type: "string literal", requirement: "Required", defaultValue: "n/a", description: "Selects one member of the discriminated event union." },
-        { name: "eventId", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Correlates a normalized event with host telemetry without becoming lifecycle identity." },
+        { name: "eventId", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Connects an event to your app's logs without being used as the ID for a response, tool, or interaction." },
         { name: "locale", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Carries the language for user-facing text into intents and DOM delivery." },
-        { name: "label / message / announcement", type: "string", requirement: "Event-specific", defaultValue: "undefined", description: "Short localized copy owned by the host. Never pass raw arguments, results, or backend errors." },
+        { name: "label / message / announcement", type: "string", requirement: "Event-specific", defaultValue: "undefined", description: "Short, translated text supplied by your app. Do not pass raw arguments, results, or backend errors." },
       ] },
     ],
   },
@@ -172,10 +172,10 @@ runtime.dispose();` },
     path: "/api/core/policy",
     group: "Core",
     title: "Policy and presets",
-    description: "Resolved policy contracts for streaming segmentation, tool verbosity, lifecycle status, channels, pacing, and bounded capacity.",
+    description: "Settings for streaming text, tool updates, response status, announcement channels, timing, and queue limits.",
     keywords: ["presets", "resolvePolicy", "PolicyOverrides", "minimumGapMs"],
     sections: [
-      { id: "presets", title: "PresetName", body: ["Presets are complete immutable baselines."], table: { headers: ["Preset", "Streaming", "Operational status"], rows: [["minimal", "Restrained", "Terminals"], ["balanced", "Sentence-paced", "Useful status"], ["verbose", "More frequent", "Progress enabled"], ["completion-only", "Terminal flush", "Minimal"]] } },
+      { id: "presets", title: "PresetName", body: ["Each preset defines a complete set of default values."], table: { headers: ["Preset", "Streaming", "Status updates"], rows: [["minimal", "Restrained", "Final states"], ["balanced", "Sentence-paced", "Useful status"], ["verbose", "More frequent", "Progress enabled"], ["completion-only", "Final text only", "Minimal"]] } },
       { id: "override", title: "PolicyOverrides", body: ["Nested overrides merge with the selected preset. Unspecified values remain controlled by that preset."], code: { language: "typescript", value: `const runtime = createGenerativeA11y({
   preset: "balanced",
   policy: {
@@ -199,10 +199,10 @@ runtime.dispose();` },
     path: "/api/core/scheduler",
     group: "Core",
     title: "createAnnouncementScheduler",
-    description: "Low-level bounded scheduler for pacing, deduplication, coalescing, cancellation, capacity priority, and deterministic delivery.",
+    description: "Low-level scheduler for timing, duplicate removal, merging, cancellation, queue priority, and repeatable tests.",
     keywords: ["createAnnouncementScheduler", "ScheduleAnnouncement", "capacityPriority", "cancelScope"],
     sections: [
-      { id: "signature", title: "Signature and ownership", body: ["Most applications should use createGenerativeA11y. Use the scheduler directly only when the host already owns equivalent lifecycle policy."], code: { language: "typescript", value: `const scheduler = createAnnouncementScheduler({
+      { id: "signature", title: "Signature and cleanup", body: ["Most apps should use createGenerativeA11y. Use the scheduler directly only if your app already decides which events should produce announcements."], code: { language: "typescript", value: `const scheduler = createAnnouncementScheduler({
   clock,
   minimumGapMs: 750,
   dedupeWindowMs: 4_000,
@@ -217,16 +217,16 @@ scheduler.schedule({
   sourceType: "response.completed",
   scope: "response:report-1",
   capacityPriority: "content",
-});` }, walkthrough: [{ label: "Inject the clock", description: "All scheduling time comes from the supplied Clock, which keeps tests deterministic." }, { label: "Bound the queue", description: "maxQueueSize prevents unlimited pending output." }, { label: "Classify capacity", description: "Content can evict status candidates when the queue is full." }, { label: "Scope cancellation", description: "Use the same scope to cancel pending work when its lifecycle terminates." }], api: [
+});` }, walkthrough: [{ label: "Supply a clock", description: "The scheduler uses the supplied Clock for all timers, so tests can control time." }, { label: "Limit the queue", description: "maxQueueSize limits pending output." }, { label: "Set queue priority", description: "Response text can replace a status update when the queue is full." }, { label: "Group related work", description: "Use one scope to cancel pending work when that response or tool ends." }], api: [
         { name: "options", type: "AnnouncementSchedulerOptions", requirement: "Required", defaultValue: "n/a", description: "Clock, pacing, capacity, announcement listener, and optional diagnostic callbacks." },
         { name: "return", type: "AnnouncementScheduler", requirement: "Return", defaultValue: "n/a", description: "Owned scheduler with schedule, cancelScope, pendingCount, and dispose methods." },
       ] },
       { id: "candidate", title: "ScheduleAnnouncement", body: ["A candidate describes prepared user-facing output. It must not contain raw backend data."], api: [
         { name: "channel", type: "polite | assertive", requirement: "Required", defaultValue: "n/a", description: "Requested announcement urgency." },
-        { name: "text", type: "string", requirement: "Required", defaultValue: "n/a", description: "Normalized localized user-facing copy." },
-        { name: "sourceType", type: "GenerativeA11yEvent['type']", requirement: "Required", defaultValue: "n/a", description: "Lifecycle evidence that produced the candidate." },
+        { name: "text", type: "string", requirement: "Required", defaultValue: "n/a", description: "Translated text with whitespace normalized by the runtime." },
+        { name: "sourceType", type: "GenerativeA11yEvent['type']", requirement: "Required", defaultValue: "n/a", description: "The app event that produced the candidate." },
         { name: "delayMs", type: "number", requirement: "Optional", defaultValue: "0", description: "Additional eligibility delay measured by the injected clock." },
-        { name: "scope", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Cancellation key for pending work owned by one lifecycle." },
+        { name: "scope", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Key used to cancel pending work for one response, tool, or interaction." },
         { name: "coalesceKey", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Replaces equivalent pending work with the newest candidate." },
         { name: "dedupeKey", type: "string", requirement: "Optional", defaultValue: "normalized text", description: "Suppresses equivalent recent delivery within the dedupe window." },
         { name: "capacityPriority", type: "status | content", requirement: "Optional", defaultValue: '"content"', description: "Allows content to displace status work when bounded capacity is exhausted." },
@@ -243,7 +243,7 @@ scheduler.schedule({
     path: "/api/core/testing",
     group: "Core",
     title: "Testing utilities",
-    description: "Deterministic ManualClock and AnnouncementRecorder contracts for testing event policy without browser or real-time waits.",
+    description: "ManualClock and AnnouncementRecorder APIs for testing runtime behavior without a browser or real-time delays.",
     keywords: ["ManualClock", "createAnnouncementRecorder", "transcript", "testing"],
     sections: [
       { id: "recorder", title: "createAnnouncementRecorder", body: ["The recorder creates a runtime, ManualClock, announcement transcript, and diagnostic transcript as one test harness."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({
@@ -262,16 +262,16 @@ recorder.runtime.dispatch({
 });
 recorder.clock.advanceBy(2_000);
 
-expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create one harness", description: "The recorder wires deterministic time and both output channels into a real runtime." }, { label: "Dispatch production events", description: "Tests exercise the same normalized event contract used by the application." }, { label: "Advance time explicitly", description: "No test waits for global timers or wall-clock time." }], api: [
+expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the test runtime", description: "The recorder provides a runtime, a ManualClock, and captured output." }, { label: "Send app events", description: "Use the same events your app sends in production." }, { label: "Advance the clock", description: "Tests control time instead of waiting for real timers." }], api: [
         { name: "options", type: "Recorder options", requirement: "Optional", defaultValue: "{}", description: "Accepts runtime preset, policy, error handling, and an optional startAt timestamp. Clock and listeners are owned by the recorder." },
         { name: "return", type: "AnnouncementRecorder", requirement: "Return", defaultValue: "n/a", description: "Provides runtime, clock, transcript(), diagnosticTranscript(), and clear()." },
       ] },
-      { id: "manual-clock", title: "ManualClock", body: ["ManualClock implements Clock with deterministic timer ordering."], api: [
-        { name: "new ManualClock(startAt)", type: "ManualClock", requirement: "Constructor", defaultValue: "0", description: "Creates deterministic time at the supplied timestamp." },
+      { id: "manual-clock", title: "ManualClock", body: ["ManualClock implements Clock and runs timers in a repeatable order."], api: [
+        { name: "new ManualClock(startAt)", type: "ManualClock", requirement: "Constructor", defaultValue: "0", description: "Creates a clock at the supplied timestamp." },
         { name: "now()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Returns the current manual timestamp." },
-        { name: "setTimeout(callback, delayMs)", type: "ClockTimer", requirement: "Method", defaultValue: "n/a", description: "Registers an owned deterministic callback." },
+        { name: "setTimeout(callback, delayMs)", type: "ClockTimer", requirement: "Method", defaultValue: "n/a", description: "Schedules a callback on the manual clock." },
         { name: "clearTimeout(timer)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels a registered timer." },
-        { name: "advanceBy(ms)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances time and runs due callbacks in deterministic order." },
+        { name: "advanceBy(ms)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances time and runs due callbacks in a repeatable order." },
       ] },
     ],
   },
@@ -282,15 +282,15 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     description: "AnnouncementIntent output and AnnouncementDiagnostic decisions for delivery, tests, telemetry, and bounded failure analysis.",
     keywords: ["AnnouncementIntent", "AnnouncementDiagnostic", "DiagnosticReason", "count"],
     sections: [
-      { id: "intent", title: "AnnouncementIntent", body: ["An intent is immutable core policy output. It is not proof of DOM delivery or assistive-technology speech."], api: [
+      { id: "intent", title: "AnnouncementIntent", body: ["An AnnouncementIntent describes an update prepared by core. It does not confirm that the browser delivered it or that a screen reader spoke it."], api: [
         { name: "id", type: "string", requirement: "Required", defaultValue: "n/a", description: "Unique scheduled output identity." },
         { name: "at", type: "number", requirement: "Required", defaultValue: "n/a", description: "Injected clock timestamp at delivery." },
         { name: "channel", type: "polite | assertive", requirement: "Required", defaultValue: "n/a", description: "Requested urgency for the delivery layer." },
-        { name: "text", type: "string", requirement: "Required", defaultValue: "n/a", description: "Normalized localized copy." },
-        { name: "sourceType", type: "event type", requirement: "Required", defaultValue: "n/a", description: "Normalized lifecycle evidence that produced this intent." },
+        { name: "text", type: "string", requirement: "Required", defaultValue: "n/a", description: "Translated text with normalized whitespace." },
+        { name: "sourceType", type: "event type", requirement: "Required", defaultValue: "n/a", description: "The app event that caused the runtime to create this intent." },
         { name: "responseId / toolId / interactionId", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Optional source lifecycle correlation." },
       ] },
-      { id: "diagnostic", title: "AnnouncementDiagnostic", body: ["Diagnostics are observational. Listener failures never alter runtime behavior, and repeated equivalent overflow decisions can be aggregated with count."], table: { headers: ["Disposition", "Typical reasons", "Meaning"], rows: [["queued", "scheduled", "Candidate entered the scheduler"], ["merged", "coalesced", "Pending equivalent work was replaced"], ["suppressed", "duplicate, policy-silent, stale-response", "Policy or identity prevented output"], ["cancelled", "scope-cancelled, runtime-disposed", "Pending work became invalid"], ["announced", "delivered, delivery-error", "Listeners accepted output or every attempt failed"]] }, api: [
+      { id: "diagnostic", title: "AnnouncementDiagnostic", body: ["Diagnostics record runtime decisions for tests and telemetry. Listener failures do not change runtime behavior. Repeated queue-limit decisions can share one diagnostic with a count."], table: { headers: ["Disposition", "Typical reasons", "Meaning"], rows: [["queued", "scheduled", "Candidate entered the scheduler"], ["merged", "coalesced", "Pending equivalent work was replaced"], ["suppressed", "duplicate, policy-silent, stale-response", "Policy or identity prevented output"], ["cancelled", "scope-cancelled, runtime-disposed", "Pending work became invalid"], ["announced", "delivered, delivery-error", "Listeners accepted output or every attempt failed"]] }, api: [
         { name: "disposition", type: "DiagnosticDisposition", requirement: "Required", defaultValue: "n/a", description: "High-level outcome category." },
         { name: "reason", type: "DiagnosticReason", requirement: "Required", defaultValue: "n/a", description: "Stable machine-readable explanation for the decision." },
         { name: "count", type: "number", requirement: "Optional", defaultValue: "undefined", description: "Number of equivalent decisions represented by an aggregated diagnostic." },
@@ -301,10 +301,10 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     path: "/api/dom",
     group: "DOM",
     title: "@generative-a11y/dom",
-    description: "Browser delivery, runtime binding, conservative focus helpers, attention evidence, and validated preference storage.",
+    description: "Browser announcements, runtime connections, safe focus helpers, attention tracking, and validated preference storage.",
     keywords: ["DOM", "ariaNotify", "live region", "focus", "preferences"],
     sections: [
-      { id: "install", title: "Install browser delivery", body: ["The DOM package depends on core and remains independent of React and AI frameworks."], code: { language: "shell", value: "npm install @generative-a11y/core @generative-a11y/dom" }, walkthrough: [{ label: "Keep policy separate", description: "Core produces intents without browser globals." }, { label: "Add observable delivery", description: "DOM converts those intents into ariaNotify attempts or stable live-region mutations." }] },
+      { id: "install", title: "Install browser delivery", body: ["The DOM package uses core but does not depend on React or an AI framework."], code: { language: "shell", value: "npm install @generative-a11y/core @generative-a11y/dom" }, walkthrough: [{ label: "Prepare updates in core", description: "Core prepares announcements without using browser globals." }, { label: "Add updates to the page", description: "DOM uses ariaNotify when available and falls back to hidden live regions." }] },
       { id: "exports", title: "Public export map", body: ["Choose direct announcing or bind an existing runtime."], table: { headers: ["Category", "Exports", "Reference"], rows: [["Delivery", "createDOMAnnouncer", "/api/dom/create-dom-announcer"], ["Runtime binding", "connectRuntimeToDOM", "/api/dom/connect-runtime-to-dom"], ["Focus", "captureFocus, focusElement, restoreFocus", "/api/dom/focus"], ["Attention", "createAttentionStore", "/api/dom/attention"], ["Preferences", "createPreferenceStore and mapping helpers", "/api/dom/preferences"]] } },
     ],
   },
@@ -338,7 +338,7 @@ announcer.dispose();` }, walkthrough: [{ label: "Use progressive delivery", desc
       { id: "result", title: "DOMDeliveryResult", body: ["announce returns one result synchronously."], table: { headers: ["Status", "Method", "Meaning"], rows: [["notified", "aria-notify", "ariaNotify returned without throwing"], ["mutated", "live-region", "The selected stable region text changed"], ["unavailable", "none", "No usable document or region exists"], ["disposed", "none", "announce was called after disposal"]] }, api: [
         { name: "channel", type: "polite | assertive", requirement: "Required", defaultValue: "n/a", description: "Intent channel selected for this attempt." },
         { name: "error", type: "{ name, message }", requirement: "Optional", defaultValue: "undefined", description: "Serializable ariaNotify failure information when fallback was needed." },
-      ], note: "A notified or mutated result proves an observable browser action. It does not prove a screen reader spoke." },
+      ], note: "A notified or mutated result confirms that the library updated the browser. Test with a real screen reader to confirm what it speaks." },
     ],
   },
   {
@@ -357,12 +357,12 @@ const delivery = connectRuntimeToDOM(runtime, { mode: "auto" });
 runtime.dispatch(event);
 
 delivery.dispose();
-runtime.dispose();` }, walkthrough: [{ label: "Create policy", description: "The application owns the core runtime." }, { label: "Attach browser delivery", description: "The binding subscribes before lifecycle events are dispatched." }, { label: "Dispose inside out", description: "Release the borrowed binding before the runtime it observes." }], api: [
-        { name: "runtime", type: "GenerativeA11yRuntime", requirement: "Required", defaultValue: "n/a", description: "Borrowed runtime that supplies announcement intents." },
+runtime.dispose();` }, walkthrough: [{ label: "Create the runtime", description: "Your app creates and owns the core runtime." }, { label: "Connect browser delivery", description: "Connect the DOM binding before your app sends events." }, { label: "Clean up in order", description: "Dispose the DOM binding before you dispose the runtime." }], api: [
+        { name: "runtime", type: "GenerativeA11yRuntime", requirement: "Required", defaultValue: "n/a", description: "The runtime that supplies AnnouncementIntent objects. Your app still owns it." },
         { name: "options", type: "DOMAnnouncerOptions", requirement: "Optional", defaultValue: "{}", description: "Forwarded to the owned DOM announcer." },
         { name: "return", type: "DOMRuntimeBinding", requirement: "Return", defaultValue: "n/a", description: "Provides the announcer and an idempotent dispose function." },
       ] },
-      { id: "ownership", title: "DOMRuntimeBinding", body: ["The binding never disposes a borrowed runtime or application-supplied live regions."], api: [
+      { id: "ownership", title: "DOMRuntimeBinding", body: ["The binding never disposes a runtime or live regions supplied by your app."], api: [
         { name: "announcer", type: "DOMAnnouncer", requirement: "Property", defaultValue: "n/a", description: "Owned announcer used for every runtime intent." },
         { name: "dispose()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Unsubscribes from the runtime and disposes the owned announcer." },
       ] },
@@ -372,16 +372,16 @@ runtime.dispose();` }, walkthrough: [{ label: "Create policy", description: "The
     path: "/api/dom/focus",
     group: "DOM",
     title: "Focus helpers",
-    description: "Conservative capture, focus, and restoration helpers for application-owned interaction workflows.",
+    description: "Helpers for capturing, moving, and restoring focus in dialogs and other app interactions.",
     keywords: ["captureFocus", "focusElement", "restoreFocus", "FocusResult"],
     sections: [
-      { id: "workflow", title: "Capture and restore application focus", body: ["Use focus helpers only for application-owned dialogs and interactions. Streaming and routine status must never move focus."], code: { language: "typescript", value: `const capture = captureFocus(document);
+      { id: "workflow", title: "Capture and restore application focus", body: ["Call these helpers from dialogs and other interactions that your app controls. Do not move focus for streaming text or routine status updates."], code: { language: "typescript", value: `const capture = captureFocus(document);
 const opened = focusElement(dialogHeading, { preventScroll: true });
 
 // After the application-owned interaction closes:
 const restored = restoreFocus(capture, {
   onlyIfFocusWithin: dialog,
-});` }, walkthrough: [{ label: "Capture before opening", description: "The returned value records a connected element without changing focus." }, { label: "Focus the interaction", description: "The host decides which semantic target receives focus." }, { label: "Restore conservatively", description: "onlyIfFocusWithin prevents restoration after the user intentionally moved elsewhere." }], api: [
+});` }, walkthrough: [{ label: "Capture current focus", description: "captureFocus records the active element without moving focus." }, { label: "Focus the dialog", description: "Your app chooses the correct element inside the dialog." }, { label: "Restore when appropriate", description: "onlyIfFocusWithin leaves focus alone if the user moved outside the dialog." }], api: [
         { name: "captureFocus(document)", type: "FocusCapture", requirement: "Function", defaultValue: "global document", description: "Captures the deep active element from the supplied document." },
         { name: "focusElement(element, options)", type: "FocusResult", requirement: "Function", defaultValue: "preventScroll: true", description: "Attempts focus and reports focused or a stable skipped reason." },
         { name: "restoreFocus(capture, options)", type: "FocusResult", requirement: "Function", defaultValue: "n/a", description: "Restores only when the captured target remains eligible and optional guards still match." },
@@ -393,10 +393,10 @@ const restored = restoreFocus(capture, {
     path: "/api/dom/attention",
     group: "DOM",
     title: "createAttentionStore",
-    description: "External store for conservative browser attention evidence from visibility, window focus, deep focus area, and newest-response intersection.",
+    description: "A store that uses page visibility, window focus, the focused area, and response visibility to estimate where the user is working.",
     keywords: ["createAttentionStore", "AttentionStore", "AttentionSnapshot", "registerComposer"],
     sections: [
-      { id: "signature", title: "Create and register host elements", body: ["Attention is browser evidence only. It does not inspect a screen-reader cursor and never moves focus."], code: { language: "typescript", value: `const attention = createAttentionStore({ document });
+      { id: "signature", title: "Create and register app elements", body: ["AttentionStore reads browser focus and visibility. It does not inspect a screen reader's cursor or move focus."], code: { language: "typescript", value: `const attention = createAttentionStore({ document });
 
 const unregisterComposer = attention.registerComposer(composer);
 const unregisterConversation = attention.registerConversation(conversation);
@@ -410,11 +410,11 @@ unsubscribe();
 unregisterNewest();
 unregisterConversation();
 unregisterComposer();
-attention.dispose();` }, walkthrough: [{ label: "Create browser evidence", description: "The store observes only public document, window, focus, and intersection signals." }, { label: "Register semantic areas", description: "Element identity lets the store classify composer, conversation history, and newest response." }, { label: "Release registrations", description: "Each registration and subscription has independent cleanup." }], api: [
+attention.dispose();` }, walkthrough: [{ label: "Read browser signals", description: "The store reads document visibility, window focus, element focus, and intersection changes." }, { label: "Register app areas", description: "Register the composer, conversation history, and newest response so the store can identify them." }, { label: "Clean up", description: "Each registration and subscription returns its own cleanup function." }], api: [
         { name: "options", type: "AttentionStoreOptions", requirement: "Optional", defaultValue: "browser document", description: "Injects the document, intersection observer factory, and observer configuration." },
         { name: "return", type: "AttentionStore", requirement: "Return", defaultValue: "n/a", description: "External store with snapshots, registrations, subscriptions, and disposal." },
       ] },
-      { id: "snapshot", title: "AttentionSnapshot", body: ["unknown is preserved when evidence is unavailable rather than inferred."], table: { headers: ["Field", "Values", "Evidence"], rows: [["visibility", "visible, hidden, unknown", "Document visibility"], ["windowFocus", "focused, blurred, unknown", "Window focus"], ["focusArea", "composer, conversation, elsewhere, none, unknown", "Deep active element"], ["newestResponse", "visible, outside, unobserved, unknown", "Intersection observer"], ["mode", "foreground, background, reading-history, away, unknown", "Conservative derivation"]] } },
+      { id: "snapshot", title: "AttentionSnapshot", body: ["A field stays unknown when the browser cannot provide enough information. The store does not guess."], table: { headers: ["Field", "Values", "Browser signal"], rows: [["visibility", "visible, hidden, unknown", "Document visibility"], ["windowFocus", "focused, blurred, unknown", "Window focus"], ["focusArea", "composer, conversation, elsewhere, none, unknown", "Deep active element"], ["newestResponse", "visible, outside, unobserved, unknown", "Intersection observer"], ["mode", "foreground, background, reading-history, away, unknown", "Derived from the fields above"]] } },
     ],
   },
   {
@@ -450,7 +450,7 @@ store.setPreferences({
   preset: "balanced",
   streaming: "sentence",
   tools: "status",
-});` }, walkthrough: [{ label: "Supply persistence explicitly", description: "Injected storage keeps SSR and tests deterministic." }, { label: "Subscribe as an external store", description: "getSnapshot returns validated versioned preferences." }, { label: "Map to core", description: "The helper converts user-facing verbosity into a core preset and policy override." }], api: [
+});` }, walkthrough: [{ label: "Supply storage", description: "Pass storage when you need persistence, server rendering, or controlled tests." }, { label: "Subscribe to changes", description: "getSnapshot returns validated, versioned preferences." }, { label: "Map preferences to core", description: "The helper converts the selected verbosity into a core preset and policy override." }], api: [
         { name: "defaultValue", type: "PreferenceSchemaV1", requirement: "Optional", defaultValue: "defaultPreferences", description: "Validated snapshot used when persistence is missing or invalid." },
         { name: "persistence.key", type: "string", requirement: "Optional", defaultValue: "library key", description: "Storage key for the serialized versioned schema." },
         { name: "persistence.storage", type: "PreferenceStorage", requirement: "Optional", defaultValue: "localStorage when available", description: "Injected getItem and setItem surface." },
@@ -469,7 +469,7 @@ store.setPreferences({
     path: "/api/react",
     group: "React",
     title: "@generative-a11y/react",
-    description: "React provider, DOM delivery, attention, preferences, and ref bindings that preserve the host application's visual interface.",
+    description: "A React provider and hooks for browser updates, attention, preferences, and refs for your existing interface.",
     keywords: ["React", "GenerativeA11yProvider", "hooks", "bindings"],
     sections: [
       { id: "provider", title: "GenerativeA11yProvider", body: ["The provider can own a runtime or borrow one supplied by the application. It renders only stable hidden delivery regions and leaves visible UI unchanged."], code: { language: "tsx", value: `import { GenerativeA11yProvider } from "@generative-a11y/react";
@@ -483,25 +483,25 @@ export function App() {
       <ExistingChat />
     </GenerativeA11yProvider>
   );
-}` }, walkthrough: [{ label: "Place one owner", description: "Mount the provider around the application scope that owns accessibility policy." }, { label: "Keep delivery progressive", description: "The DOM option controls hidden browser delivery without replacing visible components." }, { label: "Preserve the host", description: "ExistingChat remains responsible for semantics, keyboard behavior, and application focus." }], api: [
+}` }, walkthrough: [{ label: "Mount one provider", description: "Wrap the part of your app that sends accessibility events." }, { label: "Configure browser delivery", description: "The dom option controls hidden screen-reader updates without replacing visible components." }, { label: "Keep app behavior in the app", description: "ExistingChat still owns its HTML, keyboard behavior, and focus." }], api: [
         { name: "runtime", type: "GenerativeA11yRuntime", requirement: "Optional", defaultValue: "owned runtime", description: "Borrows an existing runtime when provided. The provider does not dispose borrowed ownership." },
         { name: "dom", type: "false | GenerativeA11yDOMOptions", requirement: "Optional", defaultValue: "{}", description: "Configures hidden DOM delivery or disables it." },
-        { name: "attention", type: "false | AttentionStoreOptions", requirement: "Optional", defaultValue: "{}", description: "Configures an owned conservative attention store or disables collection." },
+        { name: "attention", type: "false | AttentionStoreOptions", requirement: "Optional", defaultValue: "{}", description: "Configures the provider's attention store or disables browser signal collection." },
         { name: "attentionStore", type: "AttentionStore", requirement: "Optional", defaultValue: "owned store", description: "Borrows an application-supplied attention store." },
         { name: "preferences", type: "PreferenceStoreOptions", requirement: "Optional", defaultValue: "{}", description: "Configures an owned preference store." },
         { name: "preferenceStore", type: "PreferenceStore", requirement: "Optional", defaultValue: "owned store", description: "Borrows an application-supplied preference store." },
       ] },
-      { id: "ownership", title: "Provider ownership", body: ["Owned runtime, DOM binding, stores, timers, subscriptions, and regions are released on unmount. Borrowed resources remain application-owned."], bullets: ["Provider context is unavailable outside the provider.", "SSR uses stable hidden structure and unknown attention evidence.", "Routine announcements never move focus.", "Preference changes update owned policy without replacing host components."] },
+      { id: "ownership", title: "Provider ownership", body: ["The provider cleans up every runtime, browser connection, store, timer, subscription, and live region it creates. Anything supplied by your app remains under your app's control."], bullets: ["Provider context is unavailable outside the provider.", "Server rendering uses stable hidden structure and reports attention as unknown.", "Routine announcements never move focus.", "Preference changes update the runtime without replacing your components."] },
     ],
   },
   {
     path: "/api/react/hooks",
     group: "React",
     title: "React hooks",
-    description: "Context, runtime, attention, preference, and host-element binding hooks exported by @generative-a11y/react.",
+    description: "React hooks for the runtime, attention, preferences, and refs for existing app elements.",
     keywords: ["useGenerativeA11y", "useGenerativeA11yRuntime", "useGenerativeA11yBindings", "hooks"],
     sections: [
-      { id: "complete-example", title: "Bind an existing chat surface", body: ["Bindings provide refs only. Spread them onto the existing semantic host elements."], code: { language: "tsx", value: `function ExistingChat() {
+      { id: "complete-example", title: "Bind an existing chat interface", body: ["Bindings contain refs only. Add them to the existing semantic elements in your app."], code: { language: "tsx", value: `function ExistingChat() {
   const runtime = useGenerativeA11yRuntime();
   const attention = useGenerativeA11yAttention();
   const { preferences, setPreferences } = useGenerativeA11yPreferences();
@@ -518,32 +518,32 @@ export function App() {
       </button>
     </main>
   );
-}` }, walkthrough: [{ label: "Read the owned runtime", description: "Dispatch only lifecycle evidence the host already owns." }, { label: "Register existing elements", description: "Ref bindings classify attention without changing markup or styles." }, { label: "Expose user control", description: "Preference updates remain validated and versioned." }], api: [
+}` }, walkthrough: [{ label: "Read the app runtime", description: "Send only events that your app knows happened." }, { label: "Register existing elements", description: "Ref bindings track focus and visibility without changing markup or styles." }, { label: "Expose user control", description: "Preference updates remain validated and versioned." }], api: [
         { name: "useGenerativeA11y()", type: "GenerativeA11yContextValue", requirement: "Hook", defaultValue: "n/a", description: "Returns runtime, attentionStore, and preferenceStore from the nearest provider." },
         { name: "useGenerativeA11yRuntime()", type: "GenerativeA11yRuntime", requirement: "Hook", defaultValue: "n/a", description: "Returns the provider runtime." },
-        { name: "useGenerativeA11yAttention()", type: "AttentionSnapshot", requirement: "Hook", defaultValue: "unknown SSR snapshot", description: "Subscribes through useSyncExternalStore to conservative attention evidence." },
+        { name: "useGenerativeA11yAttention()", type: "AttentionSnapshot", requirement: "Hook", defaultValue: "unknown SSR snapshot", description: "Uses useSyncExternalStore to report browser focus and visibility without guessing missing values." },
         { name: "useGenerativeA11yPreferences()", type: "GenerativeA11yPreferencesResult", requirement: "Hook", defaultValue: "n/a", description: "Returns validated preferences, setPreferences, and the underlying store." },
         { name: "useGenerativeA11yBindings()", type: "GenerativeA11yBindings", requirement: "Hook", defaultValue: "n/a", description: "Returns stable composer, conversation, and newest-response ref props." },
       ] },
-      { id: "binding-contracts", title: "GenerativeA11yBindings", body: ["Each property contains a React ref callback for one host-owned semantic area."], table: { headers: ["Property", "Target", "Purpose"], rows: [["composerProps", "HTMLTextAreaElement", "Classifies composer focus"], ["conversationProps", "HTMLElement", "Classifies history focus"], ["newestResponseProps", "HTMLElement", "Observes newest response visibility"]] } },
+      { id: "binding-contracts", title: "GenerativeA11yBindings", body: ["Each property contains a React ref for an existing part of your interface."], table: { headers: ["Property", "Target", "Purpose"], rows: [["composerProps", "HTMLTextAreaElement", "Detects focus in the composer"], ["conversationProps", "HTMLElement", "Detects focus in conversation history"], ["newestResponseProps", "HTMLElement", "Checks whether the newest response is visible"]] } },
     ],
   },
   {
     path: "/api/ai-sdk",
     group: "AI SDK",
     title: "@generative-a11y/ai-sdk",
-    description: "Translate documented AI SDK useChat state and exact callback terminals into normalized generative-a11y events.",
+    description: "Turn documented AI SDK useChat state and callbacks into generative-a11y events.",
     keywords: ["AI SDK", "createObserver", "composeChatCallbacks", "useChat"],
     sections: [
-      { id: "surface", title: "Public surfaces", body: ["The adapter reads documented messages, status, and error state. Exact finish and error terminals come from callbacks composed into useChat."], table: { headers: ["Surface", "Exports", "Use"], rows: [["Framework-neutral", "createObserver, composeChatCallbacks", "Custom subscription or state bridge"], ["React", "useChatAccessibility, useObserveChatAccessibility", "AI SDK useChat components"], ["Metadata", "CHAT_ADAPTER_METADATA", "Declared fidelity and evidence review"]] } },
-      { id: "ownership", title: "Evidence and ownership", body: ["The adapter borrows the core runtime and never performs chat actions. It does not parse rendered messages or private AI SDK fields."], bullets: ["Response and message IDs are namespaced by scopeId.", "Tool arguments do not prove execution.", "Callbacks preserve host onFinish and onError behavior.", "Observer disposal clears only adapter-owned identity state."] },
+      { id: "surface", title: "Public APIs used", body: ["The adapter reads documented messages, status, and error state. The onFinish and onError callbacks report the final response state."], table: { headers: ["Surface", "Exports", "Use"], rows: [["Framework-neutral", "createObserver, composeChatCallbacks", "Custom subscription or state bridge"], ["React", "useChatAccessibility, useObserveChatAccessibility", "AI SDK useChat components"], ["Metadata", "CHAT_ADAPTER_METADATA", "Supported events and framework APIs"]] } },
+      { id: "ownership", title: "Runtime and app ownership", body: ["Your app owns the core runtime. The adapter reports events but does not run chat actions or read rendered messages and private AI SDK fields."], bullets: ["scopeId separates response and message IDs across chat instances.", "Tool arguments do not mean that execution started.", "The adapter preserves your onFinish and onError callbacks.", "Disposing the observer clears only records created by the adapter."] },
     ],
   },
   {
     path: "/api/ai-sdk/use-chat-accessibility",
     group: "AI SDK",
     title: "useChatAccessibility",
-    description: "Create the AI SDK observer and exact terminal callbacks before invoking useChat in the same React component.",
+    description: "Create the AI SDK observer and completion callbacks before calling useChat in the same React component.",
     keywords: ["useChatAccessibility", "useObserveChatAccessibility", "ChatIntegration", "useChat"],
     sections: [
       { id: "complete-example", title: "Complete useChat integration", body: ["Call useChatAccessibility first, pass chatCallbacks into useChat, then observe the documented snapshot."], code: { language: "tsx", value: `const accessibility = useChatAccessibility({
@@ -564,15 +564,15 @@ const chat = useChat({
 useObserveChatAccessibility({
   integration: accessibility,
   snapshot: chat,
-});` }, walkthrough: [{ label: "Create callbacks first", description: "The hook creates one observer and callback pair for the runtime and scope." }, { label: "Compose with useChat", description: "Exact finish and error evidence reaches both the adapter and host callbacks." }, { label: "Observe public state", description: "The second hook translates messages, status, and error after useChat returns." }, { label: "Let the hook clean up", description: "The owning hook disposes its observer after unmount while preserving React strict-mode remount behavior." }], api: [
-        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "Borrowed normalized event target." },
+});` }, walkthrough: [{ label: "Create callbacks first", description: "The hook creates one observer and one callback pair for the runtime and scope." }, { label: "Pass callbacks to useChat", description: "Completion and error details reach the adapter and your existing callbacks." }, { label: "Observe public state", description: "The second hook reads messages, status, and error after useChat returns." }, { label: "Let the hook clean up", description: "The hook disposes its observer after unmount and supports React Strict Mode remounts." }], api: [
+        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "The runtime that receives events from this adapter. Your app owns it." },
         { name: "scopeId", type: "string", requirement: "Required", defaultValue: "n/a", description: "Stable non-empty namespace for messages, tools, approvals, and citations." },
         { name: "maxTrackedEntities", type: "number", requirement: "Optional", defaultValue: "1000", description: "Bounds adapter identity memory and suppresses new identity after saturation." },
         { name: "getToolLabel", type: "(context) => string", requirement: "Optional", defaultValue: '"A tool"', description: "Maps public tool context to short localized copy without exposing arguments." },
-        { name: "onFinish / onError", type: "AI SDK callbacks", requirement: "Optional", defaultValue: "undefined", description: "Host callbacks preserved by chatCallbacks after adapter observation." },
+        { name: "onFinish / onError", type: "AI SDK callbacks", requirement: "Optional", defaultValue: "undefined", description: "Your existing callbacks. chatCallbacks calls them after the adapter records the result." },
         { name: "return", type: "ChatIntegration", requirement: "Return", defaultValue: "n/a", description: "Observer plus onFinish and onError callbacks for useChat." },
       ] },
-      { id: "observe", title: "useObserveChatAccessibility", body: ["The observer hook borrows ChatIntegration and never disposes it."], api: [
+      { id: "observe", title: "useObserveChatAccessibility", body: ["The hook reads the supplied ChatIntegration but does not dispose it."], api: [
         { name: "integration", type: "ChatIntegration", requirement: "Required", defaultValue: "n/a", description: "Value returned by useChatAccessibility." },
         { name: "snapshot", type: "UseChatSnapshot", requirement: "Required", defaultValue: "n/a", description: "Documented messages, status, and error fields from useChat." },
         { name: "return", type: "void", requirement: "Return", defaultValue: "n/a", description: "Observation occurs in an effect after the snapshot commits." },
@@ -583,18 +583,18 @@ useObserveChatAccessibility({
     path: "/api/assistant-ui",
     group: "assistant-ui",
     title: "@generative-a11y/assistant-ui",
-    description: "Translate assistant-ui ThreadRuntime public state and subscriptions into normalized response, tool, approval, and citation events.",
+    description: "Turn public assistant-ui ThreadRuntime state into response, tool, approval, and source events.",
     keywords: ["assistant-ui", "ThreadRuntime", "THREAD_ADAPTER_METADATA"],
     sections: [
-      { id: "exports", title: "Public exports", body: ["The adapter observes only getState and subscribe from the supplied ThreadRuntime."], table: { headers: ["Export", "Kind", "Purpose"], rows: [["bindThreadRuntime", "Function", "Create one adapter subscription"], ["THREAD_ADAPTER_METADATA", "Frozen constant", "Declare fidelity and observed methods"], ["BindThreadRuntimeOptions", "Interface", "Binding input contract"], ["ThreadBinding", "Interface", "Adapter cleanup contract"]] } },
-      { id: "fidelity", title: "Declared fidelity", body: ["Interruption is exact. Generic retry and connection evidence are unavailable. Tool failure and citations depend on public content parts."], note: "Unavailable evidence is not reconstructed from rendered text, timing, or private runtime fields." },
+      { id: "exports", title: "Public exports", body: ["The adapter uses only getState and subscribe from the ThreadRuntime you provide."], table: { headers: ["Export", "Kind", "Purpose"], rows: [["bindThreadRuntime", "Function", "Create one adapter subscription"], ["THREAD_ADAPTER_METADATA", "Frozen constant", "List supported events and methods"], ["BindThreadRuntimeOptions", "Interface", "Options for the binding"], ["ThreadBinding", "Interface", "Cleanup method for the binding"]] } },
+      { id: "fidelity", title: "Events the adapter can report", body: ["The adapter can report interruptions from public thread state. It cannot report general retries or connection changes. Tool failures and sources depend on the content parts provided by assistant-ui."], note: "The adapter does not guess missing events from rendered text, timing, or private runtime fields." },
     ],
   },
   {
     path: "/api/assistant-ui/bind-thread-runtime",
     group: "assistant-ui",
     title: "bindThreadRuntime",
-    description: "Subscribe to one public assistant-ui ThreadRuntime and dispatch normalized events into a borrowed core runtime.",
+    description: "Connect one assistant-ui ThreadRuntime and send its public events to a core runtime supplied by your app.",
     keywords: ["bindThreadRuntime", "BindThreadRuntimeOptions", "ThreadBinding"],
     sections: [
       { id: "signature", title: "Signature and import", body: ["Create one binding per thread scope and dispose it when that subscription owner unmounts."], code: { language: "typescript", value: `import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
@@ -607,32 +607,32 @@ const binding = bindThreadRuntime({
 });
 
 // Removes only the subscription and adapter state.
-binding.dispose();` }, walkthrough: [{ label: "Borrow the runtime", description: "The binding dispatches events but never disposes core ownership." }, { label: "Namespace the thread", description: "scopeId prevents collisions across mounted conversations." }, { label: "Observe the public surface", description: "Only getState and subscribe are required from ThreadRuntime." }, { label: "Release the binding", description: "Dispose removes its subscription without altering the thread runtime." }], api: [
-        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "Borrowed normalized event target." },
+binding.dispose();` }, walkthrough: [{ label: "Use the app runtime", description: "The binding sends events to core but does not dispose the runtime." }, { label: "Separate thread IDs", description: "scopeId prevents ID collisions across mounted conversations." }, { label: "Read public thread state", description: "The binding needs only getState and subscribe from ThreadRuntime." }, { label: "Dispose the binding", description: "dispose removes the subscription without changing the thread runtime." }], api: [
+        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "The runtime that receives events from this adapter. Your app owns it." },
         { name: "scopeId", type: "string", requirement: "Required", defaultValue: "n/a", description: "Stable non-empty namespace for message, tool, approval, and citation identity." },
         { name: "thread", type: "ThreadRuntimeSource", requirement: "Required", defaultValue: "n/a", description: "Borrowed getState and subscribe surface from assistant-ui." },
         { name: "maxTrackedEntities", type: "number", requirement: "Optional", defaultValue: "1000", description: "Bounds message, part, tool, and approval identity tracking." },
         { name: "return", type: "ThreadBinding", requirement: "Return", defaultValue: "n/a", description: "An idempotent dispose method for the adapter subscription." },
       ] },
-      { id: "translation", title: "Translation contract", body: ["The adapter diffs public thread snapshots conservatively."], table: { headers: ["assistant-ui evidence", "Normalized output", "Fidelity"], rows: [["Assistant message starts running", "response.started", "Exact public state"], ["Append-only text growth", "response.text.delta", "Exact suffix"], ["Terminal message status", "completed, interrupted, failed", "Exact public status"], ["Tool call and result parts", "tool lifecycle", "Public part dependent"], ["Approval state", "approval requested or resolved", "Public part dependent"], ["Source parts", "citation.available", "Optional"]] } },
+      { id: "translation", title: "Events reported from thread state", body: ["The adapter compares each public thread snapshot with the previous one and reports confirmed changes."], table: { headers: ["assistant-ui state", "generative-a11y event", "Source"], rows: [["Assistant message starts running", "response.started", "Public message state"], ["Text grows", "response.text.delta", "New text only"], ["Message finishes, stops, or fails", "completed, interrupted, failed", "Public message status"], ["Tool call and result parts", "tool lifecycle", "Public content parts"], ["Approval state", "approval requested or resolved", "Public content parts"], ["Source parts", "citation.available", "Optional content parts"]] } },
     ],
   },
   {
     path: "/api/ag-ui",
     group: "AG-UI",
     title: "@generative-a11y/ag-ui",
-    description: "Translate documented AG-UI AgentSubscriber callbacks into normalized response, tool, and interaction events.",
+    description: "Turn documented AG-UI AgentSubscriber callbacks into response, tool, and interaction events.",
     keywords: ["AG-UI", "AgentSubscriber", "AGENT_ADAPTER_METADATA"],
     sections: [
-      { id: "exports", title: "Public exports", body: ["The adapter subscribes through the documented agent.subscribe(AgentSubscriber) surface."], table: { headers: ["Export", "Kind", "Purpose"], rows: [["bindAgent", "Function", "Create one protocol callback subscription"], ["AGENT_ADAPTER_METADATA", "Frozen constant", "Declare fidelity, observation, and saturation"], ["BindAgentOptions", "Interface", "Binding input contract"], ["AgentBinding", "Interface", "Adapter cleanup contract"]] } },
-      { id: "fidelity", title: "Declared fidelity", body: ["Interruption is exact from protocol events. Generic retries and connection changes are unavailable. Input-required interactions depend on interrupt callbacks."], note: "The adapter does not subscribe to replay-prone private observables or infer missing protocol events." },
+      { id: "exports", title: "Public exports", body: ["The adapter subscribes through agent.subscribe(AgentSubscriber)."], table: { headers: ["Export", "Kind", "Purpose"], rows: [["bindAgent", "Function", "Create one protocol subscription"], ["AGENT_ADAPTER_METADATA", "Frozen constant", "List supported events and limits"], ["BindAgentOptions", "Interface", "Options for the binding"], ["AgentBinding", "Interface", "Cleanup method for the binding"]] } },
+      { id: "fidelity", title: "Events the adapter can report", body: ["Protocol events report interruptions. AG-UI does not provide general retry or connection events. Interrupt callbacks report requests for user input."], note: "The adapter does not use private observables or guess events the protocol did not send." },
     ],
   },
   {
     path: "/api/ag-ui/bind-agent",
     group: "AG-UI",
     title: "bindAgent",
-    description: "Subscribe to one AG-UI agent through documented callbacks and dispatch normalized events into a borrowed core runtime.",
+    description: "Connect one AG-UI agent through its public callbacks and send those events to a core runtime supplied by your app.",
     keywords: ["bindAgent", "BindAgentOptions", "AgentBinding", "AgentSubscriber"],
     sections: [
       { id: "signature", title: "Signature and import", body: ["Create the binding after the agent is ready, then dispose it when the owning application scope ends."], code: { language: "typescript", value: `import { bindAgent } from "@generative-a11y/ag-ui";
@@ -645,14 +645,14 @@ const binding = bindAgent({
 });
 
 // Unsubscribes without disposing agent or runtime.
-binding.dispose();` }, walkthrough: [{ label: "Borrow the agent", description: "The binding calls documented subscribe behavior and never owns agent execution." }, { label: "Namespace protocol IDs", description: "scopeId prevents message, tool, and interrupt collisions across agents." }, { label: "Bound identity", description: "The adapter suppresses new identities after capacity instead of evicting active protocol state." }, { label: "Dispose only the subscription", description: "Runtime and agent lifetimes remain with the host application." }], api: [
-        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "Borrowed normalized event target." },
+binding.dispose();` }, walkthrough: [{ label: "Connect the agent", description: "The binding subscribes to documented callbacks and does not run the agent." }, { label: "Separate agent IDs", description: "scopeId prevents message, tool, and interrupt IDs from colliding across agents." }, { label: "Limit stored IDs", description: "After reaching its limit, the adapter ignores new IDs instead of removing active records." }, { label: "Dispose the subscription", description: "Your app still owns the runtime and agent after the binding is disposed." }], api: [
+        { name: "runtime", type: "Pick<GenerativeA11yRuntime, 'dispatch'>", requirement: "Required", defaultValue: "n/a", description: "The runtime that receives events from this adapter. Your app owns it." },
         { name: "scopeId", type: "string", requirement: "Required", defaultValue: "n/a", description: "Stable non-empty namespace for AG-UI message, tool, and interrupt IDs." },
         { name: "agent", type: "AgentSource", requirement: "Required", defaultValue: "n/a", description: "Borrowed object exposing documented subscribe behavior." },
         { name: "maxTrackedEntities", type: "number", requirement: "Optional", defaultValue: "1000", description: "Positive safe integer bounding tracked responses, tools, and interactions." },
         { name: "return", type: "AgentBinding", requirement: "Return", defaultValue: "n/a", description: "An idempotent dispose method for the protocol subscription." },
       ] },
-      { id: "translation", title: "AgentSubscriber translation", body: ["Callbacks provide exact protocol evidence without parsing host UI."], table: { headers: ["AG-UI callback family", "Normalized output", "Notes"], rows: [["Text message start, content, end", "response lifecycle", "Append-only protocol deltas"], ["Tool call start, args, result, end", "tool lifecycle", "Execution starts from protocol evidence, not arguments alone"], ["Run error or interruption", "response.failed or interrupted", "Safe localized copy only"], ["Interrupt and resume", "interaction requested or resolved", "Input-required lifecycle"], ["Run initialized", "resolution evidence", "Matches known active interrupt IDs"]] } },
+      { id: "translation", title: "How AgentSubscriber callbacks map to events", body: ["The adapter reads public callbacks instead of the rendered interface."], table: { headers: ["AG-UI callback family", "generative-a11y event", "Notes"], rows: [["Text message start, content, end", "response lifecycle", "Each update contains only new text"], ["Tool call start, args, result, end", "tool lifecycle", "Arguments alone do not mean execution started"], ["Run error or interruption", "response.failed or interrupted", "Uses short, translated text that is safe to share"], ["Interrupt and resume", "interaction requested or resolved", "Reports when the app needs user input"], ["Run initialized", "interaction resolution", "Matches known active interrupt IDs"]] } },
     ],
   },
 ];

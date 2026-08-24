@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import { DOC_PAGES, getDocPage, searchDocumentation } from "../lib/content";
 
+function visibleExplanations() {
+  return DOC_PAGES.map(({ title, description, sections }) => ({
+    title,
+    description,
+    sections: sections.map((section) => ({
+      title: section.title,
+      body: section.body,
+      bullets: section.bullets,
+      table: section.table,
+      walkthrough: section.walkthrough,
+      note: section.note,
+      api: section.api?.map((entry) => ({
+        requirement: entry.requirement,
+        description: entry.description,
+      })),
+    })),
+  }));
+}
+
 describe("documentation registry", () => {
   it("defines every required deep-link route exactly once", () => {
     const paths = DOC_PAGES.map((page) => page.path);
@@ -109,6 +128,16 @@ describe("documentation registry", () => {
       /Phase\s+\d|implemented|deferred|pre-release/i,
     );
     expect(JSON.stringify(visibleContent)).not.toMatch(/\bpnpm\b/i);
+  });
+
+  it("uses plain language in visible explanations", () => {
+    expect(JSON.stringify(visibleExplanations())).not.toMatch(
+      /observable boundary|lifecycle evidence|evidence fidelity|host-owned lifecycle|normalized policy output|replacement epoch|borrowed target/i,
+    );
+  });
+
+  it("does not use em dashes in website explanations", () => {
+    expect(JSON.stringify(visibleExplanations())).not.toContain("—");
   });
 
   it("documents major APIs and explains every substantial code sample", () => {

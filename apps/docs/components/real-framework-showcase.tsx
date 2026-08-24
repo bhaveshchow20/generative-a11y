@@ -21,9 +21,9 @@ type Framework = "ai-sdk" | "assistant-ui";
 type ExampleName = "support" | "order" | "research";
 
 const examples: Array<{ name: ExampleName; title: string; prompt: string; detail: string }> = [
-  { name: "support", title: "Customer support", prompt: "Explain why my workspace is temporarily locked.", detail: "A concise streaming response with a clear terminal state." },
+  { name: "support", title: "Customer support", prompt: "Explain why my workspace is temporarily locked.", detail: "A short response that arrives a few sentences at a time." },
   { name: "order", title: "Order operations", prompt: "Check order 1842 and summarize the shipment status.", detail: "An operational status response presented in clear, paced updates." },
-  { name: "research", title: "Research assistant", prompt: "Summarize the accessibility review and include its source.", detail: "Streaming text and source evidence without changing the host UI." },
+  { name: "research", title: "Research assistant", prompt: "Summarize the accessibility review and include its source.", detail: "A response with a source, shown in the app you already built." },
 ];
 
 const answers: Record<ExampleName, string[]> = {
@@ -37,8 +37,8 @@ export function RealFrameworkShowcase() {
   return (
     <section className="framework-showcase real-showcase" aria-labelledby="framework-title">
       <div className="framework-heading">
-        <div><p>Installed framework examples</p><h2 id="framework-title">A real app view, with accessibility alongside it.</h2></div>
-        <p>Choose a familiar application workflow. The selected framework runs locally, its production generative-a11y adapter observes public state, and the real DOM layer delivers the resulting announcements.</p>
+        <div><p>Installed framework examples</p><h2 id="framework-title">See the adapter inside a working chat.</h2></div>
+        <p>Choose a common app workflow. Your browser runs the installed framework, the adapter reports each change, and DOM adds the matching screen-reader updates.</p>
       </div>
       <div className="version-row" aria-label="Installed framework versions">
         <span><i aria-hidden="true" /> AI SDK 7.0.66</span><span><i aria-hidden="true" /> @ai-sdk/react 4.0.69</span><span><i aria-hidden="true" /> assistant-ui 0.15.14</span>
@@ -138,14 +138,14 @@ function ExampleSurface({ framework, active, status, messages, events, announcem
           <p className="product-user">{examples.find((item) => item.name === active)!.prompt}</p>
           <div className="product-answer"><span aria-hidden="true">A</span><p>{latestAssistantText(messages) || "Choose an example to run this installed framework."}</p></div>
         </div>
-        <footer><code>{framework}</code><span>Visual UI remains application-owned</span></footer>
+        <footer><code>{framework}</code><span>Your app keeps control of the interface</span></footer>
       </div>
       <aside className="adapter-trace">
         <header><span>Accessibility trace</span><b>{events.length} events</b></header>
         <div className="trace-guide" aria-label="How framework state becomes an announcement">
-          <span><b>1</b>Framework state</span><i aria-hidden="true" /><span><b>2</b>Normalized event</span><i aria-hidden="true" /><span><b>3</b>Accessible announcement</span>
+          <span><b>1</b>App change</span><i aria-hidden="true" /><span><b>2</b>Library event</span><i aria-hidden="true" /><span><b>3</b>Screen-reader update</span>
         </div>
-        <p className="trace-help">Each item explains what changed in the app and why the accessibility layer responded. Open one for technical details.</p>
+        <p className="trace-help">Each item explains the app change and the update prepared for screen readers. Open an item for event details.</p>
         <ol data-testid="real-framework-events">{events.length ? events.slice(-7).map((event, index) => {
           const explanation = explainEvent(event);
           return <li key={`${event.type}:${index}`}>
@@ -153,12 +153,12 @@ function ExampleSurface({ framework, active, status, messages, events, announcem
               <summary><i aria-hidden="true" /><span><b>{explanation.title}</b><small>{explanation.summary}</small></span><em aria-hidden="true">+</em></summary>
               <div className="event-explanation">
                 <p><strong>Why it matters</strong>{explanation.why}</p>
-                <dl><div><dt>Normalized event</dt><dd><code>{event.type}</code></dd></div><div><dt>Source identity</dt><dd><code>{eventIdentity(event)}</code></dd></div></dl>
+                <dl><div><dt>Library event</dt><dd><code>{event.type}</code></dd></div><div><dt>Item ID</dt><dd><code>{eventIdentity(event)}</code></dd></div></dl>
               </div>
             </details>
           </li>;
-        }) : <li className="empty-trace">Choose an example. The trace will explain every accessibility decision as the response runs.</li>}</ol>
-        <div className="announcement-preview"><span>Latest announcement</span><p>{announcements.at(-1)?.text ?? "Waiting for framework evidence"}</p></div>
+        }) : <li className="empty-trace">Choose an example to follow each event and screen-reader update.</li>}</ol>
+        <div className="announcement-preview"><span>Latest screen-reader update</span><p>{announcements.at(-1)?.text ?? "Choose an example to begin"}</p></div>
       </aside>
     </div>
   );
@@ -202,21 +202,21 @@ function latestUserText(messages: readonly unknown[]) {
 function pause(ms: number) { return new Promise<void>((resolve) => window.setTimeout(resolve, ms)); }
 
 const eventExplanations: Record<string, { title: string; summary: string; why: string }> = {
-  "response.started": { title: "Assistant response started", summary: "The framework began a new assistant message.", why: "This creates a stable response identity so later updates stay attached to the correct message." },
-  "response.text.delta": { title: "New response text arrived", summary: "The framework appended more text to the active answer.", why: "The library can pace useful chunks instead of announcing every token or rereading the whole response." },
-  "response.completed": { title: "Assistant response completed", summary: "The framework reported a successful terminal state.", why: "The library can deliver a clear completion message and flush any useful buffered text." },
-  "response.interrupted": { title: "Response was stopped", summary: "The user or host interrupted the active response.", why: "Buffered text is cancelled so stale content is not announced after the response has stopped." },
-  "response.failed": { title: "Response failed", summary: "The framework reported that the active response could not finish.", why: "The accessibility layer can communicate failure without exposing private error details." },
-  "tool.started": { title: "App action started", summary: "The assistant began an application-owned action.", why: "A delayed progress announcement can reassure users during work that has no immediate visual result." },
-  "tool.completed": { title: "App action completed", summary: "The framework reported a successful tool result.", why: "Users receive a concise outcome without focus being moved away from their current task." },
-  "tool.failed": { title: "App action failed", summary: "The framework reported an unsuccessful tool result.", why: "The host can communicate recovery-oriented status while keeping sensitive errors private." },
-  "approval.requested": { title: "Approval is required", summary: "The assistant paused for a user decision.", why: "The request becomes noticeable while the visible approval controls remain owned by the app." },
-  "approval.resolved": { title: "Approval was resolved", summary: "The framework recorded the user decision.", why: "The accessibility layer confirms the outcome and keeps it connected to the original request." },
-  "citation.available": { title: "A supporting source arrived", summary: "The framework added verifiable source information.", why: "The user can be told that sources are available without every URL interrupting the response." },
+  "response.started": { title: "Response started", summary: "AI SDK or assistant-ui began a new assistant message.", why: "A stable ID keeps later updates connected to this response." },
+  "response.text.delta": { title: "New response text arrived", summary: "The framework appended text to the active answer.", why: "Core groups useful phrases instead of announcing each token or rereading the full response." },
+  "response.completed": { title: "Response complete", summary: "The framework marked the response as complete.", why: "Core can announce useful text still waiting, then close the response." },
+  "response.interrupted": { title: "App stopped the response", summary: "A user or app action stopped the active response.", why: "Core discards text still waiting so it cannot arrive after the response stops." },
+  "response.failed": { title: "Response failed", summary: "The framework reported a failure.", why: "Your app can provide a safe message without exposing private error details." },
+  "tool.started": { title: "App action started", summary: "The assistant started an action in the app.", why: "A short update tells users that work is in progress when no result appears yet." },
+  "tool.completed": { title: "App action complete", summary: "The framework confirmed that the action succeeded.", why: "Core prepares a short result and leaves focus where the user placed it." },
+  "tool.failed": { title: "App action failed", summary: "The framework confirmed that the action failed.", why: "Your app can explain what to do next while keeping sensitive error details private." },
+  "approval.requested": { title: "Assistant needs approval", summary: "The assistant paused for a user decision.", why: "Core prepares a short update while your app controls the approval buttons and focus." },
+  "approval.resolved": { title: "User answered the request", summary: "The framework recorded the user's decision.", why: "Core connects the result to the original approval request." },
+  "citation.available": { title: "Response includes a source", summary: "The framework added source information.", why: "Core can announce that sources are available without reading each URL." },
 };
 
 function explainEvent(event: GenerativeA11yEvent) {
-  return eventExplanations[event.type] ?? { title: "Application state changed", summary: "The adapter normalized public framework evidence.", why: "A consistent event model lets the same accessibility policy work across different frameworks." };
+  return eventExplanations[event.type] ?? { title: "App state changed", summary: "The adapter received an event the framework can confirm.", why: "One event format works across supported frameworks." };
 }
 
 function eventIdentity(event: GenerativeA11yEvent) {

@@ -117,6 +117,61 @@ a {
   text-decoration: none;
 }
 
+.project-stats {
+  display: inline-flex;
+  overflow: hidden;
+  align-items: stretch;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+}
+
+.project-stat {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  color: inherit;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.project-stat + .project-stat {
+  border-left: 1px solid currentColor;
+}
+
+.project-stat:hover {
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.project-stat-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-weight: 600;
+}
+
+.project-brand-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.project-stat-icon {
+  font-size: 9px;
+}
+
+.project-stat-period {
+  font-size: 8px;
+  opacity: 0.62;
+}
+
 .top-nav a:hover,
 .text-link:hover {
   text-decoration: underline;
@@ -807,7 +862,7 @@ h2 {
     gap: 14px;
   }
 
-  .top-nav a:nth-child(3) {
+  .top-nav > a {
     display: none;
   }
 
@@ -1628,6 +1683,19 @@ h2 {
   display: none;
 }
 
+.project-stats-docs {
+  border-color: var(--docs-line);
+}
+
+.project-stats-docs .project-stat + .project-stat {
+  border-left-color: var(--docs-line);
+}
+
+.project-stats-docs .project-stat:hover {
+  background: var(--docs-ink);
+  color: var(--docs-bg);
+}
+
 .docs-layout {
   display: grid;
   min-height: calc(100vh - 68px);
@@ -1792,13 +1860,30 @@ h2 {
   line-height: 1.85;
 }
 
-.doc-section ul {
+.doc-section > ul {
   padding-left: 22px;
+  list-style: disc;
+}
+
+.doc-section > ul li::marker {
+  color: var(--docs-ink);
 }
 
 .doc-section li {
   padding-left: 6px;
   margin-block: 7px;
+}
+
+.inline-api-code {
+  padding: 0.14em 0.38em;
+  border: 1px solid var(--docs-line);
+  border-radius: 4px;
+  background: var(--docs-panel);
+  color: var(--docs-ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.88em;
+  font-weight: 550;
+  white-space: nowrap;
 }
 
 .runtime-flow {
@@ -2754,7 +2839,8 @@ tbody tr:last-child td {
     grid-template-columns: 300px 1fr auto;
   }
 
-  .github-link {
+  .github-link,
+  .project-stats-docs {
     display: none;
   }
 

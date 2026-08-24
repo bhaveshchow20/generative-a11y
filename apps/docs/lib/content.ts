@@ -139,49 +139,49 @@ const pages: DocPage[] = [
     group: "Start here",
     title: "Getting started",
     description:
-      "Install the framework-independent runtime and DOM delivery layer, then dispatch the lifecycle evidence your application already owns.",
+      "Install the core and DOM packages, connect one runtime, and tell it when responses and tools change.",
     keywords: ["install", "quick start", "framework neutral", "TypeScript"],
     sections: [
       {
         id: "install",
-        title: "Install two small layers",
+        title: "Install the core and browser packages",
         body: [
-          "Install the browser-independent runtime with the DOM delivery layer. Add a framework adapter only when your host already exposes that framework's lifecycle.",
+          "The core package decides what to announce and when. The DOM package adds those announcements to the page. Add a framework adapter only if your app uses that framework.",
         ],
         code: {
           language: "shell",
           value: "npm install @generative-a11y/core @generative-a11y/dom",
         },
         walkthrough: [
-          { label: "Install policy", description: "core owns normalized lifecycle policy and produces announcement intents." },
-          { label: "Install delivery", description: "dom turns those intents into observable browser delivery without replacing your interface." },
+          { label: "Add the core runtime", description: "@generative-a11y/core turns app events into useful screen-reader updates and controls their timing." },
+          { label: "Add browser delivery", description: "@generative-a11y/dom adds those updates to the page without changing the visible interface." },
         ],
       },
       {
         id: "minimal-integration",
         title: "Minimal integration",
         body: [
-          "Create one runtime, connect browser delivery, and dispatch append-only response deltas. Always send a terminal event and dispose both resources when the owning session ends.",
+          "Create one runtime and connect it to the browser. Send only the new text from each streaming update. Report when the response finishes, fails, or stops. Dispose both resources when the session ends.",
         ],
         code: { language: "typescript", value: quickStart },
         walkthrough: [
-          { label: "Create one runtime", description: "The runtime owns policy, identity, buffering, scheduling, and diagnostics for this application scope." },
-          { label: "Attach browser delivery", description: "connectRuntimeToDOM subscribes to announcement intents and owns its hidden live regions." },
-          { label: "Dispatch evidence", description: "Started, append-only delta, and completed events describe what the host can prove happened." },
-          { label: "Release ownership", description: "Dispose the binding before the runtime when the owning application session ends." },
+          { label: "Create one runtime", description: "The runtime keeps track of responses, prepares useful text, and controls the timing of updates." },
+          { label: "Connect the browser", description: "connectRuntimeToDOM creates and manages the hidden live regions used for screen-reader updates." },
+          { label: "Report app events", description: "Tell the runtime when a response starts, receives text, and finishes." },
+          { label: "Clean up", description: "Dispose the browser connection first, then dispose the runtime when the session ends." },
         ],
-        note: "A live-region mutation is observable DOM behavior. It is not proof that assistive technology spoke the text.",
+        note: "The library can confirm that it added an announcement to the page. It cannot confirm what a particular screen reader spoke.",
       },
       {
         id: "choose-an-integration",
-        title: "Choose the narrowest integration",
+        title: "Choose the package that matches your app",
         body: [
-          "Use a framework adapter when its documented public lifecycle matches your host. Otherwise dispatch normalized core events directly instead of guessing from rendered text.",
+          "Use a framework adapter when your app already uses that framework. For a custom app, send events directly to the core runtime.",
         ],
         table: {
-          headers: ["Application", "Package", "Lifecycle coverage"],
+          headers: ["Application", "Package", "What it reports"],
           rows: [
-            ["Framework-neutral", "@generative-a11y/core + /dom", "Full normalized event model"],
+            ["Framework-neutral", "@generative-a11y/core + /dom", "All standard library events"],
             ["React", "@generative-a11y/react", "Provider, delivery, attention, preferences"],
             ["AI SDK useChat", "@generative-a11y/ai-sdk/react", "Streaming, terminals, tools, approvals, citations"],
             ["assistant-ui", "@generative-a11y/assistant-ui", "Messages, tools, approvals, sources"],
@@ -196,29 +196,29 @@ const pages: DocPage[] = [
     group: "Start here",
     title: "Architecture",
     description:
-      "Understand the boundary between framework lifecycle state, normalized accessibility events, core policy, browser delivery, and assistive technology.",
+      "See how an event from your app becomes a clear, well-timed screen-reader update.",
     keywords: ["architecture", "policy", "delivery", "assistive technology"],
     sections: [
       {
         id: "flow",
-        title: "The five-stage flow",
+        title: "From an app event to a screen-reader update",
         body: [
-          "AI framework → normalized events → core policy → DOM delivery → assistive technology.",
-          "Adapters translate only documented public evidence. Core segments, prioritizes, deduplicates, coalesces, bounds, and schedules. The DOM package attempts delivery without touching the host application's visible UI.",
+          "AI framework → standard events → core runtime → browser delivery → screen reader.",
+          "An adapter reads events from your framework. The core runtime chooses useful updates, removes repeats, and controls the timing. The DOM package adds each update to the page without changing the visible interface.",
         ],
         visual: "runtime-flow",
       },
       {
         id: "boundaries",
-        title: "Separate evidence from inference",
+        title: "Report only what the app knows",
         body: [
-          "Framework state is not itself an accessibility event. A normalized event states what the host can prove happened. An announcement intent is policy output. A DOM result reports a browser delivery action. Assistive-technology output remains outside the library's observable boundary.",
+          "generative-a11y turns confirmed app events into screen-reader updates. It records each update added to the page. Test with real screen readers to confirm what they speak.",
         ],
         bullets: [
-          "Core never touches the DOM.",
-          "Adapters never own framework actions or application UI.",
-          "Ordinary streaming and status changes never steal focus.",
-          "Backend errors and tool results are never copied into spoken text by default.",
+          "The core package does not use the DOM.",
+          "Adapters do not run framework actions or control your interface.",
+          "Streaming and status changes do not move focus.",
+          "The library does not copy backend errors or tool results into announcements.",
         ],
       },
     ],
@@ -228,39 +228,39 @@ const pages: DocPage[] = [
     group: "Start here",
     title: "Choose an integration",
     description:
-      "Select the smallest generative-a11y package that matches your application stack, lifecycle evidence, rendering layer, and ownership boundaries.",
+      "Choose the smallest package that connects generative-a11y to your app.",
     keywords: ["choose", "integration", "package", "AI SDK", "assistant-ui", "AG-UI", "React", "custom"],
     sections: [
       {
         id: "decision-table",
-        title: "Start with the boundary you already own",
+        title: "Start with the framework your app uses",
         body: [
-          "Choose an adapter from lifecycle evidence, not from visual resemblance. A chat-shaped interface does not imply a framework integration, and a framework adapter cannot recover events that its public API never exposes.",
+          "Choose an adapter based on the framework in your code, not the way the interface looks. An adapter can only report events the framework makes publicly available.",
         ],
         table: {
-          headers: ["Application boundary", "Install", "Choose when", "Lifecycle evidence"],
+          headers: ["Your app", "Install", "Choose when", "Events available"],
           rows: [
-            ["Custom JavaScript", "core + dom", "Your application already owns lifecycle events", "Complete normalized event model"],
-            ["React application", "react", "You want provider, delivery, attention, preferences, and element bindings", "Host-dispatched events"],
-            ["AI SDK useChat", "ai-sdk + core", "Your UI uses public useChat state and callbacks", "Responses, tools, approvals, citations, exact callback terminals"],
-            ["assistant-ui", "assistant-ui + core", "Your application exposes a public ThreadRuntime", "Messages, tools, approvals, sources, documented terminals"],
-            ["AG-UI or CopilotKit v2", "ag-ui + core", "Your agent exposes documented protocol subscribers", "Protocol text, tools, interruptions, and known terminals"],
+            ["Custom JavaScript", "core + dom", "Your app already knows when work starts and finishes", "All standard library events"],
+            ["React application", "react", "You want a provider, browser updates, preferences, and element bindings", "Events sent by your app"],
+            ["AI SDK useChat", "ai-sdk + core", "Your UI uses public useChat state and callbacks", "Responses, tools, approvals, sources, and final response states"],
+            ["assistant-ui", "assistant-ui + core", "Your app exposes a public ThreadRuntime", "Messages, tools, approvals, sources, and final response states"],
+            ["AG-UI or CopilotKit v2", "ag-ui + core", "Your agent exposes documented protocol callbacks", "Response text, tools, interruptions, and final response states"],
           ],
         },
       },
       {
         id: "fidelity",
-        title: "Prefer evidence fidelity over convenience",
+        title: "Check which events the adapter can see",
         body: [
-          "Every adapter publishes what it can observe exactly, what it can infer conservatively, and what remains unavailable. Unavailable evidence is not reconstructed from rendered text, timing, or private framework fields.",
-          "Use the custom core integration when retry identity, connection state, or application-specific interactions matter and your framework does not expose them publicly.",
+          "Each adapter lists the events its framework reports and the events that are unavailable. Adapters do not guess by reading rendered text, timing interface changes, or using private framework fields.",
+          "Use the core integration directly when your app knows about retries, connection changes, or custom interactions that the framework adapter cannot see.",
         ],
         table: {
           headers: ["Question", "Use an adapter", "Dispatch core events"],
           rows: [
-            ["Does the framework expose the lifecycle publicly?", "Yes", "No"],
-            ["Do you need framework-specific identity translation?", "Yes", "Optional"],
-            ["Do you own richer retry or connection evidence?", "Only if exposed", "Yes"],
+            ["Does the framework report the event you need?", "Yes", "Not required"],
+            ["Do you need the framework's IDs translated?", "Yes", "Optional"],
+            ["Does your app know when retries or connection changes happen?", "Only if the framework reports them", "Yes"],
             ["Can the integration depend on rendered UI text?", "Never", "Never"],
           ],
         },
@@ -269,7 +269,7 @@ const pages: DocPage[] = [
         id: "installation",
         title: "Install only the layers you use",
         body: [
-          "Every framework adapter borrows a core runtime. Browser delivery belongs to the DOM or React layer, not to the adapter. This keeps framework translation independent from how announcement intents are delivered.",
+          "Your app supplies the core runtime to its framework adapter. The DOM or React package handles browser announcements separately.",
         ],
         bullets: [
           "Custom browser application: @generative-a11y/core and @generative-a11y/dom",
@@ -286,14 +286,14 @@ const pages: DocPage[] = [
     group: "Lifecycle",
     title: "Streaming without repetition",
     description:
-      "Send append-only deltas and let core segmentation announce completed units instead of repeating the entire accumulated response.",
+      "Send only the new text from each streaming update so screen readers do not hear the whole response again and again.",
     keywords: ["streaming", "delta", "segment", "sentence", "non-repetition"],
     sections: [
       {
         id: "append-only",
-        title: "Dispatch only the new suffix",
+        title: "Send only the new text",
         body: [
-          "Every response begins with response.started. Each response.text.delta carries only newly received text. Completion flushes the final incomplete fragment; interruption and failure cancel it.",
+          "Send response.started when a response begins. Each response.text.delta must contain only the text that just arrived. Send response.completed to announce any useful text still waiting. Send response.failed or response.interrupted to discard that text.",
         ],
         code: {
           language: "typescript",
@@ -311,19 +311,19 @@ runtime.dispatch({
 runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         },
         walkthrough: [
-          { label: "Start the identity", description: "response.started opens one active response record before any text arrives." },
-          { label: "Send suffixes only", description: "Each delta contains only new text, which prevents repeated announcements of accumulated content." },
-          { label: "Let policy segment", description: "The runtime buffers and segments useful phrases according to the active text strategy." },
-          { label: "Send a terminal", description: "response.completed flushes the final useful fragment and closes the response identity." },
+          { label: "Start the response", description: "response.started tells the runtime that a new response is beginning." },
+          { label: "Send new text only", description: "Each delta contains only new text, so earlier text is not announced again." },
+          { label: "Let the runtime group text", description: "The runtime waits for useful phrases instead of announcing every token." },
+          { label: "Finish the response", description: "response.completed sends any useful text that is still waiting and closes the response." },
         ],
       },
       {
         id: "segmentation",
         title: "Meaningful units, not tokens",
         body: [
-          "The balanced preset uses sentence segmentation, a minimum-character threshold, and a maximum delay. The scheduler announces prepared units once; it does not reread the full response after each chunk.",
+          "The balanced preset waits for a complete sentence when possible. It can also send a useful phrase after enough text arrives or after a short delay. Each piece is announced once.",
         ],
-        note: "The Lifecycle Lab shows both the growing host text and the distinct announcement intents produced by the real runtime.",
+        note: "The Lifecycle Lab shows the text appearing in the app and the separate screen-reader updates prepared by the real runtime.",
       },
     ],
   },
@@ -332,14 +332,14 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
     group: "Lifecycle",
     title: "Tool lifecycle",
     description:
-      "Represent explicit tool execution, normalized progress, successful completion, and safe failure copy without announcing private arguments or results.",
+      "Tell users when an app action starts, makes progress, finishes, or fails without exposing private arguments or results.",
     keywords: ["tools", "progress", "tool.failed", "tool.completed"],
     sections: [
       {
         id: "events",
-        title: "Start, progress, and terminal evidence",
+        title: "Report the start, progress, and result",
         body: [
-          "Tool argument streaming is not tool execution. Emit tool.started only with execution evidence, tool.progress only with an explicit value from 0 to 1, and exactly one completion or failure terminal.",
+          "Tool arguments can arrive before the tool runs. Send tool.started when execution begins. Send tool.progress only when your app has a progress value from 0 to 1. Finish with one tool.completed or tool.failed event.",
         ],
         code: {
           language: "typescript",
@@ -352,16 +352,16 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
 });`,
         },
         walkthrough: [
-          { label: "Use execution identity", description: "toolId connects progress to the same host-owned operation." },
+          { label: "Keep one tool ID", description: "toolId keeps every progress update connected to the same app action." },
           { label: "Provide localized copy", description: "label and message are short user-facing text, not raw tool arguments or backend output." },
-          { label: "Normalize progress", description: "progress uses a value from 0 to 1. Policy decides whether this threshold is worth announcing." },
+          { label: "Report progress", description: "progress uses a value from 0 to 1. The runtime decides whether the change is useful enough to announce." },
         ],
       },
       {
         id: "safe-errors",
         title: "Keep backend data out of announcements",
         body: [
-          "The error property is diagnostic-only. Provide announcement only when the host owns a short, localized, user-safe phrase. Arbitrary tool results are never spoken automatically.",
+          "Use the error property for debugging. The library does not announce it. Set announcement only when your app has a short, translated message that is safe to share. The library does not announce raw tool results.",
         ],
       },
     ],
@@ -371,21 +371,21 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
     group: "Lifecycle",
     title: "Stop, abort, retry, and stale responses",
     description:
-      "Cancel buffered output on interruption, rotate response-instance identity on retry, and suppress late stale response events.",
+      "Stop pending announcements when a response is cancelled, and ignore late updates from an older retry.",
     keywords: ["stop", "abort", "retry", "regeneration", "stale response", "replacement"],
     sections: [
       {
         id: "interruption",
-        title: "Interruption is terminal",
+        title: "Stopping a response clears pending text",
         body: [
-          "response.interrupted cancels buffered, unannounced text and emits the policy's interruption status. Adapters must not infer an interruption from a generic ready state.",
+          "Send response.interrupted when the app stops a response. The runtime discards text that is still waiting and prepares a short status update. Adapters do not treat a generic ready state as proof that the user stopped a response.",
         ],
       },
       {
         id: "retry",
-        title: "Retries require explicit evidence",
+        title: "Tell the runtime when a retry starts",
         body: [
-          "response.retrying cancels the current response scope. When a logical response ID is reused, nextResponseInstanceId establishes the replacement epoch so late transport events carrying the previous responseInstanceId are suppressed as stale.",
+          "response.retrying cancels the current attempt. Keep the same responseId for the logical answer and give the new attempt a new responseInstanceId. The runtime will ignore late updates from the old attempt.",
         ],
         code: {
           language: "typescript",
@@ -399,8 +399,8 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         },
         walkthrough: [
           { label: "Identify the replaced attempt", description: "responseInstanceId names the active attempt that is being cancelled." },
-          { label: "Create the replacement epoch", description: "nextResponseInstanceId becomes the only accepted instance for later text and terminal events." },
-          { label: "Preserve logical identity", description: "responseId remains stable so the application can treat both attempts as one logical answer." },
+          { label: "Name the new attempt", description: "nextResponseInstanceId becomes the accepted attempt for later text and final events." },
+          { label: "Keep the response ID", description: "responseId stays the same so the app can treat both attempts as one logical answer." },
         ],
       },
     ],
@@ -410,21 +410,21 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
     group: "Lifecycle",
     title: "Interactions and approvals",
     description:
-      "Model approval, confirmation, and input-required lifecycles only when the host or protocol exposes reliable request and resolution evidence.",
+      "Announce approvals, confirmations, and requests for input when your app can confirm that they opened or closed.",
     keywords: ["interaction", "approval", "confirmation", "input required", "human in the loop"],
     sections: [
       {
         id: "general-events",
         title: "Prefer the general interaction model",
         body: [
-          "interaction.requested and interaction.resolved support approval, confirmation, and input. approval.requested and approval.resolved remain a compatibility-specialized subset for frameworks that expose known approval semantics.",
+          "Use interaction.requested and interaction.resolved for confirmations and other requests for input. Use approval events when the framework provides a specific approval state.",
         ],
       },
       {
         id: "focus",
         title: "Announcements do not move focus",
         body: [
-          "The accessibility layer can announce that input is required, but it does not focus or open an application-owned dialog. The host remains responsible for semantic controls, focus management, and restoring focus after its own interaction closes.",
+          "The library can announce that your app needs input. Your app still opens the dialog, manages its controls, and restores focus when the dialog closes.",
         ],
       },
     ],
@@ -432,25 +432,25 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
   {
     path: "/docs/lifecycle/identity",
     group: "Lifecycle",
-    title: "Lifecycle identity",
+    title: "Keep updates connected with stable IDs",
     description:
-      "Correlate responses, attempts, messages, tools, tool runs, interactions, and approvals without using labels or rendered text as identity.",
+      "Use stable IDs to keep every update connected to the correct response, tool, interaction, or approval.",
     keywords: ["identity", "responseId", "responseInstanceId", "toolId", "scopeId", "message"],
     sections: [
       {
         id: "entities",
-        title: "Stable IDs define lifecycle scope",
+        title: "Use a stable ID for each piece of work",
         body: [
-          "responseId is the logical response. responseInstanceId distinguishes replacement attempts. toolId identifies a logical tool call and toolInstanceId guards reuse. interactionId and approvalId correlate requested and resolved states.",
+          "responseId identifies an answer, and responseInstanceId separates its retry attempts. toolId identifies a tool call, and toolInstanceId separates repeated runs. interactionId and approvalId connect each request to its result.",
         ],
         table: {
           headers: ["Entity", "Identity", "Why it matters"],
           rows: [
-            ["Response", "responseId", "Scopes text and terminal state"],
-            ["Attempt", "responseInstanceId", "Rejects late replaced output"],
-            ["Tool", "toolId + toolInstanceId", "Separates reused execution IDs"],
-            ["Interaction", "interactionId", "Pairs request and resolution"],
-            ["Adapter mount", "scopeId", "Namespaces framework-owned IDs"],
+            ["Response", "responseId", "Keeps text and the final state together"],
+            ["Attempt", "responseInstanceId", "Ignores late text from an older retry"],
+            ["Tool", "toolId + toolInstanceId", "Separates repeated tool runs"],
+            ["Interaction", "interactionId", "Connects a request to its result"],
+            ["Adapter mount", "scopeId", "Prevents ID collisions across chats"],
           ],
         },
       },
@@ -458,7 +458,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
         id: "never-labels",
         title: "Labels are copy, not identity",
         body: [
-          "Displayed text, tool labels, array positions, and render counts are unstable. Framework adapters preserve stable source IDs and fail closed when identity capacity is exhausted.",
+          "Do not use displayed text, labels, array positions, or render counts as IDs. They can change. Framework adapters keep the stable IDs supplied by the framework and stop accepting new unknown IDs if their safety limit is reached.",
         ],
       },
     ],
@@ -468,13 +468,13 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
     group: "Packages",
     title: "@generative-a11y/core",
     description:
-      "Reference for the browser-independent runtime, policy presets, scheduler, recorder, segmentation helpers, deterministic clocks, events, intents, and diagnostics.",
+      "Reference for the browser-independent runtime, presets, scheduling, testing helpers, events, announcements, and diagnostics.",
     keywords: ["core", "runtime", "scheduler", "ManualClock", "presets", "segmentText", "API"],
     sections: [
       {
         id: "runtime-api",
         title: "Runtime and policy exports",
-        body: ["Most applications begin with createGenerativeA11y and dispatch normalized events."],
+        body: ["Most applications start with createGenerativeA11y and report app events with dispatch."],
         bullets: [
           "createGenerativeA11y, GenerativeA11yRuntime, GenerativeA11yOptions",
           "resolvePolicy, presets, PolicyOverrides",
@@ -496,7 +496,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
           { name: "onAnnouncement", type: "(intent) => void", requirement: "Optional", defaultValue: "undefined", description: "Registers the first announcement listener during construction. Additional listeners can subscribe later." },
           { name: "onDeliveryError", type: "(error, intent) => void", requirement: "Optional", defaultValue: "undefined", description: "Observes listener failures without allowing one listener to prevent delivery to the others." },
           { name: "onDiagnostic", type: "(diagnostic) => void", requirement: "Optional", defaultValue: "undefined", description: "Receives delivered and suppressed decisions for debugging, tests, and observability." },
-          { name: "dispatch(event)", type: "boolean", requirement: "Method", defaultValue: "n/a", description: "Returns true when the normalized event is accepted. It returns false after disposal or when a nested dispatch transaction reaches capacity." },
+          { name: "dispatch(event)", type: "boolean", requirement: "Method", defaultValue: "n/a", description: "Handles one event immediately. Returns true when the runtime accepts it, or false after disposal or when nested dispatch work reaches its safety limit." },
           { name: "getPolicy()", type: "ReadonlyAnnouncementPolicy", requirement: "Method", defaultValue: "n/a", description: "Returns the resolved immutable policy currently used by the runtime." },
           { name: "pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Reports queued announcement candidates plus owned response flush timers. It is useful for tests and diagnostics, not application rendering." },
           { name: "subscribeAnnouncements(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Adds an announcement-intent listener and returns its idempotent unsubscribe function." },
@@ -507,7 +507,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
       {
         id: "lower-level-api",
         title: "Scheduling, clocks, and segmentation",
-        body: ["Lower-level exports support advanced policy hosts and deterministic tests. When a bounded queue is full, status work is evicted before response content so conversational output is preserved when possible."],
+        body: ["These lower-level exports support advanced integrations and repeatable tests. If the queue is full, the runtime drops status updates before response text so the answer is preserved when possible."],
         bullets: [
           "createAnnouncementScheduler and scheduler option/types",
           "AnnouncementCapacityPriority and ScheduleAnnouncement.capacityPriority",
@@ -519,7 +519,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
           { name: "text.strategy", type: "silent | sentence | paragraph | completion", requirement: "Policy", defaultValue: "preset value", description: "Controls when streaming text becomes eligible for an announcement." },
           { name: "text.minimumCharacters", type: "number", requirement: "Policy", defaultValue: "preset value", description: "Prevents tiny fragments from being announced unless a terminal or maximum-delay flush applies." },
           { name: "text.maximumDelayMs", type: "number", requirement: "Policy", defaultValue: "preset value", description: "Bounds how long useful buffered text can wait for a natural segmentation boundary." },
-          { name: "tools.announceStart", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Enables tool-start announcements when execution evidence exists." },
+          { name: "tools.announceStart", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Announces a tool start after the app reports that execution began." },
           { name: "tools.announceStartAfterMs", type: "number", requirement: "Policy", defaultValue: "preset value", description: "Delays start copy so fast operations can finish without unnecessary status noise." },
           { name: "tools.announceProgress", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Allows explicit normalized progress values to produce paced status updates." },
           { name: "tools.progressEveryPercent", type: "number", requirement: "Policy", defaultValue: "preset value", description: "Sets the minimum percentage bucket change before another progress update is eligible." },
@@ -528,7 +528,7 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
           { name: "announceResponseStarted", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls whether a response start produces status copy." },
           { name: "announceResponseCompleted", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls explicit response completion copy after the final buffered text flush." },
           { name: "announceInterruption", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls stop and abort status while interruption still cancels buffered output." },
-          { name: "announceRetry", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls retry status when the host provides explicit retry evidence." },
+          { name: "announceRetry", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls retry updates when the app reports that a retry began." },
           { name: "announceInteractions", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls request and resolution copy for approvals and other user input." },
           { name: "announceConnections", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls connection lifecycle copy when an adapter has reliable or declared inferred evidence." },
           { name: "announceCitations", type: "boolean", requirement: "Policy", defaultValue: "preset value", description: "Controls concise source-availability status without reading every URL." },
@@ -575,7 +575,7 @@ binding.dispose();` },
           { label: "Remove owned resources", description: "dispose unsubscribes and removes only live regions created by this binding." },
         ],
         api: [
-          { name: "runtime", type: "GenerativeA11yRuntime", requirement: "Required", defaultValue: "none", description: "The runtime whose announcement intents will be delivered. Ownership remains with the caller." },
+          { name: "runtime", type: "GenerativeA11yRuntime", requirement: "Required", defaultValue: "none", description: "The runtime that supplies screen-reader updates. Your app still owns it." },
           { name: "mode", type: "auto | aria-notify | live-region", requirement: "Optional", defaultValue: '"auto"', description: "Chooses delivery preference. auto provides progressive enhancement with a live-region fallback." },
           { name: "document", type: "Document", requirement: "Optional", defaultValue: "global document", description: "Targets a specific document, including an iframe document. Omit for the current browser document." },
           { name: "regions", type: "DOMLiveRegions", requirement: "Optional", defaultValue: "owned hidden regions", description: "Uses caller-owned polite and assertive elements. Supplied regions are configured but never removed by dispose." },
@@ -588,7 +588,7 @@ binding.dispose();` },
         id: "browser-helpers",
         title: "Attention, focus, and preferences",
         body: [
-          "Attention signals are conservative browser evidence, never screen-reader virtual-cursor state. Focus helpers are explicit host actions and are never invoked during ordinary streaming.",
+          "Attention signals describe browser state such as focus and visibility. They cannot read a screen reader's virtual cursor. Focus helpers run only when your app calls them, never during normal streaming.",
         ],
         bullets: [
           "createAttentionStore and AttentionStore types",
@@ -597,7 +597,7 @@ binding.dispose();` },
           "defaultPreferences and preferencesToCoreConfiguration",
         ],
         api: [
-          { name: "createAttentionStore(options)", type: "AttentionStore", requirement: "Function", defaultValue: "browser document", description: "Combines document visibility, window focus, focus area, and newest-response visibility into conservative attention evidence." },
+          { name: "createAttentionStore(options)", type: "AttentionStore", requirement: "Function", defaultValue: "browser document", description: "Combines page visibility, window focus, the focused area, and newest-response visibility into a careful estimate of where the user is working." },
           { name: "captureFocus(document?)", type: "FocusCapture", requirement: "Function", defaultValue: "global document", description: "Captures a restorable active element without moving focus." },
           { name: "focusElement(target, options?)", type: "FocusResult", requirement: "Function", defaultValue: "preventScroll: true", description: "Attempts an explicit focus move and returns focused or a precise skipped reason." },
           { name: "restoreFocus(capture, options?)", type: "FocusResult", requirement: "Function", defaultValue: "no guard", description: "Restores captured focus only when the target remains eligible and any optional focus guard matches." },
@@ -624,9 +624,9 @@ binding.dispose();` },
         code: { language: "tsx", value: reactExample },
         walkthrough: [
           { label: "Place the provider once", description: "The provider creates or borrows the runtime, DOM delivery, attention store, and preference store for its subtree." },
-          { label: "Read the runtime", description: "useGenerativeA11yRuntime returns the same runtime so host callbacks can dispatch reliable lifecycle evidence." },
+          { label: "Read the runtime", description: "useGenerativeA11yRuntime returns the same runtime so your app can report events from its callbacks." },
           { label: "Attach refs only", description: "The binding props contain refs, not styling or event handlers, so the existing chat interface remains application-owned." },
-          { label: "Keep lifecycle at the host boundary", description: "Dispatch from the callback that proves the event happened instead of inferring state from rendered text." },
+          { label: "Report events where they happen", description: "Send the event from the callback that confirms it happened. Do not guess by reading rendered text." },
         ],
         api: [
           { name: "children", type: "ReactNode", requirement: "Optional", defaultValue: "undefined", description: "The existing application tree. The provider does not replace or restyle it." },
@@ -652,8 +652,8 @@ binding.dispose();` },
         ],
         api: [
           { name: "useGenerativeA11y()", type: "GenerativeA11yContextValue", requirement: "Hook", defaultValue: "nearest provider", description: "Returns runtime, attentionStore, and preferenceStore together." },
-          { name: "useGenerativeA11yRuntime()", type: "GenerativeA11yRuntime", requirement: "Hook", defaultValue: "nearest provider", description: "Returns only the normalized event runtime." },
-          { name: "useGenerativeA11yAttention()", type: "AttentionSnapshot", requirement: "Hook", defaultValue: "unknown on server", description: "Subscribes to conservative attention evidence through useSyncExternalStore." },
+          { name: "useGenerativeA11yRuntime()", type: "GenerativeA11yRuntime", requirement: "Hook", defaultValue: "nearest provider", description: "Returns the runtime from the nearest provider." },
+          { name: "useGenerativeA11yAttention()", type: "AttentionSnapshot", requirement: "Hook", defaultValue: "unknown on server", description: "Uses useSyncExternalStore to report a careful estimate of where the user is working." },
           { name: "useGenerativeA11yPreferences()", type: "GenerativeA11yPreferencesResult", requirement: "Hook", defaultValue: "store snapshot", description: "Returns validated preferences, a setter, and the underlying store." },
           { name: "useGenerativeA11yBindings()", type: "GenerativeA11yBindings", requirement: "Hook", defaultValue: "stable ref props", description: "Returns composerProps, conversationProps, and newestResponseProps for existing elements." },
         ],
@@ -665,7 +665,7 @@ binding.dispose();` },
     group: "Integrations",
     title: "AI SDK",
     description:
-      "Observe AI SDK 7 and @ai-sdk/react 4 public snapshots with composed finish and error callbacks for the strongest available terminal fidelity.",
+      "Connect AI SDK 7 and @ai-sdk/react 4 using their public state, finish callback, and error callback.",
     keywords: ["AI SDK", "useChat", "createObserver", "composeChatCallbacks", "approval", "citation"],
     sections: [
       {
@@ -677,26 +677,26 @@ binding.dispose();` },
         code: { language: "tsx", value: aiSdkExample },
         walkthrough: [
           { label: "Create accessibility first", description: "The hook creates one observer and composed callbacks before useChat captures its initial options." },
-          { label: "Preserve host callbacks", description: "onFinish and onError remain application-owned. The integration calls its observer and then the latest host callback." },
-          { label: "Construct useChat", description: "Spreading chatCallbacks gives the adapter exact completion, abort, and failure evidence." },
+          { label: "Keep your callbacks", description: "The integration observes onFinish and onError, then calls the callbacks supplied by your app." },
+          { label: "Construct useChat", description: "Spreading chatCallbacks tells the adapter when a response completes, stops, or fails." },
           { label: "Observe public state", description: "The second hook reads only messages, status, and error from the returned useChat helpers." },
         ],
         api: [
-          { name: "runtime", type: "Pick<GenerativeA11yRuntime, dispatch>", requirement: "Required", defaultValue: "none", description: "Receives normalized events. The integration borrows it and never disposes it." },
+          { name: "runtime", type: "Pick<GenerativeA11yRuntime, dispatch>", requirement: "Required", defaultValue: "none", description: "Receives events from the integration. Your app owns this runtime, so the integration never disposes it." },
           { name: "scopeId", type: "string", requirement: "Required", defaultValue: "none", description: "A stable non-empty namespace for message, tool, approval, and source IDs in this chat instance." },
           { name: "maxTrackedEntities", type: "number", requirement: "Optional", defaultValue: "1000", description: "Bounds each identity collection. Invalid values throw and saturation suppresses later unknown identities." },
           { name: "getToolLabel", type: "(context) => string", requirement: "Optional", defaultValue: '"A tool"', description: "Maps public tool identity to short localized copy. It must not expose arguments or raw results." },
           { name: "onFinish", type: "ChatOnFinishCallback", requirement: "Optional", defaultValue: "undefined", description: "Your existing finish callback. It is composed rather than replaced." },
           { name: "onError", type: "ChatOnErrorCallback", requirement: "Optional", defaultValue: "undefined", description: "Your existing error callback. Raw errors are not copied into announcements." },
-          { name: "chatCallbacks", type: "{ onFinish, onError }", requirement: "Return", defaultValue: "n/a", description: "Spread into useChat at construction so terminal evidence is available to the adapter." },
+          { name: "chatCallbacks", type: "{ onFinish, onError }", requirement: "Return", defaultValue: "n/a", description: "Spread these callbacks into useChat so the adapter knows exactly when a response finishes or fails." },
           { name: "snapshot", type: "Pick<UseChatHelpers, messages | status | error>", requirement: "Required", defaultValue: "none", description: "The public useChat return object observed after useChat has been invoked." },
         ],
       },
       {
         id: "fidelity",
-        title: "Fidelity limits",
+        title: "What the adapter can report",
         body: [
-          "Completion, abort, and error are exact only through composed callbacks. status alone is not terminal evidence. A regenerate call is not a retry event unless the host supplies action evidence, so generic retry fidelity is unavailable. Connection restoration is inferred after later success.",
+          "Use the supplied callbacks so the adapter knows when a response finishes, stops, or fails. The status value alone does not provide that detail. Report the regenerate action from your app if you need retry events. A successful response after an error tells the adapter that the connection returned.",
         ],
         bullets: [
           "Exports CHAT_ADAPTER_METADATA, createObserver, composeChatCallbacks",
@@ -711,35 +711,35 @@ binding.dispose();` },
     group: "Integrations",
     title: "assistant-ui",
     description:
-      "Bind the documented assistant-ui thread runtime state and subscription boundary while silently baselining existing history.",
+      "Connect an assistant-ui thread without replaying messages that were already in its history.",
     keywords: ["assistant-ui", "bindThreadRuntime", "ThreadRuntime", "approval", "source"],
     sections: [
       {
         id: "bind",
-        title: "Bind a borrowed thread runtime",
+        title: "Connect an existing thread runtime",
         body: [
-          "The binding reads getState and subscribe only. It never owns the thread, calls its actions, renders UI, or disposes the borrowed core runtime.",
+          "The binding reads only getState and subscribe. It does not run thread actions, render an interface, or dispose the core runtime supplied by your app.",
         ],
         code: { language: "typescript", value: assistantUiExample },
         walkthrough: [
           { label: "Pass the public thread", description: "The adapter needs only getState and subscribe, so it cannot invoke composer, message, or run actions." },
           { label: "Namespace framework IDs", description: "scopeId prevents identical message and tool IDs from colliding across mounted threads." },
-          { label: "Baseline history", description: "Existing messages are recorded silently when the binding starts so hydration never replays old content." },
+          { label: "Record existing history", description: "The binding records existing messages when it starts, so it does not announce old content after hydration." },
           { label: "Dispose the subscription", description: "The returned cleanup stops observation but leaves both the assistant-ui thread and core runtime alive." },
         ],
         api: [
-          { name: "runtime", type: "Pick<GenerativeA11yRuntime, dispatch>", requirement: "Required", defaultValue: "none", description: "The borrowed target for normalized lifecycle events." },
+          { name: "runtime", type: "Pick<GenerativeA11yRuntime, dispatch>", requirement: "Required", defaultValue: "none", description: "The runtime that receives events from this adapter. Your app owns it." },
           { name: "scopeId", type: "string", requirement: "Required", defaultValue: "none", description: "A stable namespace for assistant messages, tools, approvals, and sources in this thread." },
-          { name: "thread", type: "Pick<ThreadRuntime, getState | subscribe>", requirement: "Required", defaultValue: "none", description: "The documented assistant-ui public thread boundary. No actions or private state are read." },
+          { name: "thread", type: "Pick<ThreadRuntime, getState | subscribe>", requirement: "Required", defaultValue: "none", description: "The documented assistant-ui thread interface. The adapter does not read actions or private state." },
           { name: "maxTrackedEntities", type: "number", requirement: "Optional", defaultValue: "1000", description: "Bounds tracked response, tool, approval, source, and text-part identities." },
-          { name: "dispose()", type: "void", requirement: "Return", defaultValue: "n/a", description: "Unsubscribes and clears adapter records. It never disposes the borrowed thread or runtime." },
+          { name: "dispose()", type: "void", requirement: "Return", defaultValue: "n/a", description: "Stops the subscription and clears adapter records. It does not dispose the thread or runtime supplied by your app." },
         ],
       },
       {
         id: "limits",
         title: "What public state cannot prove",
         body: [
-          "Streaming, known terminal statuses, tools, approvals, and sources have usable evidence. Generic retry and connectivity lifecycles do not, so the adapter declares them unavailable rather than guessing.",
+          "The adapter can report streaming, known final states, tools, approvals, and sources. assistant-ui does not provide a general retry or connection event, so the adapter does not guess.",
         ],
       },
     ],
@@ -749,20 +749,20 @@ binding.dispose();` },
     group: "Integrations",
     title: "AG-UI",
     description:
-      "Subscribe to documented AG-UI protocol callbacks and preserve response, tool, and interaction identity without parsing private agent state.",
+      "Connect an AG-UI agent through its documented callbacks. The adapter keeps response, tool, and interaction IDs connected without reading private agent state.",
     keywords: ["AG-UI", "bindAgent", "AgentSubscriber", "interrupt", "protocol"],
     sections: [
       {
         id: "bind-agent",
-        title: "Subscribe through the public agent boundary",
+        title: "Subscribe to the public agent API",
         body: [
           "bindAgent observes an AbstractAgent through subscribe callbacks. It does not invoke actions, subscribe to private observables, or mutate agent state.",
         ],
         code: { language: "typescript", value: agUiExample },
         walkthrough: [
-          { label: "Borrow the agent", description: "bindAgent uses the documented AgentSubscriber callback boundary and does not invoke agent actions." },
+          { label: "Connect the agent", description: "bindAgent uses documented AgentSubscriber callbacks and does not run agent actions." },
           { label: "Use a stable scope", description: "The scope prefixes protocol message, tool, and interrupt IDs for this mounted agent." },
-          { label: "Translate protocol evidence", description: "Text, tool, and interrupt callbacks become normalized events only when their public payload proves the transition." },
+          { label: "Translate confirmed events", description: "Text, tool, and interrupt callbacks become standard events when their public data confirms what happened." },
           { label: "Clean up locally", description: "dispose removes this subscriber without disposing the AG-UI agent or accessibility runtime." },
         ],
         api: [
@@ -775,9 +775,9 @@ binding.dispose();` },
       },
       {
         id: "protocol-evidence",
-        title: "Protocol evidence and limits",
+        title: "What the protocol can report",
         body: [
-          "Text start/content/end maps to response lifecycle. Tool call start plus result maps to execution. Run interrupts with later resume input map to interactions. Replay, connection recovery, and retry remain unavailable without mandatory cursors or host action evidence.",
+          "Text start, content, and end callbacks report a response. Tool start and result callbacks report tool work. Interrupt and resume callbacks report requests for user input. The adapter does not guess about replay, connection recovery, or retries when AG-UI does not report them.",
         ],
       },
     ],
@@ -787,7 +787,7 @@ binding.dispose();` },
     group: "Integrations",
     title: "CopilotKit v2",
     description:
-      "Reuse CopilotKit v2's public AG-UI agent surface after readiness instead of publishing a duplicate framework wrapper.",
+      "Connect CopilotKit v2 with the AG-UI adapter after the agent is ready.",
     keywords: ["CopilotKit", "useAgent", "AG-UI", "human in the loop"],
     sections: [
       {
@@ -800,15 +800,15 @@ binding.dispose();` },
         walkthrough: [
           { label: "Create a mount identity", description: "useId supplies a stable namespace that survives normal rerenders." },
           { label: "Wait for readiness", description: "The effect does not subscribe until CopilotKit exposes a ready AG-UI agent." },
-          { label: "Reuse the protocol adapter", description: "CopilotKit v2 already exposes the public AG-UI boundary, so no duplicate wrapper is needed." },
+          { label: "Reuse the protocol adapter", description: "CopilotKit v2 exposes a public AG-UI agent, so the AG-UI adapter can connect it directly." },
           { label: "Return cleanup", description: "React effect cleanup disposes exactly the subscription created by this mount." },
         ],
       },
       {
         id: "no-duplicate-package",
-        title: "No @generative-a11y/copilotkit package",
+        title: "Why there is no CopilotKit package",
         body: [
-          "A duplicate package would add surface area without improving evidence. Host-specific client tools that cannot be identified through generic AG-UI events require explicit integration instead of name heuristics.",
+          "A second adapter would duplicate the same work. If an app has client tools that AG-UI cannot identify, connect those tools directly instead of guessing from their names.",
         ],
       },
     ],
@@ -818,28 +818,28 @@ binding.dispose();` },
     group: "Integrations",
     title: "Custom applications",
     description:
-      "Translate a custom application's documented lifecycle into normalized events while leaving transport, visual UI, and host actions under application ownership.",
+      "Connect a custom app by reporting its response, tool, and interaction events directly to generative-a11y.",
     keywords: ["custom", "framework neutral", "adapter", "normalized event"],
     sections: [
       {
         id: "thin-adapter",
         title: "Keep translation thin",
         body: [
-          "Map reliable host lifecycle evidence to serializable events. Preserve source IDs, emit append-only text suffixes, require terminal events, and provide localized labels at the boundary.",
+          "Report events where your app knows what happened. Keep the original IDs and send only newly added text. Report how each response or tool ends, and provide translated labels for users.",
         ],
         code: { language: "typescript", value: quickStart },
         walkthrough: [
-          { label: "Translate at the source", description: "Dispatch where transport or application callbacks provide reliable lifecycle evidence." },
-          { label: "Preserve stable IDs", description: "Use host response and tool identities instead of labels, array positions, or component render counts." },
-          { label: "Deliver separately", description: "The DOM binding consumes policy output, leaving visible rendering and host actions unchanged." },
+          { label: "Report events at the source", description: "Call dispatch from the transport or app callback that confirms what happened." },
+          { label: "Preserve stable IDs", description: "Use the response and tool IDs from your app instead of labels, array positions, or render counts." },
+          { label: "Connect browser delivery", description: "The DOM binding adds announcements without changing visible rendering or app actions." },
           { label: "Dispose by ownership", description: "Your adapter cleans up its subscriptions, then the application disposes resources it created." },
         ],
       },
       {
         id: "never-infer",
-        title: "Declare missing fidelity",
+        title: "Leave out events the framework cannot report",
         body: [
-          "Do not infer tool completion from argument streaming, retry from a repeated render, interruption from a ready state, or approval from tool-name conventions. Missing evidence is an integration limitation, not an invitation to guess.",
+          "Do not treat streamed arguments as a completed tool, a repeated render as a retry, a ready state as an interruption, or a tool name as an approval. If the framework does not report an event, the adapter leaves it out.",
         ],
       },
     ],
@@ -849,7 +849,7 @@ binding.dispose();` },
     group: "API reference",
     title: "Event reference",
     description:
-      "Field-level reference for every normalized response, tool, interaction, approval, connection, and citation event accepted by runtime.dispatch.",
+      "Field-level reference for every response, tool, interaction, approval, connection, and citation event accepted by runtime.dispatch.",
     keywords: ["GenerativeA11yEvent", "response", "tool", "interaction", "approval", "event fields"],
     sections: [
       {
@@ -862,7 +862,7 @@ binding.dispose();` },
           headers: ["Field", "Type", "Required", "Purpose"],
           rows: [
             ["type", "GenerativeA11yEvent['type']", "Yes", "Selects the event variant and validation rules"],
-            ["eventId", "string", "No", "Correlates source evidence with diagnostics"],
+            ["eventId", "string", "No", "Connects an app event to its diagnostic messages"],
             ["locale", "string", "No", "BCP 47 locale for segmentation and delivered language"],
             ["responseId", "string", "Response events", "Stable logical response identity"],
             ["responseInstanceId", "string", "No", "Distinguishes replaced attempts sharing a responseId"],
@@ -943,7 +943,7 @@ binding.dispose();` },
         table: {
           headers: ["Method", "Returns", "Contract"],
           rows: [
-            ["dispatch(event)", "boolean", "Returns whether one normalized event was accepted synchronously"],
+            ["dispatch(event)", "boolean", "Returns whether one event was accepted immediately"],
             ["getPolicy()", "ReadonlyAnnouncementPolicy", "Returns the resolved immutable policy"],
             ["pendingCount()", "number", "Reports scheduler candidates plus owned response flush timers"],
             ["subscribeAnnouncements(listener)", "unsubscribe", "Adds an intent listener"],
@@ -1007,9 +1007,9 @@ binding.dispose();` },
       {
         id: "intent",
         title: "AnnouncementIntent",
-        body: ["An intent is core policy output, not proof of browser delivery or assistive-technology speech."],
+        body: ["An AnnouncementIntent is the screen-reader update prepared by core. It does not confirm that the browser delivered it or that a screen reader spoke it."],
         table: { headers: ["Field", "Type", "Meaning"], rows: [
-          ["id", "string", "Unique scheduled output identity"], ["at", "number", "Clock timestamp"], ["channel", "polite | assertive", "Requested urgency"], ["text", "string", "Normalized user-facing copy"], ["sourceType", "event type", "Lifecycle evidence that produced it"], ["responseId / toolId / interactionId", "string?", "Optional source identity"], ["locale", "string?", "Optional delivery language"],
+          ["id", "string", "Unique ID for this scheduled update"], ["at", "number", "Clock timestamp"], ["channel", "polite | assertive", "Requested urgency"], ["text", "string", "User-facing text"], ["sourceType", "event type", "The app event that produced it"], ["responseId / toolId / interactionId", "string?", "Optional source ID"], ["locale", "string?", "Optional delivery language"],
         ] },
       },
       {
@@ -1039,11 +1039,11 @@ binding.dispose();` },
     group: "Browser APIs",
     title: "Preferences and attention",
     description:
-      "External-store contracts for verbosity preferences and conservative attention evidence, including persistence, registration, and SSR snapshots.",
+      "Store contracts for announcement preferences and careful estimates of where the user is working, including persistence and server rendering.",
     keywords: ["preferences", "attention", "focus", "useSyncExternalStore", "persistence"],
     sections: [
       { id: "preferences", title: "PreferenceStore", body: ["Preferences are versioned, validated, and mapped to core configuration. Invalid persistence data is diagnosed and ignored."], table: { headers: ["Option", "Type", "Default"], rows: [["defaultValue", "PreferenceSchemaV1", "balanced"], ["persistence.key", "string", "library key"], ["persistence.storage", "PreferenceStorage", "localStorage when available"], ["persistence.events", "PreferenceStorageEventSource", "storage events when available"], ["onDiagnostic", "callback", "undefined"]] } },
-      { id: "attention", title: "AttentionStore", body: ["Attention is browser evidence only. It does not inspect a screen-reader cursor and never moves focus."], table: { headers: ["Snapshot field", "Values", "Evidence"], rows: [["visibility", "visible, hidden, unknown", "Document visibility"], ["windowFocus", "focused, blurred, unknown", "Window focus"], ["focusArea", "composer, conversation, elsewhere, none, unknown", "Deep active element"], ["newestResponse", "visible, outside, unobserved, unknown", "Intersection observer"], ["mode", "foreground, background, reading-history, away, unknown", "Conservative derived state"]] } },
+      { id: "attention", title: "AttentionStore", body: ["AttentionStore describes browser focus and visibility. It does not inspect a screen reader's cursor and never moves focus."], table: { headers: ["Snapshot field", "Values", "Browser signal"], rows: [["visibility", "visible, hidden, unknown", "Document visibility"], ["windowFocus", "focused, blurred, unknown", "Window focus"], ["focusArea", "composer, conversation, elsewhere, none, unknown", "Deep active element"], ["newestResponse", "visible, outside, unobserved, unknown", "Intersection observer"], ["mode", "foreground, background, reading-history, away, unknown", "Derived from the signals above"]] } },
     ],
   },
   {
@@ -1051,15 +1051,15 @@ binding.dispose();` },
     group: "Development",
     title: "Testing integrations",
     description:
-      "Deterministic test patterns for event translation, runtime policy, DOM delivery, browser accessibility, and manual assistive-technology evidence.",
+      "Test patterns for adapters, runtime behavior, browser delivery, and hands-on screen-reader checks.",
     keywords: ["testing", "ManualClock", "Vitest", "Playwright", "screen reader"],
     sections: [
-      { id: "test-layers", title: "Test each boundary separately", body: ["A passing runtime transcript cannot prove DOM delivery, and a DOM mutation cannot prove what assistive technology announced."], table: { headers: ["Layer", "Assert", "Do not claim"], rows: [["Adapter", "Normalized events and stable IDs", "Announcements"], ["Core", "Intents, pacing, suppression, cancellation", "DOM behavior"], ["DOM", "Delivery results and mutations", "Screen-reader speech"], ["Browser", "Keyboard, landmarks, focus, live regions", "All AT combinations"], ["Manual AT", "Observed user workflow", "Universal behavior"]] } },
-      { id: "browser-matrix", title: "Run the browser matrix", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard operation, focus stability, landmarks, live-region structure, and DOM delivery evidence in each engine."], code: { language: "shell", value: `pnpm test:browser:install
-pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "The repository script installs pinned Chromium, Firefox, and WebKit binaries for repeatable local and CI runs." }, { label: "Run repository fixtures", description: "The command executes the cross-browser accessibility fixture and the documentation site's browser tests." }, { label: "Read the boundary", description: "A passing engine matrix proves observable browser behavior, not screen-reader speech." }] },
-      { id: "at-fixture", title: "Exercise the assistive-technology fixture", body: ["The fixture models a real host surface with streaming output, tool status, interruption, retry, and browser delivery. Assertions stay at the event, intent, focus, and DOM boundaries."], bullets: ["Run the same lifecycle scenarios in all three browser engines.", "Assert ordinary streaming and status changes do not steal focus.", "Correlate normalized events, announcement intents, and DOM delivery results.", "Keep application controls and visible status semantically usable without the library."] },
-      { id: "manual-evidence", title: "Record manual assistive-technology evidence", body: ["Release evidence records a dated browser, operating system, assistive technology, version, workflow, expected result, observed result, and outcome. The repository validator checks that required observations are complete before release."], note: "Manual evidence describes one tested environment and workflow. It is not a universal compatibility guarantee." },
-      { id: "clock", title: "Use ManualClock for time-dependent policy", body: ["Advance deterministic time instead of waiting for real timers. Assert diagnostics when behavior is intentionally suppressed."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({ preset: "balanced" });
+      { id: "test-layers", title: "Test each layer separately", body: ["A runtime transcript shows what core prepared. A DOM test shows how the page changed. Test with a real screen reader to confirm what it speaks."], table: { headers: ["Layer", "Check", "Does not confirm"], rows: [["Adapter", "Events and stable IDs", "Announcements"], ["Core", "Prepared updates, timing, suppression, cancellation", "Browser behavior"], ["DOM", "Browser results and page updates", "Screen-reader speech"], ["Browser", "Keyboard, landmarks, focus, live regions", "Every screen reader and browser combination"], ["Hands-on screen-reader test", "One user workflow", "Behavior in every environment"]] } },
+      { id: "browser-matrix", title: "Test every supported browser engine", body: ["The accessibility fixture runs in Chromium, Firefox, and WebKit. It checks keyboard use, stable focus, page landmarks, live regions, and the announcements added to the page."], code: { language: "shell", value: `pnpm test:browser:install
+pnpm test:browser` }, walkthrough: [{ label: "Install engines", description: "The repository script installs the Chromium, Firefox, and WebKit versions used by the test suite." }, { label: "Run browser tests", description: "The command runs the cross-browser accessibility fixture and the documentation browser tests." }, { label: "Interpret the result", description: "A passing browser test confirms browser behavior, not screen-reader speech." }] },
+      { id: "at-fixture", title: "Test a realistic app workflow", body: ["The fixture covers streaming text, tool updates, stopping, retrying, and browser announcements. Each assertion states the behavior it checks."], bullets: ["Run the same scenarios in all three browser engines.", "Check that streaming and status updates do not move focus.", "Connect each app event to the runtime update and the resulting page change.", "Keep controls and visible status usable without the library."] },
+      { id: "manual-evidence", title: "Record hands-on screen-reader tests", body: ["For each release, record the date, browser, operating system, screen reader and version, workflow, expected result, actual result, and outcome. The repository validator checks that every required field is complete."], note: "One test describes one setup and workflow. It does not guarantee the same result with every screen reader and browser." },
+      { id: "clock", title: "Use ManualClock for time-dependent behavior", body: ["Advance the test clock instead of waiting for real timers. Check diagnostics when the runtime intentionally skips an update."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({ preset: "balanced" });
 const runtime = recorder.runtime;
 const clock = recorder.clock;
 
@@ -1067,7 +1067,7 @@ runtime.dispatch(started);
 runtime.dispatch(delta);
 clock.advanceBy(2_000);
 
-expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the harness", description: "The recorder supplies a runtime and ManualClock configured for deterministic capture." }, { label: "Dispatch evidence", description: "Use the same normalized events your integration produces in the application." }, { label: "Advance explicitly", description: "Tests remain fast and deterministic while exercising delay behavior." }] },
+expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the harness", description: "The recorder supplies a runtime and a ManualClock." }, { label: "Send app events", description: "Use the same events your integration sends in the application." }, { label: "Advance the clock", description: "Tests stay fast and repeatable while checking delayed updates." }] },
     ],
   },
   {
@@ -1075,28 +1075,28 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Development",
     title: "Troubleshooting",
     description:
-      "Diagnose missing, repeated, stale, delayed, or noisy accessibility output by following lifecycle evidence through adapter, policy, scheduler, and delivery boundaries.",
+      "Fix missing, repeated, late, delayed, or noisy announcements by checking each step from the framework event to the browser update.",
     keywords: ["troubleshooting", "nothing announced", "duplicate", "stale", "diagnostics", "SSR", "delivery"],
     sections: [
       {
         id: "nothing-announced",
         title: "Nothing is announced",
         body: [
-          "First verify that the runtime receives a started event, append-only text deltas, and a terminal event using one stable response identity. Then inspect core diagnostics and the DOM delivery result separately.",
+          "First check that the runtime receives a started event, new text only, and one completed, failed, or interrupted event with the same response ID. Then check runtime diagnostics and the browser result separately.",
         ],
         bullets: [
           "Confirm the announcement listener or DOM binding is attached before dispatch.",
           "Complete a sentence or dispatch response.completed so buffered text can flush.",
           "Check for policy-silent, empty-text, unknown-response, or runtime-disposed diagnostics.",
           "Check DOMDeliveryResult for unavailable or disposed delivery.",
-          "Do not treat a successful DOM mutation as proof of assistive-technology speech.",
+          "A successful page update does not confirm what a screen reader spoke. Test that separately.",
         ],
       },
       {
         id: "repeated-output",
         title: "Output repeats or arrives too often",
         body: [
-          "response.text.delta must contain only the new suffix. Sending the complete accumulated response on every update makes repeated content look new before scheduler deduplication can help.",
+          "response.text.delta must contain only the text that just arrived. If you send the full response every time, earlier text may be announced again.",
         ],
         bullets: [
           "Dispatch append-only deltas rather than accumulated message text.",
@@ -1109,20 +1109,20 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "stale-output",
         title: "Old output appears after retry",
         body: [
-          "A retry must replace the active response instance explicitly. Late events from the previous instance are diagnosed as stale-response and must not become announcement intents.",
+          "A retry must replace the active response attempt. The runtime ignores late updates from the old attempt and reports them as stale-response in diagnostics.",
         ],
         bullets: [
           "Send response.retrying with the replaced and next response instance IDs.",
-          "Attach the new responseInstanceId to every later delta and terminal event.",
+          "Attach the new responseInstanceId to each later text event and final event.",
           "Do not reuse a completed or interrupted response instance.",
-          "If the framework lacks retry identity, dispatch host-owned core events instead of inferring it.",
+          "If the framework does not provide retry IDs, report retry events directly from your app instead of guessing.",
         ],
       },
       {
         id: "tool-noise",
         title: "Tool progress is too noisy",
         body: [
-          "Tool announcements are policy decisions. Keep tool identity stable, provide short localized labels, and tune start delay and progress thresholds rather than filtering rendered announcements downstream.",
+          "Keep each tool ID stable and use short, translated labels. To reduce noise, adjust the start delay and progress settings instead of filtering announcements after they are created.",
         ],
         bullets: [
           "Delay tool starts with tools.announceStartAfterMs so fast operations can finish quietly.",
@@ -1132,9 +1132,9 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
       },
       {
         id: "diagnostics",
-        title: "Read diagnostics from left to right",
+        title: "Use diagnostics to find the first problem",
         body: [
-          "Each diagnostic records a disposition and reason. Start at the first unexpected decision instead of debugging only the final DOM surface.",
+          "Each diagnostic says what the runtime did and why. Start with the first unexpected result instead of looking only at the final browser update.",
         ],
         table: {
           headers: ["Reason", "Meaning", "First check"],
@@ -1145,7 +1145,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
             ["progress-threshold", "Progress did not cross the configured bucket", "progressEveryPercent"],
             ["queue-capacity", "The bounded scheduler rejected additional work", "Producer rate and maxQueueSize"],
             ["delivery-error", "Every announcement listener failed", "Listener exceptions and onDeliveryError"],
-            ["delivered", "Listeners accepted the announcement intent", "DOM result, then manual AT observation"],
+            ["delivered", "Listeners accepted the prepared announcement", "Check the DOM result, then test with a screen reader"],
           ],
         },
       },
@@ -1156,24 +1156,24 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Reference",
     title: "Compatibility",
     description:
-      "Review browser, SSR, React, framework peer ranges, delivery modes, and the exact dependency versions covered by the current repository tests.",
+      "See which browsers, React versions, and framework versions are covered by the current tests.",
     keywords: ["browser", "SSR", "React 18", "React 19", "peer dependency", "compatibility"],
     sections: [
       {
         id: "runtime",
-        title: "Browser and server boundaries",
+        title: "Browser and server support",
         body: [
-          "Core is browser-independent. DOM constructors are inert without a document. React renders stable hidden regions during SSR and connects after commit. Adapter root entries do not read browser globals at import time.",
+          "Core works without a browser. The DOM package does nothing when document is unavailable. React renders stable hidden regions during server rendering and connects them in the browser. Importing an adapter does not require browser globals.",
         ],
       },
       {
         id: "browser-matrix",
-        title: "Browser evidence is engine-specific",
+        title: "Automated browser tests have limits",
         body: [
-          "Repository browser fixtures run in Chromium, Firefox, and WebKit. WebKit is not Safari: it provides valuable engine coverage, while shipping Safari and assistive-technology combinations still require dated manual observation.",
+          "The test suite runs in Chromium, Firefox, and WebKit. WebKit is useful coverage, but it is not the same as testing the released Safari browser with a real screen reader. Record those hands-on tests separately.",
         ],
         table: {
-          headers: ["Engine", "Automated evidence", "What remains manual"],
+          headers: ["Engine", "Automated tests cover", "Test by hand"],
           rows: [
             ["Chromium", "Keyboard, focus, structure, DOM delivery", "Named browser and AT workflow"],
             ["Firefox", "Keyboard, focus, structure, DOM delivery", "Named browser and AT workflow"],
@@ -1202,7 +1202,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Reference",
     title: "Stability and migrations",
     description:
-      "Understand package versioning, public API guarantees, peer dependency boundaries, deprecation policy, and the migration workflow for generative-a11y releases.",
+      "Learn how package versions, supported framework ranges, deprecations, and upgrades work.",
     keywords: ["stability", "SemVer", "versioning", "migration", "deprecation", "changeset", "peer dependency"],
     sections: [
       {
@@ -1217,19 +1217,19 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "compatibility",
         title: "Adapter stability includes peer ranges",
         body: [
-          "Framework adapters are stable only inside their declared peer dependency ranges. A new upstream framework version can change public lifecycle evidence even when generative-a11y itself has not changed.",
+          "Framework adapters are supported only with the versions listed in their peer dependency ranges. A new framework version can change the public events an adapter receives even when generative-a11y has not changed.",
         ],
         bullets: [
           "Review the compatibility matrix before upgrading a framework peer.",
-          "Pin framework versions when an application depends on exact adapter fidelity.",
-          "Use the custom event boundary when an upstream framework cannot expose required evidence.",
+          "Pin framework versions when your app depends on exact adapter behavior.",
+          "Send core events directly when a framework does not report an event your app needs.",
         ],
       },
       {
         id: "package-contracts",
         title: "Package contracts are checked before publication",
         body: [
-          "Release validation inspects package exports, declaration files, provenance-ready metadata, packed contents, dependency boundaries, and installability. Public entry points must resolve from the package consumers actually receive.",
+          "Release validation inspects package exports, declaration files, provenance-ready metadata, packed contents, dependency boundaries, and installability. Public entry points must resolve from the package users install.",
         ],
         bullets: [
           "Every exported API has tests and documentation.",
@@ -1240,17 +1240,17 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
       },
       {
         id: "release-gates",
-        title: "Release gates combine different forms of evidence",
+        title: "Each release check answers a different question",
         body: [
-          "A release runs repository checks, the Chromium, Firefox, and WebKit fixture, package validation, and the manual assistive-technology evidence validator. Each gate answers a different question and none substitutes for the others.",
+          "A release runs code checks, browser tests, package validation, and a validator for hands-on screen-reader test records. Passing one check does not replace the others.",
         ],
         table: {
-          headers: ["Gate", "Evidence", "Boundary"],
+          headers: ["Check", "What it covers", "Limit"],
           rows: [
-            ["Repository check", "Types, builds, unit behavior, rendered docs", "Source and deterministic runtime"],
-            ["Browser matrix", "Keyboard, focus, semantics, DOM delivery", "Observable browser behavior"],
-            ["Package validation", "Exports, tarballs, installability", "Published consumer surface"],
-            ["Manual AT record", "Dated observed workflow", "One named user environment"],
+            ["Repository check", "Types, builds, unit behavior, rendered docs", "Code and runtime behavior"],
+            ["Browser matrix", "Keyboard, focus, semantics, page updates", "Browser behavior only"],
+            ["Package validation", "Exports, tarballs, installability", "Files received by package users"],
+            ["Screen-reader test record", "A dated, hands-on workflow", "One named setup"],
           ],
         },
       },
@@ -1258,7 +1258,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "migration-checklist",
         title: "Migration checklist",
         body: [
-          "Upgrade one boundary at a time and verify behavior with deterministic transcripts before browser and assistive-technology checks.",
+          "Upgrade one package area at a time. Check runtime output first, then test in browsers and with the screen readers you support.",
         ],
         bullets: [
           "Read the package release notes and peer dependency changes.",
@@ -1271,7 +1271,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
       },
       {
         id: "deprecations",
-        title: "Deprecations stay observable",
+        title: "Deprecations remain documented",
         body: [
           "Deprecated exports remain documented with their replacement and migration path until a major release removes them. Release notes identify changed defaults, event semantics, ownership rules, and peer dependency ranges.",
         ],
@@ -1283,26 +1283,26 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Reference",
     title: "Limitations and honest claims",
     description:
-      "Distinguish observable policy and delivery behavior from unavailable framework evidence, unsupported inference, and real assistive-technology validation.",
+      "Understand what the library can confirm, what it cannot see, and what still needs hands-on screen-reader testing.",
     keywords: ["limitations", "unsupported", "screen reader spoke", "planned", "experimental"],
     sections: [
       {
         id: "what-tests-prove",
         title: "What automated tests prove",
         body: [
-          "Core tests prove deterministic event-policy output. Adapter tests prove normalized translation from modeled public evidence. DOM and browser tests prove structural mutations and delivery results. None of these prove that a specific screen reader spoke, how it queued speech, or what a user heard.",
+          "Core tests check which updates the runtime prepares and when. Adapter tests check how framework events are translated. DOM and browser tests check page structure and updates. None can confirm what a specific screen reader spoke or what a person heard.",
         ],
-        note: "Real browser and assistive-technology testing remains a separate release requirement.",
+        note: "Test with real browsers and screen readers before release.",
       },
       {
         id: "unsupported",
         title: "Unsupported by design",
         body: [
-          "The project does not replace semantic HTML, keyboard interaction, focus management, visible status, or application-owned dialogs. It does not parse private framework state, execute remote code, guarantee speech, or infer missing lifecycle events from UI text.",
+          "The project does not replace semantic HTML, keyboard support, focus management, visible status messages, or your dialogs. It does not read private framework state, run remote code, guarantee what a screen reader says, or guess missing events from text on the page.",
         ],
         bullets: [
-          "No generic assistant-ui retry or connectivity evidence",
-          "No generic AI SDK retry event without host action evidence",
+          "No general assistant-ui retry or connection event",
+          "No general AI SDK retry event unless your app reports the retry",
           "No AG-UI replay deduplication without a mandatory cursor",
           "No duplicate CopilotKit adapter package",
         ],
@@ -1314,17 +1314,17 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Project",
     title: "Project overview",
     description:
-      "Explore the focused package family behind generative-a11y and the engineering principles that keep accessibility policy portable and observable.",
+      "See what each generative-a11y package does and how the project keeps integrations small and reliable.",
     keywords: ["project", "packages", "architecture", "validation", "overview"],
     sections: [
       {
         id: "packages",
         title: "A focused package family",
         body: [
-          "Each package owns one boundary: event policy, browser delivery, React integration, or framework translation. Applications install only the layers that match their host.",
+          "Each package has one job: decide what to announce, update the browser, connect React, or connect an AI framework. Install only what your app needs.",
         ],
         table: {
-          headers: ["Package", "Purpose", "Boundary"],
+          headers: ["Package", "Purpose", "What it does not depend on"],
           rows: [
             ["core", "Policy, scheduling, segmentation", "No DOM or framework dependency"],
             ["dom", "Browser delivery, focus, attention, preferences", "No React or AI framework dependency"],
@@ -1337,9 +1337,9 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
       },
       {
         id: "validation",
-        title: "Evidence-led validation",
+        title: "Test each part at the right level",
         body: [
-          "Deterministic runtime tests, adapter translation tests, DOM delivery tests, browser checks, and manual assistive-technology sessions answer different questions. The project keeps those forms of evidence separate so no automated transcript is mistaken for what a user heard.",
+          "Runtime tests, adapter tests, browser tests, and hands-on screen-reader sessions answer different questions. The project keeps them separate so an automated transcript is never mistaken for what a person heard.",
         ],
       },
     ],
@@ -1349,7 +1349,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
     group: "Project",
     title: "Contributing",
     description:
-      "Contribute focused changes that preserve package boundaries, event serializability, deterministic timing, honest adapter fidelity, and complete documentation.",
+      "Contribute focused changes with tests, clear documentation, stable events, and clean package responsibilities.",
     keywords: ["contributing", "development", "tests", "pull request", "pnpm check"],
     sections: [
       {
@@ -1365,16 +1365,16 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         walkthrough: [
           { label: "Enable the package manager", description: "Corepack selects the pnpm version declared by the repository." },
           { label: "Install dependencies", description: "pnpm restores the exact workspace dependency graph from the lockfile." },
-          { label: "Run deterministic checks", description: "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation." },
+          { label: "Run repository checks", description: "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation." },
           { label: "Install browser engines", description: "Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable fixtures." },
-          { label: "Run browser checks", description: "pnpm test:browser verifies observable keyboard, focus, structure, and delivery behavior separately." },
+          { label: "Run browser checks", description: "pnpm test:browser checks keyboard behavior, focus, structure, and browser updates." },
         ],
       },
       {
         id: "review",
         title: "Review expectations",
         body: [
-          "Keep core independent of browsers, DOM independent of React and AI frameworks, and adapters thin. Never add claims that deterministic transcripts or DOM tests prove real assistive-technology behavior.",
+          "Keep core independent of browsers, DOM independent of React and AI frameworks, and adapters small. Never claim that an automated transcript or page update proves what a screen reader spoke.",
         ],
         bullets: [
           "Every exported API requires tests and documentation.",
