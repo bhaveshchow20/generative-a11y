@@ -12,7 +12,13 @@ import {
   type DOMDeliveryResult,
   type DOMRuntimeBinding,
 } from "@generative-a11y/dom";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { createScenarioSteps, type ScenarioName } from "../lib/scenarios";
 
@@ -54,14 +60,14 @@ export function LifecycleLab() {
   const timersRef = useRef<number[]>([]);
   const eventIndexRef = useRef(0);
 
-  function disposeSession() {
+  const disposeSession = useCallback(() => {
     for (const timer of timersRef.current) window.clearTimeout(timer);
     timersRef.current = [];
     bindingRef.current?.dispose();
     bindingRef.current = null;
     runtimeRef.current?.dispose();
     runtimeRef.current = null;
-  }
+  }, []);
 
   function reset() {
     disposeSession();
@@ -78,7 +84,7 @@ export function LifecycleLab() {
 
   useEffect(() => {
     return () => disposeSession();
-  }, []);
+  }, [disposeSession]);
 
   function createSession() {
     const runtime = createGenerativeA11y({
