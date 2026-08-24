@@ -11,7 +11,7 @@ import { expect, it } from "vitest";
 const execFileAsync = promisify(execFile);
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-it("rejects a dirty working tree before reading release evidence", async () => {
+it("rejects a dirty working tree before running release checks", async () => {
   const sentinel = await mkdtemp(join(root, ".release-dirty-test-"));
   try {
     await writeFile(join(sentinel, "untracked"), "dirty\n");

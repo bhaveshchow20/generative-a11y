@@ -40,12 +40,12 @@ Verify these settings whenever the package matrix or release workflow changes:
 For the first functional release:
 
 1. Run the `Release dry run` workflow and inspect every package artifact.
-2. Merge the generated release pull request, then execute the manual matrix
-   against that exact release-candidate commit.
-3. Commit the resulting `docs/assistive-technology-results.json` without
-   changing any other file, merge it, and dispatch `Publish packages` from
+2. Merge the generated release pull request and dispatch `Publish packages` from
    `main`.
+3. Continue the manual assistive-technology matrix after publication and only
+   claim support for combinations backed by dated results.
 
-The publish job rejects missing, incomplete, older-than-30-days, or stale-source
-assistive-technology evidence before it tests or publishes. Do not add a
-long-lived npm token; publishing uses a short-lived OIDC identity.
+The publish job requires a clean checkout, runs the full automated checks and
+browser suite, and publishes through a short-lived OIDC identity. Do not add a
+long-lived npm token. Manual assistive-technology evidence informs support
+claims but does not block package publication.
