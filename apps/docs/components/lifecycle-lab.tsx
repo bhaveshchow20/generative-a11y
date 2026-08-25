@@ -12,7 +12,13 @@ import {
   type DOMDeliveryResult,
   type DOMRuntimeBinding,
 } from "@generative-a11y/dom";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { createScenarioSteps, type ScenarioName } from "../lib/scenarios";
 
@@ -24,12 +30,16 @@ interface ObservedEvent {
 }
 
 const scenarioLabels: Array<{ name: ScenarioName; label: string }> = [
-  { name: "stream", label: "Run stream" },
-  { name: "tool-success", label: "Tool success" },
-  { name: "tool-error", label: "Tool error" },
-  { name: "retry", label: "Retry" },
+  { name: "stream", label: "Stream a response" },
+  { name: "tool-success", label: "Complete a tool" },
+  { name: "tool-error", label: "Fail a tool" },
+  { name: "retry", label: "Retry a response" },
   { name: "approval", label: "Request approval" },
 ];
+
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export function LifecycleLab() {
   const [events, setEvents] = useState<ObservedEvent[]>([]);
@@ -40,19 +50,24 @@ export function LifecycleLab() {
   const [toolState, setToolState] = useState("Idle");
   const [running, setRunning] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const interactive = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const runtimeRef = useRef<GenerativeA11yRuntime | null>(null);
   const bindingRef = useRef<DOMRuntimeBinding | null>(null);
   const timersRef = useRef<number[]>([]);
   const eventIndexRef = useRef(0);
 
-  function disposeSession() {
+  const disposeSession = useCallback(() => {
     for (const timer of timersRef.current) window.clearTimeout(timer);
     timersRef.current = [];
     bindingRef.current?.dispose();
     bindingRef.current = null;
     runtimeRef.current?.dispose();
     runtimeRef.current = null;
-  }
+  }, []);
 
   function reset() {
     disposeSession();
@@ -67,7 +82,9 @@ export function LifecycleLab() {
     eventIndexRef.current = 0;
   }
 
-  useEffect(() => () => disposeSession(), []);
+  useEffect(() => {
+    return () => disposeSession();
+  }, [disposeSession]);
 
   function createSession() {
     const runtime = createGenerativeA11y({
@@ -196,24 +213,24 @@ export function LifecycleLab() {
     <div className="lab">
       <div className="lab-controls" aria-label="Lifecycle scenarios">
         {scenarioLabels.map((scenario) => (
-          <button key={scenario.name} type="button" onClick={() => runScenario(scenario.name)} disabled={running}>
+          <button key={scenario.name} type="button" onClick={() => runScenario(scenario.name)} disabled={!interactive || running}>
             {scenario.label}
           </button>
         ))}
-        <button className="danger-control" type="button" onClick={stop}>Stop / abort</button>
-        <button className="quiet-control" type="button" onClick={reset}>Reset</button>
+        <button className="danger-control" type="button" onClick={stop} disabled={!interactive}>Stop response</button>
+        <button className="quiet-control" type="button" onClick={reset} disabled={!interactive}>Reset</button>
       </div>
 
       <div className="lab-grid">
         <section className="host-surface" aria-labelledby="host-title">
           <div className="surface-heading">
-            <span>01</span><div><p>Host application</p><h2 id="host-title">Existing application UI</h2></div>
+            <span>01</span><div><p>Your app</p><h2 id="host-title">Your existing interface</h2></div>
           </div>
           <div className="existing-ui">
             <div className="user-message">Prepare a release report and ask before publishing.</div>
             <div className="assistant-message">
               <span aria-hidden="true">GA</span>
-              <p>{visibleText || "Run a scenario to begin. The visual interface stays in place while lifecycle events flow beside it."}</p>
+              <p>{visibleText || "Choose a scenario. Your app's response will appear here, with screen-reader updates beside it."}</p>
             </div>
             <div className="tool-row"><span>prepare_release_report</span><b>{toolState}</b></div>
             {pendingApproval ? (
@@ -223,12 +240,12 @@ export function LifecycleLab() {
               </div>
             ) : null}
           </div>
-          <p className="surface-caption">The demo never replaces, restyles, or focuses this host surface.</p>
+          <p className="surface-caption">generative-a11y leaves this interface and its focus behavior unchanged.</p>
         </section>
 
         <section className="a11y-surface" aria-labelledby="a11y-title">
           <div className="surface-heading">
-            <span>02</span><div><p>Accessibility layer</p><h2 id="a11y-title">Delivery transcript</h2></div>
+            <span>02</span><div><p>Accessibility layer</p><h2 id="a11y-title">Screen-reader updates</h2></div>
           </div>
           <ol className="announcement-list">
             {announcements.length ? announcements.map((announcement) => (
@@ -237,18 +254,18 @@ export function LifecycleLab() {
                 <div><b>{announcement.sourceType}</b><p>“{announcement.text}”</p></div>
                 <span data-channel={announcement.channel}>{announcement.channel}</span>
               </li>
-            )) : <li className="empty-trace">Announcement intents will appear here.</li>}
+            )) : <li className="empty-trace">Choose a scenario to see the updates.</li>}
           </ol>
           <div className="delivery-summary">
-            <span>Latest DOM result</span>
+            <span>Latest browser update</span>
             <b>{deliveries.length ? `${deliveries.at(-1)?.method} · ${deliveries.at(-1)?.status}` : "Waiting"}</b>
           </div>
-          <p className="surface-caption">Observable DOM delivery does not prove a screen reader spoke.</p>
+          <p className="surface-caption">Browser results confirm the page update. Test with a real screen reader to confirm what it speaks.</p>
         </section>
       </div>
 
       <section className="timeline" aria-labelledby="timeline-title">
-        <div className="timeline-head"><div><p>Identity timeline</p><h2 id="timeline-title">Every lifecycle keeps its source ID.</h2></div><span>{events.length} events</span></div>
+        <div className="timeline-head"><div><p>Event timeline</p><h2 id="timeline-title">Follow each response and tool from start to finish.</h2></div><span>{events.length} events</span></div>
         <div className="timeline-scroll" role="region" aria-label="Lifecycle event timeline" tabIndex={0}>
           <table>
             <thead><tr><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Identity</th><th scope="col">Observed result</th></tr></thead>
@@ -260,7 +277,7 @@ export function LifecycleLab() {
                   <td>{eventIdentity(entry.event)}</td>
                   <td>{entry.label}</td>
                 </tr>
-              )) : <tr><td colSpan={4}>Choose a scenario to populate the timeline.</td></tr>}
+              )) : <tr><td colSpan={4}>Choose a scenario to fill the timeline.</td></tr>}
             </tbody>
           </table>
         </div>

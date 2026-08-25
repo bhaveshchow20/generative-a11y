@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { API_NAV_GROUPS, DOC_NAV_GROUPS, searchDocumentation } from "../lib/content";
+import { ProjectStats } from "./project-stats";
 
 const subscribeToHydration = () => () => {};
 const getClientSnapshot = () => true;
@@ -80,9 +81,7 @@ export function SiteShell({
           >
             <span aria-hidden="true">{dark ? "☼" : "◐"}</span>
           </button>
-          <a className="github-link" href="https://github.com/bhaveshchow20/generative-a11y">
-            GitHub <span aria-hidden="true">↗</span>
-          </a>
+          <ProjectStats className="project-stats-docs" />
           <button
             className="menu-button"
             type="button"
@@ -120,8 +119,8 @@ export function SiteShell({
             ))}
           </nav>
           <div className="sidebar-foot">
-            <Link href="/examples/lifecycle-lab">Open lifecycle lab <span aria-hidden="true">→</span></Link>
-            <span>{apiSection ? "Package and symbol reference" : "Guides and concepts"}</span>
+            <Link href="/examples/lifecycle-lab">Try interactive examples <span aria-hidden="true">→</span></Link>
+            <span>{apiSection ? "Packages and API symbols" : "Setup and integration guides"}</span>
           </div>
         </aside>
         {children}

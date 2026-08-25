@@ -32,9 +32,9 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /Accessible AI,/i);
   assert.match(html, /without rebuilding your interface/i);
   assert.match(html, /AI framework/i);
-  assert.match(html, /assistive technology/i);
+  assert.match(html, /screen-reader users/i);
   assert.match(html, /Chromium, Firefox, and WebKit/i);
-  assert.match(html, /manual assistive-technology evidence/i);
+  assert.match(html, /Test with a real screen reader/i);
   assert.match(html, /href="\/api"[^>]*>API</i);
   assert.match(html, /npm install @generative-a11y\/core/i);
   assert.match(html, /aria-label="Package"/i);
@@ -60,23 +60,23 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
   }
 });
 
-test("homepage states the evidence boundary without roadmap language", async () => {
+test("homepage explains testing limits without roadmap language", async () => {
   const response = await render();
   const html = await response.text();
 
-  assert.match(html, /does not prove.*screen reader spoke/i);
+  assert.match(html, /Test with a real screen reader/i);
   assert.doesNotMatch(html, /Phase\s+\d|implemented|deferred|pre-release/i);
 });
 
 test("server-renders documentation and project deep links", async () => {
   const routes = [
     ["/docs/getting-started", /Getting started/i],
-    ["/docs/architecture", /Automated evidence boundary/i],
+    ["/docs/architecture", /Report only what the app knows/i],
     ["/docs/integrations", /Choose an integration/i],
     ["/docs/troubleshooting", /Troubleshooting/i],
     ["/docs/stability", /Stability and migrations/i],
     ["/docs/testing", /Chromium, Firefox, and WebKit/i],
-    ["/docs/compatibility", /WebKit is not Safari/i],
+    ["/docs/compatibility", /cannot replace Safari testing/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
     ["/api/core/create-generative-a11y", /createGenerativeA11y/i],
     ["/docs/integrations/ag-ui", /bindAgent/i],
@@ -94,8 +94,8 @@ test("server-renders the interactive lifecycle lab shell", async () => {
   const response = await render("/examples/lifecycle-lab");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Lifecycle lab/i);
-  assert.match(html, /Run stream/i);
-  assert.match(html, /Existing application UI/i);
-  assert.match(html, /does not prove.*screen reader spoke/i);
+  assert.match(html, /See the library at work/i);
+  assert.match(html, /Stream a response/i);
+  assert.match(html, /Your existing interface/i);
+  assert.match(html, /Test with a real screen reader/i);
 });

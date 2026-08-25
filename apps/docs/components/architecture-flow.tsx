@@ -1,28 +1,28 @@
 const stages = [
   {
-    label: "Host evidence",
-    title: "Framework state",
-    detail: "Public lifecycle and stable IDs",
+    label: "Your app",
+    title: "Your app changes",
+    detail: "A response starts, a tool runs, or an error occurs",
   },
   {
-    label: "Translation",
-    title: "Normalized events",
-    detail: "Serializable facts, no UI parsing",
+    label: "Adapter",
+    title: "Adapter sends an event",
+    detail: "It sends a standard event with a stable ID",
   },
   {
-    label: "Policy",
-    title: "Core runtime",
-    detail: "Segment, prioritize, dedupe, schedule",
+    label: "Runtime",
+    title: "Core prepares an update",
+    detail: "It chooses useful text and controls the timing",
   },
   {
-    label: "Delivery",
-    title: "DOM result",
-    detail: "ariaNotify or owned live region",
+    label: "Browser",
+    title: "DOM updates the page",
+    detail: "It uses ariaNotify or a live region",
   },
   {
-    label: "Observation",
-    title: "Assistive technology",
-    detail: "Recorded through manual testing",
+    label: "Screen reader",
+    title: "A screen reader may speak it",
+    detail: "Test this step with the screen readers you support",
   },
 ] as const;
 
@@ -30,7 +30,7 @@ export function ArchitectureFlow() {
   return (
     <figure className="runtime-flow" aria-labelledby="runtime-flow-title">
       <div className="runtime-flow-heading">
-        <strong id="runtime-flow-title">Accessibility runtime flow</strong>
+        <strong id="runtime-flow-title">How an app update becomes a screen-reader update</strong>
         <span>Read left to right</span>
       </div>
       <ol>
@@ -44,12 +44,12 @@ export function ArchitectureFlow() {
         ))}
       </ol>
       <div className="runtime-flow-evidence" aria-hidden="true">
-        <span>Automated evidence boundary</span>
-        <span>Manual observation</span>
+        <span>Covered by automated tests</span>
+        <span>Checked with a real screen reader</span>
       </div>
       <figcaption>
-        Tests can follow evidence through the observable DOM result. What a
-        person heard remains a separate, dated assistive-technology observation.
+        Automated tests can confirm that the library updated the page. Test
+        with real screen readers to confirm what people hear.
       </figcaption>
     </figure>
   );

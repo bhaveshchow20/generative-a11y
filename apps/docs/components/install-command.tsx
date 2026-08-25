@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 const packageNames = [
   "core",
@@ -13,6 +13,10 @@ const packageNames = [
 
 type PackageName = (typeof packageNames)[number];
 
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function InstallCommand() {
   const menuId = useId();
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -21,6 +25,11 @@ export function InstallCommand() {
   const [packageName, setPackageName] = useState<PackageName>("core");
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const interactive = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const command = `npm install @generative-a11y/${packageName}`;
 
   useEffect(() => {
@@ -77,6 +86,7 @@ export function InstallCommand() {
             className="install-package-trigger"
             type="button"
             role="combobox"
+            disabled={!interactive}
             aria-label="Package"
             aria-controls={menuId}
             aria-expanded={menuOpen}
@@ -146,6 +156,7 @@ export function InstallCommand() {
           className="install-copy"
           type="button"
           aria-label="Copy install command"
+          disabled={!interactive}
           onClick={copyCommand}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17">

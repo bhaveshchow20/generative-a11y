@@ -80,11 +80,11 @@ export function FrameworkShowcase() {
     const first = {
       id: "assistant-1",
       role: "assistant",
-      parts: [{ type: "text", text: "The release report" }],
+      parts: [{ type: "text", text: "Your release report" }],
     };
     const complete = {
       ...first,
-      parts: [{ type: "text", text: "The release report is ready to review." }],
+      parts: [{ type: "text", text: "Your release report is ready to review." }],
     };
     observer.observe({ messages: [], status: "ready", error: undefined } as never);
     observer.observe({ messages: [first], status: "streaming", error: undefined } as never);
@@ -125,7 +125,7 @@ export function FrameworkShowcase() {
         id: "assistant-1",
         role: "assistant",
         content: [
-          { type: "text", text: "The report is ready." },
+          { type: "text", text: "Your report is ready." },
           {
             type: "tool-call",
             toolCallId: "publish-report",
@@ -141,7 +141,7 @@ export function FrameworkShowcase() {
         id: "assistant-1",
         role: "assistant",
         content: [
-          { type: "text", text: "The report is ready." },
+          { type: "text", text: "Your report is ready." },
           {
             type: "tool-call",
             toolCallId: "publish-report",
@@ -172,8 +172,8 @@ export function FrameworkShowcase() {
   return (
     <section className="framework-showcase" aria-labelledby="framework-title">
       <div className="framework-heading">
-        <div><p>Framework adapters</p><h2 id="framework-title">Watch native state become accessible lifecycle.</h2></div>
-        <p>These examples execute the production adapters against deterministic public framework state. No network request or API key is needed.</p>
+        <div><p>Framework adapters</p><h2 id="framework-title">See what the adapters report.</h2></div>
+        <p>Run installed adapters with sample AI SDK and assistant-ui data. You do not need an API key or network request.</p>
       </div>
       <div className="framework-tabs" role="tablist" aria-label="Framework">
         {(["ai-sdk", "assistant-ui"] as const).map((name) => (
@@ -182,7 +182,7 @@ export function FrameworkShowcase() {
       </div>
       <div className="framework-panel" role="tabpanel">
         <div className="framework-input">
-          <span>Public framework evidence</span>
+          <span>Framework data</span>
           <h3>{framework === "ai-sdk" ? "useChat snapshots and finish callback" : "ThreadRuntime getState and subscribe"}</h3>
           <pre><code>{snippets[framework]}</code></pre>
           <button type="button" onClick={framework === "ai-sdk" ? runAiSdk : runAssistantUi}>Run {framework === "ai-sdk" ? "AI SDK" : "assistant-ui"} adapter</button>
@@ -190,9 +190,9 @@ export function FrameworkShowcase() {
         <div className="framework-output">
           <span>Adapter output</span>
           <ol data-testid="framework-events">
-            {events.length ? events.map((event, index) => <li key={`${event.type}:${index}`}><code>{event.type}</code><small>{identity(event)}</small></li>) : <li className="empty-trace">Run the adapter to inspect normalized events.</li>}
+            {events.length ? events.map((event, index) => <li key={`${event.type}:${index}`}><code>{event.type}</code><small>{identity(event)}</small></li>) : <li className="empty-trace">Run the adapter to see the events it reports.</li>}
           </ol>
-          <div className="framework-metrics"><span><b>{announcements.length}</b> announcements</span><span><b>{deliveries.length}</b> DOM deliveries</span></div>
+          <div className="framework-metrics"><span><b>{announcements.length}</b> prepared updates</span><span><b>{deliveries.length}</b> browser updates</span></div>
         </div>
       </div>
     </section>
@@ -203,5 +203,5 @@ function identity(event: GenerativeA11yEvent) {
   if ("responseId" in event) return event.responseId;
   if ("toolId" in event) return event.toolId;
   if ("approvalId" in event) return event.approvalId;
-  return "normalized event";
+  return "app event";
 }
