@@ -56,6 +56,13 @@ export interface DOMDeliveryResult {
   status: "notified" | "mutated" | "unavailable" | "disposed";
   method: "aria-notify" | "live-region" | "none";
   channel: AnnouncementIntent["channel"];
+  announcementId: string;
+  sourceType: AnnouncementIntent["sourceType"];
+  at: number;
+  sourceEventId?: string;
+  responseId?: string;
+  toolId?: string;
+  interactionId?: string;
   error?: { name: string; message: string };
 }
 
@@ -111,6 +118,7 @@ export function createDOMAnnouncer(
           status: "disposed",
           method: "none",
           channel: intent.channel,
+          ...deliveryContext(intent),
         });
       }
       if (regions) {
@@ -136,6 +144,7 @@ export function createDOMAnnouncer(
               status: "notified",
               method: "aria-notify",
               channel: intent.channel,
+              ...deliveryContext(intent),
             });
           }
         }
@@ -144,6 +153,7 @@ export function createDOMAnnouncer(
           status: "mutated",
           method: "live-region",
           channel: intent.channel,
+          ...deliveryContext(intent),
           ...(error === undefined ? {} : { error }),
         });
       }
@@ -151,6 +161,7 @@ export function createDOMAnnouncer(
         status: "unavailable",
         method: "none",
         channel: intent.channel,
+        ...deliveryContext(intent),
       });
     },
     getRegions() {
@@ -164,6 +175,35 @@ export function createDOMAnnouncer(
         regions?.assertive.remove();
       }
     },
+  };
+}
+
+function deliveryContext(
+  intent: AnnouncementIntent,
+): Pick<
+  DOMDeliveryResult,
+  | "announcementId"
+  | "sourceType"
+  | "at"
+  | "sourceEventId"
+  | "responseId"
+  | "toolId"
+  | "interactionId"
+> {
+  return {
+    announcementId: intent.id,
+    sourceType: intent.sourceType,
+    at: intent.at,
+    ...(intent.sourceEventId !== undefined
+      ? { sourceEventId: intent.sourceEventId }
+      : {}),
+    ...(intent.responseId !== undefined
+      ? { responseId: intent.responseId }
+      : {}),
+    ...(intent.toolId !== undefined ? { toolId: intent.toolId } : {}),
+    ...(intent.interactionId !== undefined
+      ? { interactionId: intent.interactionId }
+      : {}),
   };
 }
 

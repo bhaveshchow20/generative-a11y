@@ -1,0 +1,63 @@
+{
+  "name": "@generative-a11y/devtools",
+  "version": "0.0.0",
+  "description": "Development-only diagnostics for generative-a11y runtimes",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./overlay": {
+      "import": {
+        "types": "./dist/overlay.d.ts",
+        "default": "./dist/overlay.js"
+      },
+      "require": {
+        "types": "./dist/overlay.d.cts",
+        "default": "./dist/overlay.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/overlay.ts --format esm,cjs --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@generative-a11y/core": "workspace:*",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.31.0",
+    "motion": "^12.23.12",
+    "radix-ui": "1.6.7",
+    "react-resizable-panels": "^4.12.3",
+    "tailwind-merge": "3.6.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

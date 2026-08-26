@@ -29,6 +29,22 @@ export const packageScenarios = [
     internalPackages: ["@generative-a11y/core"],
   },
   {
+    id: "devtools",
+    packageName: "@generative-a11y/devtools",
+    specifier: "@generative-a11y/devtools",
+    expectedExport: "createDevtoolsStore",
+    fixtures: [],
+    internalPackages: ["@generative-a11y/core"],
+  },
+  {
+    id: "devtools-overlay",
+    packageName: "@generative-a11y/devtools",
+    specifier: "@generative-a11y/devtools/overlay",
+    expectedExport: "mountDevtoolsOverlay",
+    fixtures: [],
+    internalPackages: ["@generative-a11y/core"],
+  },
+  {
     id: "react",
     packageName: "@generative-a11y/react",
     specifier: "@generative-a11y/react",
@@ -66,6 +82,14 @@ export const packageScenarios = [
     specifier: "@generative-a11y/ag-ui",
     expectedExport: "bindAgent",
     fixtures: ["@ag-ui/client"],
+    internalPackages: ["@generative-a11y/core"],
+  },
+  {
+    id: "test",
+    packageName: "@generative-a11y/test",
+    specifier: "@generative-a11y/test",
+    expectedExport: "recordRuntime",
+    fixtures: [],
     internalPackages: ["@generative-a11y/core"],
   },
 ];
@@ -233,6 +257,7 @@ export function createConsumerManifest({
   rootPackage,
   scenario,
   targetDependency,
+  internalOverrides = {},
   targetManifest,
 }) {
   const fixtureDependencies = Object.fromEntries(
@@ -261,6 +286,7 @@ export function createConsumerManifest({
     packageManager: rootPackage.packageManager,
     dependencies: {
       [scenario.packageName]: targetDependency,
+      ...internalOverrides,
       ...fixtureDependencies,
     },
   };

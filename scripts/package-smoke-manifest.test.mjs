@@ -48,6 +48,19 @@ describe("isolated packed consumer scenarios", () => {
         internalPackages: ["@generative-a11y/core"],
       }),
       expect.objectContaining({
+        id: "devtools",
+        specifier: "@generative-a11y/devtools",
+        expectedExport: "createDevtoolsStore",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
+      expect.objectContaining({
+        id: "devtools-overlay",
+        specifier: "@generative-a11y/devtools/overlay",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
+      expect.objectContaining({
         id: "react",
         specifier: "@generative-a11y/react",
         fixtures: ["react", "react-dom", "@types/react", "@types/react-dom"],
@@ -83,11 +96,18 @@ describe("isolated packed consumer scenarios", () => {
         fixtures: ["@ag-ui/client"],
         internalPackages: ["@generative-a11y/core"],
       }),
+      expect.objectContaining({
+        id: "test",
+        specifier: "@generative-a11y/test",
+        expectedExport: "recordRuntime",
+        fixtures: [],
+        internalPackages: ["@generative-a11y/core"],
+      }),
     ]);
 
-    expect(smoke.packageScenarios[3].fixtures).not.toContain("@ai-sdk/react");
-    expect(smoke.packageScenarios[3].fixtures).not.toContain("react");
-    expect(smoke.packageScenarios[6].fixtures).not.toContain("@ag-ui/core");
+    expect(scenarioById("ai-sdk").fixtures).not.toContain("@ai-sdk/react");
+    expect(scenarioById("ai-sdk").fixtures).not.toContain("react");
+    expect(scenarioById("ag-ui").fixtures).not.toContain("@ag-ui/core");
   });
 
   it("creates a JSON-only manifest with relative packed dependencies and overrides", () => {
@@ -116,6 +136,8 @@ describe("isolated packed consumer scenarios", () => {
       packageManager: "pnpm@11.21.0",
       dependencies: {
         "@generative-a11y/react": "file:../../archives/react.tgz",
+        "@generative-a11y/core": "file:../../archives/core.tgz",
+        "@generative-a11y/dom": "file:../../archives/dom.tgz",
         react: "19.2.8",
         "react-dom": "19.2.8",
         "@types/react": "19.2.18",

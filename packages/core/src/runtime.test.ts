@@ -1135,6 +1135,7 @@ describe("generative accessibility runtime", () => {
     const runtime = createGenerativeA11y({
       clock,
       onAnnouncement: () => undefined,
+      policy: { tools: { announceStartAfterMs: 500 } },
     });
     let unsubscribeSecond: () => void = () => undefined;
     runtime.subscribeAnnouncements(() => {
@@ -1364,6 +1365,109 @@ describe("generative accessibility runtime", () => {
 
     expect(diagnostics.map(({ reason }) => reason)).toContain(
       "runtime-disposed",
+    );
+  });
+
+  it("emits a versioned source event before decisions and exposes a content-free snapshot", () => {
+    const clock = new ManualClock(100);
+    const runtime = createGenerativeA11y({
+      clock,
+      onAnnouncement: () => undefined,
+      policy: { tools: { announceStartAfterMs: 500 } },
+    });
+    const events: unknown[] = [];
+    runtime.subscribeDiagnosticEvents((event) => events.push(event));
+
+    runtime.dispatch({
+      type: "tool.started",
+      toolId: "search-17",
+      label: "Search confidential notes",
+    });
+
+    expect(events).toMatchObject([
+      {
+        schemaVersion: 1,
+        sequence: 0,
+        at: 100,
+        kind: "event-observed",
+        event: { type: "tool.started", toolId: "search-17" },
+      },
+      {
+        schemaVersion: 1,
+        sequence: 1,
+        at: 100,
+        kind: "decision",
+        decision: { disposition: "queued", reason: "scheduled" },
+      },
+    ]);
+    expect(runtime.getDiagnosticSnapshot()).toMatchObject({
+      schemaVersion: 1,
+      at: 100,
+      pending: {
+        announcements: [
+          {
+            sourceType: "tool.started",
+            toolId: "search-17",
+            dueAt: 600,
+            delayMs: 500,
+          },
+        ],
+      },
+      tools: [{ toolId: "search-17", status: "active" }],
+    });
+    expect(JSON.stringify(runtime.getDiagnosticSnapshot())).not.toContain(
+      "confidential",
+    );
+  });
+
+  it("does not report source evidence for a rejected reentrant dispatch", () => {
+    const sourceEventIds: string[] = [];
+    let nested = false;
+    let runtime: ReturnType<typeof createGenerativeA11y>;
+    runtime = createGenerativeA11y({
+      onAnnouncement: () => undefined,
+      policy: { maxQueueSize: 1 },
+      onDiagnostic: (diagnostic) => {
+        if (nested || diagnostic.reason !== "scheduled") return;
+        nested = true;
+        expect(
+          runtime.dispatch({
+            type: "connection.restored",
+            eventId: "accepted-reentrant",
+          }),
+        ).toBe(true);
+        expect(
+          runtime.dispatch({
+            type: "connection.lost",
+            eventId: "rejected-reentrant",
+          }),
+        ).toBe(false);
+      },
+    });
+    runtime.subscribeDiagnosticEvents((event) => {
+      if (event.kind === "event-observed" && event.event.eventId) {
+        sourceEventIds.push(event.event.eventId);
+      }
+    });
+
+    runtime.dispatch({ type: "connection.restored", eventId: "outer" });
+
+    expect(sourceEventIds).toEqual(["outer", "accepted-reentrant"]);
+  });
+
+  it("isolates diagnostic-event listeners and rejects subscriptions after disposal", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    runtime.subscribeDiagnosticEvents(() => {
+      throw new Error("observer failed");
+    });
+
+    expect(() =>
+      runtime.dispatch({ type: "response.started", responseId: "r1" }),
+    ).not.toThrow();
+
+    runtime.dispose();
+    expect(() => runtime.subscribeDiagnosticEvents(() => undefined)).toThrow(
+      "disposed",
     );
   });
 });
