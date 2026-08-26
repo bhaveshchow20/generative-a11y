@@ -61,7 +61,7 @@
     "@assistant-ui/core": "0.3.13",
     "@assistant-ui/react": "0.15.14",
     "@axe-core/playwright": "4.13.0",
-    "@changesets/cli": "3.0.0",
+    "@changesets/cli": "3.0.1",
     "@eslint/js": "10.0.1",
     "@generative-a11y/ag-ui": "workspace:*",
     "@generative-a11y/ai-sdk": "workspace:*",
@@ -78,17 +78,17 @@
     "@types/react-dom": "19.2.4",
     "@typescript-eslint/eslint-plugin": "8.67.0",
     "@typescript-eslint/parser": "8.67.0",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "ai": "7.0.66",
-    "eslint": "10.8.1",
+    "eslint": "10.9.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "jsdom": "30.0.1",
     "prettier": "3.9.6",
-    "publint": "0.3.23",
+    "publint": "0.3.24",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tsup": "8.5.1",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
