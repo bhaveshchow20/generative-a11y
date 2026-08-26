@@ -1,9 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { ManualClock, createAnnouncementRecorder } from "@generative-a11y/core";
-import { createReplayFixture, recordRuntime, replayEvents } from "./index.js";
+import { ManualClock, createAnnouncementRecorder } from "./index.js";
+import {
+  createReplayFixture,
+  matchesPartial,
+  recordRuntime,
+  replayEvents,
+} from "./testing.js";
 
-describe("test replay utilities", () => {
+describe("core testing utilities", () => {
+  it("matches only the requested top-level semantic fields", () => {
+    expect(
+      matchesPartial(
+        { disposition: "suppressed", reason: "policy-silent", sequence: 3 },
+        { reason: "policy-silent" },
+      ),
+    ).toBe(true);
+    expect(
+      matchesPartial(
+        { disposition: "suppressed", reason: "policy-silent" },
+        { reason: "scope-cancelled" },
+      ),
+    ).toBe(false);
+  });
+
   it("records only forwarded events as relative, immutable fixture entries", () => {
     const clock = new ManualClock(100);
     const recorder = createAnnouncementRecorder({ startAt: 100 });
@@ -51,7 +71,6 @@ describe("test replay utilities", () => {
   });
 
   it("replays stable same-time ordering without settling caller-controlled timers", () => {
-    const sourceClock = new ManualClock(10);
     const target = createAnnouncementRecorder({ startAt: 10 });
     const fixture = createReplayFixture(
       [
@@ -72,7 +91,7 @@ describe("test replay utilities", () => {
           event: { type: "response.completed", responseId: "r1" },
         },
       ],
-      { startAt: sourceClock.now() },
+      { startAt: 10 },
     );
 
     replayEvents(target.runtime, target.clock, fixture);

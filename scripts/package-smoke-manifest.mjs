@@ -21,6 +21,14 @@ export const packageScenarios = [
     internalPackages: [],
   },
   {
+    id: "core-testing",
+    packageName: "@generative-a11y/core",
+    specifier: "@generative-a11y/core/testing",
+    expectedExport: "recordRuntime",
+    fixtures: [],
+    internalPackages: [],
+  },
+  {
     id: "dom",
     packageName: "@generative-a11y/dom",
     specifier: "@generative-a11y/dom",
@@ -82,14 +90,6 @@ export const packageScenarios = [
     specifier: "@generative-a11y/ag-ui",
     expectedExport: "bindAgent",
     fixtures: ["@ag-ui/client"],
-    internalPackages: ["@generative-a11y/core"],
-  },
-  {
-    id: "test",
-    packageName: "@generative-a11y/test",
-    specifier: "@generative-a11y/test",
-    expectedExport: "recordRuntime",
-    fixtures: [],
     internalPackages: ["@generative-a11y/core"],
   },
 ];

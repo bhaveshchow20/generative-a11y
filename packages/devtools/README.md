@@ -146,5 +146,6 @@ overlay.dispose();
   exposes the versioned diagnostic stream and content-free snapshots.
 - [`@generative-a11y/dom`](https://www.npmjs.com/package/@generative-a11y/dom)
   exposes browser delivery results for safe correlation.
-- [`@generative-a11y/test`](https://generativea11y.com/api/test) provides
-  deterministic replay and semantic test assertions.
+- [`@generative-a11y/core/testing`](https://generativea11y.com/api/core/testing)
+  provides deterministic replay and semantic test assertions without another
+  package installation.

@@ -22,7 +22,7 @@ const importantPages = [
   "/docs/testing",
   "/api",
   "/api/devtools",
-  "/api/test",
+  "/api/core/testing",
 ] as const;
 
 export function GET() {
@@ -57,7 +57,7 @@ ${links}
 ## Development tools
 
 - Bounded redacted runtime diagnostics and the Accessibility Trace Explorer through @generative-a11y/devtools
-- Versioned event recording, ManualClock replay, and opt-in Vitest matchers through @generative-a11y/test
+- Versioned event recording, ManualClock replay, and opt-in Vitest matchers through @generative-a11y/core/testing
 
 ## Project links
 
