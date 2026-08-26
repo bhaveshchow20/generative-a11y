@@ -1,0 +1,164 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="630"
+  viewBox="0 0 1200 630"
+  role="img"
+  aria-labelledby="title"
+>
+  <title id="title">
+    generative-a11y — Accessible streaming AI, without rebuilding your
+    interface.
+  </title>
+  <rect width="1200" height="630" fill="#ffffff" />
+
+  <!-- Outer technical border and construction guides. -->
+  <g fill="none" stroke="#171717">
+    <rect x="20.5" y="21.5" width="1159" height="587" stroke-width="1" />
+    <rect
+      x="44.5"
+      y="50.5"
+      width="1107"
+      height="531"
+      stroke="#a3a3a3"
+      stroke-dasharray="5 4"
+    />
+    <path
+      d="M36 51h17M44.5 42.5v17M600 51h17M608.5 42.5v17M1142 51h17M1150.5 42.5v17M36 309h17M44.5 300.5v17M1142 302h17M1150.5 293.5v17M36 581h17M44.5 572.5v17M600 581h17M608.5 572.5v17M1142 581h17M1150.5 572.5v17"
+      stroke-width="1.25"
+    />
+  </g>
+
+  <!-- Canonical project mark; geometry matches the website favicon. -->
+  <g transform="translate(80 126)">
+    <rect width="64" height="64" rx="14" fill="#111111" />
+    <path
+      d="M14 26V16C14 15 15 14 16 14H26M38 14H48C49 14 50 15 50 16V26M50 38V48C50 49 49 50 48 50H38M26 50H16C15 50 14 49 14 48V38"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="6"
+      stroke-linecap="round"
+    />
+    <circle cx="32" cy="32" r="6" fill="#8b8b8b" />
+  </g>
+
+  <!-- Wordmark and message. -->
+  <g fill="#0a0a0a">
+    <text
+      x="78"
+      y="306"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="84"
+      font-weight="700"
+      letter-spacing="-3.5"
+    >
+      generative-a11y
+    </text>
+    <circle cx="84" cy="341.5" r="4.5" />
+    <path d="M84 341.5h581" fill="none" stroke="#404040" stroke-width="1.5" />
+    <text
+      x="80"
+      y="386"
+      font-family="Courier New, Courier, monospace"
+      font-size="26"
+      letter-spacing="1.3"
+    >
+      Accessible streaming AI, without
+    </text>
+    <text
+      x="80"
+      y="417"
+      font-family="Courier New, Courier, monospace"
+      font-size="26"
+      letter-spacing="1.3"
+    >
+      rebuilding your interface.
+    </text>
+  </g>
+
+  <!-- Right-side construction grid. -->
+  <g fill="none" stroke="#b3b3b3" stroke-width="1" stroke-dasharray="3 3">
+    <path d="M724 122v372M802 122v372M879 122v372M957 122v372M1088 122v372" />
+    <path
+      d="M704 141.5h408M704 215.5h448M704 302.5h448M704 389.5h448M704 474.5h408"
+    />
+  </g>
+  <g fill="#171717">
+    <circle cx="724" cy="141.5" r="2.7" />
+    <circle cx="802" cy="141.5" r="2.7" />
+    <circle cx="879" cy="141.5" r="2.7" />
+    <circle cx="957" cy="141.5" r="2.7" />
+    <circle cx="1088" cy="141.5" r="2.7" />
+    <circle cx="724" cy="389.5" r="2.7" />
+    <circle cx="802" cy="389.5" r="2.7" />
+    <circle cx="879" cy="389.5" r="2.7" />
+    <circle cx="957" cy="389.5" r="2.7" />
+    <circle cx="1088" cy="389.5" r="2.7" />
+    <circle cx="724" cy="474.5" r="2.7" />
+    <circle cx="802" cy="474.5" r="2.7" />
+    <circle cx="879" cy="474.5" r="2.7" />
+    <circle cx="957" cy="474.5" r="2.7" />
+    <circle cx="1088" cy="474.5" r="2.7" />
+    <circle cx="957" cy="302.5" r="6" />
+    <circle cx="1151" cy="302.5" r="2.5" />
+  </g>
+
+  <!-- Three-way branching announcement diagram. -->
+  <g
+    fill="none"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+  >
+    <path d="M724 302.5h91" stroke="#171717" />
+    <path
+      d="M817 302.5h38c17 0 27-12 27-29v-28c0-18 11-30 29-30h84"
+      stroke="#404040"
+    />
+    <path d="M817 302.5h178" stroke="#171717" />
+    <path
+      d="M817 302.5h38c17 0 27 12 27 29v28c0 18 11 30 29 30h84"
+      stroke="#737373"
+      stroke-dasharray="6 6"
+    />
+  </g>
+  <circle cx="724" cy="302.5" r="10" fill="#171717" />
+  <circle
+    cx="816"
+    cy="302.5"
+    r="9"
+    fill="#ffffff"
+    stroke="#404040"
+    stroke-width="2"
+  />
+  <circle cx="930" cy="389.5" r="9" fill="#a3a3a3" />
+
+  <!-- Announcement outputs. -->
+  <g>
+    <rect x="995" y="197" width="103" height="37" rx="6" fill="#404040" />
+    <rect x="995" y="284" width="103" height="37" rx="6" fill="#111111" />
+    <rect x="995" y="371" width="103" height="37" rx="6" fill="#d4d4d4" />
+    <g
+      font-family="Courier New, Courier, monospace"
+      font-size="23"
+      font-weight="700"
+    >
+      <text x="1005" y="223" fill="#ffffff">›</text>
+      <text x="1005" y="310" fill="#ffffff">›</text>
+      <text x="1005" y="397" fill="#111111">›</text>
+    </g>
+    <g fill="#ffffff">
+      <circle cx="1031" cy="215.5" r="4" />
+      <circle cx="1047" cy="215.5" r="4" />
+      <circle cx="1063" cy="215.5" r="4" />
+      <circle cx="1031" cy="302.5" r="4" />
+      <circle cx="1047" cy="302.5" r="4" />
+      <circle cx="1063" cy="302.5" r="4" />
+    </g>
+    <g fill="#111111">
+      <circle cx="1031" cy="389.5" r="4" />
+      <circle cx="1047" cy="389.5" r="4" />
+      <circle cx="1063" cy="389.5" r="4" />
+    </g>
+  </g>
+</svg>
