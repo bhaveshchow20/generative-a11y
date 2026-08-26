@@ -1,7 +1,16 @@
+<a href="https://generativea11y.com">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/header-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/header.svg" />
+    <img src=".github/assets/header.svg" alt="generative-a11y — Accessible streaming AI, without rebuilding your interface" width="100%" />
+  </picture>
+</a>
+
 # generative-a11y
 
 [![CI](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/ci.yml/badge.svg)](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/codeql.yml/badge.svg)](https://github.com/bhaveshchow20/generative-a11y/actions/workflows/codeql.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bhaveshchow20/generative-a11y)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Accessible AI, without rebuilding your interface.**
@@ -43,7 +52,7 @@ Install the package that matches your integration. Package dependencies such as
 | [`@generative-a11y/ai-sdk`](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fai-sdk?label=npm)](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | Vercel AI SDK lifecycle translation and React integration            | `npm install @generative-a11y/ai-sdk`       |
 | [`@generative-a11y/assistant-ui`](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fassistant-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | assistant-ui runtime and message-state translation                   | `npm install @generative-a11y/assistant-ui` |
 | [`@generative-a11y/ag-ui`](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fag-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | AG-UI protocol lifecycle translation                                 | `npm install @generative-a11y/ag-ui`        |
-| [`@generative-a11y/devtools`](packages/devtools/README.md)                                     | Repository package                                                                                                                              | Bounded redacted diagnostics and an optional browser trace explorer  | `npm install -D @generative-a11y/devtools`  |
+| [`@generative-a11y/devtools`](https://www.npmjs.com/package/@generative-a11y/devtools)         | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fdevtools?label=npm)](https://www.npmjs.com/package/@generative-a11y/devtools)         | Bounded redacted diagnostics and an optional browser trace explorer  | `npm install -D @generative-a11y/devtools`  |
 
 ## Why generative-a11y?
 
