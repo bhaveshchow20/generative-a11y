@@ -205,3 +205,16 @@ preference types continue to come from their owning packages.
 - Preference changes do not reconfigure an active runtime.
 - Framework-specific adapters for AI SDKs and chat frameworks are not part of
   this package.
+
+## Documentation
+
+- [React API reference](https://generativea11y.com/api/react)
+- [React integration guide](https://generativea11y.com/docs/getting-started)
+- [GitHub repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  owns lifecycle policy and scheduling.
+- [`@generative-a11y/ai-sdk`](https://www.npmjs.com/package/@generative-a11y/ai-sdk)
+  translates Vercel AI SDK chat state.

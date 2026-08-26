@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DocPageView } from "../../../components/doc-page";
 import { DOC_PAGES, getDocPage } from "../../../lib/content";
+import { createDocMetadata } from "../../../lib/seo";
 
 export function generateStaticParams() {
   return DOC_PAGES.filter((page) => page.path.startsWith("/project/")).map((page) => ({
@@ -18,7 +19,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const page = getDocPage(`/project/${slug}`);
   if (!page) return {};
-  return { title: page.title, description: page.description };
+  return createDocMetadata(page);
 }
 
 export default async function ProjectPage({

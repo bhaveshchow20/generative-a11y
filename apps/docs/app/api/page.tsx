@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 
 import { DocPageView } from "../../components/doc-page";
 import { getDocPage } from "../../lib/content";
+import { createDocMetadata } from "../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "API reference",
-  description: "Package and symbol-level generative-a11y API reference.",
-};
+const apiPage = getDocPage("/api")!;
+
+export const metadata: Metadata = createDocMetadata(apiPage);
 
 export default function APIIndexPage() {
-  return <DocPageView page={getDocPage("/api")!} />;
+  return <DocPageView page={apiPage} />;
 }

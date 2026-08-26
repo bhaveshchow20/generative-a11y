@@ -114,3 +114,16 @@ chat history.
 Automated tests validate normalized event translation, package import safety,
 and a real public `useChat()` hook harness. They do not demonstrate real
 assistive-technology speech.
+
+## Documentation
+
+- [Vercel AI SDK accessibility guide](https://generativea11y.com/docs/integrations/ai-sdk)
+- [AI SDK API reference](https://generativea11y.com/api/ai-sdk)
+- [GitHub repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  receives the normalized lifecycle events.
+- [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
+  provides browser delivery for React applications.

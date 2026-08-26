@@ -6,6 +6,10 @@ bounded redacted trace: it stores categories, timing, outcomes, stable runtime
 IDs, queue/entity snapshots, and browser delivery metadata. It never retains
 assistant text, labels, error messages, tool data, stacks, or DOM content.
 
+```sh
+npm install --save-dev @generative-a11y/devtools
+```
+
 ```ts
 import { createDevtoolsStore } from "@generative-a11y/devtools";
 import { THREAD_ADAPTER_METADATA } from "@generative-a11y/assistant-ui";
@@ -129,3 +133,18 @@ import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
 const overlay = mountDevtoolsOverlay({ store });
 overlay.dispose();
 ```
+
+## Documentation
+
+- [Devtools guide](https://generativea11y.com/docs/devtools)
+- [API reference](https://generativea11y.com/api/devtools)
+- [Repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  exposes the versioned diagnostic stream and content-free snapshots.
+- [`@generative-a11y/dom`](https://www.npmjs.com/package/@generative-a11y/dom)
+  exposes browser delivery results for safe correlation.
+- [`@generative-a11y/test`](https://generativea11y.com/api/test) provides
+  deterministic replay and semantic test assertions.

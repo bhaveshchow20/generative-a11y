@@ -6,14 +6,23 @@
 
 **Accessible AI, without rebuilding your interface.**
 
-`generative-a11y` is a framework-independent accessibility layer for streaming
-AI and agent interfaces. It translates existing lifecycle state into paced,
-prioritized announcement intents for screen readers while leaving the host
-application's visual UI alone.
+`generative-a11y` is an accessibility runtime for streaming AI and agent
+interfaces. It turns response, tool, approval, retry, failure, and connection
+events into paced screen-reader announcements without requiring developers to
+rebuild their UI.
 
-> [!IMPORTANT] This project is in pre-1.0 development. All six packages are
-> published under the `@generative-a11y` npm scope at version 0.1.0. External
-> assistive-technology validation remains in progress.
+[Website](https://generativea11y.com) ·
+[Docs](https://generativea11y.com/docs/getting-started) ·
+[Examples](https://generativea11y.com/examples/lifecycle-lab) ·
+[npm](https://www.npmjs.com/org/generative-a11y) · [MIT license](LICENSE)
+
+```sh
+npm install @generative-a11y/core @generative-a11y/dom
+```
+
+> [!IMPORTANT] This project is in pre-1.0 development. Packages use the
+> `@generative-a11y` npm scope. External assistive-technology validation remains
+> in progress.
 
 [Core API](packages/core/README.md) · [DOM API](packages/dom/README.md) ·
 [React API](packages/react/README.md) · [Architecture](docs/architecture.md) ·
@@ -34,6 +43,8 @@ Install the package that matches your integration. Package dependencies such as
 | [`@generative-a11y/ai-sdk`](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fai-sdk?label=npm)](https://www.npmjs.com/package/@generative-a11y/ai-sdk)             | Vercel AI SDK lifecycle translation and React integration                 | `npm install @generative-a11y/ai-sdk`       |
 | [`@generative-a11y/assistant-ui`](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fassistant-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/assistant-ui) | assistant-ui runtime and message-state translation                        | `npm install @generative-a11y/assistant-ui` |
 | [`@generative-a11y/ag-ui`](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | [![npm](https://img.shields.io/npm/v/%40generative-a11y%2Fag-ui?label=npm)](https://www.npmjs.com/package/@generative-a11y/ag-ui)               | AG-UI protocol lifecycle translation                                      | `npm install @generative-a11y/ag-ui`        |
+| [`@generative-a11y/devtools`](packages/devtools/README.md)                                     | Repository package                                                                                                                              | Bounded redacted diagnostics and an optional browser trace explorer       | `npm install -D @generative-a11y/devtools`  |
+| [`@generative-a11y/test`](packages/test/README.md)                                             | Repository package                                                                                                                              | Deterministic event replay and semantic Vitest assertions                 | `npm install -D @generative-a11y/test`      |
 
 ## Why generative-a11y?
 
@@ -55,6 +66,8 @@ accessible delivery:
   adapters translate documented public framework state.
 - **Honest fidelity:** declare missing lifecycle evidence instead of guessing,
   and keep automated transcripts distinct from real assistive-technology tests.
+- **Inspectable behavior:** use bounded redacted traces and deterministic replay
+  to connect source events, runtime decisions, and browser delivery evidence.
 
 ## How it fits
 

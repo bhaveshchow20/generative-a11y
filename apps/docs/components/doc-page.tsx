@@ -6,6 +6,8 @@ import { DOC_PAGES } from "../lib/content";
 import { ArchitectureFlow } from "./architecture-flow";
 import { CodeBlock } from "./code-block";
 import { SiteShell } from "./site-shell";
+import { JsonLd } from "./json-ld";
+import { createArticleJsonLd } from "../lib/seo";
 
 export function DocPageView({ page }: { page: DocPage }) {
   const apiSection = page.path.startsWith("/api");
@@ -13,11 +15,24 @@ export function DocPageView({ page }: { page: DocPage }) {
   const index = siblingPages.findIndex((entry) => entry.path === page.path);
   const previous = index > 0 ? siblingPages[index - 1] : undefined;
   const next = index < siblingPages.length - 1 ? siblingPages[index + 1] : undefined;
+  const relatedPages = (page.related ?? [])
+    .map((path) => DOC_PAGES.find((entry) => entry.path === path))
+    .filter((entry): entry is DocPage => Boolean(entry));
+  const docsRoot = page.path.startsWith("/api") ? "/api" : "/docs/getting-started";
+  const docsRootLabel = page.path.startsWith("/api") ? "API" : "Docs";
 
   return (
     <SiteShell currentPath={page.path}>
+      <JsonLd data={createArticleJsonLd(page)} />
       <main className="doc-main">
         <article className="doc-article">
+          <nav className="breadcrumbs" aria-label="Breadcrumb">
+            <ol>
+              <li><Link href="/">Home</Link></li>
+              {page.path === docsRoot ? null : <li><Link href={docsRoot}>{docsRootLabel}</Link></li>}
+              <li aria-current="page">{page.title}</li>
+            </ol>
+          </nav>
           <header className="doc-intro">
             <div className="doc-kicker">
               <span>{page.group}</span>
@@ -63,6 +78,22 @@ export function DocPageView({ page }: { page: DocPage }) {
               {section.note ? <aside className="doc-note"><strong>Note</strong><p>{formatInlineCode(section.note)}</p></aside> : null}
             </section>
           ))}
+
+          {relatedPages.length > 0 ? (
+            <nav className="related-docs" aria-label="Related documentation">
+              <h2>Related documentation</h2>
+              <ul>
+                {relatedPages.map((relatedPage) => (
+                  <li key={relatedPage.path}>
+                    <Link href={relatedPage.path}>
+                      <strong>{relatedPage.title}</strong>
+                      <span>{relatedPage.description}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
 
           <nav className="page-pagination" aria-label="Adjacent documentation pages">
             {previous ? <Link href={previous.path}><span>Previous</span>{previous.title}</Link> : <span />}

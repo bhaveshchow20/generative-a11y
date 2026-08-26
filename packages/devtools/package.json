@@ -1,7 +1,25 @@
 {
   "name": "@generative-a11y/devtools",
   "version": "0.0.0",
-  "description": "Development-only diagnostics for generative-a11y runtimes",
+  "description": "Development-only accessibility diagnostics and a redacted trace explorer for screen-reader announcements in AI runtimes.",
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "ai",
+    "devtools",
+    "diagnostics",
+    "screen-reader",
+    "trace"
+  ],
+  "homepage": "https://generativea11y.com/api/devtools",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",
+    "directory": "packages/devtools"
+  },
+  "bugs": {
+    "url": "https://github.com/bhaveshchow20/generative-a11y/issues"
+  },
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

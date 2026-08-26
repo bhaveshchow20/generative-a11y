@@ -21,7 +21,7 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "homepage": "https://generativea11y.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bhaveshchow20/generative-a11y.git"
@@ -40,7 +40,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0 && pnpm --filter @generative-a11y/docs lint",
-    "package:check": "pnpm --filter './packages/*' exec publint && pnpm smoke:package",
+    "metadata:check": "vitest run scripts/package-metadata.test.mjs",
+    "package:check": "pnpm metadata:check && pnpm --filter './packages/*' exec publint && pnpm smoke:package",
     "pretest": "pnpm build",
     "pretypecheck": "pnpm build",
     "release": "node scripts/release.mjs",

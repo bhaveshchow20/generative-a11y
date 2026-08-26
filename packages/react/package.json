@@ -1,7 +1,7 @@
 {
   "name": "@generative-a11y/react",
   "version": "0.1.0",
-  "description": "React lifecycle integration for the generative accessibility runtime",
+  "description": "React accessibility provider and hooks for paced screen-reader announcements in streaming AI and agent interfaces.",
   "keywords": [
     "accessibility",
     "aria-live",
@@ -15,7 +15,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "homepage": "https://generativea11y.com/api/react",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",
