@@ -28,6 +28,7 @@ export function HeroRuntimeDemo() {
   const [state, setState] = useState<PlaybackState>("ready");
   const [delivery, setDelivery] = useState("Press Play to run the visual trace");
   const timers = useRef<number[]>([]);
+  const demoElement = useRef<HTMLElement | null>(null);
   const runtime = useRef<GenerativeA11yRuntime | null>(null);
   const generation = useRef(0);
   const entryId = useRef(0);
@@ -100,6 +101,7 @@ export function HeroRuntimeDemo() {
   }, [clearRun]);
 
   useEffect(() => {
+    demoElement.current?.setAttribute("data-hydrated", "true");
     return clearRun;
   }, [clearRun]);
 
@@ -109,7 +111,7 @@ export function HeroRuntimeDemo() {
   }
 
   return (
-    <section className="hero-demo" data-state={state} aria-label="Interactive runtime trace">
+    <section ref={demoElement} className="hero-demo" data-state={state} aria-label="Interactive runtime trace">
       <div className="demo-toolbar">
         <span className="trace-title"><i className="motion-orbit" aria-hidden="true"><i /></i>Runtime trace</span>
         <div className="demo-controls">
