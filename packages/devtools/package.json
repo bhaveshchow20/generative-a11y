@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/devtools",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Development-only accessibility diagnostics and a redacted trace explorer for screen-reader announcements in AI runtimes.",
   "keywords": [
     "accessibility",

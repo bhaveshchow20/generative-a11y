@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/ag-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AG-UI accessibility adapter for agent lifecycle events and paced screen-reader announcements.",
   "keywords": [
     "accessibility",
