@@ -25,7 +25,7 @@
     "@generative-a11y/core": "workspace:*",
     "@generative-a11y/dom": "workspace:*",
     "@generative-a11y/react": "workspace:*",
-    "ai": "7.0.66",
+    "ai": "7.0.77",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "simple-icons": "16.28.0"
