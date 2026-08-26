@@ -17,7 +17,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test && pnpm test:browser"
   },
   "dependencies": {
-    "@ai-sdk/react": "4.0.69",
+    "@ai-sdk/react": "4.0.80",
     "@assistant-ui/core": "0.3.13",
     "@assistant-ui/react": "0.15.14",
     "@generative-a11y/ai-sdk": "workspace:*",
@@ -25,7 +25,7 @@
     "@generative-a11y/core": "workspace:*",
     "@generative-a11y/dom": "workspace:*",
     "@generative-a11y/react": "workspace:*",
-    "ai": "7.0.66",
+    "ai": "7.0.77",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "simple-icons": "16.28.0"
