@@ -276,6 +276,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         { name: "setTimeout(callback, delayMs)", type: "ClockTimer", requirement: "Method", defaultValue: "n/a", description: "Schedules a callback on the manual clock." },
         { name: "clearTimeout(timer)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels a registered timer." },
         { name: "advanceBy(ms)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances time and runs due callbacks in a repeatable order." },
+        { name: "runUntilIdle(maxTasks = 10_000)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Runs pending callbacks until none remain and throws if the task limit is reached." },
       ] },
     ],
   },
