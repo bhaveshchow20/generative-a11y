@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -20,6 +21,19 @@ import {
 } from "../lib/site";
 
 describe("site metadata contracts", () => {
+  it("uses the monochrome Focus mark for the browser favicon", () => {
+    const favicon = readFileSync(
+      new URL("../public/favicon.svg", import.meta.url),
+      "utf8",
+    );
+
+    expect(favicon).toContain('fill="#111111"');
+    expect(favicon).toContain('stroke="#ffffff"');
+    expect(favicon).toContain('fill="#8b8b8b"');
+    expect(favicon).toContain('cx="32" cy="32" r="6"');
+    expect(favicon).not.toMatch(/#(?:68c4ff|0c79d8|2e9eff)/i);
+  });
+
   it("resolves canonical site paths without changing the configured origin", () => {
     expect(SITE_URL).toBe("https://generativea11y.com");
     expect(SITE_NAME).toBe("generative-a11y");
