@@ -6,6 +6,8 @@ const runtimeMethods: readonly ApiEntry[] = [
   { name: "pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Counts scheduler candidates and owned response flush timers. Use it for tests and diagnostics, not application rendering." },
   { name: "subscribeAnnouncements(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Registers an AnnouncementIntent listener and returns an idempotent unsubscribe function." },
   { name: "subscribeDiagnostics(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Registers an AnnouncementDiagnostic listener and returns an idempotent unsubscribe function." },
+  { name: "subscribeDiagnosticEvents(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Observes a versioned ordered stream of source events and diagnostic decisions without changing scheduling." },
+  { name: "getDiagnosticSnapshot()", type: "RuntimeDiagnosticSnapshotV1", requirement: "Method", defaultValue: "n/a", description: "Returns immutable content-free response, tool, queue, and flush timing state for diagnostic consumers." },
   { name: "dispose()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels every owned timer, clears bounded state and queued work, then releases listeners. Repeated calls are safe." },
 ];
 
@@ -14,7 +16,7 @@ const pages: DocPage[] = [
     path: "/api",
     group: "API overview",
     title: "API reference",
-    description: "Package and symbol-level reference for every public generative-a11y runtime, browser, React, and framework adapter contract.",
+    description: "Package and symbol-level reference for every public generative-a11y runtime, browser, React, framework adapter, devtools, and testing contract.",
     keywords: ["API", "reference", "exports", "packages", "TypeScript"],
     sections: [
       {
@@ -28,6 +30,8 @@ const pages: DocPage[] = [
           ["@generative-a11y/ai-sdk", "observer, callbacks, React hooks", "AI SDK useChat public state"],
           ["@generative-a11y/assistant-ui", "bindThreadRuntime", "assistant-ui ThreadRuntime"],
           ["@generative-a11y/ag-ui", "bindAgent", "AG-UI AgentSubscriber callbacks"],
+          ["@generative-a11y/devtools", "createDevtoolsStore, overlay", "Bounded redacted development traces"],
+          ["@generative-a11y/test", "recordRuntime, replayEvents, matchers", "Deterministic lifecycle tests"],
         ] },
       },
       {
@@ -295,6 +299,11 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         { name: "reason", type: "DiagnosticReason", requirement: "Required", defaultValue: "n/a", description: "Stable machine-readable explanation for the decision." },
         { name: "count", type: "number", requirement: "Optional", defaultValue: "undefined", description: "Number of equivalent decisions represented by an aggregated diagnostic." },
       ] },
+      { id: "runtime-observability", title: "Versioned runtime observability", body: ["subscribeDiagnosticEvents emits each normalized source event before the decisions caused by that dispatch. getDiagnosticSnapshot returns current lifecycle and queue timing without response text, labels, errors, scopes, deduplication keys, or timer handles."], api: [
+        { name: "RuntimeDiagnosticEventV1", type: "event-observed | decision", requirement: "Event", defaultValue: "n/a", description: "Schema-versioned ordered diagnostic event with injected time and a monotonic sequence." },
+        { name: "RuntimeDiagnosticSnapshotV1", type: "immutable object", requirement: "Snapshot", defaultValue: "n/a", description: "Content-free active response, tool, pending announcement, and response flush state." },
+        { name: "pending.announcements", type: "readonly DiagnosticPendingAnnouncement[]", requirement: "Snapshot field", defaultValue: "[]", description: "Stable correlation, channel, source, scheduling, due-time, delay, and queue sequence fields ordered by due time." },
+      ], note: "Runtime diagnostics explain library behavior. They do not prove DOM delivery or screen-reader speech." },
     ],
   },
   {
@@ -337,6 +346,11 @@ announcer.dispose();` }, walkthrough: [{ label: "Use progressive delivery", desc
       ] },
       { id: "result", title: "DOMDeliveryResult", body: ["announce returns one result synchronously."], table: { headers: ["Status", "Method", "Meaning"], rows: [["notified", "aria-notify", "ariaNotify returned without throwing"], ["mutated", "live-region", "Selected stable region text changed"], ["unavailable", "none", "No usable document or region exists"], ["disposed", "none", "announce was called after disposal"]] }, api: [
         { name: "channel", type: "polite | assertive", requirement: "Required", defaultValue: "n/a", description: "Intent channel selected for this attempt." },
+        { name: "announcementId", type: "string", requirement: "Required", defaultValue: "n/a", description: "Stable ID copied from the AnnouncementIntent for diagnostic correlation." },
+        { name: "sourceType", type: "GenerativeA11yEvent['type']", requirement: "Required", defaultValue: "n/a", description: "Event type that produced the announcement intent." },
+        { name: "at", type: "number", requirement: "Required", defaultValue: "n/a", description: "Injected-clock timestamp copied from the announcement intent." },
+        { name: "sourceEventId", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Application event ID when the source event supplied one." },
+        { name: "responseId / toolId / interactionId", type: "string", requirement: "Optional", defaultValue: "undefined", description: "Entity IDs copied from the announcement intent when present." },
         { name: "error", type: "{ name, message }", requirement: "Optional", defaultValue: "undefined", description: "Serializable ariaNotify failure information when fallback was needed." },
       ], note: "A notified or mutated result confirms that the library updated the browser. Test with a real screen reader to confirm what it speaks." },
     ],
@@ -653,6 +667,163 @@ binding.dispose();` }, walkthrough: [{ label: "Connect the agent", description: 
         { name: "return", type: "AgentBinding", requirement: "Return", defaultValue: "n/a", description: "An idempotent dispose method for the protocol subscription." },
       ] },
       { id: "translation", title: "How AgentSubscriber callbacks map to events", body: ["AG-UI integration reads public callbacks instead of rendered UI."], table: { headers: ["AG-UI callback family", "generative-a11y event", "Notes"], rows: [["Text message start, content, end", "response lifecycle", "Each update contains only new text"], ["Tool call start, args, result, end", "tool lifecycle", "Arguments alone do not mean execution started"], ["Run error or interruption", "response.failed or interrupted", "Uses short, translated text that is safe to share"], ["Interrupt and resume", "interaction requested or resolved", "Reports when the app needs user input"], ["Run initialized", "interaction resolution", "Matches known active interrupt IDs"]] } },
+    ],
+  },
+  {
+    path: "/api/devtools",
+    group: "Devtools",
+    title: "@generative-a11y/devtools",
+    description: "Create a bounded redacted diagnostic store and an explicit browser Accessibility Trace Explorer for development.",
+    keywords: ["createDevtoolsStore", "mountDevtoolsOverlay", "DevtoolsStore", "trace explorer"],
+    related: ["/docs/devtools", "/api/core/diagnostics", "/api/dom/create-dom-announcer"],
+    sections: [
+      {
+        id: "store",
+        title: "createDevtoolsStore",
+        body: ["The headless store is framework-neutral and has no browser side effects on import. It subscribes to public runtime diagnostics and owns only its bounded captured history."],
+        code: { language: "typescript", value: `import { createDevtoolsStore } from "@generative-a11y/devtools";
+
+const store = createDevtoolsStore({ maxEntries: 250 });
+const detach = store.attachRuntime({ id: "support", runtime });
+const snapshot = store.getSnapshot();
+const trace = store.exportTrace();
+
+detach();
+store.dispose();` },
+        walkthrough: [
+          { label: "Bound retained records", description: "maxEntries defaults to 250 and must be a positive safe integer." },
+          { label: "Attach public diagnostics", description: "attachRuntime borrows subscribeDiagnosticEvents and getDiagnosticSnapshot from core." },
+          { label: "Read or export", description: "Snapshots and V1 trace exports are immutable and content-free." },
+          { label: "Release capture", description: "Detach the borrowed runtime before disposing the store." },
+        ],
+        api: [
+          { name: "createDevtoolsStore(options)", type: "DevtoolsStore", requirement: "Function", defaultValue: "maxEntries: 250", description: "Creates an isolated store with bounded records and no attached runtimes." },
+          { name: "attachRuntime({ id, runtime, source? })", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Attaches public core diagnostics under a stable ID and returns idempotent detach." },
+          { name: "source", type: "DevtoolsRuntimeSource", requirement: "Optional attach option", defaultValue: "undefined", description: "Records the adapter name, documented public evidence, and declared fidelity supplied by the integration." },
+          { name: "recordDelivery(input)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Adds validated content-free DOM delivery evidence correlated by safe IDs." },
+          { name: "exportTrace()", type: "DevtoolsTraceExportV1", requirement: "Method", defaultValue: "n/a", description: "Refreshes runtime snapshots and exports the schema-versioned redacted trace." },
+        ],
+      },
+      {
+        id: "capture-controls",
+        title: "Capture controls and ownership",
+        body: ["pauseCapture and resumeCapture affect devtools capture only. They do not pause runtime scheduling or browser delivery. clear removes records without detaching runtimes; dispose detaches runtimes and removes subscribers."],
+        api: [
+          { name: "getSnapshot()", type: "DevtoolsSnapshot", requirement: "Method", defaultValue: "n/a", description: "Returns a cached immutable view until captured state changes." },
+          { name: "subscribe(listener)", type: "() => void", requirement: "Method", defaultValue: "n/a", description: "Observes store changes with an idempotent unsubscribe function." },
+          { name: "pauseCapture() / resumeCapture()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Controls diagnostic retention without changing the observed runtimes." },
+          { name: "refreshSnapshots()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Requests fresh content-free snapshots from attached runtimes without changing their state." },
+          { name: "clear() / dispose()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Clears captured state or releases all store-owned resources." },
+        ],
+      },
+      {
+        id: "trace-contracts",
+        title: "Snapshot and trace contracts",
+        body: ["Devtools snapshots and V1 exports contain redacted records, runtime snapshots, and declared adapter sources. The bounded record list reports how much older data it dropped."],
+        api: [
+          { name: "droppedCount", type: "number", requirement: "Snapshot and export", defaultValue: "0", description: "Counts records removed from the ring buffer since the last clear." },
+          { name: "runtimeSourceId", type: "string", requirement: "Optional record field", defaultValue: "undefined", description: "Connects a record to an immutable adapter evidence revision without copying that metadata into each record." },
+          { name: "records", type: "readonly DevtoolsRecord[]", requirement: "Snapshot and export", defaultValue: "[]", description: "Contains redacted events, decisions, and optional DOM delivery results in capture order." },
+          { name: "runtimeSnapshots", type: "Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>", requirement: "Snapshot and export", defaultValue: "{}", description: "Stores the latest content-free core snapshot for each attached runtime." },
+          { name: "runtimeSources", type: "Readonly<Record<string, DevtoolsRuntimeSource>>", requirement: "Snapshot and export", defaultValue: "{}", description: "Stores immutable adapter evidence revisions still referenced by retained records." },
+        ],
+      },
+      {
+        id: "overlay",
+        title: "mountDevtoolsOverlay",
+        body: ["Import the browser helper from @generative-a11y/devtools/overlay. It mounts one Shadow DOM host after an explicit call, starts collapsed, and restores prior focus when closed."],
+        code: { language: "typescript", value: `import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+
+const overlay = mountDevtoolsOverlay({ store });
+overlay.dispose();` },
+        walkthrough: [
+          { label: "Pass the store", description: "The overlay reads the store you created and does not attach a runtime itself." },
+          { label: "Mount explicitly", description: "Importing the package does not create browser UI or global shortcuts." },
+          { label: "Dispose the host", description: "dispose unmounts the workbench and removes the custom element." },
+        ],
+        api: [
+          { name: "store", type: "DevtoolsStore", requirement: "Required", defaultValue: "n/a", description: "Supplies the captured records and control methods displayed by the overlay." },
+          { name: "document", type: "Document", requirement: "Optional", defaultValue: "global document", description: "Selects the document that receives the Shadow DOM host." },
+          { name: "copyText", type: "(value) => void | Promise<void>", requirement: "Optional", defaultValue: "Clipboard API", description: "Overrides trace copying for hosts that provide their own clipboard bridge." },
+          { name: "host", type: "HTMLElement", requirement: "Return field", defaultValue: "n/a", description: "Exposes the mounted custom element for inspection or host-controlled placement." },
+          { name: "dispose()", type: "void", requirement: "Return method", defaultValue: "n/a", description: "Unmounts the workbench and removes its host. Repeated calls are safe." },
+        ],
+        note: "Captured runtime and browser evidence does not prove that assistive technology spoke an announcement.",
+      },
+    ],
+  },
+  {
+    path: "/api/test",
+    group: "Testing",
+    title: "@generative-a11y/test",
+    description: "Record normalized lifecycle events, replay versioned fixtures with a ManualClock, and install semantic Vitest assertions.",
+    keywords: ["recordRuntime", "replayEvents", "ReplayFixtureV1", "installVitestMatchers"],
+    related: ["/docs/testing/replay", "/api/core/testing", "/docs/testing"],
+    sections: [
+      {
+        id: "record-replay",
+        title: "recordRuntime and replayEvents",
+        body: ["Recording captures accepted events sent through the returned dispatch target. Replay validates the full fixture before dispatching any event and advances the supplied ManualClock in recorded order."],
+        code: { language: "typescript", value: `import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { recordRuntime, replayEvents } from "@generative-a11y/test";
+
+const clock = new ManualClock(0);
+const runtime = createGenerativeA11y({ clock });
+const recording = recordRuntime({ runtime, clock });
+recording.runtime.dispatch({
+  type: "response.started",
+  responseId: "report",
+});
+const fixture = recording.fixture();
+
+const replayClock = new ManualClock(fixture.startAt);
+const replayRuntime = createGenerativeA11y({ clock: replayClock });
+replayEvents(replayRuntime, replayClock, fixture);
+
+runtime.dispose();
+replayRuntime.dispose();` },
+        walkthrough: [
+          { label: "Record through the wrapper", description: "Only calls made through recording.runtime become fixture entries." },
+          { label: "Freeze a V1 fixture", description: "fixture stores relative non-negative times and preserves array order for ties." },
+          { label: "Replay under injected time", description: "replayEvents advances ManualClock before each dispatch and does not run until idle." },
+        ],
+        api: [
+          { name: "recordRuntime({ runtime, clock })", type: "RuntimeRecording", requirement: "Function", defaultValue: "n/a", description: "Returns a dispatch target plus immutable events, fixture, and clear methods." },
+          { name: "RuntimeRecording.events()", type: "readonly RecordedEvent[]", requirement: "Method", defaultValue: "[]", description: "Returns frozen copies of accepted normalized events with relative timestamps." },
+          { name: "RuntimeRecording.fixture()", type: "ReplayFixtureV1", requirement: "Method", defaultValue: "n/a", description: "Builds a validated frozen fixture from the current recording." },
+          { name: "RuntimeRecording.clear()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Removes recorded events without changing the target runtime or clock." },
+          { name: "ReplayFixtureV1", type: "{ format, version, startAt, events }", requirement: "Type", defaultValue: "n/a", description: "Defines the versioned JSON envelope and ordered recorded events used by replay." },
+          { name: "createReplayFixture(events, options?)", type: "ReplayFixtureV1", requirement: "Function", defaultValue: "startAt: 0", description: "Validates and freezes a versioned local replay fixture." },
+          { name: "replayEvents(runtime, clock, fixture)", type: "void", requirement: "Function", defaultValue: "n/a", description: "Validates the fixture, advances ManualClock, and dispatches each copied event." },
+          { name: "matchesPartial(actual, expected)", type: "boolean", requirement: "Function", defaultValue: "n/a", description: "Compares expected top-level semantic fields with an announcement or diagnostic object." },
+        ],
+      },
+      {
+        id: "vitest",
+        title: "Opt-in Vitest matchers",
+        body: ["Import @generative-a11y/test/vitest only in Vitest setup. The root package entry has no Vitest runtime import."],
+        code: { language: "typescript", value: `import { expect } from "vitest";
+import { installVitestMatchers } from "@generative-a11y/test/vitest";
+
+installVitestMatchers(expect);
+expect(recorder).toHaveAnnounced({
+  sourceType: "response.completed",
+});` },
+        walkthrough: [
+          { label: "Install once", description: "Register matchers in the Vitest setup file used by the test project." },
+          { label: "Assert semantic fields", description: "Partial expectations keep tests focused on the contract under review." },
+        ],
+        api: [
+          { name: "toHaveAnnouncementTranscript(expected)", type: "matcher", requirement: "Vitest", defaultValue: "n/a", description: "Checks ordered announcement output with partial semantic fields." },
+          { name: "toHaveAnnounced(expected)", type: "matcher", requirement: "Vitest", defaultValue: "n/a", description: "Checks that at least one announcement matches the expected fields." },
+          { name: "toHaveDiagnostic(expected)", type: "matcher", requirement: "Vitest", defaultValue: "n/a", description: "Checks that at least one runtime diagnostic matches the expected fields." },
+        ],
+      },
+      {
+        id: "limits",
+        title: "Validation and evidence limits",
+        body: ["Replay rejects unsupported formats, versions, event types, backward times, and response or tool events without required IDs before dispatch. A passing transcript confirms deterministic core output. It does not prove browser delivery or screen-reader speech."],
+      },
     ],
   },
 ];

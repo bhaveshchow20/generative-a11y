@@ -151,3 +151,16 @@ The package exports the normalized `GenerativeA11yEvent` union, announcement and
 diagnostic records, policy types, adapter fidelity metadata, scheduler types,
 and clock types. Events are serializable where practical; callbacks and clock
 handles are intentionally runtime-only.
+
+## Documentation
+
+- [Core API reference](https://generativea11y.com/api/core)
+- [Getting started](https://generativea11y.com/docs/getting-started)
+- [GitHub repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/dom`](https://www.npmjs.com/package/@generative-a11y/dom)
+  delivers announcement intents in the browser.
+- [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
+  provides React context, hooks, and DOM bindings.

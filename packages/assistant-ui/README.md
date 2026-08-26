@@ -41,3 +41,16 @@ Tool labels are intentionally generic (`"A tool"`), and backend tool results and
 errors are never copied into announcements. An approval is resolved only after
 this binding observed that approval requested. Source IDs are counted but never
 spoken.
+
+## Documentation
+
+- [assistant-ui accessibility guide](https://generativea11y.com/docs/integrations/assistant-ui)
+- [assistant-ui API reference](https://generativea11y.com/api/assistant-ui)
+- [GitHub repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  receives the normalized lifecycle events.
+- [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
+  provides browser delivery for React applications.

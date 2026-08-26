@@ -22,6 +22,53 @@ function visibleExplanations() {
 }
 
 describe("documentation registry", () => {
+  it("maps high-intent accessibility problems to one canonical page each", () => {
+    expect(
+      [
+        "/docs/why-generative-a11y",
+        "/docs/screen-readers-and-streaming-ai",
+        "/docs/aria-live-and-generative-ai",
+        "/docs/accessible-ai-agents",
+      ].map((path) => getDocPage(path)?.path),
+    ).toEqual([
+      "/docs/why-generative-a11y",
+      "/docs/screen-readers-and-streaming-ai",
+      "/docs/aria-live-and-generative-ai",
+      "/docs/accessible-ai-agents",
+    ]);
+  });
+
+  it("keeps related documentation links inside the canonical registry", () => {
+    const paths = new Set(DOC_PAGES.map((page) => page.path));
+
+    for (const page of DOC_PAGES) {
+      for (const relatedPath of page.related ?? []) {
+        expect(paths.has(relatedPath), `${page.path} -> ${relatedPath}`).toBe(true);
+      }
+    }
+  });
+
+  it("gives major integration pages direct-arrival setup and support context", () => {
+    for (const path of [
+      "/docs/integrations/ai-sdk",
+      "/docs/integrations/assistant-ui",
+      "/docs/integrations/ag-ui",
+    ]) {
+      const page = getDocPage(path)!;
+      const sectionIds = page.sections.map(({ id }) => id);
+
+      expect(sectionIds, path).toEqual(
+        expect.arrayContaining([
+          "installation",
+          "lifecycle-mapping",
+          "screen-reader-behavior",
+          "troubleshooting",
+        ]),
+      );
+      expect(page.related?.length, path).toBeGreaterThan(1);
+    }
+  });
+
   it("defines every required deep-link route exactly once", () => {
     const paths = DOC_PAGES.map((page) => page.path);
     expect(new Set(paths).size).toBe(paths.length);
@@ -40,6 +87,8 @@ describe("documentation registry", () => {
         "/docs/integrations/ag-ui",
         "/docs/integrations/copilotkit",
         "/docs/integrations/custom",
+        "/docs/devtools",
+        "/docs/testing/replay",
         "/docs/testing",
         "/docs/troubleshooting",
         "/docs/compatibility",
@@ -64,6 +113,8 @@ describe("documentation registry", () => {
         "/api/ai-sdk/use-chat-accessibility",
         "/api/assistant-ui/bind-thread-runtime",
         "/api/ag-ui/bind-agent",
+        "/api/devtools",
+        "/api/test",
       ]),
     );
     expect(paths).not.toEqual(
@@ -93,6 +144,84 @@ describe("documentation registry", () => {
         expect(section.walkthrough?.length, `${path}#${section.id}`).toBeGreaterThan(1);
       }
     }
+  });
+
+  it("documents diagnostics and replay APIs without overstating assistive-technology evidence", () => {
+    for (const path of ["/api/devtools", "/api/test"]) {
+      const page = getDocPage(path)!;
+      expect(page.sections.some((section) => section.api?.length), path).toBe(true);
+      expect(page.sections.some((section) => section.code), path).toBe(true);
+      expect(JSON.stringify(page), path).toMatch(/does not prove|cannot prove/i);
+    }
+  });
+
+  it("documents every public devtools and replay operation added in phase 4", () => {
+    const devtoolsApi = getDocPage("/api/devtools")!.sections.flatMap(
+      ({ api }) => api ?? [],
+    );
+    expect(devtoolsApi).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "refreshSnapshots()" }),
+        expect.objectContaining({ name: "source" }),
+        expect.objectContaining({ name: "document" }),
+        expect.objectContaining({ name: "copyText" }),
+        expect.objectContaining({ name: "host" }),
+        expect.objectContaining({ name: "runtimeSourceId" }),
+      ]),
+    );
+
+    const testApi = getDocPage("/api/test")!.sections.flatMap(
+      ({ api }) => api ?? [],
+    );
+    expect(testApi).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "RuntimeRecording.events()" }),
+        expect.objectContaining({ name: "RuntimeRecording.fixture()" }),
+        expect.objectContaining({ name: "RuntimeRecording.clear()" }),
+        expect.objectContaining({ name: "ReplayFixtureV1" }),
+        expect.objectContaining({ name: "matchesPartial(actual, expected)" }),
+      ]),
+    );
+  });
+
+  it("keeps replay examples self-contained", () => {
+    const guideExample = getDocPage("/docs/testing/replay")?.sections.find(
+      ({ id }) => id === "record-and-replay",
+    )?.code?.value;
+    const apiExample = getDocPage("/api/test")?.sections.find(
+      ({ id }) => id === "record-replay",
+    )?.code?.value;
+
+    for (const example of [guideExample, apiExample]) {
+      expect(example).toMatch(/const clock = new ManualClock/);
+      expect(example).toMatch(/const runtime = createGenerativeA11y/);
+      expect(example).toMatch(/const replayRuntime = createGenerativeA11y/);
+    }
+  });
+
+  it("documents diagnostic observation and browser delivery correlation", () => {
+    const runtimeMethods = getDocPage(
+      "/api/core/create-generative-a11y",
+    )?.sections.find(({ id }) => id === "runtime-methods")?.api;
+    expect(runtimeMethods).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "subscribeDiagnosticEvents(listener)" }),
+        expect.objectContaining({ name: "getDiagnosticSnapshot()" }),
+      ]),
+    );
+
+    const deliveryResult = getDocPage(
+      "/api/dom/create-dom-announcer",
+    )?.sections.find(({ id }) => id === "result")?.api;
+    expect(deliveryResult).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "announcementId" }),
+        expect.objectContaining({ name: "sourceType" }),
+        expect.objectContaining({ name: "at" }),
+        expect.objectContaining({ name: "sourceEventId" }),
+        expect.objectContaining({ name: "responseId / toolId / interactionId" }),
+      ]),
+    );
   });
 
   it("keeps every page complete and searchable", () => {

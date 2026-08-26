@@ -5,6 +5,10 @@ This package records normalized events, replays local fixtures through a
 `ManualClock`, and provides opt-in semantic Vitest matchers. It does not need a
 browser and does not claim that a transcript proves assistive-technology speech.
 
+```sh
+npm install --save-dev @generative-a11y/test
+```
+
 ## Record and replay
 
 ```ts
@@ -51,3 +55,16 @@ The root entry has no Vitest runtime import. The `/vitest` entry is explicit,
 matches semantic partial fields, and prints expected/received transcript data on
 failure. Jest integration is intentionally deferred until it can be tested as a
 supported entry point.
+
+## Documentation
+
+- [Deterministic replay guide](https://generativea11y.com/docs/testing/replay)
+- [API reference](https://generativea11y.com/api/test)
+- [Repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  provides ManualClock, runtime events, recorders, and diagnostics.
+- [`@generative-a11y/devtools`](https://generativea11y.com/api/devtools)
+  captures bounded redacted traces for interactive debugging.

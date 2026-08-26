@@ -322,3 +322,16 @@ recreates, or disposes an active runtime. `"preset"` fields inherit the selected
 core preset; granular values override only text strategy or tool-event flags,
 leaving timing and progress thresholds inherited. The `"completion-only"`
 preference returns that preset without granular policy overrides.
+
+## Documentation
+
+- [DOM API reference](https://generativea11y.com/api/dom)
+- [ARIA live regions for generative AI](https://generativea11y.com/docs/aria-live-and-generative-ai)
+- [GitHub repository](https://github.com/bhaveshchow20/generative-a11y)
+
+## Related packages
+
+- [`@generative-a11y/core`](https://www.npmjs.com/package/@generative-a11y/core)
+  prepares paced announcement intents.
+- [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
+  connects core and DOM delivery to React applications.

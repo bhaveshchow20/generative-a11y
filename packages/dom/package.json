@@ -1,7 +1,7 @@
 {
   "name": "@generative-a11y/dom",
   "version": "0.1.0",
-  "description": "DOM announcement delivery for the generative accessibility runtime",
+  "description": "DOM accessibility delivery for paced screen-reader announcements in streaming AI and agent interfaces.",
   "keywords": [
     "accessibility",
     "aria-live",
@@ -16,7 +16,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "homepage": "https://generativea11y.com/api/dom",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",

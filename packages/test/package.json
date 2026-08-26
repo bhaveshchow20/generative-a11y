@@ -1,7 +1,25 @@
 {
   "name": "@generative-a11y/test",
   "version": "0.0.0",
-  "description": "Deterministic replay and semantic assertions for generative-a11y",
+  "description": "Deterministic accessibility replay and semantic assertions for screen-reader announcements in AI runtimes.",
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "ai",
+    "replay",
+    "screen-reader",
+    "testing",
+    "vitest"
+  ],
+  "homepage": "https://generativea11y.com/api/test",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",
+    "directory": "packages/test"
+  },
+  "bugs": {
+    "url": "https://github.com/bhaveshchow20/generative-a11y/issues"
+  },
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

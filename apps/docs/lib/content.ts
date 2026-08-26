@@ -37,6 +37,7 @@ export interface DocPage {
   readonly title: string;
   readonly description: string;
   readonly keywords: readonly string[];
+  readonly related?: readonly string[];
   readonly sections: readonly DocSection[];
 }
 
@@ -133,10 +134,42 @@ useEffect(() => {
   return () => binding.dispose();
 }, [agent, isReady, runtime, bindingScopeId]);`;
 
+const devtoolsExample = `import { createDevtoolsStore } from "@generative-a11y/devtools";
+import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+
+const store = createDevtoolsStore({ maxEntries: 250 });
+const detach = store.attachRuntime({ id: "support", runtime });
+const overlay = mountDevtoolsOverlay({ store });
+
+// Dispose in reverse ownership order.
+overlay.dispose();
+detach();
+store.dispose();`;
+
+const replayExample = `import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { recordRuntime, replayEvents } from "@generative-a11y/test";
+
+const clock = new ManualClock(0);
+const runtime = createGenerativeA11y({ clock });
+const recording = recordRuntime({ runtime, clock });
+recording.runtime.dispatch({
+  type: "response.started",
+  responseId: "report",
+});
+const fixture = recording.fixture();
+
+const replayClock = new ManualClock(fixture.startAt);
+const replayRuntime = createGenerativeA11y({ clock: replayClock });
+replayEvents(replayRuntime, replayClock, fixture);
+replayClock.runUntilIdle();
+
+runtime.dispose();
+replayRuntime.dispose();`;
+
 const pages: DocPage[] = [
   {
     path: "/docs/getting-started",
-    group: "Start here",
+    group: "Getting started",
     title: "Getting started",
     description:
       "Install the core and DOM packages, connect one runtime, and tell it when responses and tools change.",
@@ -186,15 +219,293 @@ const pages: DocPage[] = [
             ["AI SDK useChat", "@generative-a11y/ai-sdk/react", "Streaming, terminals, tools, approvals, citations"],
             ["assistant-ui", "@generative-a11y/assistant-ui", "Messages, tools, approvals, sources"],
             ["AG-UI / CopilotKit v2", "@generative-a11y/ag-ui", "Protocol text, tools, interrupts"],
+            ["Development diagnostics", "@generative-a11y/devtools", "Redacted runtime and DOM delivery traces"],
+            ["Deterministic tests", "@generative-a11y/test", "Event recording, replay, and semantic assertions"],
           ],
         },
       },
     ],
   },
   {
+    path: "/docs/why-generative-a11y",
+    group: "Concepts",
+    title: "Why generative AI needs an accessibility runtime",
+    description:
+      "Learn why streaming responses, tool calls, approvals, retries, and failures need more than ordinary chat accessibility patterns.",
+    keywords: [
+      "AI accessibility",
+      "generative AI accessibility",
+      "accessible AI interfaces",
+      "AI accessibility library",
+    ],
+    related: [
+      "/docs/architecture",
+      "/docs/screen-readers-and-streaming-ai",
+      "/docs/integrations",
+    ],
+    sections: [
+      {
+        id: "the-gap",
+        title: "AI interfaces change after the user acts",
+        body: [
+          "A conventional form usually has a short, predictable transition: submit, validate, and show a result. An AI interface can stream a response for many seconds, start tools, pause for approval, reconnect, retry, and finish long after focus has moved elsewhere.",
+          "Semantic HTML, keyboard access, visible status, and sensible focus remain required. They do not by themselves decide which asynchronous changes deserve an announcement, how repeated changes should be grouped, or when lower-priority updates should wait.",
+        ],
+      },
+      {
+        id: "failure-modes",
+        title: "Naive announcements create new barriers",
+        body: [
+          "Putting a changing transcript in an ARIA live region can announce partial tokens, repeat the growing response, interrupt more important information, or leave stale work queued after a retry. Moving focus for routine streaming and status changes is more disruptive because it changes the user's reading position.",
+        ],
+        bullets: [
+          "Partial words and token-sized updates are difficult to understand.",
+          "Re-announcing the full accumulated response repeats content.",
+          "Tool progress can overwhelm the response the user asked for.",
+          "Approval and failure states can arrive behind low-priority updates.",
+          "Retries can make announcements from an obsolete response misleading.",
+        ],
+      },
+      {
+        id: "runtime-role",
+        title: "Put policy between lifecycle state and browser delivery",
+        body: [
+          "generative-a11y accepts confirmed lifecycle events from the application or a thin framework adapter. Core segments response text, prioritizes important states, removes duplicates, coalesces updates, bounds queued work, and produces announcement intents. The DOM package then performs browser delivery without altering the visible interface.",
+          "This boundary keeps framework state, accessibility policy, and DOM behavior independently testable. It also makes fidelity explicit: when an adapter cannot observe a retry or connection event through a documented public API, it reports that limitation instead of guessing.",
+        ],
+        note: "Deterministic runtime transcripts and DOM tests show what the library prepared or added to the page. They do not prove what a particular screen reader spoke.",
+      },
+      {
+        id: "start",
+        title: "Choose the smallest supported integration",
+        body: [
+          "Start with the framework-neutral core and DOM packages when your application already owns lifecycle state. Use the React layer for provider and element bindings. Add the AI SDK, assistant-ui, or AG-UI adapter only when the application uses that framework's documented public lifecycle surface.",
+        ],
+        table: {
+          headers: ["Need", "Read next"],
+          rows: [
+            ["Install a custom integration", "Getting started"],
+            ["Understand streaming announcements", "Screen readers and streaming AI"],
+            ["Choose a framework adapter", "Choose an integration"],
+            ["Test browser and assistive-technology behavior", "Testing"],
+          ],
+        },
+      },
+    ],
+  },
+  {
+    path: "/docs/screen-readers-and-streaming-ai",
+    group: "Concepts",
+    title: "Accessible streaming AI for screen readers",
+    description:
+      "Make streaming AI responses understandable to screen-reader users by announcing meaningful text segments instead of tokens or repeated transcripts.",
+    keywords: [
+      "accessible streaming AI",
+      "screen reader streaming text",
+      "streaming chat accessibility",
+      "screen reader AI responses",
+    ],
+    related: [
+      "/docs/aria-live-and-generative-ai",
+      "/docs/integrations/ai-sdk",
+      "/docs/lifecycle/streaming",
+    ],
+    sections: [
+      {
+        id: "problem",
+        title: "A visual stream and an audible stream need different pacing",
+        body: [
+          "A sighted reader can ignore the cursor and scan completed text at their own speed. A screen-reader user may receive every live-region mutation in sequence. Token-by-token changes can split words, repeat phrases, and keep the announcement channel busy after the useful information has arrived.",
+          "The visible response should still update normally. The accessible announcement stream is a separate representation of the same confirmed lifecycle, optimized for useful listening rather than visual immediacy.",
+        ],
+      },
+      {
+        id: "naive-example",
+        title: "Avoid announcing the growing transcript",
+        body: [
+          "This pattern makes the live region contain the entire accumulated response after every token. Depending on the browser and assistive technology, users may hear fragments, repeated content, or inconsistent results.",
+        ],
+        code: {
+          language: "tsx",
+          value: `function StreamingMessage({ text }: { text: string }) {
+  return <div aria-live="polite">{text}</div>;
+}`,
+        },
+        walkthrough: [
+          {
+            label: "Every render mutates the live region",
+            description: "The full response changes whenever another token arrives.",
+          },
+          {
+            label: "The browser receives no lifecycle boundary",
+            description: "The region cannot tell whether text is partial, complete, retried, or obsolete.",
+          },
+        ],
+      },
+      {
+        id: "runtime-example",
+        title: "Send append-only deltas and an explicit terminal event",
+        body: [
+          "Dispatch response.started once, send only newly arrived text in response.text.delta, and finish with the terminal event the application actually observed. Core buffers partial text and emits meaningful segments according to the selected policy.",
+        ],
+        code: {
+          language: "typescript",
+          value: `runtime.dispatch({ type: "response.started", responseId: "r1" });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "r1",
+  delta: "The migration completed successfully. ",
+});
+runtime.dispatch({ type: "response.completed", responseId: "r1" });`,
+        },
+        walkthrough: [
+          {
+            label: "Start a response instance",
+            description: "The runtime can separate this stream from earlier or retried work.",
+          },
+          {
+            label: "Send new text only",
+            description: "Append-only deltas prevent the application from re-submitting the accumulated transcript.",
+          },
+          {
+            label: "Close the lifecycle explicitly",
+            description: "Completion flushes useful buffered text; failure or interruption discards text that should no longer be announced.",
+          },
+        ],
+      },
+      {
+        id: "expected-behavior",
+        title: "Expected behavior and test boundaries",
+        body: [
+          "With the balanced policy, complete phrases can be announced without waiting for every token or repeating earlier text. Higher-priority failures and approval requests can take precedence over routine progress. Ordinary streaming never moves focus.",
+          "Use deterministic tests to verify events, announcement intents, queue bounds, and DOM delivery. Then test the integrated application with representative browser and screen-reader combinations because spoken output is controlled by software outside the library.",
+        ],
+      },
+    ],
+  },
+  {
+    path: "/docs/aria-live-and-generative-ai",
+    group: "Concepts",
+    title: "ARIA live regions for generative AI",
+    description:
+      "Understand what ARIA live regions provide, why streaming tokens are a poor announcement unit, and how generative-a11y separates policy from delivery.",
+    keywords: [
+      "ARIA live region AI",
+      "aria-live AI chat",
+      "live region streaming text",
+      "accessible chatbot screen reader",
+    ],
+    related: [
+      "/docs/screen-readers-and-streaming-ai",
+      "/api/dom/create-dom-announcer",
+      "/docs/testing",
+    ],
+    sections: [
+      {
+        id: "what-live-regions-do",
+        title: "Live regions expose changes without moving focus",
+        body: [
+          "An ARIA live region lets a browser expose text changes to assistive technology while keyboard focus stays where the user placed it. Polite updates generally wait for a suitable pause; assertive updates are reserved for information that warrants interruption.",
+          "A live region is a delivery mechanism, not an announcement policy. It does not know whether a token is meaningful, whether a repeated update is obsolete, or whether a tool failure should outrank routine progress.",
+        ],
+      },
+      {
+        id: "streaming-risk",
+        title: "Do not use each token as a live-region update",
+        body: [
+          "Generative output changes far more frequently than ordinary status text. Sending every token can create partial-word announcements and a backlog of low-value mutations. Replacing the live region with the entire accumulated response can instead repeat content or produce inconsistent results across browser and screen-reader combinations.",
+        ],
+        bullets: [
+          "Keep the visible transcript semantic and readable independently of announcements.",
+          "Choose meaningful phrases or sentences as announcement units.",
+          "Use assertive delivery sparingly for confirmed urgent states.",
+          "Cancel queued work when a response fails, stops, retries, or the runtime is disposed.",
+        ],
+      },
+      {
+        id: "library-approach",
+        title: "generative-a11y separates scheduling from live-region delivery",
+        body: [
+          "The core package turns lifecycle events into polite or assertive announcement intents after segmentation, prioritization, deduplication, and scheduling. The DOM package owns stable polite and assertive regions, replaces their text for live-region delivery, and can use the emerging ariaNotify API when the browser exposes it in the configured mode.",
+          "The application still owns its visible messages, controls, headings, forms, error relationships, keyboard interactions, and focus behavior. The library's live regions are not a substitute for those fundamentals.",
+        ],
+        note: "Browser delivery confirms a DOM action, not audible output. Validate the complete experience with real assistive technology.",
+      },
+      {
+        id: "when-to-use",
+        title: "Use ordinary semantics for stable content",
+        body: [
+          "Do not announce information merely because it rendered. Stable assistant messages should remain ordinary document content that users can navigate. Use lifecycle announcements for changes that would otherwise be easy to miss: a response becoming available, a tool changing state, approval becoming required, a connection being lost, or work ending in failure.",
+        ],
+      },
+    ],
+  },
+  {
+    path: "/docs/accessible-ai-agents",
+    group: "Concepts",
+    title: "Accessible AI agents and tool execution",
+    description:
+      "Design screen-reader announcements for AI agent progress, tool calls, approvals, interruptions, failures, retries, and results.",
+    keywords: [
+      "AI agent accessibility",
+      "accessible AI agents",
+      "tool call accessibility",
+      "AI approval accessibility",
+      "agent UI accessibility",
+    ],
+    related: [
+      "/docs/lifecycle/tools",
+      "/docs/lifecycle/interactions",
+      "/docs/integrations",
+    ],
+    sections: [
+      {
+        id: "agent-lifecycle",
+        title: "Agent interfaces have more states than a chat transcript",
+        body: [
+          "An agent can start a long-running tool, report progress, request a decision, lose its connection, retry, and finish with a result. Visual indicators may make these transitions obvious, while a screen-reader user remains on the composer, transcript, or another part of the page.",
+          "Accessibility depends on communicating consequential state changes without narrating every internal operation. Announcements should describe the user-facing lifecycle, not expose raw tool payloads, backend errors, or chain-of-thought-like implementation detail.",
+        ],
+      },
+      {
+        id: "event-model",
+        title: "Map confirmed agent state to normalized events",
+        body: [
+          "Dispatch tool.started when a named user-relevant operation begins, tool.progress only for meaningful milestones, and tool.completed or tool.failed at the confirmed terminal state. Use interaction.requested and interaction.resolved for approval or other user decisions. Report connection and response retry events only when the application or framework provides reliable evidence.",
+        ],
+        table: {
+          headers: ["Agent state", "Normalized event", "Announcement purpose"],
+          rows: [
+            ["Tool begins", "tool.started", "Set context for a user-relevant operation"],
+            ["Meaningful milestone", "tool.progress", "Report progress without flooding"],
+            ["Approval needed", "interaction.requested", "Make a required decision discoverable"],
+            ["Tool fails", "tool.failed", "Communicate the safe user-facing failure label"],
+            ["Response retries", "response.retrying", "Cancel stale response work and identify the retry"],
+            ["Connection changes", "connection.lost / restored", "Report confirmed availability changes"],
+          ],
+        },
+      },
+      {
+        id: "priority-and-focus",
+        title: "Prioritize decisions and failures without stealing focus",
+        body: [
+          "Approval requests and failures can use higher announcement priority than routine progress, but ordinary agent lifecycle updates do not move focus. If an approval control needs focus, the host application must make that separate interaction decision using its own accessible dialog, disclosure, or inline workflow.",
+          "Bounded queues and terminal-event cleanup prevent outdated progress from being delivered after a retry, failure, interruption, or disposal.",
+        ],
+      },
+      {
+        id: "framework-fidelity",
+        title: "Choose an adapter by observable lifecycle fidelity",
+        body: [
+          "The AI SDK, assistant-ui, and AG-UI adapters translate documented public framework state into the normalized event model. Their pages list what they can observe. When the host application knows about additional connection, retry, or approval states, it can dispatch those core events directly instead of asking an adapter to infer them from rendered UI.",
+        ],
+      },
+    ],
+  },
+  {
     path: "/docs/architecture",
-    group: "Start here",
-    title: "Architecture",
+    group: "Concepts",
+    title: "Accessibility model and architecture",
     description:
       "See how an event from your app becomes a clear, well-timed screen-reader update.",
     keywords: ["architecture", "policy", "delivery", "assistive technology"],
@@ -225,7 +536,7 @@ const pages: DocPage[] = [
   },
   {
     path: "/docs/integrations",
-    group: "Start here",
+    group: "Getting started",
     title: "Choose an integration",
     description:
       "Choose the smallest package that connects generative-a11y to your app.",
@@ -663,11 +974,27 @@ binding.dispose();` },
   {
     path: "/docs/integrations/ai-sdk",
     group: "Integrations",
-    title: "AI SDK",
+    title: "Vercel AI SDK accessibility",
     description:
-      "Connect AI SDK 7 and @ai-sdk/react 4 using their public state, finish callback, and error callback.",
+      "Add paced screen-reader updates to AI SDK 7 and @ai-sdk/react 4 through documented state, finish callbacks, and error callbacks.",
     keywords: ["AI SDK", "useChat", "createObserver", "composeChatCallbacks", "approval", "citation"],
+    related: [
+      "/docs/screen-readers-and-streaming-ai",
+      "/docs/getting-started",
+      "/api/ai-sdk/use-chat-accessibility",
+    ],
     sections: [
+      {
+        id: "installation",
+        title: "Install the AI SDK adapter",
+        body: [
+          "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/ai-sdk beside the AI SDK packages already used by your application. The adapter translates public chat state and callbacks; it does not replace useChat or render a chat interface.",
+        ],
+        bullets: [
+          "Use the React subpath when your application connects through @ai-sdk/react.",
+          "Create one accessibility runtime for the chat surface and dispose it when that surface unmounts.",
+        ],
+      },
       {
         id: "react",
         title: "React integration",
@@ -693,6 +1020,25 @@ binding.dispose();` },
         ],
       },
       {
+        id: "lifecycle-mapping",
+        title: "Lifecycle mapping",
+        body: [
+          "The observer maps documented message parts and chat status to response, text, tool, approval, and citation events. Composed callbacks confirm completion and failure. Your application must report retry actions because public AI SDK state does not identify every retry request.",
+        ],
+        bullets: [
+          "messages and status identify active response text and known tool states",
+          "onFinish confirms completion or stop details",
+          "onError confirms failure without copying raw error text",
+        ],
+      },
+      {
+        id: "screen-reader-behavior",
+        title: "Expected screen-reader behavior",
+        body: [
+          "Core groups streaming text into paced announcement intents and gives approval, failure, and completion updates suitable priority. The DOM package writes those intents to live regions without moving focus during routine status changes. Browser transcripts confirm DOM delivery; test VoiceOver, NVDA, or another target screen reader before making support claims.",
+        ],
+      },
+      {
         id: "fidelity",
         title: "What the adapter can report",
         body: [
@@ -704,16 +1050,40 @@ binding.dispose();` },
           "Tool failure, approvals, and citations use stable public part IDs",
         ],
       },
+      {
+        id: "troubleshooting",
+        title: "Troubleshooting",
+        body: [
+          "Missing completion updates often mean useChat captured callbacks before the accessibility integration created them. Repeated output can indicate an unstable scopeId or more than one observer attached to the same chat. Inspect runtime diagnostics, then compare the observed public state with the lifecycle mapping above.",
+        ],
+        bullets: [
+          "Create the integration before constructing useChat.",
+          "Keep scopeId stable for the lifetime of one chat instance.",
+          "Use the lifecycle lab to inspect deterministic browser updates before testing assistive technology.",
+        ],
+      },
     ],
   },
   {
     path: "/docs/integrations/assistant-ui",
     group: "Integrations",
-    title: "assistant-ui",
+    title: "assistant-ui accessibility",
     description:
-      "Connect an assistant-ui thread without replaying messages that were already in its history.",
+      "Add paced screen-reader updates to an assistant-ui thread without replaying messages already present in its history.",
     keywords: ["assistant-ui", "bindThreadRuntime", "ThreadRuntime", "approval", "source"],
+    related: [
+      "/docs/accessible-ai-agents",
+      "/docs/getting-started",
+      "/api/assistant-ui/bind-thread-runtime",
+    ],
     sections: [
+      {
+        id: "installation",
+        title: "Install the assistant-ui adapter",
+        body: [
+          "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/assistant-ui beside assistant-ui. The adapter subscribes to a thread runtime you already own and leaves rendering, actions, and focus behavior with the host application.",
+        ],
+      },
       {
         id: "bind",
         title: "Connect an existing thread runtime",
@@ -736,10 +1106,31 @@ binding.dispose();` },
         ],
       },
       {
+        id: "lifecycle-mapping",
+        title: "Lifecycle mapping",
+        body: [
+          "Documented thread state supplies response text, final states, tool progress, approvals, and sources. The binding records existing history before it starts dispatching, which prevents old messages from becoming new announcements after hydration.",
+        ],
+      },
+      {
+        id: "screen-reader-behavior",
+        title: "Expected screen-reader behavior",
+        body: [
+          "New response text becomes paced announcement intents. Tool and approval changes receive priority based on the shared policy, while routine status changes leave focus in place. Browser transcripts show what the DOM package wrote; confirm spoken output with the screen readers and browsers your application supports.",
+        ],
+      },
+      {
         id: "limits",
         title: "What public state cannot prove",
         body: [
           "Your adapter can report streaming, known final states, tools, approvals, and sources. assistant-ui does not provide general retry or connection events, so generative-a11y does not guess.",
+        ],
+      },
+      {
+        id: "troubleshooting",
+        title: "Troubleshooting",
+        body: [
+          "Repeated historical messages can indicate that a new binding received a different scopeId or started before thread hydration settled. Missing updates can indicate that the supplied thread does not expose the expected public state. Check one active subscription, stable identity, and the documented assistant-ui version before changing announcement policy.",
         ],
       },
     ],
@@ -747,11 +1138,23 @@ binding.dispose();` },
   {
     path: "/docs/integrations/ag-ui",
     group: "Integrations",
-    title: "AG-UI",
+    title: "AG-UI accessibility",
     description:
-      "Connect an AG-UI agent through documented callbacks. Your adapter keeps response, tool, and interaction IDs connected without reading private agent state.",
+      "Add paced screen-reader updates to an AG-UI agent through documented callbacks for responses, tools, and user interactions.",
     keywords: ["AG-UI", "bindAgent", "AgentSubscriber", "interrupt", "protocol"],
+    related: [
+      "/docs/accessible-ai-agents",
+      "/docs/getting-started",
+      "/api/ag-ui/bind-agent",
+    ],
     sections: [
+      {
+        id: "installation",
+        title: "Install the AG-UI adapter",
+        body: [
+          "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/ag-ui beside the AG-UI client used by your application. Bind the existing agent after it is ready, and keep ownership of the agent and accessibility runtime in your application.",
+        ],
+      },
       {
         id: "bind-agent",
         title: "Subscribe to the public agent API",
@@ -774,10 +1177,31 @@ binding.dispose();` },
         ],
       },
       {
+        id: "lifecycle-mapping",
+        title: "Lifecycle mapping",
+        body: [
+          "Text callbacks map to response start, content, and completion. Tool callbacks map to confirmed progress and results. Interrupt and resume callbacks map to requests for user input and their resolution. Stable protocol IDs keep each update attached to the correct response or tool.",
+        ],
+      },
+      {
+        id: "screen-reader-behavior",
+        title: "Expected screen-reader behavior",
+        body: [
+          "The runtime paces response text, prioritizes approval and failure states, and suppresses duplicate progress updates. The DOM delivery layer updates live regions without moving focus for normal agent activity. Treat its transcript as browser evidence and run assistive-technology tests for spoken behavior.",
+        ],
+      },
+      {
         id: "protocol-evidence",
         title: "What the protocol can report",
         body: [
           "Text start, content, and end callbacks report a response. Tool callbacks report work and results. Interrupt and resume callbacks report requests for user input. Your adapter does not guess about replay, connection recovery, or retries when AG-UI stays silent.",
+        ],
+      },
+      {
+        id: "troubleshooting",
+        title: "Troubleshooting",
+        body: [
+          "Missing interaction updates usually trace to an agent that was bound before readiness or callbacks that omit stable IDs. Duplicate updates can come from multiple subscribers. Confirm one binding per agent, a stable scopeId, and documented callbacks before adding custom event inference.",
         ],
       },
     ],
@@ -1047,8 +1471,132 @@ binding.dispose();` },
     ],
   },
   {
+    path: "/docs/devtools",
+    group: "Tools",
+    title: "Debug AI accessibility with the trace explorer",
+    description:
+      "Inspect bounded, redacted runtime decisions and browser delivery evidence with the optional generative-a11y devtools package.",
+    keywords: ["devtools", "accessibility trace", "diagnostics", "debugging", "redaction"],
+    related: [
+      "/api/devtools",
+      "/api/core/diagnostics",
+      "/docs/troubleshooting",
+    ],
+    sections: [
+      {
+        id: "install",
+        title: "Install development-only diagnostics",
+        body: [
+          "Install @generative-a11y/devtools in development environments. The package observes public core diagnostics and does not patch dispatch, change announcement policy, or depend on an AI framework.",
+        ],
+        code: { language: "shell", value: "npm install --save-dev @generative-a11y/devtools" },
+        walkthrough: [
+          { label: "Keep it development-only", description: "The package helps inspect runtime behavior and should not become part of the production accessibility path." },
+          { label: "Attach an existing runtime", description: "The store borrows public diagnostic methods from a runtime your app owns." },
+        ],
+      },
+      {
+        id: "trace-explorer",
+        title: "Open the Accessibility Trace Explorer",
+        body: [
+          "The optional overlay mounts only when your code calls mountDevtoolsOverlay. It starts collapsed inside an open Shadow DOM and provides search, filters, causal evidence, capture controls, and explicit trace copy.",
+        ],
+        code: { language: "typescript", value: devtoolsExample },
+        walkthrough: [
+          { label: "Create a bounded store", description: "maxEntries limits retained diagnostic records and reports how many older records were dropped." },
+          { label: "Attach one runtime identity", description: "A stable runtime ID connects observed events, decisions, snapshots, and optional DOM delivery results." },
+          { label: "Mount the overlay", description: "The browser helper creates the launcher and trace workspace only after this explicit call." },
+          { label: "Dispose owned resources", description: "Close the overlay, detach the borrowed runtime, then dispose the store." },
+        ],
+      },
+      {
+        id: "captured-evidence",
+        title: "Captured evidence and redaction",
+        body: [
+          "The store retains event categories, outcomes, timing, stable IDs, queue and entity snapshots, declared adapter evidence, and browser delivery metadata. It excludes assistant text, labels, errors, tool data, stacks, DOM content, deduplication keys, and timer handles.",
+          "Pass adapter metadata through source only when a documented integration can support it. Devtools does not detect a framework or invent events that the framework did not report.",
+        ],
+      },
+      {
+        id: "delivery-correlation",
+        title: "Correlate runtime decisions with DOM delivery",
+        body: [
+          "Send DOMDeliveryResult values from createDOMAnnouncer onDiagnostic to store.recordDelivery. Safe announcement and entity IDs connect the browser action to the runtime decision that requested it.",
+        ],
+        note: "A trace can confirm a runtime decision and a browser API call or live-region mutation. It cannot prove that assistive technology spoke the announcement.",
+      },
+      {
+        id: "keyboard-and-focus",
+        title: "Overlay keyboard and focus behavior",
+        body: [
+          "Opening the workspace moves focus into it. Escape or the close control collapses the workspace and restores the element focused before opening. Streaming records do not move focus, the overlay does not trap focus, and it creates no live region or global keyboard shortcut.",
+        ],
+      },
+    ],
+  },
+  {
+    path: "/docs/testing/replay",
+    group: "Accessibility and testing",
+    title: "Deterministic replay testing",
+    description:
+      "Record normalized lifecycle events, replay them through a ManualClock, and assert announcement or diagnostic transcripts with optional Vitest matchers.",
+    keywords: ["deterministic replay", "Vitest", "ManualClock", "fixtures", "accessibility testing"],
+    related: [
+      "/api/test",
+      "/api/core/testing",
+      "/docs/testing",
+    ],
+    sections: [
+      {
+        id: "install",
+        title: "Install the test helpers",
+        body: [
+          "Install @generative-a11y/test beside core in the test workspace. The package needs no browser and its root entry does not import Vitest.",
+        ],
+        code: { language: "shell", value: "npm install --save-dev @generative-a11y/test" },
+        walkthrough: [
+          { label: "Keep fixtures local", description: "Replay files contain normalized application events and should follow the repository rules for test data." },
+          { label: "Add Vitest only when used", description: "Import the optional matcher entry from @generative-a11y/test/vitest." },
+        ],
+      },
+      {
+        id: "record-and-replay",
+        title: "Record and replay normalized events",
+        body: [
+          "recordRuntime captures only events sent through the dispatch target it returns. Fixtures use a versioned JSON envelope, relative timestamps, and array order for events with the same time.",
+        ],
+        code: { language: "typescript", value: replayExample },
+        walkthrough: [
+          { label: "Wrap the dispatch target", description: "Send the same normalized events used by the application through recording.runtime." },
+          { label: "Create a fixture", description: "fixture returns a frozen V1 envelope with non-negative relative times." },
+          { label: "Replay with controlled time", description: "replayEvents advances ManualClock to each event and dispatches it in recorded order." },
+          { label: "Settle only when intended", description: "Call runUntilIdle when the test needs final delayed output rather than intermediate state." },
+        ],
+      },
+      {
+        id: "vitest-matchers",
+        title: "Use semantic Vitest matchers",
+        body: [
+          "installVitestMatchers adds transcript, announcement, and diagnostic assertions. Expected objects use semantic partial fields, which keeps tests focused on the behavior under review.",
+        ],
+        bullets: [
+          "toHaveAnnouncementTranscript checks ordered output",
+          "toHaveAnnounced checks that one matching intent exists",
+          "toHaveDiagnostic checks a matching runtime decision",
+        ],
+      },
+      {
+        id: "evidence-limit",
+        title: "Keep the evidence boundary clear",
+        body: [
+          "Replay proves that normalized events produce repeatable runtime output under a controlled clock. It does not prove browser delivery or screen-reader speech. Keep browser fixtures and hands-on assistive-technology tests as separate release evidence.",
+        ],
+      },
+    ],
+  },
+  {
     path: "/docs/testing",
-    group: "Development",
+    group: "Accessibility and testing",
     title: "Testing integrations",
     description:
       "Test patterns for adapters, runtime behavior, browser delivery, and hands-on screen-reader checks.",
@@ -1072,7 +1620,7 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
   },
   {
     path: "/docs/troubleshooting",
-    group: "Development",
+    group: "Accessibility and testing",
     title: "Troubleshooting",
     description:
       "Fix missing, repeated, late, delayed, or noisy announcements by checking each step from the framework event to the browser update.",
@@ -1149,6 +1697,19 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
           ],
         },
       },
+      {
+        id: "trace-explorer",
+        title: "Inspect a redacted trace during development",
+        body: [
+          "Use @generative-a11y/devtools when a single diagnostic is not enough to explain the event sequence. Its bounded store connects source events, runtime decisions, snapshots, and optional DOM delivery results without retaining response text, labels, tool data, or page content.",
+        ],
+        bullets: [
+          "Attach the store to an existing runtime and give that runtime a stable development ID.",
+          "Forward DOMDeliveryResult values to recordDelivery when you need browser correlation.",
+          "Pause or clear capture without changing runtime scheduling or browser delivery.",
+          "Treat the trace as debugging evidence, not proof of screen-reader speech.",
+        ],
+      },
     ],
   },
   {
@@ -1192,6 +1753,22 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
             ["AI SDK", "ai >=7.0.0 <7.1.0 / @ai-sdk/react >=4.0.0 <4.1.0", "7.0.66 / 4.0.69"],
             ["assistant-ui", "@assistant-ui/core >=0.3.13 <0.4.0", "0.3.13"],
             ["AG-UI", "@ag-ui/client >=0.0.57 <0.0.59", "0.0.58"],
+          ],
+        },
+      },
+      {
+        id: "development-tools",
+        title: "Development package compatibility",
+        body: [
+          "The headless devtools store and test recorder work with the public core contracts. The optional browser overlay has React peers, and the optional matcher entry has a Vitest peer.",
+        ],
+        table: {
+          headers: ["Package entry", "Peer range", "Use"],
+          rows: [
+            ["@generative-a11y/devtools", "Core workspace dependency", "Headless bounded diagnostic store"],
+            ["@generative-a11y/devtools/overlay", "React and React DOM ^19.0.0", "Browser trace explorer"],
+            ["@generative-a11y/test", "Core workspace dependency", "Record and replay normalized events"],
+            ["@generative-a11y/test/vitest", "Vitest ^4.1.10", "Optional semantic matchers"],
           ],
         },
       },
@@ -1332,6 +1909,8 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
             ["ai-sdk", "useChat lifecycle translation", "Public state and callbacks only"],
             ["assistant-ui", "Thread runtime translation", "getState and subscribe only"],
             ["ag-ui", "Protocol lifecycle translation", "Documented subscriber callbacks only"],
+            ["devtools", "Bounded redacted diagnostics and a trace explorer", "No application content or runtime control"],
+            ["test", "Deterministic event replay and semantic assertions", "No browser or speech claims"],
           ],
         },
       },

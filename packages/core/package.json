@@ -1,7 +1,7 @@
 {
   "name": "@generative-a11y/core",
   "version": "0.1.0",
-  "description": "Framework-independent accessibility runtime for streaming AI and agent interfaces",
+  "description": "Framework-independent accessibility runtime that turns streaming AI and agent lifecycle events into paced screen-reader announcements.",
   "keywords": [
     "accessibility",
     "ag-ui",
@@ -20,7 +20,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "homepage": "https://github.com/bhaveshchow20/generative-a11y#readme",
+  "homepage": "https://generativea11y.com/api/core",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bhaveshchow20/generative-a11y.git",

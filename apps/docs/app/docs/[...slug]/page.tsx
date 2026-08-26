@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { DocPageView } from "../../../components/doc-page";
 import { DOC_PAGES, getDocPage } from "../../../lib/content";
+import { createDocMetadata } from "../../../lib/seo";
 
 const legacyReferenceRoutes: Readonly<Record<string, string>> = {
   "/docs/packages/core": "/api/core",
@@ -33,11 +34,11 @@ export async function generateMetadata({
   const destination = legacyReferenceRoutes[path];
   if (destination) {
     const page = getDocPage(destination);
-    return page ? { title: page.title, description: page.description } : {};
+    return page ? createDocMetadata(page) : {};
   }
   const page = getDocPage(path);
   if (!page) return {};
-  return { title: page.title, description: page.description };
+  return createDocMetadata(page);
 }
 
 export default async function DocumentationPage({
