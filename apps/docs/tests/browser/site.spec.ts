@@ -272,6 +272,8 @@ test("subtle motion is present and respects reduced-motion preferences", async (
   page,
 }) => {
   await page.goto("/");
+  const demo = page.getByRole("region", { name: "Interactive runtime trace" });
+  await expect(demo).toHaveAttribute("data-hydrated", "true");
   const orbit = page.locator(".motion-orbit");
   await expect(orbit).toBeVisible();
   expect(
@@ -295,6 +297,7 @@ test("homepage runtime trace waits for Play and exposes pause and replay control
 }) => {
   await page.goto("/");
   const demo = page.getByRole("region", { name: "Interactive runtime trace" });
+  await expect(demo).toHaveAttribute("data-hydrated", "true");
   await expect(demo.getByText("Ready", { exact: true })).toBeVisible();
   await expect(demo.getByText("response.started", { exact: true })).toHaveCount(
     0,
