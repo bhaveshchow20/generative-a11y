@@ -42,6 +42,14 @@ describe("isolated packed consumer scenarios", () => {
         internalPackages: [],
       }),
       expect.objectContaining({
+        id: "core-testing",
+        packageName: "@generative-a11y/core",
+        specifier: "@generative-a11y/core/testing",
+        expectedExport: "recordRuntime",
+        fixtures: [],
+        internalPackages: [],
+      }),
+      expect.objectContaining({
         id: "dom",
         specifier: "@generative-a11y/dom",
         fixtures: [],
@@ -94,13 +102,6 @@ describe("isolated packed consumer scenarios", () => {
         id: "ag-ui",
         specifier: "@generative-a11y/ag-ui",
         fixtures: ["@ag-ui/client"],
-        internalPackages: ["@generative-a11y/core"],
-      }),
-      expect.objectContaining({
-        id: "test",
-        specifier: "@generative-a11y/test",
-        expectedExport: "recordRuntime",
-        fixtures: [],
         internalPackages: ["@generative-a11y/core"],
       }),
     ]);

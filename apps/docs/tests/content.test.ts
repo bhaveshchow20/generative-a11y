@@ -114,7 +114,7 @@ describe("documentation registry", () => {
         "/api/assistant-ui/bind-thread-runtime",
         "/api/ag-ui/bind-agent",
         "/api/devtools",
-        "/api/test",
+        "/api/core/testing",
       ]),
     );
     expect(paths).not.toEqual(
@@ -147,7 +147,7 @@ describe("documentation registry", () => {
   });
 
   it("documents diagnostics and replay APIs without overstating assistive-technology evidence", () => {
-    for (const path of ["/api/devtools", "/api/test"]) {
+    for (const path of ["/api/devtools", "/api/core/testing"]) {
       const page = getDocPage(path)!;
       expect(page.sections.some((section) => section.api?.length), path).toBe(true);
       expect(page.sections.some((section) => section.code), path).toBe(true);
@@ -170,7 +170,7 @@ describe("documentation registry", () => {
       ]),
     );
 
-    const testApi = getDocPage("/api/test")!.sections.flatMap(
+    const testApi = getDocPage("/api/core/testing")!.sections.flatMap(
       ({ api }) => api ?? [],
     );
     expect(testApi).toEqual(
@@ -186,13 +186,13 @@ describe("documentation registry", () => {
 
   it("documents the ManualClock method used by replay examples", () => {
     const manualClockApi = getDocPage("/api/core/testing")!.sections.find(
-      ({ id }) => id === "manual-clock",
+      ({ id }) => id === "recorder",
     )?.api;
 
     expect(manualClockApi).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: "runUntilIdle(maxTasks = 10_000)",
+          name: "ManualClock.runUntilIdle(maxTasks)",
           type: "void",
         }),
       ]),
@@ -203,7 +203,7 @@ describe("documentation registry", () => {
     const guideExample = getDocPage("/docs/testing/replay")?.sections.find(
       ({ id }) => id === "record-and-replay",
     )?.code?.value;
-    const apiExample = getDocPage("/api/test")?.sections.find(
+    const apiExample = getDocPage("/api/core/testing")?.sections.find(
       ({ id }) => id === "record-replay",
     )?.code?.value;
 

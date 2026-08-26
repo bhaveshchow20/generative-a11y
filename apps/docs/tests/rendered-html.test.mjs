@@ -113,7 +113,7 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
     ["/api/assistant-ui/bind-thread-runtime", /bindThreadRuntime/i],
     ["/api/ag-ui/bind-agent", /bindAgent/i],
     ["/api/devtools", /createDevtoolsStore/i],
-    ["/api/test", /replayEvents/i],
+    ["/api/core/testing", /replayEvents/i],
   ]) {
     const response = await render(pathname);
     assert.equal(response.status, 200, pathname);

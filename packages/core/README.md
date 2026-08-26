@@ -138,6 +138,54 @@ safe lifecycle and queue timing metadata; core retains no diagnostic history.
 Capture tools should bound their own history and redact conversation content by
 default.
 
+### Record and replay
+
+The optional `@generative-a11y/core/testing` entry records accepted normalized
+events, creates versioned replay fixtures, replays them with a `ManualClock`,
+and installs semantic Vitest matchers. It is intended for test code and does not
+add anything to the main core entry.
+
+```ts
+import { expect } from "vitest";
+import { createAnnouncementRecorder } from "@generative-a11y/core";
+import {
+  installVitestMatchers,
+  recordRuntime,
+  replayEvents,
+} from "@generative-a11y/core/testing";
+
+const accessibilityExpect = installVitestMatchers(expect);
+
+const recorder = createAnnouncementRecorder();
+const recording = recordRuntime({
+  runtime: recorder.runtime,
+  clock: recorder.clock,
+});
+
+recording.runtime.dispatch({
+  type: "response.started",
+  responseId: "r1",
+});
+recording.runtime.dispatch({
+  type: "response.interrupted",
+  responseId: "r1",
+});
+
+const fixture = recording.fixture();
+const replay = createAnnouncementRecorder({ startAt: fixture.startAt });
+replayEvents(replay.runtime, replay.clock, fixture);
+replay.clock.runUntilIdle();
+
+accessibilityExpect(replay).toHaveAnnounced({
+  sourceType: "response.interrupted",
+});
+```
+
+Fixtures use a stable V1 JSON envelope, non-negative relative timestamps, and
+array order for simultaneous events. Replay validates the complete fixture
+before dispatch and does not run the clock until idle. Transcript assertions
+confirm deterministic runtime behavior, not browser delivery or spoken output.
+
 ## Segmentation
 
 `segmentText(text, "sentence" | "paragraph", locale?)` returns completed units

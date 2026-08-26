@@ -147,7 +147,7 @@ detach();
 store.dispose();`;
 
 const replayExample = `import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
-import { recordRuntime, replayEvents } from "@generative-a11y/test";
+import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
 
 const clock = new ManualClock(0);
 const runtime = createGenerativeA11y({ clock });
@@ -220,7 +220,7 @@ const pages: DocPage[] = [
             ["assistant-ui", "@generative-a11y/assistant-ui", "Messages, tools, approvals, sources"],
             ["AG-UI / CopilotKit v2", "@generative-a11y/ag-ui", "Protocol text, tools, interrupts"],
             ["Development diagnostics", "@generative-a11y/devtools", "Redacted runtime and DOM delivery traces"],
-            ["Deterministic tests", "@generative-a11y/test", "Event recording, replay, and semantic assertions"],
+            ["Deterministic tests", "@generative-a11y/core/testing", "Event recording, replay, and semantic assertions"],
           ],
         },
       },
@@ -1542,21 +1542,20 @@ binding.dispose();` },
       "Record normalized lifecycle events, replay them through a ManualClock, and assert announcement or diagnostic transcripts with optional Vitest matchers.",
     keywords: ["deterministic replay", "Vitest", "ManualClock", "fixtures", "accessibility testing"],
     related: [
-      "/api/test",
       "/api/core/testing",
       "/docs/testing",
     ],
     sections: [
       {
         id: "install",
-        title: "Install the test helpers",
+        title: "Use the testing entry from core",
         body: [
-          "Install @generative-a11y/test beside core in the test workspace. The package needs no browser and its root entry does not import Vitest.",
+          "Testing helpers ship with @generative-a11y/core. Import the testing entry only in test code, and install Vitest only when the project uses the semantic matchers.",
         ],
-        code: { language: "shell", value: "npm install --save-dev @generative-a11y/test" },
+        code: { language: "shell", value: "npm install @generative-a11y/core\nnpm install --save-dev vitest" },
         walkthrough: [
           { label: "Keep fixtures local", description: "Replay files contain normalized application events and should follow the repository rules for test data." },
-          { label: "Add Vitest only when used", description: "Import the optional matcher entry from @generative-a11y/test/vitest." },
+          { label: "Use one testing entry", description: "Import recording, replay, and matcher helpers from @generative-a11y/core/testing." },
         ],
       },
       {
@@ -1760,15 +1759,14 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         id: "development-tools",
         title: "Development package compatibility",
         body: [
-          "The headless devtools store and test recorder work with the public core contracts. The optional browser overlay has React peers, and the optional matcher entry has a Vitest peer.",
+          "The headless devtools store and test recorder work with the public core contracts. The optional browser overlay has React peers. Testing helpers accept Vitest structurally and do not add a test-runner peer to core.",
         ],
         table: {
           headers: ["Package entry", "Peer range", "Use"],
           rows: [
             ["@generative-a11y/devtools", "Core workspace dependency", "Headless bounded diagnostic store"],
             ["@generative-a11y/devtools/overlay", "React and React DOM ^19.0.0", "Browser trace explorer"],
-            ["@generative-a11y/test", "Core workspace dependency", "Record and replay normalized events"],
-            ["@generative-a11y/test/vitest", "Vitest ^4.1.10", "Optional semantic matchers"],
+            ["@generative-a11y/core/testing", "No runtime peer; pass your Vitest expect for matchers", "Record, replay, and semantic assertions"],
           ],
         },
       },

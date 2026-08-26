@@ -21,9 +21,9 @@ const pages: DocPage[] = [
     sections: [
       {
         id: "packages",
-        title: "Choose the packages you need",
+        title: "Choose the packages and entries you need",
         body: ["Start with core. Add DOM or React for browser updates, then add a framework adapter if your app uses that framework."],
-        table: { headers: ["Package", "Primary exports", "Use for"], rows: [
+        table: { headers: ["Package or entry", "Primary exports", "Use for"], rows: [
           ["@generative-a11y/core", "createGenerativeA11y, events, policy, scheduler", "Framework-independent policy"],
           ["@generative-a11y/dom", "announcer, runtime binding, focus, attention, preferences", "Browser updates and helpers"],
           ["@generative-a11y/react", "provider and hooks", "React setup and element bindings"],
@@ -31,7 +31,7 @@ const pages: DocPage[] = [
           ["@generative-a11y/assistant-ui", "bindThreadRuntime", "assistant-ui ThreadRuntime"],
           ["@generative-a11y/ag-ui", "bindAgent", "AG-UI AgentSubscriber callbacks"],
           ["@generative-a11y/devtools", "createDevtoolsStore, overlay", "Bounded redacted development traces"],
-          ["@generative-a11y/test", "recordRuntime, replayEvents, matchers", "Deterministic lifecycle tests"],
+          ["@generative-a11y/core/testing", "recordRuntime, replayEvents, matchers", "Deterministic lifecycle tests"],
         ] },
       },
       {
@@ -240,43 +240,6 @@ scheduler.schedule({
         { name: "cancelScope(scope)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels every pending candidate with the matching scope." },
         { name: "pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Returns the current bounded queue length." },
         { name: "dispose()", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels the timer and queue. Repeated calls are safe." },
-      ] },
-    ],
-  },
-  {
-    path: "/api/core/testing",
-    group: "Core",
-    title: "Testing utilities",
-    description: "ManualClock and AnnouncementRecorder APIs for testing runtime behavior without a browser or real-time delays.",
-    keywords: ["ManualClock", "createAnnouncementRecorder", "transcript", "testing"],
-    sections: [
-      { id: "recorder", title: "createAnnouncementRecorder", body: ["createAnnouncementRecorder bundles a runtime, ManualClock, announcement transcript, and diagnostic transcript into one test harness."], code: { language: "typescript", value: `const recorder = createAnnouncementRecorder({
-  preset: "balanced",
-  startAt: 10_000,
-});
-
-recorder.runtime.dispatch({
-  type: "response.started",
-  responseId: "r1",
-});
-recorder.runtime.dispatch({
-  type: "response.text.delta",
-  responseId: "r1",
-  delta: "A complete sentence.",
-});
-recorder.clock.advanceBy(2_000);
-
-expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Create the test runtime", description: "Your recorder provides a runtime, ManualClock, and captured output." }, { label: "Send app events", description: "Use the same events your app sends in production." }, { label: "Advance the clock", description: "Tests control time instead of waiting for real timers." }], api: [
-        { name: "options", type: "Recorder options", requirement: "Optional", defaultValue: "{}", description: "Accepts runtime preset, policy, error handling, and an optional startAt timestamp. Clock and listeners are owned by the recorder." },
-        { name: "return", type: "AnnouncementRecorder", requirement: "Return", defaultValue: "n/a", description: "Provides runtime, clock, transcript(), diagnosticTranscript(), and clear()." },
-      ] },
-      { id: "manual-clock", title: "ManualClock", body: ["ManualClock implements Clock and runs timers in a repeatable order."], api: [
-        { name: "new ManualClock(startAt)", type: "ManualClock", requirement: "Constructor", defaultValue: "0", description: "Creates a clock at the supplied timestamp." },
-        { name: "now()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Returns the current manual timestamp." },
-        { name: "setTimeout(callback, delayMs)", type: "ClockTimer", requirement: "Method", defaultValue: "n/a", description: "Schedules a callback on the manual clock." },
-        { name: "clearTimeout(timer)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels a registered timer." },
-        { name: "advanceBy(ms)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances time and runs due callbacks in a repeatable order." },
-        { name: "runUntilIdle(maxTasks = 10_000)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Runs pending callbacks until none remain and throws if the task limit is reached." },
       ] },
     ],
   },
@@ -754,19 +717,52 @@ overlay.dispose();` },
     ],
   },
   {
-    path: "/api/test",
-    group: "Testing",
-    title: "@generative-a11y/test",
+    path: "/api/core/testing",
+    group: "Core",
+    title: "@generative-a11y/core/testing",
     description: "Record normalized lifecycle events, replay versioned fixtures with a ManualClock, and install semantic Vitest assertions.",
     keywords: ["recordRuntime", "replayEvents", "ReplayFixtureV1", "installVitestMatchers"],
-    related: ["/docs/testing/replay", "/api/core/testing", "/docs/testing"],
+    related: ["/api/core", "/docs/testing/replay", "/docs/testing"],
     sections: [
+      {
+        id: "recorder",
+        title: "ManualClock and createAnnouncementRecorder",
+        body: ["ManualClock controls time without global timers. createAnnouncementRecorder bundles that clock with a runtime plus announcement and diagnostic transcripts."],
+        code: { language: "typescript", value: `import { createAnnouncementRecorder } from "@generative-a11y/core";
+
+const recorder = createAnnouncementRecorder({
+  preset: "balanced",
+  startAt: 10_000,
+});
+
+recorder.runtime.dispatch({
+  type: "response.started",
+  responseId: "r1",
+});
+recorder.clock.runUntilIdle();` },
+        walkthrough: [
+          { label: "Create controlled time", description: "The recorder owns a ManualClock and a runtime configured with that clock." },
+          { label: "Settle intentionally", description: "runUntilIdle advances only the injected clock and keeps tests independent of wall time." },
+        ],
+        api: [
+          { name: "new ManualClock(startAt)", type: "ManualClock", requirement: "Constructor", defaultValue: "0", description: "Creates an injected clock at the supplied finite timestamp." },
+          { name: "ManualClock.now()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Returns the current manual timestamp." },
+          { name: "ManualClock.setTimeout(callback, delayMs)", type: "ClockTimer", requirement: "Method", defaultValue: "n/a", description: "Schedules a callback in stable time and insertion order." },
+          { name: "ManualClock.clearTimeout(timer)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Cancels a registered timer." },
+          { name: "ManualClock.advanceBy(ms)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances time by a finite non-negative duration and runs due callbacks." },
+          { name: "ManualClock.advanceTo(time)", type: "void", requirement: "Method", defaultValue: "n/a", description: "Advances to an absolute time without allowing time to move backward." },
+          { name: "ManualClock.runNext()", type: "boolean", requirement: "Method", defaultValue: "n/a", description: "Runs the next pending callback and reports whether one existed." },
+          { name: "ManualClock.runUntilIdle(maxTasks)", type: "void", requirement: "Method", defaultValue: "10,000", description: "Runs pending callbacks until idle and throws before exceeding the safety limit." },
+          { name: "ManualClock.pendingCount()", type: "number", requirement: "Method", defaultValue: "n/a", description: "Returns the number of callbacks still registered." },
+          { name: "createAnnouncementRecorder(options?)", type: "AnnouncementRecorder", requirement: "Function", defaultValue: "{}", description: "Creates a runtime, ManualClock, immutable transcript readers, and clear method." },
+        ],
+      },
       {
         id: "record-replay",
         title: "recordRuntime and replayEvents",
         body: ["Recording captures accepted events sent through the returned dispatch target. Replay validates the full fixture before dispatching any event and advances the supplied ManualClock in recorded order."],
         code: { language: "typescript", value: `import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
-import { recordRuntime, replayEvents } from "@generative-a11y/test";
+import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
 
 const clock = new ManualClock(0);
 const runtime = createGenerativeA11y({ clock });
@@ -802,12 +798,12 @@ replayRuntime.dispose();` },
       {
         id: "vitest",
         title: "Opt-in Vitest matchers",
-        body: ["Import @generative-a11y/test/vitest only in Vitest setup. The root package entry has no Vitest runtime import."],
+        body: ["Import @generative-a11y/core/testing only in Vitest setup. The root package entry has no Vitest runtime import."],
         code: { language: "typescript", value: `import { expect } from "vitest";
-import { installVitestMatchers } from "@generative-a11y/test/vitest";
+import { installVitestMatchers } from "@generative-a11y/core/testing";
 
-installVitestMatchers(expect);
-expect(recorder).toHaveAnnounced({
+const accessibilityExpect = installVitestMatchers(expect);
+accessibilityExpect(recorder).toHaveAnnounced({
   sourceType: "response.completed",
 });` },
         walkthrough: [

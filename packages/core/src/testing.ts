@@ -5,7 +5,7 @@ import type {
   GenerativeA11yEvent,
   GenerativeA11yRuntime,
   ManualClock,
-} from "@generative-a11y/core";
+} from "./index.js";
 
 export interface RecordedEvent {
   readonly at: number;
@@ -42,6 +42,20 @@ export type DiagnosticExpectation = Partial<AnnouncementDiagnostic>;
 export interface TranscriptRecorder {
   transcript(): readonly AnnouncementIntent[];
   diagnosticTranscript(): readonly AnnouncementDiagnostic[];
+}
+
+type MatcherResult = { pass: boolean; message: () => string };
+
+export interface GenerativeA11yMatchers {
+  toHaveAnnouncementTranscript(
+    expected: readonly Partial<AnnouncementIntent>[],
+  ): void;
+  toHaveAnnounced(expected: Partial<AnnouncementIntent>): void;
+  toHaveDiagnostic(expected: Partial<AnnouncementDiagnostic>): void;
+}
+
+export interface GenerativeA11yExpect {
+  (received: unknown): GenerativeA11yMatchers;
 }
 
 const EVENT_TYPES = new Set<GenerativeA11yEvent["type"]>([
@@ -117,6 +131,37 @@ function validateFixture(fixture: ReplayFixtureV1): void {
   }
 }
 
+function recorder(value: unknown): value is TranscriptRecorder {
+  return (
+    Boolean(value) &&
+    typeof (value as TranscriptRecorder).transcript === "function" &&
+    typeof (value as TranscriptRecorder).diagnosticTranscript === "function"
+  );
+}
+
+export function matchesPartial(actual: object, expected: object): boolean {
+  return Object.entries(expected).every(([key, value]) =>
+    Object.is((actual as Record<string, unknown>)[key], value),
+  );
+}
+
+function transcriptMessage(
+  label: string,
+  actual: readonly object[],
+  expected: readonly object[],
+): MatcherResult {
+  const pass =
+    actual.length === expected.length &&
+    expected.every((entry, index) =>
+      matchesPartial(actual[index] ?? {}, entry),
+    );
+  return {
+    pass,
+    message: () =>
+      `${label} mismatch\nExpected: ${JSON.stringify(expected, null, 2)}\nReceived: ${JSON.stringify(actual, null, 2)}`,
+  };
+}
+
 export function recordRuntime(options: RecordRuntimeOptions): RuntimeRecording {
   const startAt = options.clock.now();
   const recorded: RecordedEvent[] = [];
@@ -170,8 +215,59 @@ export function replayEvents(
   }
 }
 
-export function matchesPartial(actual: object, expected: object): boolean {
-  return Object.entries(expected).every(([key, value]) =>
-    Object.is((actual as Record<string, unknown>)[key], value),
+export function toHaveAnnouncementTranscript(
+  received: unknown,
+  expected: readonly Partial<AnnouncementIntent>[],
+): MatcherResult {
+  if (!recorder(received))
+    return {
+      pass: false,
+      message: () => "Expected an announcement recorder",
+    };
+  return transcriptMessage(
+    "Announcement transcript",
+    received.transcript(),
+    expected,
   );
+}
+
+export function toHaveAnnounced(
+  received: unknown,
+  expected: Partial<AnnouncementIntent>,
+): MatcherResult {
+  if (!recorder(received))
+    return { pass: false, message: () => "Expected an announcement recorder" };
+  const actual = received.transcript();
+  const pass = actual.some((entry) => matchesPartial(entry, expected));
+  return {
+    pass,
+    message: () =>
+      `Expected announcement: ${JSON.stringify(expected)}\nReceived: ${JSON.stringify(actual, null, 2)}`,
+  };
+}
+
+export function toHaveDiagnostic(
+  received: unknown,
+  expected: Partial<AnnouncementDiagnostic>,
+): MatcherResult {
+  if (!recorder(received))
+    return { pass: false, message: () => "Expected an announcement recorder" };
+  const actual = received.diagnosticTranscript();
+  const pass = actual.some((entry) => matchesPartial(entry, expected));
+  return {
+    pass,
+    message: () =>
+      `Expected diagnostic: ${JSON.stringify(expected)}\nReceived: ${JSON.stringify(actual, null, 2)}`,
+  };
+}
+
+export function installVitestMatchers(expect: {
+  extend(matchers: Record<string, unknown>): void;
+}): GenerativeA11yExpect {
+  expect.extend({
+    toHaveAnnouncementTranscript,
+    toHaveAnnounced,
+    toHaveDiagnostic,
+  });
+  return expect as unknown as GenerativeA11yExpect;
 }
