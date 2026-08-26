@@ -81,8 +81,8 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(vitest@4.1.10)
       ai:
-        specifier: 7.0.66
-        version: 7.0.66(zod@4.4.3)
+        specifier: 7.0.77
+        version: 7.0.77(zod@4.4.3)
       eslint:
         specifier: 10.8.1
         version: 10.8.1(jiti@2.7.0)(supports-color@7.2.0)
@@ -141,8 +141,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/react
       ai:
-        specifier: 7.0.66
-        version: 7.0.66(zod@4.4.3)
+        specifier: 7.0.77
+        version: 7.0.77(zod@4.4.3)
       react:
         specifier: 19.2.8
         version: 19.2.8
