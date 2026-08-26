@@ -184,6 +184,21 @@ describe("documentation registry", () => {
     );
   });
 
+  it("documents the ManualClock method used by replay examples", () => {
+    const manualClockApi = getDocPage("/api/core/testing")!.sections.find(
+      ({ id }) => id === "manual-clock",
+    )?.api;
+
+    expect(manualClockApi).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "runUntilIdle(maxTasks = 10_000)",
+          type: "void",
+        }),
+      ]),
+    );
+  });
+
   it("keeps replay examples self-contained", () => {
     const guideExample = getDocPage("/docs/testing/replay")?.sections.find(
       ({ id }) => id === "record-and-replay",
