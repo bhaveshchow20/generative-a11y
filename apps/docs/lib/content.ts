@@ -1901,14 +1901,13 @@ expect(recorder.transcript()).toHaveLength(1);` }, walkthrough: [{ label: "Creat
         table: {
           headers: ["Package", "Purpose", "What it does not depend on"],
           rows: [
-            ["core", "Policy, scheduling, segmentation", "No DOM or framework dependency"],
+            ["core", "Policy, scheduling, segmentation, and testing helpers", "No DOM or framework dependency"],
             ["dom", "Browser delivery, focus, attention, preferences", "No React or AI framework dependency"],
             ["react", "Provider and host-element bindings", "Leaves the visual interface unchanged"],
             ["ai-sdk", "useChat lifecycle translation", "Public state and callbacks only"],
             ["assistant-ui", "Thread runtime translation", "getState and subscribe only"],
             ["ag-ui", "Protocol lifecycle translation", "Documented subscriber callbacks only"],
             ["devtools", "Bounded redacted diagnostics and a trace explorer", "No application content or runtime control"],
-            ["test", "Deterministic event replay and semantic assertions", "No browser or speech claims"],
           ],
         },
       },

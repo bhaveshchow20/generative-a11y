@@ -126,6 +126,21 @@ describe("documentation registry", () => {
     );
   });
 
+  it("lists testing as a core entry instead of a standalone package", () => {
+    const packageRows = getDocPage("/project/overview")?.sections.find(
+      ({ id }) => id === "packages",
+    )?.table?.rows;
+
+    expect(packageRows).toContainEqual([
+      "core",
+      "Policy, scheduling, segmentation, and testing helpers",
+      "No DOM or framework dependency",
+    ]);
+    expect(packageRows?.some(([packageName]) => packageName === "test")).toBe(
+      false,
+    );
+  });
+
   it("gives major API entries signatures, contracts, examples, and code walkthroughs", () => {
     for (const path of [
       "/api/core/create-generative-a11y",
