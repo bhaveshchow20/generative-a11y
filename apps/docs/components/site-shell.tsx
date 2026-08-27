@@ -37,30 +37,63 @@ export function SiteShell({
   const navigation = useRef<HTMLDivElement>(null);
   const searchDialog = useRef<HTMLElement>(null);
   const searchReturnTarget = useRef<HTMLElement | null>(null);
+  const focusFrame = useRef<number | null>(null);
   const results = searchDocumentation(query);
   const apiSection = currentPath.startsWith("/api");
   const navigationGroups = apiSection ? API_NAV_GROUPS : DOC_NAV_GROUPS;
 
-  const openSearch = useCallback((returnTarget?: HTMLElement) => {
-    searchReturnTarget.current =
-      returnTarget ?? (document.activeElement as HTMLElement | null);
-    setNavigationOpen(false);
-    setSearchOpen(true);
+  const cancelScheduledFocus = useCallback(() => {
+    if (focusFrame.current === null) return;
+    window.cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = null;
   }, []);
 
-  const closeSearch = useCallback((restoreFocus = true) => {
-    setSearchOpen(false);
-    if (restoreFocus) {
-      window.requestAnimationFrame(() => searchReturnTarget.current?.focus());
-    }
-  }, []);
+  const scheduleFocus = useCallback(
+    (focus: () => void) => {
+      cancelScheduledFocus();
+      focusFrame.current = window.requestAnimationFrame(() => {
+        focusFrame.current = null;
+        focus();
+      });
+    },
+    [cancelScheduledFocus],
+  );
 
-  const closeNavigation = useCallback((restoreFocus = true) => {
-    setNavigationOpen(false);
-    if (restoreFocus) {
-      window.requestAnimationFrame(() => menuButton.current?.focus());
-    }
-  }, []);
+  const openSearch = useCallback(
+    (returnTarget?: HTMLElement) => {
+      cancelScheduledFocus();
+      searchReturnTarget.current = navigationOpen
+        ? menuButton.current
+        : returnTarget ?? (document.activeElement as HTMLElement | null);
+      setNavigationOpen(false);
+      setSearchOpen(true);
+    },
+    [cancelScheduledFocus, navigationOpen],
+  );
+
+  const closeSearch = useCallback(
+    (restoreFocus = true) => {
+      cancelScheduledFocus();
+      setSearchOpen(false);
+      if (restoreFocus) {
+        scheduleFocus(() => searchReturnTarget.current?.focus());
+      }
+    },
+    [cancelScheduledFocus, scheduleFocus],
+  );
+
+  const closeNavigation = useCallback(
+    (restoreFocus = true) => {
+      cancelScheduledFocus();
+      setNavigationOpen(false);
+      if (restoreFocus) {
+        scheduleFocus(() => menuButton.current?.focus());
+      }
+    },
+    [cancelScheduledFocus, scheduleFocus],
+  );
+
+  useEffect(() => cancelScheduledFocus, [cancelScheduledFocus]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -89,7 +122,7 @@ export function SiteShell({
     document.body.style.overflow = "hidden";
 
     if (navigationOpen) {
-      window.requestAnimationFrame(() => {
+      scheduleFocus(() => {
         navigation.current
           ?.querySelector<HTMLElement>('[aria-current="page"]')
           ?.focus({ preventScroll: true });
@@ -120,7 +153,7 @@ export function SiteShell({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", keepFocusInside);
     };
-  }, [navigationOpen, searchOpen]);
+  }, [navigationOpen, scheduleFocus, searchOpen]);
 
   return (
     <div className="docs-app" data-theme={dark ? "dark" : "light"}>

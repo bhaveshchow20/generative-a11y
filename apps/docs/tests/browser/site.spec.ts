@@ -231,6 +231,26 @@ test("mobile documentation drawer contains section switching and restores focus"
   await expect(menu).toBeFocused();
 });
 
+test("search opened from mobile navigation returns focus to the menu trigger", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const menu = page.getByRole("button", { name: /Open documentation navigation/ });
+  await menu.click();
+  const currentPageLink = page
+    .getByRole("dialog", { name: "Documentation navigation" })
+    .getByRole("link", { name: "Getting started" });
+  await currentPageLink.focus();
+  await expect(currentPageLink).toBeFocused();
+
+  await page.keyboard.press("ControlOrMeta+K");
+  await expect(page.getByRole("searchbox", { name: "Search documentation" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeFocused();
+});
+
 test("search remains reachable from the mobile documentation header", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
