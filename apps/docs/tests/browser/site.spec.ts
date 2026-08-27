@@ -196,6 +196,28 @@ test("representative pages never create page-level horizontal overflow", async (
   }
 });
 
+test("wide homepage sections share the centered content rail", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/");
+
+  const sectionBounds = await page
+    .locator(
+      ".hero, .problem-guides, .home-explainer, .quick-start, .truth-strip",
+    )
+    .evaluateAll((sections) =>
+      sections.map((section) => {
+        const bounds = section.getBoundingClientRect();
+        return { left: bounds.left, width: bounds.width };
+      }),
+    );
+
+  expect(sectionBounds).toHaveLength(5);
+  for (const bounds of sectionBounds) {
+    expect(bounds.width).toBe(sectionBounds[0]?.width);
+    expect(bounds.left).toBe(sectionBounds[0]?.left);
+  }
+});
+
 test("wide documentation content scrolls locally on phones", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
