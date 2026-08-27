@@ -86,6 +86,8 @@ a {
 .site-footer,
 .hero,
 .architecture,
+.problem-guides,
+.home-explainer,
 .quick-start,
 .truth-strip {
   width: min(1240px, calc(100% - 48px));
