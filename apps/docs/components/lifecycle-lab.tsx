@@ -211,7 +211,12 @@ export function LifecycleLab() {
 
   return (
     <div className="lab">
-      <div className="lab-controls" aria-label="Lifecycle scenarios">
+      <div
+        className="lab-controls"
+        role="region"
+        aria-label="Lifecycle scenarios"
+        tabIndex={0}
+      >
         {scenarioLabels.map((scenario) => (
           <button key={scenario.name} type="button" onClick={() => runScenario(scenario.name)} disabled={!interactive || running}>
             {scenario.label}

@@ -1,6 +1,42 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+const responsiveViewports = [
+  { width: 320, height: 800 },
+  { width: 360, height: 800 },
+  { width: 375, height: 812 },
+  { width: 390, height: 844 },
+  { width: 393, height: 852 },
+  { width: 412, height: 915 },
+  { width: 430, height: 932 },
+  { width: 640, height: 360 },
+  { width: 768, height: 1024 },
+  { width: 820, height: 1180 },
+  { width: 844, height: 390 },
+  { width: 900, height: 900 },
+  { width: 1024, height: 768 },
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+] as const;
+
+const representativeResponsivePages = [
+  "/",
+  "/docs/getting-started",
+  "/docs/integrations/ai-sdk",
+  "/api/core/create-generative-a11y",
+  "/examples/lifecycle-lab",
+] as const;
+
+test.beforeEach(async ({ page }) => {
+  await page.route("https://api.github.com/**", async (route) => {
+    await route.fulfill({ json: { stargazers_count: 1 } });
+  });
+  await page.route("https://api.npmjs.org/**", async (route) => {
+    await route.fulfill({ json: { downloads: 544 } });
+  });
+});
+
 test("homepage and representative deep links render without request or console errors", async ({
   page,
 }) => {
@@ -122,7 +158,9 @@ test("mobile navigation exposes every documentation group", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/getting-started");
-  const menu = page.getByRole("button", { name: "Menu" });
+  const menu = page.getByRole("button", {
+    name: /Open documentation navigation/,
+  });
   await expect(menu).toBeEnabled();
   await menu.click();
   const navigation = page.getByRole("navigation", {
@@ -135,6 +173,162 @@ test("mobile navigation exposes every documentation group", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Tool lifecycle",
   );
+});
+
+test("representative pages never create page-level horizontal overflow", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  for (const viewport of responsiveViewports) {
+    await page.setViewportSize(viewport);
+    for (const path of representativeResponsivePages) {
+      await page.goto(path);
+      await expect(page.locator("h1")).toBeVisible();
+      const dimensions = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(
+        dimensions.scrollWidth,
+        `${path} overflowed at ${viewport.width}x${viewport.height}`,
+      ).toBeLessThanOrEqual(dimensions.clientWidth);
+    }
+  }
+});
+
+test("wide documentation content scrolls locally on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const code = page.locator(".doc-code pre").filter({ hasText: "createGenerativeA11y" }).first();
+  const table = page.locator(".table-wrap");
+  await expect(code).toBeVisible();
+  await expect(table).toBeVisible();
+  expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test("mobile documentation drawer contains section switching and restores focus", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const menu = page.getByRole("button", { name: /Open documentation navigation/ });
+  await menu.click();
+  const drawer = page.getByRole("dialog", { name: "Documentation navigation" });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Docs", exact: true })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "API", exact: true })).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+  await expect(menu).toBeFocused();
+});
+
+test("search opened from mobile navigation returns focus to the menu trigger", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const menu = page.getByRole("button", { name: /Open documentation navigation/ });
+  await menu.click();
+  const currentPageLink = page
+    .getByRole("dialog", { name: "Documentation navigation" })
+    .getByRole("link", { name: "Getting started" });
+  await currentPageLink.focus();
+  await expect(currentPageLink).toBeFocused();
+
+  await page.keyboard.press("ControlOrMeta+K");
+  await expect(page.getByRole("searchbox", { name: "Search documentation" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeFocused();
+});
+
+test("search remains reachable from the mobile documentation header", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const trigger = page.getByRole("button", { name: "Search documentation" });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(page.getByRole("searchbox", { name: "Search documentation" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+});
+
+test("primary mobile controls provide comfortable touch targets", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  for (const control of await page
+    .locator(
+      ".install-package-trigger, .install-copy, .demo-controls button:visible",
+    )
+    .all()) {
+    const box = await control.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await page.goto("/docs/getting-started");
+  for (const control of await page
+    .locator(".docs-header button:visible, .doc-code-header button")
+    .all()) {
+    const box = await control.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+  }
+
+  await page.goto("/examples/lifecycle-lab");
+  for (const control of await page.locator(".lab-controls button").all()) {
+    const box = await control.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("hydrated framework examples stay contained on phones and tablets", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  for (const viewport of [
+    { width: 320, height: 800 },
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/examples/lifecycle-lab");
+    await expect(
+      page.getByRole("heading", { name: "See the adapter inside a working chat." }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await expect(page.locator(".real-example-panel")).toBeVisible();
+  }
+});
+
+test("mobile navigation and responsive pages pass automated accessibility scans", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  for (const path of ["/", "/docs/getting-started", "/examples/lifecycle-lab"]) {
+    await page.goto(path);
+    if (path.startsWith("/docs")) {
+      await page
+        .getByRole("button", { name: /Open documentation navigation/ })
+        .click();
+    }
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  }
 });
 
 test("lifecycle lab uses real runtime output for streaming, stale retry, and approval", async ({

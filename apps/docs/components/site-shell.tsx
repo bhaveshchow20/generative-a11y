@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { API_NAV_GROUPS, DOC_NAV_GROUPS, searchDocumentation } from "../lib/content";
 import { ProjectStats } from "./project-stats";
@@ -27,28 +33,127 @@ export function SiteShell({
   );
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const navigation = useRef<HTMLDivElement>(null);
+  const searchDialog = useRef<HTMLElement>(null);
+  const searchReturnTarget = useRef<HTMLElement | null>(null);
+  const focusFrame = useRef<number | null>(null);
   const results = searchDocumentation(query);
   const apiSection = currentPath.startsWith("/api");
   const navigationGroups = apiSection ? API_NAV_GROUPS : DOC_NAV_GROUPS;
+
+  const cancelScheduledFocus = useCallback(() => {
+    if (focusFrame.current === null) return;
+    window.cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = null;
+  }, []);
+
+  const scheduleFocus = useCallback(
+    (focus: () => void) => {
+      cancelScheduledFocus();
+      focusFrame.current = window.requestAnimationFrame(() => {
+        focusFrame.current = null;
+        focus();
+      });
+    },
+    [cancelScheduledFocus],
+  );
+
+  const openSearch = useCallback(
+    (returnTarget?: HTMLElement) => {
+      cancelScheduledFocus();
+      searchReturnTarget.current = navigationOpen
+        ? menuButton.current
+        : returnTarget ?? (document.activeElement as HTMLElement | null);
+      setNavigationOpen(false);
+      setSearchOpen(true);
+    },
+    [cancelScheduledFocus, navigationOpen],
+  );
+
+  const closeSearch = useCallback(
+    (restoreFocus = true) => {
+      cancelScheduledFocus();
+      setSearchOpen(false);
+      if (restoreFocus) {
+        scheduleFocus(() => searchReturnTarget.current?.focus());
+      }
+    },
+    [cancelScheduledFocus, scheduleFocus],
+  );
+
+  const closeNavigation = useCallback(
+    (restoreFocus = true) => {
+      cancelScheduledFocus();
+      setNavigationOpen(false);
+      if (restoreFocus) {
+        scheduleFocus(() => menuButton.current?.focus());
+      }
+    },
+    [cancelScheduledFocus, scheduleFocus],
+  );
+
+  useEffect(() => cancelScheduledFocus, [cancelScheduledFocus]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setSearchOpen(true);
+        openSearch();
       }
       if (event.key === "Escape") {
-        setSearchOpen(false);
-        setNavigationOpen(false);
+        if (searchOpen) closeSearch();
+        else if (navigationOpen) closeNavigation();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [closeNavigation, closeSearch, navigationOpen, openSearch, searchOpen]);
 
   useEffect(() => {
     if (searchOpen) searchInput.current?.focus();
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!navigationOpen && !searchOpen) return;
+
+    const container = navigationOpen ? navigation.current : searchDialog.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    if (navigationOpen) {
+      scheduleFocus(() => {
+        navigation.current
+          ?.querySelector<HTMLElement>('[aria-current="page"]')
+          ?.focus({ preventScroll: true });
+      });
+    }
+
+    function keepFocusInside(event: KeyboardEvent) {
+      if (event.key !== "Tab" || !container) return;
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hidden);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", keepFocusInside);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", keepFocusInside);
+    };
+  }, [navigationOpen, scheduleFocus, searchOpen]);
 
   return (
     <div className="docs-app" data-theme={dark ? "dark" : "light"}>
@@ -66,12 +171,22 @@ export function SiteShell({
           className="search-trigger"
           type="button"
           disabled={!interactive}
-          onClick={() => setSearchOpen(true)}
+          onClick={(event) => openSearch(event.currentTarget)}
           aria-haspopup="dialog"
         >
           <span>Search documentation</span><kbd>⌘ K</kbd>
         </button>
         <div className="docs-actions">
+          <button
+            className="icon-button mobile-search-button"
+            type="button"
+            disabled={!interactive}
+            onClick={(event) => openSearch(event.currentTarget)}
+            aria-label="Search documentation"
+            aria-haspopup="dialog"
+          >
+            <span aria-hidden="true">⌕</span>
+          </button>
           <button
             className="icon-button"
             type="button"
@@ -83,12 +198,20 @@ export function SiteShell({
           </button>
           <ProjectStats className="project-stats-docs" />
           <button
+            ref={menuButton}
             className="menu-button"
             type="button"
             disabled={!interactive}
-            onClick={() => setNavigationOpen((value) => !value)}
+            onClick={() =>
+              navigationOpen ? closeNavigation() : setNavigationOpen(true)
+            }
             aria-expanded={navigationOpen}
             aria-controls="docs-navigation"
+            aria-label={`${navigationOpen ? "Close" : "Open"} documentation navigation. Current page: ${
+              navigationGroups
+                .flatMap(({ pages }) => pages)
+                .find((page) => page.path === currentPath)?.title ?? "Interactive examples"
+            }`}
           >
             {navigationOpen ? "Close" : "Menu"}
           </button>
@@ -96,11 +219,32 @@ export function SiteShell({
       </header>
 
       <div className="docs-layout">
-        <aside
+        {navigationOpen ? (
+          <button
+            className="docs-navigation-backdrop"
+            type="button"
+            aria-label="Close documentation navigation"
+            onClick={() => closeNavigation()}
+          />
+        ) : null}
+        <div
+          ref={navigation}
           id="docs-navigation"
-          aria-label={apiSection ? "API reference sidebar" : "Documentation sidebar"}
+          aria-label={
+            navigationOpen
+              ? "Documentation navigation"
+              : apiSection
+                ? "API reference sidebar"
+                : "Documentation sidebar"
+          }
+          aria-modal={navigationOpen ? "true" : undefined}
+          role={navigationOpen ? "dialog" : "complementary"}
           className={`docs-sidebar${navigationOpen ? " is-open" : ""}`}
         >
+          <nav className="mobile-section-nav" aria-label="Documentation sections">
+            <Link href="/docs/getting-started" aria-current={!apiSection ? "page" : undefined}>Docs</Link>
+            <Link href="/api" aria-current={apiSection ? "page" : undefined}>API</Link>
+          </nav>
           <nav aria-label={apiSection ? "API reference" : "Documentation"}>
             {navigationGroups.map(({ group, pages }) => (
               <div className="nav-group" key={group}>
@@ -110,7 +254,7 @@ export function SiteShell({
                     key={page.path}
                     href={page.path}
                     aria-current={page.path === currentPath ? "page" : undefined}
-                    onClick={() => setNavigationOpen(false)}
+                    onClick={() => closeNavigation(false)}
                   >
                     {page.title}
                   </Link>
@@ -122,13 +266,14 @@ export function SiteShell({
             <Link href="/examples/lifecycle-lab">Try interactive examples <span aria-hidden="true">→</span></Link>
             <span>{apiSection ? "Packages and API symbols" : "Setup and integration guides"}</span>
           </div>
-        </aside>
+        </div>
         {children}
       </div>
 
       {searchOpen ? (
         <div className="dialog-backdrop">
           <section
+            ref={searchDialog}
             className="search-dialog"
             role="dialog"
             aria-modal="true"
@@ -144,11 +289,11 @@ export function SiteShell({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Try “stale response” or “bindAgent”"
               />
-              <button type="button" onClick={() => setSearchOpen(false)} aria-label="Close search">Esc</button>
+              <button type="button" onClick={() => closeSearch()} aria-label="Close search">Esc</button>
             </div>
             <div className="search-results" aria-live="polite">
               {results.length ? results.slice(0, 8).map((result) => (
-                <Link key={result.path} href={result.path} onClick={() => setSearchOpen(false)}>
+                <Link key={result.path} href={result.path} onClick={() => closeSearch(false)}>
                   <span><b>{result.title}</b><small>{result.group}</small></span>
                   <p>{result.description}</p>
                 </Link>
