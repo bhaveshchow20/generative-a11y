@@ -53,8 +53,8 @@ export default function Home() {
           <Link href="/docs/getting-started">Docs</Link>
           <Link href="/api">API</Link>
           <Link href="/examples/lifecycle-lab">Examples</Link>
-          <ProjectStats className="project-stats-home" />
         </nav>
+        <ProjectStats className="project-stats-home" />
       </header>
 
       <main>
@@ -204,7 +204,11 @@ export default function Home() {
               <span>TypeScript</span>
               <span>framework-neutral</span>
             </div>
-            <pre>
+            <pre
+              role="region"
+              aria-label="TypeScript quick start code sample"
+              tabIndex={0}
+            >
               <code>{quickStart}</code>
             </pre>
           </div>

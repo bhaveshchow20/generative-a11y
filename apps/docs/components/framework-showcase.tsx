@@ -184,7 +184,11 @@ export function FrameworkShowcase() {
         <div className="framework-input">
           <span>Framework data</span>
           <h3>{framework === "ai-sdk" ? "useChat snapshots and finish callback" : "ThreadRuntime getState and subscribe"}</h3>
-          <pre><code>{snippets[framework]}</code></pre>
+          <pre
+            role="region"
+            aria-label={`${framework} adapter code sample`}
+            tabIndex={0}
+          ><code>{snippets[framework]}</code></pre>
           <button type="button" onClick={framework === "ai-sdk" ? runAiSdk : runAssistantUi}>Run {framework === "ai-sdk" ? "AI SDK" : "assistant-ui"} adapter</button>
         </div>
         <div className="framework-output">
