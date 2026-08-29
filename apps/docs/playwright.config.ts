@@ -13,6 +13,9 @@ export function resolvePlaywrightPort(value: string | undefined): number {
 
 const port = resolvePlaywrightPort(process.env.DOCS_PLAYWRIGHT_PORT);
 const serverUrl = `http://localhost:${port}`;
+const serverCommand = process.env.CI
+  ? `pnpm build && pnpm start -- --port ${port}`
+  : `pnpm dev -- --port ${port}`;
 
 export default defineConfig({
   testDir: "./tests/browser",
@@ -31,7 +34,7 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: `pnpm dev -- --port ${port}`,
+    command: serverCommand,
     url: serverUrl,
     reuseExistingServer: true,
     timeout: 120_000,
