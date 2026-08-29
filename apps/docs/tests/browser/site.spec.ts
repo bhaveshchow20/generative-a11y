@@ -252,15 +252,16 @@ test("hero install control selects a package and copies its npm command", async 
     "data-command",
     "npm install @generative-a11y/core",
   );
+  await expect(
+    installer.getByRole("button", { name: "Copy install command" }),
+  ).toBeEnabled();
 
   await packageSelect.click();
-  const packageList = installer.getByRole("listbox", { name: "Package" });
+  const packageList = page.getByRole("listbox", { name: "Package" });
   await expect(packageList).toBeVisible();
-  await expect(
-    packageList.getByRole("option", { name: "core" }),
-  ).toHaveAttribute("aria-selected", "true");
-  await packageList.getByRole("option", { name: "dom" }).click();
-  await expect(packageList).toHaveCount(0);
+  await packageList
+    .getByRole("option", { name: "@generative-a11y/dom" })
+    .click();
   await expect(packageSelect).toHaveText("dom");
   await expect(installer).toHaveAttribute(
     "data-command",
@@ -277,6 +278,128 @@ test("hero install control selects a package and copies its npm command", async 
           .__copiedInstallCommands,
     ),
   ).toEqual(["npm install @generative-a11y/dom"]);
+});
+
+test("hero install control keeps its command and actions aligned", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const installer = page.getByRole("group", { name: "Install a package" });
+  const shell = installer.locator(".install-command-shell");
+  const prefix = installer.locator(".install-prefix");
+  const packageSelect = installer.getByRole("combobox", { name: "Package" });
+  const copy = installer.getByRole("button", { name: "Copy install command" });
+  const copyIcon = copy.locator("svg");
+  const copyLabel = copy.locator("span");
+
+  const [shellBox, prefixBox, selectBox, copyBox, iconBox, labelBox] =
+    await Promise.all(
+      [shell, prefix, packageSelect, copy, copyIcon, copyLabel].map((locator) =>
+        locator.boundingBox(),
+      ),
+    );
+
+  expect([shellBox, prefixBox, selectBox, copyBox, iconBox, labelBox].every(Boolean)).toBe(
+    true,
+  );
+  expect((prefixBox?.x ?? 0) + (prefixBox?.width ?? 0)).toBeLessThanOrEqual(
+    (selectBox?.x ?? 0) + 1,
+  );
+  expect((selectBox?.x ?? 0) + (selectBox?.width ?? 0)).toBeLessThanOrEqual(
+    (copyBox?.x ?? 0) + 1,
+  );
+  expect((copyBox?.x ?? 0) + (copyBox?.width ?? 0)).toBeLessThanOrEqual(
+    (shellBox?.x ?? 0) + (shellBox?.width ?? 0) + 1,
+  );
+  expect(
+    Math.abs(
+      (iconBox?.y ?? 0) + (iconBox?.height ?? 0) / 2 -
+        ((labelBox?.y ?? 0) + (labelBox?.height ?? 0) / 2),
+    ),
+  ).toBeLessThan(2);
+  await expect(copyIcon).toHaveCSS("fill", "none");
+  await expect(copyIcon).not.toHaveCSS("stroke", "none");
+});
+
+test("homepage dropdowns open and update their content", async ({ page }) => {
+  await page.goto("/");
+
+  const packageSelect = page.getByRole("combobox", { name: "Package" });
+  const scenarioSelect = page.getByRole("combobox", { name: "Scenario" });
+
+  expect(await scenarioSelect.evaluate((element) => element.tagName)).toBe(
+    "BUTTON",
+  );
+  await expect(scenarioSelect).toHaveClass(/install-package-trigger/);
+  await expect(
+    page.getByRole("button", { name: "Copy install command" }),
+  ).toBeEnabled();
+
+  await packageSelect.click();
+  const packageList = page.getByRole("listbox", { name: "Package" });
+  await expect(packageList).toBeVisible();
+  await packageList
+    .getByRole("option", { name: "@generative-a11y/assistant-ui" })
+    .click();
+  await expect(
+    page.getByRole("group", { name: "Install a package" }),
+  ).toHaveAttribute(
+    "data-command",
+    "npm install @generative-a11y/assistant-ui",
+  );
+
+  await scenarioSelect.click();
+  const scenarioList = page.getByRole("listbox", { name: "Scenario" });
+  await expect(scenarioList).toBeVisible();
+  await expect(scenarioList.locator("..")).toHaveClass(/install-package-menu/);
+  await scenarioList.getByRole("option", { name: "Approval" }).click();
+  await expect(
+    page.getByRole("region", { name: "Interactive runtime trace" }),
+  ).toContainText("Approval");
+});
+
+test("interactive cues use subtle hairlines without outlining content cards", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForThemeControls(page);
+
+  const github = page.getByRole("link", {
+    name: "View generative-a11y on GitHub, 1 stars",
+  });
+  const npm = page.getByRole("link", {
+    name: /View generative-a11y packages on npm,/
+  });
+  const statBoxes = await Promise.all([github, npm].map((link) => link.boundingBox()));
+
+  expect(statBoxes.every(Boolean)).toBe(true);
+  expect(Math.abs((statBoxes[0]?.y ?? 0) - (statBoxes[1]?.y ?? 0))).toBeLessThan(1);
+  for (const link of [github, npm]) {
+    await expect(link).toHaveCSS("border-top-width", "1px");
+    expect(
+      await link.evaluate((element) => getComputedStyle(element).borderTopColor),
+    ).not.toMatch(/transparent|rgba\(0, 0, 0, 0\)/);
+  }
+
+  await expect(page.locator(".home-bento-card").first()).toHaveCSS(
+    "border-top-width",
+    "0px",
+  );
+
+  await page.goto("/docs/getting-started");
+  const search = page.locator("[data-search-full]");
+  const nextPage = page.locator(
+    'article a[href="/docs/integrations/ai-sdk"]',
+  );
+  for (const control of [search, nextPage]) {
+    await expect(control).toHaveCSS("border-top-width", "1px");
+    expect(
+      await control.evaluate(
+        (element) => getComputedStyle(element).borderTopColor,
+      ),
+    ).not.toMatch(/transparent|rgba\(0, 0, 0, 0\)/);
+  }
 });
 
 test("documentation search finds a deep link and closes after navigation", async ({
@@ -485,6 +608,10 @@ test("homepage supports a dark theme", async ({ page }) => {
   await expect(darkTheme).toBeVisible();
   await darkTheme.click();
   await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.locator(".home-quick-start")).toHaveCSS(
+    "background-image",
+    /radial-gradient/,
+  );
 
   await expect(
     page.getByRole("button", { name: "Light", exact: true }),
@@ -687,6 +814,20 @@ test("lifecycle lab uses real runtime output for streaming, stale retry, and app
     page.getByRole("cell", { name: "interaction.resolved" }),
   ).toBeVisible();
   await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+});
+
+test("lifecycle lab uses the available documentation width", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/examples/lifecycle-lab");
+
+  const pageShell = page.locator("#nd-page");
+  const labGrid = page.locator(".lab-grid");
+  await expect(labGrid).toBeVisible();
+
+  const pageBox = await pageShell.boundingBox();
+  const labBox = await labGrid.boundingBox();
+  expect(pageBox?.width).toBeGreaterThan(1_100);
+  expect(labBox?.width).toBeGreaterThan(1_000);
 });
 
 test("framework showcase runs both installed framework runtimes and production adapters", async ({

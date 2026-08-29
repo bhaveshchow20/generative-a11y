@@ -15,6 +15,8 @@
   --color-fd-accent: #e6f0eb;
   --color-fd-accent-foreground: #123b31;
   --color-fd-ring: #0b8c77;
+  --docs-cue-border: rgba(16, 36, 31, 0.14);
+  --docs-cue-border-hover: rgba(16, 36, 31, 0.24);
 
   color: var(--color-fd-foreground);
   font-family: var(--font-home-sans), var(--font-body), sans-serif;
@@ -37,6 +39,8 @@
   --color-fd-accent: #15201c;
   --color-fd-accent-foreground: #e5f5ee;
   --color-fd-ring: #63dbc1;
+  --docs-cue-border: rgba(237, 246, 241, 0.15);
+  --docs-cue-border-hover: rgba(237, 246, 241, 0.25);
 }
 
 .docs-site .home-wordmark {
@@ -61,6 +65,16 @@
   pointer-events: none;
 }
 
+.docs-site :where([data-search-full], [data-theme-toggle], button.border),
+.docs-site article div[class~="@container"].grid > a.flex.flex-col.rounded-lg.border {
+  border-color: var(--docs-cue-border);
+}
+
+.docs-site :where([data-search-full], [data-theme-toggle], button.border):hover,
+.docs-site article div[class~="@container"].grid > a.flex.flex-col.rounded-lg.border:hover {
+  border-color: var(--docs-cue-border-hover);
+}
+
 .docs-site article {
   --fd-docs-row-2: minmax(0, 48rem);
 }
@@ -81,4 +95,7 @@
 
 @media (min-width: 1280px) {
   .docs-site #nd-docs-layout { --fd-toc-width: 268px; }
+  .docs-site #nd-docs-layout:has(#nd-page[data-full="true"]) {
+    --fd-toc-width: 0px;
+  }
 }

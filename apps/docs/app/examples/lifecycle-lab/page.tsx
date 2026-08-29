@@ -33,7 +33,7 @@ export default function LifecycleLabPage() {
           mainEntityOfPage: absoluteUrl("/examples/lifecycle-lab"),
         }}
       />
-      <DocsPage toc={[]}>
+      <DocsPage toc={[]} full>
         <DocsTitle>See the library at work</DocsTitle>
         <DocsDescription>
           Run response, tool, retry, and approval scenarios through the real
