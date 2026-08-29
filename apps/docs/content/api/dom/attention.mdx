@@ -1,0 +1,202 @@
+---
+title: "createAttentionStore"
+description:
+  "A store that uses page visibility, window focus, the focused area, and
+  response visibility to estimate where the user is working."
+publicPath: "/api/dom/attention"
+section: "DOM"
+keywords:
+  [
+    "createAttentionStore",
+    "AttentionStore",
+    "AttentionSnapshot",
+    "registerComposer",
+  ]
+related: []
+order: 12
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/dom/attention",
+  section: "DOM",
+  related: [],
+  order: 12,
+};
+
+export const searchableText = [
+  "createAttentionStore",
+  "A store that uses page visibility, window focus, the focused area, and response visibility to estimate where the user is working.",
+  "DOM",
+  "createAttentionStore",
+  "AttentionStore",
+  "AttentionSnapshot",
+  "registerComposer",
+  "signature",
+  "Create and register app elements",
+  "AttentionStore reads browser focus and visibility. It does not inspect a screen reader's cursor or move focus.",
+  "typescript",
+  "const attention = createAttentionStore({ document }); const unregisterComposer = attention.registerComposer(composer); const unregisterConversation = attention.registerConversation(conversation); const unregisterNewest = attention.registerNewestResponse(latestResponse); const unsubscribe = attention.subscribe(() => { console.log(attention.getSnapshot()); }); unsubscribe(); unregisterNewest(); unregisterConversation(); unregisterComposer(); attention.dispose();",
+  "Read browser signals",
+  "AttentionStore reads document visibility, window focus, element focus, and intersection changes.",
+  "Register app areas",
+  "Register the composer, conversation history, and newest response so the store can identify them.",
+  "Clean up",
+  "Each registration and subscription returns its own cleanup function.",
+  "options",
+  "AttentionStoreOptions",
+  "Optional",
+  "browser document",
+  "Injects the document, intersection observer factory, and observer configuration.",
+  "return",
+  "AttentionStore",
+  "Return",
+  "n/a",
+  "External store with snapshots, registrations, subscriptions, and disposal.",
+  "snapshot",
+  "AttentionSnapshot",
+  "A field stays unknown when the browser cannot provide enough information. AttentionStore never guesses.",
+  "Field",
+  "Values",
+  "Browser signal",
+  "visibility",
+  "visible, hidden, unknown",
+  "Document visibility",
+  "windowFocus",
+  "focused, blurred, unknown",
+  "Window focus",
+  "focusArea",
+  "composer, conversation, elsewhere, none, unknown",
+  "Deep active element",
+  "newestResponse",
+  "visible, outside, unobserved, unknown",
+  "Intersection observer",
+  "mode",
+  "foreground, background, reading-history, away, unknown",
+  "Derived from the fields above",
+].join("\n");
+
+<span id="signature"></span>
+
+## Create and register app elements
+
+AttentionStore reads browser focus and visibility. It does not inspect a screen
+reader's cursor or move focus.
+
+{/* prettier-ignore */}
+```typescript
+const attention = createAttentionStore({ document });
+
+const unregisterComposer = attention.registerComposer(composer);
+const unregisterConversation = attention.registerConversation(conversation);
+const unregisterNewest = attention.registerNewestResponse(latestResponse);
+
+const unsubscribe = attention.subscribe(() => {
+  console.log(attention.getSnapshot());
+});
+
+unsubscribe();
+unregisterNewest();
+unregisterConversation();
+unregisterComposer();
+attention.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Read browser signals
+
+AttentionStore reads document visibility, window focus, element focus, and
+intersection changes.
+
+</Step>
+
+<Step>
+
+### Register app areas
+
+Register the composer, conversation history, and newest response so the store
+can identify them.
+
+</Step>
+
+<Step>
+
+### Clean up
+
+Each registration and subscription returns its own cleanup function.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    options: {
+      type: <>AttentionStoreOptions</>,
+      default: <>browser document</>,
+      description: (
+        <>
+          Injects the document, intersection observer factory, and observer
+          configuration.
+        </>
+      ),
+    },
+    return: {
+      type: <>AttentionStore</>,
+      description: (
+        <>
+          Return. External store with snapshots, registrations, subscriptions,
+          and disposal.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="snapshot"></span>
+
+## AttentionSnapshot
+
+A field stays unknown when the browser cannot provide enough information.
+AttentionStore never guesses.
+
+<table aria-label="AttentionSnapshot table">
+  <thead>
+    <tr>
+      <th>Field</th>
+      <th>Values</th>
+      <th>Browser signal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>visibility</td>
+      <td>visible, hidden, unknown</td>
+      <td>Document visibility</td>
+    </tr>
+    <tr>
+      <td>windowFocus</td>
+      <td>focused, blurred, unknown</td>
+      <td>Window focus</td>
+    </tr>
+    <tr>
+      <td>focusArea</td>
+      <td>composer, conversation, elsewhere, none, unknown</td>
+      <td>Deep active element</td>
+    </tr>
+    <tr>
+      <td>newestResponse</td>
+      <td>visible, outside, unobserved, unknown</td>
+      <td>Intersection observer</td>
+    </tr>
+    <tr>
+      <td>mode</td>
+      <td>foreground, background, reading&#45;history, away, unknown</td>
+      <td>Derived from the fields above</td>
+    </tr>
+  </tbody>
+</table>

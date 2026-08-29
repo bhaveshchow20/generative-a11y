@@ -1,0 +1,514 @@
+---
+title: "@generative-a11y/devtools"
+description:
+  "Create a bounded redacted diagnostic store and an explicit browser
+  Accessibility Trace Explorer for development."
+publicPath: "/api/devtools"
+section: "Devtools"
+keywords:
+  [
+    "createDevtoolsStore",
+    "mountDevtoolsOverlay",
+    "DevtoolsStore",
+    "trace explorer",
+  ]
+related:
+  ["/docs/devtools", "/api/core/diagnostics", "/api/dom/create-dom-announcer"]
+order: 22
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/devtools",
+  section: "Devtools",
+  related: [
+    "/docs/devtools",
+    "/api/core/diagnostics",
+    "/api/dom/create-dom-announcer",
+  ],
+  order: 22,
+};
+
+export const searchableText = [
+  "@generative-a11y/devtools",
+  "Create a bounded redacted diagnostic store and an explicit browser Accessibility Trace Explorer for development.",
+  "Devtools",
+  "createDevtoolsStore",
+  "mountDevtoolsOverlay",
+  "DevtoolsStore",
+  "trace explorer",
+  "/docs/devtools",
+  "/api/core/diagnostics",
+  "/api/dom/create-dom-announcer",
+  "store",
+  "createDevtoolsStore",
+  "The headless store is framework-neutral and has no browser side effects on import. It subscribes to public runtime diagnostics and owns only its bounded captured history.",
+  "typescript",
+  'import { createDevtoolsStore } from "@generative-a11y/devtools"; const store = createDevtoolsStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const snapshot = store.getSnapshot(); const trace = store.exportTrace(); detach(); store.dispose();',
+  "Bound retained records",
+  "maxEntries defaults to 250 and must be a positive safe integer.",
+  "Attach public diagnostics",
+  "attachRuntime borrows subscribeDiagnosticEvents and getDiagnosticSnapshot from core.",
+  "Read or export",
+  "Snapshots and V1 trace exports are immutable and content-free.",
+  "Release capture",
+  "Detach the borrowed runtime before disposing the store.",
+  "createDevtoolsStore(options)",
+  "DevtoolsStore",
+  "Function",
+  "maxEntries: 250",
+  "Creates an isolated store with bounded records and no attached runtimes.",
+  "attachRuntime({ id, runtime, source? })",
+  "() => void",
+  "Method",
+  "n/a",
+  "Attaches public core diagnostics under a stable ID and returns idempotent detach.",
+  "source",
+  "DevtoolsRuntimeSource",
+  "Optional attach option",
+  "undefined",
+  "Records the adapter name, documented public evidence, and declared fidelity supplied by the integration.",
+  "recordDelivery(input)",
+  "void",
+  "Method",
+  "n/a",
+  "Adds validated content-free DOM delivery evidence correlated by safe IDs.",
+  "exportTrace()",
+  "DevtoolsTraceExportV1",
+  "Method",
+  "n/a",
+  "Refreshes runtime snapshots and exports the schema-versioned redacted trace.",
+  "capture-controls",
+  "Capture controls and ownership",
+  "pauseCapture and resumeCapture affect devtools capture only. They do not pause runtime scheduling or browser delivery. clear removes records without detaching runtimes; dispose detaches runtimes and removes subscribers.",
+  "getSnapshot()",
+  "DevtoolsSnapshot",
+  "Method",
+  "n/a",
+  "Returns a cached immutable view until captured state changes.",
+  "subscribe(listener)",
+  "() => void",
+  "Method",
+  "n/a",
+  "Observes store changes with an idempotent unsubscribe function.",
+  "pauseCapture() / resumeCapture()",
+  "void",
+  "Method",
+  "n/a",
+  "Controls diagnostic retention without changing the observed runtimes.",
+  "refreshSnapshots()",
+  "void",
+  "Method",
+  "n/a",
+  "Requests fresh content-free snapshots from attached runtimes without changing their state.",
+  "clear() / dispose()",
+  "void",
+  "Method",
+  "n/a",
+  "Clears captured state or releases all store-owned resources.",
+  "trace-contracts",
+  "Snapshot and trace contracts",
+  "Devtools snapshots and V1 exports contain redacted records, runtime snapshots, and declared adapter sources. The bounded record list reports how much older data it dropped.",
+  "droppedCount",
+  "number",
+  "Snapshot and export",
+  "0",
+  "Counts records removed from the ring buffer since the last clear.",
+  "runtimeSourceId",
+  "string",
+  "Optional record field",
+  "undefined",
+  "Connects a record to an immutable adapter evidence revision without copying that metadata into each record.",
+  "records",
+  "readonly DevtoolsRecord[]",
+  "Snapshot and export",
+  "[]",
+  "Contains redacted events, decisions, and optional DOM delivery results in capture order.",
+  "runtimeSnapshots",
+  "Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>",
+  "Snapshot and export",
+  "{}",
+  "Stores the latest content-free core snapshot for each attached runtime.",
+  "runtimeSources",
+  "Readonly<Record<string, DevtoolsRuntimeSource>>",
+  "Snapshot and export",
+  "{}",
+  "Stores immutable adapter evidence revisions still referenced by retained records.",
+  "overlay",
+  "mountDevtoolsOverlay",
+  "Import the browser helper from @generative-a11y/devtools/overlay. It mounts one Shadow DOM host after an explicit call, starts collapsed, and restores prior focus when closed.",
+  "typescript",
+  'import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay"; const overlay = mountDevtoolsOverlay({ store }); overlay.dispose();',
+  "Pass the store",
+  "The overlay reads the store you created and does not attach a runtime itself.",
+  "Mount explicitly",
+  "Importing the package does not create browser UI or global shortcuts.",
+  "Dispose the host",
+  "dispose unmounts the workbench and removes the custom element.",
+  "store",
+  "DevtoolsStore",
+  "Required",
+  "n/a",
+  "Supplies the captured records and control methods displayed by the overlay.",
+  "document",
+  "Document",
+  "Optional",
+  "global document",
+  "Selects the document that receives the Shadow DOM host.",
+  "copyText",
+  "(value) => void | Promise<void>",
+  "Optional",
+  "Clipboard API",
+  "Overrides trace copying for hosts that provide their own clipboard bridge.",
+  "host",
+  "HTMLElement",
+  "Return field",
+  "n/a",
+  "Exposes the mounted custom element for inspection or host-controlled placement.",
+  "dispose()",
+  "void",
+  "Return method",
+  "n/a",
+  "Unmounts the workbench and removes its host. Repeated calls are safe.",
+  "Captured runtime and browser evidence does not prove that assistive technology spoke an announcement.",
+].join("\n");
+
+<span id="store"></span>
+
+## createDevtoolsStore
+
+The headless store is framework&#45;neutral and has no browser side effects on
+import. It subscribes to public runtime diagnostics and owns only its bounded
+captured history.
+
+{/* prettier-ignore */}
+```typescript
+import { createDevtoolsStore } from "@generative-a11y/devtools";
+
+const store = createDevtoolsStore({ maxEntries: 250 });
+const detach = store.attachRuntime({ id: "support", runtime });
+const snapshot = store.getSnapshot();
+const trace = store.exportTrace();
+
+detach();
+store.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Bound retained records
+
+maxEntries defaults to 250 and must be a positive safe integer.
+
+</Step>
+
+<Step>
+
+### Attach public diagnostics
+
+attachRuntime borrows subscribeDiagnosticEvents and getDiagnosticSnapshot from
+core.
+
+</Step>
+
+<Step>
+
+### Read or export
+
+Snapshots and V1 trace exports are immutable and content&#45;free.
+
+</Step>
+
+<Step>
+
+### Release capture
+
+Detach the borrowed runtime before disposing the store.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "createDevtoolsStore(options)": {
+      type: <>DevtoolsStore</>,
+      default: <>maxEntries: 250</>,
+      description: (
+        <>
+          Function. Creates an isolated store with bounded records and no
+          attached runtimes.
+        </>
+      ),
+    },
+    "attachRuntime({ id, runtime, source? })": {
+      type: <>() &#61;&#62; void</>,
+      description: (
+        <>
+          Method. Attaches public core diagnostics under a stable ID and returns
+          idempotent detach.
+        </>
+      ),
+    },
+    source: {
+      type: <>DevtoolsRuntimeSource</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Optional attach option. Records the adapter name, documented public
+          evidence, and declared fidelity supplied by the integration.
+        </>
+      ),
+    },
+    "recordDelivery(input)": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Adds validated content&#45;free DOM delivery evidence
+          correlated by safe IDs.
+        </>
+      ),
+    },
+    "exportTrace()": {
+      type: <>DevtoolsTraceExportV1</>,
+      description: (
+        <>
+          Method. Refreshes runtime snapshots and exports the
+          schema&#45;versioned redacted trace.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="capture&#45;controls"></span>
+
+## Capture controls and ownership
+
+pauseCapture and resumeCapture affect devtools capture only. They do not pause
+runtime scheduling or browser delivery. clear removes records without detaching
+runtimes; dispose detaches runtimes and removes subscribers.
+
+<TypeTable
+  type={{
+    "getSnapshot()": {
+      type: <>DevtoolsSnapshot</>,
+      description: (
+        <>
+          Method. Returns a cached immutable view until captured state changes.
+        </>
+      ),
+    },
+    "subscribe(listener)": {
+      type: <>() &#61;&#62; void</>,
+      description: (
+        <>
+          Method. Observes store changes with an idempotent unsubscribe
+          function.
+        </>
+      ),
+    },
+    "pauseCapture() / resumeCapture()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Controls diagnostic retention without changing the observed
+          runtimes.
+        </>
+      ),
+    },
+    "refreshSnapshots()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Requests fresh content&#45;free snapshots from attached
+          runtimes without changing their state.
+        </>
+      ),
+    },
+    "clear() / dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Clears captured state or releases all store&#45;owned
+          resources.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="trace&#45;contracts"></span>
+
+## Snapshot and trace contracts
+
+Devtools snapshots and V1 exports contain redacted records, runtime snapshots,
+and declared adapter sources. The bounded record list reports how much older
+data it dropped.
+
+<TypeTable
+  type={{
+    droppedCount: {
+      type: <>number</>,
+      default: <>0</>,
+      description: (
+        <>
+          Snapshot and export. Counts records removed from the ring buffer since
+          the last clear.
+        </>
+      ),
+    },
+    runtimeSourceId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Optional record field. Connects a record to an immutable adapter
+          evidence revision without copying that metadata into each record.
+        </>
+      ),
+    },
+    records: {
+      type: <>readonly DevtoolsRecord&#91;&#93;</>,
+      default: <>&#91;&#93;</>,
+      description: (
+        <>
+          Snapshot and export. Contains redacted events, decisions, and optional
+          DOM delivery results in capture order.
+        </>
+      ),
+    },
+    runtimeSnapshots: {
+      type: (
+        <>Readonly&lt;Record&lt;string, RuntimeDiagnosticSnapshotV1&#62;&#62;</>
+      ),
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Snapshot and export. Stores the latest content&#45;free core snapshot
+          for each attached runtime.
+        </>
+      ),
+    },
+    runtimeSources: {
+      type: <>Readonly&lt;Record&lt;string, DevtoolsRuntimeSource&#62;&#62;</>,
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Snapshot and export. Stores immutable adapter evidence revisions still
+          referenced by retained records.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="overlay"></span>
+
+## mountDevtoolsOverlay
+
+Import the browser helper from @generative&#45;a11y/devtools/overlay. It mounts
+one Shadow DOM host after an explicit call, starts collapsed, and restores prior
+focus when closed.
+
+{/* prettier-ignore */}
+```typescript
+import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+
+const overlay = mountDevtoolsOverlay({ store });
+overlay.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Pass the store
+
+The overlay reads the store you created and does not attach a runtime itself.
+
+</Step>
+
+<Step>
+
+### Mount explicitly
+
+Importing the package does not create browser UI or global shortcuts.
+
+</Step>
+
+<Step>
+
+### Dispose the host
+
+dispose unmounts the workbench and removes the custom element.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    store: {
+      type: <>DevtoolsStore</>,
+      required: true,
+      description: (
+        <>
+          Supplies the captured records and control methods displayed by the
+          overlay.
+        </>
+      ),
+    },
+    document: {
+      type: <>Document</>,
+      default: <>global document</>,
+      description: <>Selects the document that receives the Shadow DOM host.</>,
+    },
+    copyText: {
+      type: <>(value) &#61;&#62; void &#124; Promise&lt;void&#62;</>,
+      default: <>Clipboard API</>,
+      description: (
+        <>
+          Overrides trace copying for hosts that provide their own clipboard
+          bridge.
+        </>
+      ),
+    },
+    host: {
+      type: <>HTMLElement</>,
+      description: (
+        <>
+          Return field. Exposes the mounted custom element for inspection or
+          host&#45;controlled placement.
+        </>
+      ),
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Return method. Unmounts the workbench and removes its host. Repeated
+          calls are safe.
+        </>
+      ),
+    },
+  }}
+/>
+
+<Callout title="Evidence and testing note">
+
+Captured runtime and browser evidence does not prove that assistive technology
+spoke an announcement.
+
+</Callout>
+
+## Related
+
+- [/docs/devtools](/docs/devtools)
+- [/api/core/diagnostics](/api/core/diagnostics)
+- [/api/dom/create-dom-announcer](/api/dom/create-dom-announcer)

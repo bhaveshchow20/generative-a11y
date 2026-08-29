@@ -1,0 +1,229 @@
+---
+title: "Troubleshooting"
+description:
+  "Fix missing, repeated, late, delayed, or noisy announcements by checking each
+  step from the framework event to the browser update."
+publicPath: "/docs/troubleshooting"
+section: "Accessibility and testing"
+keywords:
+  [
+    "troubleshooting",
+    "nothing announced",
+    "duplicate",
+    "stale",
+    "diagnostics",
+    "SSR",
+    "delivery",
+  ]
+related: []
+order: 20
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/troubleshooting",
+  section: "Accessibility and testing",
+  related: [],
+  order: 20,
+};
+
+export const searchableText = [
+  "Troubleshooting",
+  "Fix missing, repeated, late, delayed, or noisy announcements by checking each step from the framework event to the browser update.",
+  "Accessibility and testing",
+  "troubleshooting",
+  "nothing announced",
+  "duplicate",
+  "stale",
+  "diagnostics",
+  "SSR",
+  "delivery",
+  "nothing-announced",
+  "Nothing is announced",
+  "First check that the runtime receives a started event, new text only, and one completed, failed, or interrupted event with the same response ID. Then check runtime diagnostics and the browser result separately.",
+  "Confirm the announcement listener or DOM binding is attached before dispatch.",
+  "Complete a sentence or dispatch response.completed so buffered text can flush.",
+  "Check for policy-silent, empty-text, unknown-response, or runtime-disposed diagnostics.",
+  "Check DOMDeliveryResult for unavailable or disposed delivery.",
+  "A successful page update does not confirm what a screen reader spoke. Test that separately.",
+  "repeated-output",
+  "Output repeats or arrives too often",
+  "response.text.delta must contain only the text that just arrived. If you send the full response every time, earlier text may be announced again.",
+  "Dispatch append-only deltas rather than accumulated message text.",
+  "Keep responseId and responseInstanceId stable for one active attempt.",
+  "Increase text.minimumCharacters or minimumGapMs when valid updates are too granular.",
+  "Inspect duplicate and coalesced diagnostics before changing policy.",
+  "stale-output",
+  "Old output appears after retry",
+  "A retry must replace the active response attempt. Core ignores late updates from older attempts and reports stale-response diagnostics.",
+  "Send response.retrying with the replaced and next response instance IDs.",
+  "Attach the new responseInstanceId to each later text event and final event.",
+  "Do not reuse a completed or interrupted response instance.",
+  "If the framework does not provide retry IDs, report retry events directly from your app instead of guessing.",
+  "tool-noise",
+  "Tool progress is too noisy",
+  "Keep each tool ID stable and use short, translated labels. To reduce noise, adjust the start delay and progress settings instead of filtering announcements after they are created.",
+  "Delay tool starts with tools.announceStartAfterMs so fast operations can finish quietly.",
+  "Raise tools.progressEveryPercent or disable progress announcements.",
+  "Never copy raw arguments, results, or backend errors into user-facing labels.",
+  "diagnostics",
+  "Use diagnostics to find the first problem",
+  "Each diagnostic says what the runtime did and why. Start with the first unexpected result instead of looking only at the final browser update.",
+  "Reason",
+  "Meaning",
+  "First check",
+  "policy-silent",
+  "Active policy suppresses this event",
+  "Preset and explicit policy overrides",
+  "unknown-response or unknown-tool",
+  "No active matching identity exists",
+  "Started event order and IDs",
+  "stale-response or stale-tool",
+  "Event belongs to a replaced execution",
+  "Instance identity propagation",
+  "progress-threshold",
+  "Progress did not cross the configured bucket",
+  "progressEveryPercent",
+  "queue-capacity",
+  "Bounded scheduler rejected additional work",
+  "Producer rate and maxQueueSize",
+  "delivery-error",
+  "Every announcement listener failed",
+  "Listener exceptions and onDeliveryError",
+  "delivered",
+  "Listeners accepted the prepared announcement",
+  "Check the DOM result, then test with a screen reader",
+  "trace-explorer",
+  "Inspect a redacted trace during development",
+  "Use @generative-a11y/devtools when a single diagnostic is not enough to explain the event sequence. Its bounded store connects source events, runtime decisions, snapshots, and optional DOM delivery results without retaining response text, labels, tool data, or page content.",
+  "Attach the store to an existing runtime and give that runtime a stable development ID.",
+  "Forward DOMDeliveryResult values to recordDelivery when you need browser correlation.",
+  "Pause or clear capture without changing runtime scheduling or browser delivery.",
+  "Treat the trace as debugging evidence, not proof of screen-reader speech.",
+].join("\n");
+
+<span id="nothing&#45;announced"></span>
+
+## Nothing is announced
+
+First check that the runtime receives a started event, new text only, and one
+completed, failed, or interrupted event with the same response ID. Then check
+runtime diagnostics and the browser result separately.
+
+- Confirm the announcement listener or DOM binding is attached before dispatch.
+- Complete a sentence or dispatch response.completed so buffered text can flush.
+- Check for policy&#45;silent, empty&#45;text, unknown&#45;response, or
+  runtime&#45;disposed diagnostics.
+- Check DOMDeliveryResult for unavailable or disposed delivery.
+- A successful page update does not confirm what a screen reader spoke. Test
+  that separately.
+
+<span id="repeated&#45;output"></span>
+
+## Output repeats or arrives too often
+
+response.text.delta must contain only the text that just arrived. If you send
+the full response every time, earlier text may be announced again.
+
+- Dispatch append&#45;only deltas rather than accumulated message text.
+- Keep responseId and responseInstanceId stable for one active attempt.
+- Increase text.minimumCharacters or minimumGapMs when valid updates are too
+  granular.
+- Inspect duplicate and coalesced diagnostics before changing policy.
+
+<span id="stale&#45;output"></span>
+
+## Old output appears after retry
+
+A retry must replace the active response attempt. Core ignores late updates from
+older attempts and reports stale&#45;response diagnostics.
+
+- Send response.retrying with the replaced and next response instance IDs.
+- Attach the new responseInstanceId to each later text event and final event.
+- Do not reuse a completed or interrupted response instance.
+- If the framework does not provide retry IDs, report retry events directly from
+  your app instead of guessing.
+
+<span id="tool&#45;noise"></span>
+
+## Tool progress is too noisy
+
+Keep each tool ID stable and use short, translated labels. To reduce noise,
+adjust the start delay and progress settings instead of filtering announcements
+after they are created.
+
+- Delay tool starts with tools.announceStartAfterMs so fast operations can
+  finish quietly.
+- Raise tools.progressEveryPercent or disable progress announcements.
+- Never copy raw arguments, results, or backend errors into user&#45;facing
+  labels.
+
+<span id="diagnostics"></span>
+
+## Use diagnostics to find the first problem
+
+Each diagnostic says what the runtime did and why. Start with the first
+unexpected result instead of looking only at the final browser update.
+
+<table aria-label="Use diagnostics to find the first problem table">
+  <thead>
+    <tr>
+      <th>Reason</th>
+      <th>Meaning</th>
+      <th>First check</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>policy&#45;silent</td>
+      <td>Active policy suppresses this event</td>
+      <td>Preset and explicit policy overrides</td>
+    </tr>
+    <tr>
+      <td>unknown&#45;response or unknown&#45;tool</td>
+      <td>No active matching identity exists</td>
+      <td>Started event order and IDs</td>
+    </tr>
+    <tr>
+      <td>stale&#45;response or stale&#45;tool</td>
+      <td>Event belongs to a replaced execution</td>
+      <td>Instance identity propagation</td>
+    </tr>
+    <tr>
+      <td>progress&#45;threshold</td>
+      <td>Progress did not cross the configured bucket</td>
+      <td>progressEveryPercent</td>
+    </tr>
+    <tr>
+      <td>queue&#45;capacity</td>
+      <td>Bounded scheduler rejected additional work</td>
+      <td>Producer rate and maxQueueSize</td>
+    </tr>
+    <tr>
+      <td>delivery&#45;error</td>
+      <td>Every announcement listener failed</td>
+      <td>Listener exceptions and onDeliveryError</td>
+    </tr>
+    <tr>
+      <td>delivered</td>
+      <td>Listeners accepted the prepared announcement</td>
+      <td>Check the DOM result, then test with a screen reader</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="trace&#45;explorer"></span>
+
+## Inspect a redacted trace during development
+
+Use @generative&#45;a11y/devtools when a single diagnostic is not enough to
+explain the event sequence. Its bounded store connects source events, runtime
+decisions, snapshots, and optional DOM delivery results without retaining
+response text, labels, tool data, or page content.
+
+- Attach the store to an existing runtime and give that runtime a stable
+  development ID.
+- Forward DOMDeliveryResult values to recordDelivery when you need browser
+  correlation.
+- Pause or clear capture without changing runtime scheduling or browser
+  delivery.
+- Treat the trace as debugging evidence, not proof of screen&#45;reader speech.

@@ -1,0 +1,170 @@
+---
+title: "Why generative AI needs an accessibility runtime"
+description:
+  "Learn why streaming responses, tool calls, approvals, retries, and failures
+  need more than ordinary chat accessibility patterns."
+publicPath: "/docs/why-generative-a11y"
+section: "Concepts"
+keywords:
+  [
+    "AI accessibility",
+    "generative AI accessibility",
+    "accessible AI interfaces",
+    "AI accessibility library",
+  ]
+related:
+  [
+    "/docs/architecture",
+    "/docs/screen-readers-and-streaming-ai",
+    "/docs/integrations",
+  ]
+order: 2
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/why-generative-a11y",
+  section: "Concepts",
+  related: [
+    "/docs/architecture",
+    "/docs/screen-readers-and-streaming-ai",
+    "/docs/integrations",
+  ],
+  order: 2,
+};
+
+export const searchableText = [
+  "Why generative AI needs an accessibility runtime",
+  "Learn why streaming responses, tool calls, approvals, retries, and failures need more than ordinary chat accessibility patterns.",
+  "Concepts",
+  "AI accessibility",
+  "generative AI accessibility",
+  "accessible AI interfaces",
+  "AI accessibility library",
+  "/docs/architecture",
+  "/docs/screen-readers-and-streaming-ai",
+  "/docs/integrations",
+  "the-gap",
+  "AI interfaces change after the user acts",
+  "A conventional form usually has a short, predictable transition: submit, validate, and show a result. An AI interface can stream a response for many seconds, start tools, pause for approval, reconnect, retry, and finish long after focus has moved elsewhere.",
+  "Semantic HTML, keyboard access, visible status, and sensible focus remain required. They do not by themselves decide which asynchronous changes deserve an announcement, how repeated changes should be grouped, or when lower-priority updates should wait.",
+  "failure-modes",
+  "Naive announcements create new barriers",
+  "Putting a changing transcript in an ARIA live region can announce partial tokens, repeat the growing response, interrupt more important information, or leave stale work queued after a retry. Moving focus for routine streaming and status changes is more disruptive because it changes the user's reading position.",
+  "Partial words and token-sized updates are difficult to understand.",
+  "Re-announcing the full accumulated response repeats content.",
+  "Tool progress can overwhelm the response the user asked for.",
+  "Approval and failure states can arrive behind low-priority updates.",
+  "Retries can make announcements from an obsolete response misleading.",
+  "runtime-role",
+  "Put policy between lifecycle state and browser delivery",
+  "generative-a11y accepts confirmed lifecycle events from the application or a thin framework adapter. Core segments response text, prioritizes important states, removes duplicates, coalesces updates, bounds queued work, and produces announcement intents. The DOM package then performs browser delivery without altering the visible interface.",
+  "This boundary keeps framework state, accessibility policy, and DOM behavior independently testable. It also makes fidelity explicit: when an adapter cannot observe a retry or connection event through a documented public API, it reports that limitation instead of guessing.",
+  "Deterministic runtime transcripts and DOM tests show what the library prepared or added to the page. They do not prove what a particular screen reader spoke.",
+  "start",
+  "Choose the smallest supported integration",
+  "Start with the framework-neutral core and DOM packages when your application already owns lifecycle state. Use the React layer for provider and element bindings. Add the AI SDK, assistant-ui, or AG-UI adapter only when the application uses that framework's documented public lifecycle surface.",
+  "Need",
+  "Read next",
+  "Install a custom integration",
+  "Getting started",
+  "Understand streaming announcements",
+  "Screen readers and streaming AI",
+  "Choose a framework adapter",
+  "Choose an integration",
+  "Test browser and assistive-technology behavior",
+  "Testing",
+].join("\n");
+
+<span id="the&#45;gap"></span>
+
+## AI interfaces change after the user acts
+
+A conventional form usually has a short, predictable transition: submit,
+validate, and show a result. An AI interface can stream a response for many
+seconds, start tools, pause for approval, reconnect, retry, and finish long
+after focus has moved elsewhere.
+
+Semantic HTML, keyboard access, visible status, and sensible focus remain
+required. They do not by themselves decide which asynchronous changes deserve an
+announcement, how repeated changes should be grouped, or when lower&#45;priority
+updates should wait.
+
+<span id="failure&#45;modes"></span>
+
+## Naive announcements create new barriers
+
+Putting a changing transcript in an ARIA live region can announce partial
+tokens, repeat the growing response, interrupt more important information, or
+leave stale work queued after a retry. Moving focus for routine streaming and
+status changes is more disruptive because it changes the user's reading
+position.
+
+- Partial words and token&#45;sized updates are difficult to understand.
+- Re&#45;announcing the full accumulated response repeats content.
+- Tool progress can overwhelm the response the user asked for.
+- Approval and failure states can arrive behind low&#45;priority updates.
+- Retries can make announcements from an obsolete response misleading.
+
+<span id="runtime&#45;role"></span>
+
+## Put policy between lifecycle state and browser delivery
+
+generative&#45;a11y accepts confirmed lifecycle events from the application or a
+thin framework adapter. Core segments response text, prioritizes important
+states, removes duplicates, coalesces updates, bounds queued work, and produces
+announcement intents. The DOM package then performs browser delivery without
+altering the visible interface.
+
+This boundary keeps framework state, accessibility policy, and DOM behavior
+independently testable. It also makes fidelity explicit: when an adapter cannot
+observe a retry or connection event through a documented public API, it reports
+that limitation instead of guessing.
+
+<Callout title="Evidence and testing note">
+
+Deterministic runtime transcripts and DOM tests show what the library prepared
+or added to the page. They do not prove what a particular screen reader spoke.
+
+</Callout>
+
+<span id="start"></span>
+
+## Choose the smallest supported integration
+
+Start with the framework&#45;neutral core and DOM packages when your application
+already owns lifecycle state. Use the React layer for provider and element
+bindings. Add the AI SDK, assistant&#45;ui, or AG&#45;UI adapter only when the
+application uses that framework's documented public lifecycle surface.
+
+<table aria-label="Choose the smallest supported integration table">
+  <thead>
+    <tr>
+      <th>Need</th>
+      <th>Read next</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Install a custom integration</td>
+      <td>Getting started</td>
+    </tr>
+    <tr>
+      <td>Understand streaming announcements</td>
+      <td>Screen readers and streaming AI</td>
+    </tr>
+    <tr>
+      <td>Choose a framework adapter</td>
+      <td>Choose an integration</td>
+    </tr>
+    <tr>
+      <td>Test browser and assistive&#45;technology behavior</td>
+      <td>Testing</td>
+    </tr>
+  </tbody>
+</table>
+
+## Related
+
+- [/docs/architecture](/docs/architecture)
+- [/docs/screen-readers-and-streaming-ai](/docs/screen-readers-and-streaming-ai)
+- [/docs/integrations](/docs/integrations)

@@ -1,0 +1,249 @@
+---
+title: "Testing integrations"
+description:
+  "Test patterns for adapters, runtime behavior, browser delivery, and hands-on
+  screen-reader checks."
+publicPath: "/docs/testing"
+section: "Accessibility and testing"
+keywords: ["testing", "ManualClock", "Vitest", "Playwright", "screen reader"]
+related: []
+order: 19
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/testing",
+  section: "Accessibility and testing",
+  related: [],
+  order: 19,
+};
+
+export const searchableText = [
+  "Testing integrations",
+  "Test patterns for adapters, runtime behavior, browser delivery, and hands-on screen-reader checks.",
+  "Accessibility and testing",
+  "testing",
+  "ManualClock",
+  "Vitest",
+  "Playwright",
+  "screen reader",
+  "test-layers",
+  "Test each layer separately",
+  "A runtime transcript shows what core prepared. A DOM test shows how the page changed. Test with a real screen reader to confirm what it speaks.",
+  "Layer",
+  "Check",
+  "Does not confirm",
+  "Adapter",
+  "Events and stable IDs",
+  "Announcements",
+  "Core",
+  "Prepared updates, timing, suppression, cancellation",
+  "Browser behavior",
+  "DOM",
+  "Browser results and page updates",
+  "Screen-reader speech",
+  "Browser",
+  "Keyboard, landmarks, focus, live regions",
+  "Every screen reader and browser combination",
+  "Hands-on screen-reader test",
+  "One user workflow",
+  "Behavior in every environment",
+  "browser-matrix",
+  "Test every supported browser engine",
+  "Browser fixtures run in Chromium, Firefox, and WebKit. They check keyboard use, stable focus, page landmarks, live regions, and page announcements.",
+  "shell",
+  "pnpm test:browser:install pnpm test:browser",
+  "Install engines",
+  "Repository scripts install the Chromium, Firefox, and WebKit versions used by tests.",
+  "Run browser tests",
+  "This command runs cross-browser accessibility fixtures and documentation checks.",
+  "Interpret the result",
+  "A passing browser test confirms browser behavior, not screen-reader speech.",
+  "at-fixture",
+  "Test a realistic app workflow",
+  "Fixtures cover streaming text, tool updates, stopping, retrying, and browser announcements. Each assertion names the behavior it checks.",
+  "Run the same scenarios in all three browser engines.",
+  "Check that streaming and status updates do not move focus.",
+  "Connect each app event to the runtime update and the resulting page change.",
+  "Keep controls and visible status usable without the library.",
+  "manual-evidence",
+  "Record hands-on screen-reader tests",
+  "For each release, record the date, browser, operating system, screen reader and version, workflow, expected result, actual result, and outcome. Repository validation checks every required field.",
+  "One test describes one setup and workflow. It does not guarantee the same result with every screen reader and browser.",
+  "clock",
+  "Use ManualClock for time-dependent behavior",
+  "Advance the test clock instead of waiting for real timers. Check diagnostics when the runtime intentionally skips an update.",
+  "typescript",
+  'const recorder = createAnnouncementRecorder({ preset: "balanced" }); const runtime = recorder.runtime; const clock = recorder.clock; runtime.dispatch(started); runtime.dispatch(delta); clock.advanceBy(2_000); expect(recorder.transcript()).toHaveLength(1);',
+  "Create the harness",
+  "createAnnouncementRecorder supplies a runtime and ManualClock.",
+  "Send app events",
+  "Use the same events your integration sends in the application.",
+  "Advance the clock",
+  "Tests stay fast and repeatable while checking delayed updates.",
+].join("\n");
+
+<span id="test&#45;layers"></span>
+
+## Test each layer separately
+
+A runtime transcript shows what core prepared. A DOM test shows how the page
+changed. Test with a real screen reader to confirm what it speaks.
+
+<table aria-label="Test each layer separately table">
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Check</th>
+      <th>Does not confirm</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Adapter</td>
+      <td>Events and stable IDs</td>
+      <td>Announcements</td>
+    </tr>
+    <tr>
+      <td>Core</td>
+      <td>Prepared updates, timing, suppression, cancellation</td>
+      <td>Browser behavior</td>
+    </tr>
+    <tr>
+      <td>DOM</td>
+      <td>Browser results and page updates</td>
+      <td>Screen&#45;reader speech</td>
+    </tr>
+    <tr>
+      <td>Browser</td>
+      <td>Keyboard, landmarks, focus, live regions</td>
+      <td>Every screen reader and browser combination</td>
+    </tr>
+    <tr>
+      <td>Hands&#45;on screen&#45;reader test</td>
+      <td>One user workflow</td>
+      <td>Behavior in every environment</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="browser&#45;matrix"></span>
+
+## Test every supported browser engine
+
+Browser fixtures run in Chromium, Firefox, and WebKit. They check keyboard use,
+stable focus, page landmarks, live regions, and page announcements.
+
+{/* prettier-ignore */}
+```shell
+pnpm test:browser:install
+pnpm test:browser
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Install engines
+
+Repository scripts install the Chromium, Firefox, and WebKit versions used by
+tests.
+
+</Step>
+
+<Step>
+
+### Run browser tests
+
+This command runs cross&#45;browser accessibility fixtures and documentation
+checks.
+
+</Step>
+
+<Step>
+
+### Interpret the result
+
+A passing browser test confirms browser behavior, not screen&#45;reader speech.
+
+</Step>
+
+</Steps>
+
+<span id="at&#45;fixture"></span>
+
+## Test a realistic app workflow
+
+Fixtures cover streaming text, tool updates, stopping, retrying, and browser
+announcements. Each assertion names the behavior it checks.
+
+- Run the same scenarios in all three browser engines.
+- Check that streaming and status updates do not move focus.
+- Connect each app event to the runtime update and the resulting page change.
+- Keep controls and visible status usable without the library.
+
+<span id="manual&#45;evidence"></span>
+
+## Record hands&#45;on screen&#45;reader tests
+
+For each release, record the date, browser, operating system, screen reader and
+version, workflow, expected result, actual result, and outcome. Repository
+validation checks every required field.
+
+<Callout title="Evidence and testing note">
+
+One test describes one setup and workflow. It does not guarantee the same result
+with every screen reader and browser.
+
+</Callout>
+
+<span id="clock"></span>
+
+## Use ManualClock for time&#45;dependent behavior
+
+Advance the test clock instead of waiting for real timers. Check diagnostics
+when the runtime intentionally skips an update.
+
+{/* prettier-ignore */}
+```typescript
+const recorder = createAnnouncementRecorder({ preset: "balanced" });
+const runtime = recorder.runtime;
+const clock = recorder.clock;
+
+runtime.dispatch(started);
+runtime.dispatch(delta);
+clock.advanceBy(2_000);
+
+expect(recorder.transcript()).toHaveLength(1);
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create the harness
+
+createAnnouncementRecorder supplies a runtime and ManualClock.
+
+</Step>
+
+<Step>
+
+### Send app events
+
+Use the same events your integration sends in the application.
+
+</Step>
+
+<Step>
+
+### Advance the clock
+
+Tests stay fast and repeatable while checking delayed updates.
+
+</Step>
+
+</Steps>

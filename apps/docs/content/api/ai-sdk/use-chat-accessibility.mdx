@@ -1,0 +1,252 @@
+---
+title: "useChatAccessibility"
+description:
+  "Create the AI SDK observer and completion callbacks before calling useChat in
+  the same React component."
+publicPath: "/api/ai-sdk/use-chat-accessibility"
+section: "AI SDK"
+keywords:
+  [
+    "useChatAccessibility",
+    "useObserveChatAccessibility",
+    "ChatIntegration",
+    "useChat",
+  ]
+related: []
+order: 17
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/ai-sdk/use-chat-accessibility",
+  section: "AI SDK",
+  related: [],
+  order: 17,
+};
+
+export const searchableText = [
+  "useChatAccessibility",
+  "Create the AI SDK observer and completion callbacks before calling useChat in the same React component.",
+  "AI SDK",
+  "useChatAccessibility",
+  "useObserveChatAccessibility",
+  "ChatIntegration",
+  "useChat",
+  "complete-example",
+  "Complete useChat integration",
+  "Call useChatAccessibility first, pass chatCallbacks into useChat, then observe the documented snapshot.",
+  "tsx",
+  'const accessibility = useChatAccessibility({ runtime, scopeId: "support-thread", getToolLabel({ toolName }) { return toolName === "lookupOrder" ? "Look up order" : "A tool"; }, onFinish: hostOnFinish, onError: hostOnError, }); const chat = useChat({ id: "support-thread", ...accessibility.chatCallbacks, }); useObserveChatAccessibility({ integration: accessibility, snapshot: chat, });',
+  "Create callbacks first",
+  "useChatAccessibility creates one observer and callback pair for each runtime and scope.",
+  "Pass callbacks to useChat",
+  "Completion and error details reach the adapter and your existing callbacks.",
+  "Observe public state",
+  "useObserveChatAccessibility reads messages, status, and error after useChat returns.",
+  "Let the hook clean up",
+  "Unmounting disposes the observer and supports React Strict Mode remounts.",
+  "runtime",
+  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Required",
+  "n/a",
+  "Receives adapter events while remaining under your app's control.",
+  "scopeId",
+  "string",
+  "Required",
+  "n/a",
+  "Stable non-empty namespace for messages, tools, approvals, and citations.",
+  "maxTrackedEntities",
+  "number",
+  "Optional",
+  "1000",
+  "Bounds adapter identity memory and suppresses new identity after saturation.",
+  "getToolLabel",
+  "(context) => string",
+  "Optional",
+  '"A tool"',
+  "Maps public tool context to short localized copy without exposing arguments.",
+  "onFinish / onError",
+  "AI SDK callbacks",
+  "Optional",
+  "undefined",
+  "Your existing callbacks. chatCallbacks calls them after the adapter records the result.",
+  "return",
+  "ChatIntegration",
+  "Return",
+  "n/a",
+  "Observer plus onFinish and onError callbacks for useChat.",
+  "observe",
+  "useObserveChatAccessibility",
+  "useObserveChatAccessibility reads your ChatIntegration without disposing it.",
+  "integration",
+  "ChatIntegration",
+  "Required",
+  "n/a",
+  "Value returned by useChatAccessibility.",
+  "snapshot",
+  "UseChatSnapshot",
+  "Required",
+  "n/a",
+  "Documented messages, status, and error fields from useChat.",
+  "return",
+  "void",
+  "Return",
+  "n/a",
+  "Observation occurs in an effect after the snapshot commits.",
+].join("\n");
+
+<span id="complete&#45;example"></span>
+
+## Complete useChat integration
+
+Call useChatAccessibility first, pass chatCallbacks into useChat, then observe
+the documented snapshot.
+
+{/* prettier-ignore */}
+```tsx
+const accessibility = useChatAccessibility({
+  runtime,
+  scopeId: "support-thread",
+  getToolLabel({ toolName }) {
+    return toolName === "lookupOrder" ? "Look up order" : "A tool";
+  },
+  onFinish: hostOnFinish,
+  onError: hostOnError,
+});
+
+const chat = useChat({
+  id: "support-thread",
+  ...accessibility.chatCallbacks,
+});
+
+useObserveChatAccessibility({
+  integration: accessibility,
+  snapshot: chat,
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create callbacks first
+
+useChatAccessibility creates one observer and callback pair for each runtime and
+scope.
+
+</Step>
+
+<Step>
+
+### Pass callbacks to useChat
+
+Completion and error details reach the adapter and your existing callbacks.
+
+</Step>
+
+<Step>
+
+### Observe public state
+
+useObserveChatAccessibility reads messages, status, and error after useChat
+returns.
+
+</Step>
+
+<Step>
+
+### Let the hook clean up
+
+Unmounting disposes the observer and supports React Strict Mode remounts.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      required: true,
+      description: (
+        <>Receives adapter events while remaining under your app's control.</>
+      ),
+    },
+    scopeId: {
+      type: <>string</>,
+      required: true,
+      description: (
+        <>
+          Stable non&#45;empty namespace for messages, tools, approvals, and
+          citations.
+        </>
+      ),
+    },
+    maxTrackedEntities: {
+      type: <>number</>,
+      default: <>1000</>,
+      description: (
+        <>
+          Bounds adapter identity memory and suppresses new identity after
+          saturation.
+        </>
+      ),
+    },
+    getToolLabel: {
+      type: <>(context) &#61;&#62; string</>,
+      default: <>"A tool"</>,
+      description: (
+        <>
+          Maps public tool context to short localized copy without exposing
+          arguments.
+        </>
+      ),
+    },
+    "onFinish / onError": {
+      type: <>AI SDK callbacks</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Your existing callbacks. chatCallbacks calls them after the adapter
+          records the result.
+        </>
+      ),
+    },
+    return: {
+      type: <>ChatIntegration</>,
+      description: (
+        <>Return. Observer plus onFinish and onError callbacks for useChat.</>
+      ),
+    },
+  }}
+/>
+
+<span id="observe"></span>
+
+## useObserveChatAccessibility
+
+useObserveChatAccessibility reads your ChatIntegration without disposing it.
+
+<TypeTable
+  type={{
+    integration: {
+      type: <>ChatIntegration</>,
+      required: true,
+      description: <>Value returned by useChatAccessibility.</>,
+    },
+    snapshot: {
+      type: <>UseChatSnapshot</>,
+      required: true,
+      description: (
+        <>Documented messages, status, and error fields from useChat.</>
+      ),
+    },
+    return: {
+      type: <>void</>,
+      description: (
+        <>Return. Observation occurs in an effect after the snapshot commits.</>
+      ),
+    },
+  }}
+/>

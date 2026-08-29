@@ -1,0 +1,178 @@
+---
+title: "Accessible AI agents and tool execution"
+description:
+  "Design screen-reader announcements for AI agent progress, tool calls,
+  approvals, interruptions, failures, retries, and results."
+publicPath: "/docs/accessible-ai-agents"
+section: "Concepts"
+keywords:
+  [
+    "AI agent accessibility",
+    "accessible AI agents",
+    "tool call accessibility",
+    "AI approval accessibility",
+    "agent UI accessibility",
+  ]
+related:
+  [
+    "/docs/lifecycle/tools",
+    "/docs/lifecycle/interactions",
+    "/docs/integrations",
+  ]
+order: 5
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/accessible-ai-agents",
+  section: "Concepts",
+  related: [
+    "/docs/lifecycle/tools",
+    "/docs/lifecycle/interactions",
+    "/docs/integrations",
+  ],
+  order: 5,
+};
+
+export const searchableText = [
+  "Accessible AI agents and tool execution",
+  "Design screen-reader announcements for AI agent progress, tool calls, approvals, interruptions, failures, retries, and results.",
+  "Concepts",
+  "AI agent accessibility",
+  "accessible AI agents",
+  "tool call accessibility",
+  "AI approval accessibility",
+  "agent UI accessibility",
+  "/docs/lifecycle/tools",
+  "/docs/lifecycle/interactions",
+  "/docs/integrations",
+  "agent-lifecycle",
+  "Agent interfaces have more states than a chat transcript",
+  "An agent can start a long-running tool, report progress, request a decision, lose its connection, retry, and finish with a result. Visual indicators may make these transitions obvious, while a screen-reader user remains on the composer, transcript, or another part of the page.",
+  "Accessibility depends on communicating consequential state changes without narrating every internal operation. Announcements should describe the user-facing lifecycle, not expose raw tool payloads, backend errors, or chain-of-thought-like implementation detail.",
+  "event-model",
+  "Map confirmed agent state to normalized events",
+  "Dispatch tool.started when a named user-relevant operation begins, tool.progress only for meaningful milestones, and tool.completed or tool.failed at the confirmed terminal state. Use interaction.requested and interaction.resolved for approval or other user decisions. Report connection and response retry events only when the application or framework provides reliable evidence.",
+  "Agent state",
+  "Normalized event",
+  "Announcement purpose",
+  "Tool begins",
+  "tool.started",
+  "Set context for a user-relevant operation",
+  "Meaningful milestone",
+  "tool.progress",
+  "Report progress without flooding",
+  "Approval needed",
+  "interaction.requested",
+  "Make a required decision discoverable",
+  "Tool fails",
+  "tool.failed",
+  "Communicate the safe user-facing failure label",
+  "Response retries",
+  "response.retrying",
+  "Cancel stale response work and identify the retry",
+  "Connection changes",
+  "connection.lost / restored",
+  "Report confirmed availability changes",
+  "priority-and-focus",
+  "Prioritize decisions and failures without stealing focus",
+  "Approval requests and failures can use higher announcement priority than routine progress, but ordinary agent lifecycle updates do not move focus. If an approval control needs focus, the host application must make that separate interaction decision using its own accessible dialog, disclosure, or inline workflow.",
+  "Bounded queues and terminal-event cleanup prevent outdated progress from being delivered after a retry, failure, interruption, or disposal.",
+  "framework-fidelity",
+  "Choose an adapter by observable lifecycle fidelity",
+  "The AI SDK, assistant-ui, and AG-UI adapters translate documented public framework state into the normalized event model. Their pages list what they can observe. When the host application knows about additional connection, retry, or approval states, it can dispatch those core events directly instead of asking an adapter to infer them from rendered UI.",
+].join("\n");
+
+<span id="agent&#45;lifecycle"></span>
+
+## Agent interfaces have more states than a chat transcript
+
+An agent can start a long&#45;running tool, report progress, request a decision,
+lose its connection, retry, and finish with a result. Visual indicators may make
+these transitions obvious, while a screen&#45;reader user remains on the
+composer, transcript, or another part of the page.
+
+Accessibility depends on communicating consequential state changes without
+narrating every internal operation. Announcements should describe the
+user&#45;facing lifecycle, not expose raw tool payloads, backend errors, or
+chain&#45;of&#45;thought&#45;like implementation detail.
+
+<span id="event&#45;model"></span>
+
+## Map confirmed agent state to normalized events
+
+Dispatch tool.started when a named user&#45;relevant operation begins,
+tool.progress only for meaningful milestones, and tool.completed or tool.failed
+at the confirmed terminal state. Use interaction.requested and
+interaction.resolved for approval or other user decisions. Report connection and
+response retry events only when the application or framework provides reliable
+evidence.
+
+<table aria-label="Map confirmed agent state to normalized events table">
+  <thead>
+    <tr>
+      <th>Agent state</th>
+      <th>Normalized event</th>
+      <th>Announcement purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Tool begins</td>
+      <td>tool.started</td>
+      <td>Set context for a user&#45;relevant operation</td>
+    </tr>
+    <tr>
+      <td>Meaningful milestone</td>
+      <td>tool.progress</td>
+      <td>Report progress without flooding</td>
+    </tr>
+    <tr>
+      <td>Approval needed</td>
+      <td>interaction.requested</td>
+      <td>Make a required decision discoverable</td>
+    </tr>
+    <tr>
+      <td>Tool fails</td>
+      <td>tool.failed</td>
+      <td>Communicate the safe user&#45;facing failure label</td>
+    </tr>
+    <tr>
+      <td>Response retries</td>
+      <td>response.retrying</td>
+      <td>Cancel stale response work and identify the retry</td>
+    </tr>
+    <tr>
+      <td>Connection changes</td>
+      <td>connection.lost / restored</td>
+      <td>Report confirmed availability changes</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="priority&#45;and&#45;focus"></span>
+
+## Prioritize decisions and failures without stealing focus
+
+Approval requests and failures can use higher announcement priority than routine
+progress, but ordinary agent lifecycle updates do not move focus. If an approval
+control needs focus, the host application must make that separate interaction
+decision using its own accessible dialog, disclosure, or inline workflow.
+
+Bounded queues and terminal&#45;event cleanup prevent outdated progress from
+being delivered after a retry, failure, interruption, or disposal.
+
+<span id="framework&#45;fidelity"></span>
+
+## Choose an adapter by observable lifecycle fidelity
+
+The AI SDK, assistant&#45;ui, and AG&#45;UI adapters translate documented public
+framework state into the normalized event model. Their pages list what they can
+observe. When the host application knows about additional connection, retry, or
+approval states, it can dispatch those core events directly instead of asking an
+adapter to infer them from rendered UI.
+
+## Related
+
+- [/docs/lifecycle/tools](/docs/lifecycle/tools)
+- [/docs/lifecycle/interactions](/docs/lifecycle/interactions)
+- [/docs/integrations](/docs/integrations)

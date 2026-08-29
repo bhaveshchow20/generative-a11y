@@ -1,0 +1,125 @@
+---
+title: "Streaming without repetition"
+description:
+  "Send only the new text from each streaming update so screen readers do not
+  hear the whole response again and again."
+publicPath: "/docs/lifecycle/streaming"
+section: "Lifecycle"
+keywords: ["streaming", "delta", "segment", "sentence", "non-repetition"]
+related: []
+order: 7
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/streaming",
+  section: "Lifecycle",
+  related: [],
+  order: 7,
+};
+
+export const searchableText = [
+  "Streaming without repetition",
+  "Send only the new text from each streaming update so screen readers do not hear the whole response again and again.",
+  "Lifecycle",
+  "streaming",
+  "delta",
+  "segment",
+  "sentence",
+  "non-repetition",
+  "append-only",
+  "Send only the new text",
+  "Send response.started when a response begins. Each response.text.delta must contain only the text that just arrived. Send response.completed to announce any useful text still waiting. Send response.failed or response.interrupted to discard that text.",
+  "typescript",
+  'runtime.dispatch({ type: "response.started", responseId: "r1" }); runtime.dispatch({ type: "response.text.delta", responseId: "r1", delta: "First complete sentence. ", }); runtime.dispatch({ type: "response.text.delta", responseId: "r1", delta: "Second complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "r1" });',
+  "Start the response",
+  "response.started tells the runtime that a new response is beginning.",
+  "Send new text only",
+  "Each delta contains only new text, so earlier text is not announced again.",
+  "Let the runtime group text",
+  "Your runtime waits for useful phrases instead of announcing every token.",
+  "Finish the response",
+  "response.completed sends any useful text that is still waiting and closes the response.",
+  "segmentation",
+  "Meaningful units, not tokens",
+  "Balanced mode waits for a complete sentence when possible. It can also send a useful phrase after enough text arrives or a short delay. Each piece is announced once.",
+  "Interactive examples show app text beside the screen-reader updates prepared by a real runtime.",
+].join("\n");
+
+<span id="append&#45;only"></span>
+
+## Send only the new text
+
+Send response.started when a response begins. Each response.text.delta must
+contain only the text that just arrived. Send response.completed to announce any
+useful text still waiting. Send response.failed or response.interrupted to
+discard that text.
+
+{/* prettier-ignore */}
+```typescript
+runtime.dispatch({ type: "response.started", responseId: "r1" });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "r1",
+  delta: "First complete sentence. ",
+});
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "r1",
+  delta: "Second complete sentence.",
+});
+runtime.dispatch({ type: "response.completed", responseId: "r1" });
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Start the response
+
+response.started tells the runtime that a new response is beginning.
+
+</Step>
+
+<Step>
+
+### Send new text only
+
+Each delta contains only new text, so earlier text is not announced again.
+
+</Step>
+
+<Step>
+
+### Let the runtime group text
+
+Your runtime waits for useful phrases instead of announcing every token.
+
+</Step>
+
+<Step>
+
+### Finish the response
+
+response.completed sends any useful text that is still waiting and closes the
+response.
+
+</Step>
+
+</Steps>
+
+<span id="segmentation"></span>
+
+## Meaningful units, not tokens
+
+Balanced mode waits for a complete sentence when possible. It can also send a
+useful phrase after enough text arrives or a short delay. Each piece is
+announced once.
+
+<Callout title="Evidence and testing note">
+
+Interactive examples show app text beside the screen&#45;reader updates prepared
+by a real runtime.
+
+</Callout>

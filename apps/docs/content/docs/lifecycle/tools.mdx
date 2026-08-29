@@ -1,0 +1,100 @@
+---
+title: "Tool lifecycle"
+description:
+  "Tell users when an app action starts, makes progress, finishes, or fails
+  without exposing private arguments or results."
+publicPath: "/docs/lifecycle/tools"
+section: "Lifecycle"
+keywords: ["tools", "progress", "tool.failed", "tool.completed"]
+related: []
+order: 8
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/tools",
+  section: "Lifecycle",
+  related: [],
+  order: 8,
+};
+
+export const searchableText = [
+  "Tool lifecycle",
+  "Tell users when an app action starts, makes progress, finishes, or fails without exposing private arguments or results.",
+  "Lifecycle",
+  "tools",
+  "progress",
+  "tool.failed",
+  "tool.completed",
+  "events",
+  "Report the start, progress, and result",
+  "Tool arguments can arrive before the tool runs. Send tool.started when execution begins. Send tool.progress only when your app has a progress value from 0 to 1. Finish with one tool.completed or tool.failed event.",
+  "typescript",
+  'runtime.dispatch({ type: "tool.progress", toolId: "report-1", label: "Prepare report", progress: 0.5, message: "Halfway complete", });',
+  "Keep one tool ID",
+  "toolId keeps every progress update connected to the same app action.",
+  "Provide localized copy",
+  "label and message are short user-facing text, not raw tool arguments or backend output.",
+  "Report progress",
+  "progress uses a value from 0 to 1. Your runtime announces only useful changes.",
+  "safe-errors",
+  "Keep backend data out of announcements",
+  "Use error for debugging; generative-a11y never announces it. Set announcement only when your app has a short, translated message that is safe to share. Raw tool results also stay private.",
+].join("\n");
+
+<span id="events"></span>
+
+## Report the start, progress, and result
+
+Tool arguments can arrive before the tool runs. Send tool.started when execution
+begins. Send tool.progress only when your app has a progress value from 0 to 1.
+Finish with one tool.completed or tool.failed event.
+
+{/* prettier-ignore */}
+```typescript
+runtime.dispatch({
+  type: "tool.progress",
+  toolId: "report-1",
+  label: "Prepare report",
+  progress: 0.5,
+  message: "Halfway complete",
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Keep one tool ID
+
+toolId keeps every progress update connected to the same app action.
+
+</Step>
+
+<Step>
+
+### Provide localized copy
+
+label and message are short user&#45;facing text, not raw tool arguments or
+backend output.
+
+</Step>
+
+<Step>
+
+### Report progress
+
+progress uses a value from 0 to 1. Your runtime announces only useful changes.
+
+</Step>
+
+</Steps>
+
+<span id="safe&#45;errors"></span>
+
+## Keep backend data out of announcements
+
+Use error for debugging; generative&#45;a11y never announces it. Set
+announcement only when your app has a short, translated message that is safe to
+share. Raw tool results also stay private.

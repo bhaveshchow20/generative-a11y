@@ -1,0 +1,169 @@
+---
+title: "connectRuntimeToDOM"
+description:
+  "Subscribe an existing core runtime to a DOMAnnouncer while preserving
+  separate runtime and browser ownership."
+publicPath: "/api/dom/connect-runtime-to-dom"
+section: "DOM"
+keywords: ["connectRuntimeToDOM", "DOMRuntimeBinding", "dispose"]
+related: []
+order: 10
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/dom/connect-runtime-to-dom",
+  section: "DOM",
+  related: [],
+  order: 10,
+};
+
+export const searchableText = [
+  "connectRuntimeToDOM",
+  "Subscribe an existing core runtime to a DOMAnnouncer while preserving separate runtime and browser ownership.",
+  "DOM",
+  "connectRuntimeToDOM",
+  "DOMRuntimeBinding",
+  "dispose",
+  "signature",
+  "Signature and import",
+  "connectRuntimeToDOM borrows your runtime. Disposing its binding removes only subscription and announcer resources.",
+  "typescript",
+  'import { createGenerativeA11y } from "@generative-a11y/core"; import { connectRuntimeToDOM } from "@generative-a11y/dom"; const runtime = createGenerativeA11y({}); const delivery = connectRuntimeToDOM(runtime, { mode: "auto" }); runtime.dispatch(event); delivery.dispose(); runtime.dispose();',
+  "Create the runtime",
+  "Your app creates and owns the core runtime.",
+  "Connect browser delivery",
+  "Connect the DOM binding before your app sends events.",
+  "Clean up in order",
+  "Dispose the DOM binding before you dispose the runtime.",
+  "runtime",
+  "GenerativeA11yRuntime",
+  "Required",
+  "n/a",
+  "Supplies AnnouncementIntent objects while remaining under your app's control.",
+  "options",
+  "DOMAnnouncerOptions",
+  "Optional",
+  "{}",
+  "Forwarded to the owned DOM announcer.",
+  "return",
+  "DOMRuntimeBinding",
+  "Return",
+  "n/a",
+  "Provides the announcer and an idempotent dispose function.",
+  "ownership",
+  "DOMRuntimeBinding",
+  "dispose leaves app-supplied runtimes and live regions intact.",
+  "announcer",
+  "DOMAnnouncer",
+  "Property",
+  "n/a",
+  "Owned announcer used for every runtime intent.",
+  "dispose()",
+  "void",
+  "Method",
+  "n/a",
+  "Unsubscribes from the runtime and disposes the owned announcer.",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and import
+
+connectRuntimeToDOM borrows your runtime. Disposing its binding removes only
+subscription and announcer resources.
+
+{/* prettier-ignore */}
+```typescript
+import { createGenerativeA11y } from "@generative-a11y/core";
+import { connectRuntimeToDOM } from "@generative-a11y/dom";
+
+const runtime = createGenerativeA11y({});
+const delivery = connectRuntimeToDOM(runtime, { mode: "auto" });
+
+runtime.dispatch(event);
+
+delivery.dispose();
+runtime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create the runtime
+
+Your app creates and owns the core runtime.
+
+</Step>
+
+<Step>
+
+### Connect browser delivery
+
+Connect the DOM binding before your app sends events.
+
+</Step>
+
+<Step>
+
+### Clean up in order
+
+Dispose the DOM binding before you dispose the runtime.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>GenerativeA11yRuntime</>,
+      required: true,
+      description: (
+        <>
+          Supplies AnnouncementIntent objects while remaining under your app's
+          control.
+        </>
+      ),
+    },
+    options: {
+      type: <>DOMAnnouncerOptions</>,
+      default: <>&#123;&#125;</>,
+      description: <>Forwarded to the owned DOM announcer.</>,
+    },
+    return: {
+      type: <>DOMRuntimeBinding</>,
+      description: (
+        <>Return. Provides the announcer and an idempotent dispose function.</>
+      ),
+    },
+  }}
+/>
+
+<span id="ownership"></span>
+
+## DOMRuntimeBinding
+
+dispose leaves app&#45;supplied runtimes and live regions intact.
+
+<TypeTable
+  type={{
+    announcer: {
+      type: <>DOMAnnouncer</>,
+      description: (
+        <>Property. Owned announcer used for every runtime intent.</>
+      ),
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Unsubscribes from the runtime and disposes the owned
+          announcer.
+        </>
+      ),
+    },
+  }}
+/>

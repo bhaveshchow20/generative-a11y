@@ -1,0 +1,129 @@
+---
+title: "Contributing"
+description:
+  "Contribute focused changes with tests, clear documentation, stable events,
+  and clean package responsibilities."
+publicPath: "/docs/project/contributing"
+section: "Project"
+keywords: ["contributing", "development", "tests", "pull request", "pnpm check"]
+related: []
+order: 25
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/project/contributing",
+  section: "Project",
+  related: [],
+  order: 25,
+};
+
+export const searchableText = [
+  "Contributing",
+  "Contribute focused changes with tests, clear documentation, stable events, and clean package responsibilities.",
+  "Project",
+  "contributing",
+  "development",
+  "tests",
+  "pull request",
+  "pnpm check",
+  "workflow",
+  "Development workflow",
+  "Use the Node version in .nvmrc, install repository dependencies, add tests for exported behavior, and run the full repository check before requesting review.",
+  "shell",
+  "corepack enable pnpm install --frozen-lockfile pnpm check pnpm test:browser:install pnpm test:browser",
+  "Enable the package manager",
+  "Corepack selects the pnpm version declared by the repository.",
+  "Install dependencies",
+  "pnpm restores the exact workspace dependency graph from the lockfile.",
+  "Run repository checks",
+  "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation.",
+  "Install browser engines",
+  "Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable fixtures.",
+  "Run browser checks",
+  "pnpm test:browser checks keyboard behavior, focus, structure, and browser updates.",
+  "review",
+  "Review expectations",
+  "Keep core independent of browsers, DOM independent of React and AI frameworks, and adapters small. Never claim that an automated transcript or page update proves what a screen reader spoke.",
+  "Every exported API requires tests and documentation.",
+  "Every owned timer and subscription must be disposed.",
+  "All queues and tracked identities remain bounded.",
+  "Security reports follow SECURITY.md rather than public issues.",
+].join("\n");
+
+<span id="workflow"></span>
+
+## Development workflow
+
+Use the Node version in .nvmrc, install repository dependencies, add tests for
+exported behavior, and run the full repository check before requesting review.
+
+{/* prettier-ignore */}
+```shell
+corepack enable
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:browser:install
+pnpm test:browser
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Enable the package manager
+
+Corepack selects the pnpm version declared by the repository.
+
+</Step>
+
+<Step>
+
+### Install dependencies
+
+pnpm restores the exact workspace dependency graph from the lockfile.
+
+</Step>
+
+<Step>
+
+### Run repository checks
+
+pnpm check covers formatting, lint, types, package builds, unit behavior, and
+rendered documentation.
+
+</Step>
+
+<Step>
+
+### Install browser engines
+
+Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable
+fixtures.
+
+</Step>
+
+<Step>
+
+### Run browser checks
+
+pnpm test:browser checks keyboard behavior, focus, structure, and browser
+updates.
+
+</Step>
+
+</Steps>
+
+<span id="review"></span>
+
+## Review expectations
+
+Keep core independent of browsers, DOM independent of React and AI frameworks,
+and adapters small. Never claim that an automated transcript or page update
+proves what a screen reader spoke.
+
+- Every exported API requires tests and documentation.
+- Every owned timer and subscription must be disposed.
+- All queues and tracked identities remain bounded.
+- Security reports follow SECURITY.md rather than public issues.

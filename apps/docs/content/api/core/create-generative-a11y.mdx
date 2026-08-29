@@ -1,0 +1,441 @@
+---
+title: "createGenerativeA11y"
+description:
+  "Create the core runtime that turns app events into well-timed
+  AnnouncementIntent objects and useful debugging details."
+publicPath: "/api/core/create-generative-a11y"
+section: "Core"
+keywords:
+  ["createGenerativeA11y", "GenerativeA11yRuntime", "dispatch", "dispose"]
+related: []
+order: 2
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/create-generative-a11y",
+  section: "Core",
+  related: [],
+  order: 2,
+};
+
+export const searchableText = [
+  "createGenerativeA11y",
+  "Create the core runtime that turns app events into well-timed AnnouncementIntent objects and useful debugging details.",
+  "Core",
+  "createGenerativeA11y",
+  "GenerativeA11yRuntime",
+  "dispatch",
+  "dispose",
+  "signature",
+  "Signature and import",
+  "Create one runtime for your app or for each conversation that needs separate settings. Connect delivery before sending events that can produce output.",
+  "typescript",
+  'import { createGenerativeA11y } from "@generative-a11y/core"; const runtime = createGenerativeA11y({ preset: "balanced", onAnnouncement(intent) { deliver(intent); }, });',
+  "Import the constructor",
+  "Import createGenerativeA11y from the package root.",
+  "Choose a preset",
+  "Presets supply default behavior. policy changes only the settings you provide.",
+  "Connect output",
+  "onAnnouncement registers the first listener. Browser apps usually use connectRuntimeToDOM instead.",
+  "options",
+  "GenerativeA11yOptions",
+  "Required",
+  "{} is not implicit",
+  "Construction options for policy, time, announcement delivery, delivery errors, and diagnostics.",
+  "return",
+  "GenerativeA11yRuntime",
+  "Return",
+  "n/a",
+  "An owned runtime with synchronous dispatch, subscriptions, policy inspection, pending work inspection, and disposal.",
+  "options",
+  "GenerativeA11yOptions",
+  "Options are read during construction. Nested policy overrides merge with the selected preset.",
+  "preset",
+  "PresetName",
+  "Optional",
+  '"balanced"',
+  "Selects a complete baseline policy: minimal, balanced, verbose, or completion-only behavior.",
+  "policy",
+  "PolicyOverrides",
+  "Optional",
+  "{}",
+  "Overrides only intentional text, tool, status, pacing, channel, and capacity differences.",
+  "clock",
+  "Clock",
+  "Optional",
+  "systemClock",
+  "Injects time and timers. Use ManualClock for deterministic tests.",
+  "onAnnouncement",
+  "AnnouncementListener",
+  "Optional",
+  "undefined",
+  "Registers the first intent listener. Dispatch that produces output requires at least one listener.",
+  "onDeliveryError",
+  "(error, intent) => void",
+  "Optional",
+  "undefined",
+  "Observes listener failures while delivery continues to later listeners.",
+  "onDiagnostic",
+  "DiagnosticListener",
+  "Optional",
+  "undefined",
+  "Observes queued, merged, suppressed, cancelled, announced, and delivery-error decisions.",
+  "runtime-methods",
+  "GenerativeA11yRuntime methods",
+  "Runtime methods are synchronous. Unsubscribe functions and dispose are idempotent.",
+  "dispatch(event)",
+  "boolean",
+  "Method",
+  "n/a",
+  "Processes one serializable GenerativeA11yEvent synchronously. Returns false after disposal or when a nested dispatch transaction reaches capacity.",
+  "getPolicy()",
+  "ReadonlyAnnouncementPolicy",
+  "Method",
+  "n/a",
+  "Returns the resolved immutable policy used by this runtime.",
+  "pendingCount()",
+  "number",
+  "Method",
+  "n/a",
+  "Counts scheduler candidates and owned response flush timers. Use it for tests and diagnostics, not application rendering.",
+  "subscribeAnnouncements(listener)",
+  "() => void",
+  "Method",
+  "n/a",
+  "Registers an AnnouncementIntent listener and returns an idempotent unsubscribe function.",
+  "subscribeDiagnostics(listener)",
+  "() => void",
+  "Method",
+  "n/a",
+  "Registers an AnnouncementDiagnostic listener and returns an idempotent unsubscribe function.",
+  "subscribeDiagnosticEvents(listener)",
+  "() => void",
+  "Method",
+  "n/a",
+  "Observes a versioned ordered stream of source events and diagnostic decisions without changing scheduling.",
+  "getDiagnosticSnapshot()",
+  "RuntimeDiagnosticSnapshotV1",
+  "Method",
+  "n/a",
+  "Returns immutable content-free response, tool, queue, and flush timing state for diagnostic consumers.",
+  "dispose()",
+  "void",
+  "Method",
+  "n/a",
+  "Cancels every owned timer, clears bounded state and queued work, then releases listeners. Repeated calls are safe.",
+  "complete-lifecycle",
+  "Complete response lifecycle",
+  "Each delta contains only new text. A completed event announces useful text that is still waiting, then closes the response.",
+  "typescript",
+  'const accepted = runtime.dispatch({ type: "response.started", responseId: "report-1", }); runtime.dispatch({ type: "response.text.delta", responseId: "report-1", delta: "The migration completed successfully.", }); runtime.dispatch({ type: "response.completed", responseId: "report-1", }); console.log({ accepted, pending: runtime.pendingCount() }); runtime.dispose();',
+  "Start the response",
+  "Send response.started before text or final events for this responseId.",
+  "Send new text",
+  "Each delta contains only the text added since the last event.",
+  "Finish the response",
+  "Completion announces useful text that is still waiting and cancels response timers.",
+  "Clean up",
+  "Call dispose when the app no longer needs the runtime.",
+  "AnnouncementIntent describes an update prepared by core. Test with a real screen reader to confirm what it speaks.",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and import
+
+Create one runtime for your app or for each conversation that needs separate
+settings. Connect delivery before sending events that can produce output.
+
+{/* prettier-ignore */}
+```typescript
+import { createGenerativeA11y } from "@generative-a11y/core";
+
+const runtime = createGenerativeA11y({
+  preset: "balanced",
+  onAnnouncement(intent) {
+    deliver(intent);
+  },
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Import the constructor
+
+Import createGenerativeA11y from the package root.
+
+</Step>
+
+<Step>
+
+### Choose a preset
+
+Presets supply default behavior. policy changes only the settings you provide.
+
+</Step>
+
+<Step>
+
+### Connect output
+
+onAnnouncement registers the first listener. Browser apps usually use
+connectRuntimeToDOM instead.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    options: {
+      type: <>GenerativeA11yOptions</>,
+      required: true,
+      default: <>&#123;&#125; is not implicit</>,
+      description: (
+        <>
+          Construction options for policy, time, announcement delivery, delivery
+          errors, and diagnostics.
+        </>
+      ),
+    },
+    return: {
+      type: <>GenerativeA11yRuntime</>,
+      description: (
+        <>
+          Return. An owned runtime with synchronous dispatch, subscriptions,
+          policy inspection, pending work inspection, and disposal.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="options"></span>
+
+## GenerativeA11yOptions
+
+Options are read during construction. Nested policy overrides merge with the
+selected preset.
+
+<TypeTable
+  type={{
+    preset: {
+      type: <>PresetName</>,
+      default: <>"balanced"</>,
+      description: (
+        <>
+          Selects a complete baseline policy: minimal, balanced, verbose, or
+          completion&#45;only behavior.
+        </>
+      ),
+    },
+    policy: {
+      type: <>PolicyOverrides</>,
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Overrides only intentional text, tool, status, pacing, channel, and
+          capacity differences.
+        </>
+      ),
+    },
+    clock: {
+      type: <>Clock</>,
+      default: <>systemClock</>,
+      description: (
+        <>Injects time and timers. Use ManualClock for deterministic tests.</>
+      ),
+    },
+    onAnnouncement: {
+      type: <>AnnouncementListener</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Registers the first intent listener. Dispatch that produces output
+          requires at least one listener.
+        </>
+      ),
+    },
+    onDeliveryError: {
+      type: <>(error, intent) &#61;&#62; void</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Observes listener failures while delivery continues to later
+          listeners.
+        </>
+      ),
+    },
+    onDiagnostic: {
+      type: <>DiagnosticListener</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Observes queued, merged, suppressed, cancelled, announced, and
+          delivery&#45;error decisions.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="runtime&#45;methods"></span>
+
+## GenerativeA11yRuntime methods
+
+Runtime methods are synchronous. Unsubscribe functions and dispose are
+idempotent.
+
+<TypeTable
+  type={{
+    "dispatch(event)": {
+      type: <>boolean</>,
+      description: (
+        <>
+          Method. Processes one serializable GenerativeA11yEvent synchronously.
+          Returns false after disposal or when a nested dispatch transaction
+          reaches capacity.
+        </>
+      ),
+    },
+    "getPolicy()": {
+      type: <>ReadonlyAnnouncementPolicy</>,
+      description: (
+        <>Method. Returns the resolved immutable policy used by this runtime.</>
+      ),
+    },
+    "pendingCount()": {
+      type: <>number</>,
+      description: (
+        <>
+          Method. Counts scheduler candidates and owned response flush timers.
+          Use it for tests and diagnostics, not application rendering.
+        </>
+      ),
+    },
+    "subscribeAnnouncements(listener)": {
+      type: <>() &#61;&#62; void</>,
+      description: (
+        <>
+          Method. Registers an AnnouncementIntent listener and returns an
+          idempotent unsubscribe function.
+        </>
+      ),
+    },
+    "subscribeDiagnostics(listener)": {
+      type: <>() &#61;&#62; void</>,
+      description: (
+        <>
+          Method. Registers an AnnouncementDiagnostic listener and returns an
+          idempotent unsubscribe function.
+        </>
+      ),
+    },
+    "subscribeDiagnosticEvents(listener)": {
+      type: <>() &#61;&#62; void</>,
+      description: (
+        <>
+          Method. Observes a versioned ordered stream of source events and
+          diagnostic decisions without changing scheduling.
+        </>
+      ),
+    },
+    "getDiagnosticSnapshot()": {
+      type: <>RuntimeDiagnosticSnapshotV1</>,
+      description: (
+        <>
+          Method. Returns immutable content&#45;free response, tool, queue, and
+          flush timing state for diagnostic consumers.
+        </>
+      ),
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Cancels every owned timer, clears bounded state and queued
+          work, then releases listeners. Repeated calls are safe.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="complete&#45;lifecycle"></span>
+
+## Complete response lifecycle
+
+Each delta contains only new text. A completed event announces useful text that
+is still waiting, then closes the response.
+
+{/* prettier-ignore */}
+```typescript
+const accepted = runtime.dispatch({
+  type: "response.started",
+  responseId: "report-1",
+});
+
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "report-1",
+  delta: "The migration completed successfully.",
+});
+
+runtime.dispatch({
+  type: "response.completed",
+  responseId: "report-1",
+});
+
+console.log({ accepted, pending: runtime.pendingCount() });
+runtime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Start the response
+
+Send response.started before text or final events for this responseId.
+
+</Step>
+
+<Step>
+
+### Send new text
+
+Each delta contains only the text added since the last event.
+
+</Step>
+
+<Step>
+
+### Finish the response
+
+Completion announces useful text that is still waiting and cancels response
+timers.
+
+</Step>
+
+<Step>
+
+### Clean up
+
+Call dispose when the app no longer needs the runtime.
+
+</Step>
+
+</Steps>
+
+<Callout title="Evidence and testing note">
+
+AnnouncementIntent describes an update prepared by core. Test with a real screen
+reader to confirm what it speaks.
+
+</Callout>

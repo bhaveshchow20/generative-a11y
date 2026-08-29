@@ -1,0 +1,115 @@
+---
+title: "Keep updates connected with stable IDs"
+description:
+  "Use stable IDs to keep every update connected to the correct response, tool,
+  interaction, or approval."
+publicPath: "/docs/lifecycle/identity"
+section: "Lifecycle"
+keywords:
+  [
+    "identity",
+    "responseId",
+    "responseInstanceId",
+    "toolId",
+    "scopeId",
+    "message",
+  ]
+related: []
+order: 11
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/identity",
+  section: "Lifecycle",
+  related: [],
+  order: 11,
+};
+
+export const searchableText = [
+  "Keep updates connected with stable IDs",
+  "Use stable IDs to keep every update connected to the correct response, tool, interaction, or approval.",
+  "Lifecycle",
+  "identity",
+  "responseId",
+  "responseInstanceId",
+  "toolId",
+  "scopeId",
+  "message",
+  "entities",
+  "Use a stable ID for each piece of work",
+  "responseId identifies an answer, and responseInstanceId separates its retry attempts. toolId identifies a tool call, and toolInstanceId separates repeated runs. interactionId and approvalId connect each request to its result.",
+  "Entity",
+  "Identity",
+  "Why it matters",
+  "Response",
+  "responseId",
+  "Keeps text and the final state together",
+  "Attempt",
+  "responseInstanceId",
+  "Ignores late text from an older retry",
+  "Tool",
+  "toolId + toolInstanceId",
+  "Separates repeated tool runs",
+  "Interaction",
+  "interactionId",
+  "Connects a request to its result",
+  "Adapter mount",
+  "scopeId",
+  "Prevents ID collisions across chats",
+  "never-labels",
+  "Labels are copy, not identity",
+  "Do not use displayed text, labels, array positions, or render counts as IDs because they can change. Framework adapters keep stable IDs from your framework and stop accepting unknown IDs after reaching their safety limit.",
+].join("\n");
+
+<span id="entities"></span>
+
+## Use a stable ID for each piece of work
+
+responseId identifies an answer, and responseInstanceId separates its retry
+attempts. toolId identifies a tool call, and toolInstanceId separates repeated
+runs. interactionId and approvalId connect each request to its result.
+
+<table aria-label="Use a stable ID for each piece of work table">
+  <thead>
+    <tr>
+      <th>Entity</th>
+      <th>Identity</th>
+      <th>Why it matters</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Response</td>
+      <td>responseId</td>
+      <td>Keeps text and the final state together</td>
+    </tr>
+    <tr>
+      <td>Attempt</td>
+      <td>responseInstanceId</td>
+      <td>Ignores late text from an older retry</td>
+    </tr>
+    <tr>
+      <td>Tool</td>
+      <td>toolId &#43; toolInstanceId</td>
+      <td>Separates repeated tool runs</td>
+    </tr>
+    <tr>
+      <td>Interaction</td>
+      <td>interactionId</td>
+      <td>Connects a request to its result</td>
+    </tr>
+    <tr>
+      <td>Adapter mount</td>
+      <td>scopeId</td>
+      <td>Prevents ID collisions across chats</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="never&#45;labels"></span>
+
+## Labels are copy, not identity
+
+Do not use displayed text, labels, array positions, or render counts as IDs
+because they can change. Framework adapters keep stable IDs from your framework
+and stop accepting unknown IDs after reaching their safety limit.

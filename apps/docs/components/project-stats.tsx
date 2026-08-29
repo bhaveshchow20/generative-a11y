@@ -8,13 +8,8 @@ const npmUrl = "https://www.npmjs.com/org/generative-a11y";
 const packages = ["core", "dom", "react", "ag-ui", "ai-sdk", "assistant-ui"];
 
 type ProjectStats = {
-  stars: number;
-  monthlyDownloads: number;
-};
-
-const currentStats: ProjectStats = {
-  stars: 1,
-  monthlyDownloads: 544,
+  stars: number | null;
+  monthlyDownloads: number | null;
 };
 
 function formatCount(value: number) {
@@ -41,11 +36,14 @@ function BrandIcon({ icon }: { icon: SimpleIcon }) {
 
 /**
  * Shows GitHub stars and the combined monthly npm downloads for published
- * packages. Live requests replace the bundled fallback counts independently,
- * so one service can fail without hiding data from the other.
+ * packages. Until each live request succeeds, the link describes the honest
+ * action available instead of presenting a bundled count as current data.
  */
 export function ProjectStats({ className = "" }: { className?: string }) {
-  const [stats, setStats] = useState<ProjectStats>(currentStats);
+  const [stats, setStats] = useState<ProjectStats>({
+    stars: null,
+    monthlyDownloads: null,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,7 +67,10 @@ export function ProjectStats({ className = "" }: { className?: string }) {
           );
           if (!response.ok) throw new Error("npm stats unavailable");
           const data = (await response.json()) as { downloads?: number };
-          return data.downloads ?? 0;
+          if (typeof data.downloads !== "number") {
+            throw new Error("npm stats response omitted downloads");
+          }
+          return data.downloads;
         }),
       ).then((counts) => counts.reduce((total, count) => total + count, 0));
 
@@ -80,9 +81,8 @@ export function ProjectStats({ className = "" }: { className?: string }) {
           stars:
             github.status === "fulfilled" && github.value !== undefined
               ? github.value
-              : currentStats.stars,
-          monthlyDownloads:
-            npm.status === "fulfilled" ? npm.value : currentStats.monthlyDownloads,
+              : null,
+          monthlyDownloads: npm.status === "fulfilled" ? npm.value : null,
         });
       }
     }
@@ -96,24 +96,29 @@ export function ProjectStats({ className = "" }: { className?: string }) {
       <a
         className="project-stat"
         href={repositoryUrl}
-        aria-label={`View generative-a11y on GitHub, ${stats.stars.toLocaleString("en")} stars`}
+        aria-label={stats.stars === null
+          ? "View generative-a11y on GitHub"
+          : `View generative-a11y on GitHub, ${stats.stars.toLocaleString("en")} stars`}
       >
         <BrandIcon icon={siGithub} />
         <span>GitHub</span>
         <span className="project-stat-value" aria-hidden="true">
-          <span className="project-stat-icon">★</span>
-          {formatCount(stats.stars)}
+          {stats.stars === null ? "View on GitHub" : <><span className="project-stat-icon">★</span>{formatCount(stats.stars)}</>}
         </span>
       </a>
       <a
         className="project-stat"
         href={npmUrl}
-        aria-label={`View generative-a11y packages on npm, ${stats.monthlyDownloads.toLocaleString("en")} downloads in the last month`}
+        aria-label={stats.monthlyDownloads === null
+          ? "View generative-a11y packages on npm"
+          : `View generative-a11y packages on npm, ${stats.monthlyDownloads.toLocaleString("en")} downloads in the last month`}
       >
         <BrandIcon icon={siNpm} />
         <span>npm</span>
         <span className="project-stat-value" aria-hidden="true">
-          {formatCount(stats.monthlyDownloads)}
+          {stats.monthlyDownloads === null
+            ? "View packages on npm"
+            : formatCount(stats.monthlyDownloads)}
         </span>
       </a>
     </div>

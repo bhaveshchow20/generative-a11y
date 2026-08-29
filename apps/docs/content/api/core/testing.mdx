@@ -1,0 +1,521 @@
+---
+title: "@generative-a11y/core/testing"
+description:
+  "Record normalized lifecycle events, replay versioned fixtures with a
+  ManualClock, and install semantic Vitest assertions."
+publicPath: "/api/core/testing"
+section: "Core"
+keywords:
+  ["recordRuntime", "replayEvents", "ReplayFixtureV1", "installVitestMatchers"]
+related: ["/api/core", "/docs/testing/replay", "/docs/testing"]
+order: 7
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/testing",
+  section: "Core",
+  related: ["/api/core", "/docs/testing/replay", "/docs/testing"],
+  order: 7,
+};
+
+export const searchableText = [
+  "@generative-a11y/core/testing",
+  "Record normalized lifecycle events, replay versioned fixtures with a ManualClock, and install semantic Vitest assertions.",
+  "Core",
+  "recordRuntime",
+  "replayEvents",
+  "ReplayFixtureV1",
+  "installVitestMatchers",
+  "/api/core",
+  "/docs/testing/replay",
+  "/docs/testing",
+  "recorder",
+  "ManualClock and createAnnouncementRecorder",
+  "ManualClock controls time without global timers. createAnnouncementRecorder bundles that clock with a runtime plus announcement and diagnostic transcripts.",
+  "typescript",
+  'import { createAnnouncementRecorder } from "@generative-a11y/core"; const recorder = createAnnouncementRecorder({ preset: "balanced", startAt: 10_000, }); recorder.runtime.dispatch({ type: "response.started", responseId: "r1", }); recorder.clock.runUntilIdle();',
+  "Create controlled time",
+  "The recorder owns a ManualClock and a runtime configured with that clock.",
+  "Settle intentionally",
+  "runUntilIdle advances only the injected clock and keeps tests independent of wall time.",
+  "new ManualClock(startAt)",
+  "ManualClock",
+  "Constructor",
+  "0",
+  "Creates an injected clock at the supplied finite timestamp.",
+  "ManualClock.now()",
+  "number",
+  "Method",
+  "n/a",
+  "Returns the current manual timestamp.",
+  "ManualClock.setTimeout(callback, delayMs)",
+  "ClockTimer",
+  "Method",
+  "n/a",
+  "Schedules a callback in stable time and insertion order.",
+  "ManualClock.clearTimeout(timer)",
+  "void",
+  "Method",
+  "n/a",
+  "Cancels a registered timer.",
+  "ManualClock.advanceBy(ms)",
+  "void",
+  "Method",
+  "n/a",
+  "Advances time by a finite non-negative duration and runs due callbacks.",
+  "ManualClock.advanceTo(time)",
+  "void",
+  "Method",
+  "n/a",
+  "Advances to an absolute time without allowing time to move backward.",
+  "ManualClock.runNext()",
+  "boolean",
+  "Method",
+  "n/a",
+  "Runs the next pending callback and reports whether one existed.",
+  "ManualClock.runUntilIdle(maxTasks)",
+  "void",
+  "Method",
+  "10,000",
+  "Runs pending callbacks until idle and throws before exceeding the safety limit.",
+  "ManualClock.pendingCount()",
+  "number",
+  "Method",
+  "n/a",
+  "Returns the number of callbacks still registered.",
+  "createAnnouncementRecorder(options?)",
+  "AnnouncementRecorder",
+  "Function",
+  "{}",
+  "Creates a runtime, ManualClock, immutable transcript readers, and clear method.",
+  "record-replay",
+  "recordRuntime and replayEvents",
+  "Recording captures accepted events sent through the returned dispatch target. Replay validates the full fixture before dispatching any event and advances the supplied ManualClock in recorded order.",
+  "typescript",
+  'import { ManualClock, createGenerativeA11y } from "@generative-a11y/core"; import { recordRuntime, replayEvents } from "@generative-a11y/core/testing"; const clock = new ManualClock(0); const runtime = createGenerativeA11y({ clock }); const recording = recordRuntime({ runtime, clock }); recording.runtime.dispatch({ type: "response.started", responseId: "report", }); const fixture = recording.fixture(); const replayClock = new ManualClock(fixture.startAt); const replayRuntime = createGenerativeA11y({ clock: replayClock }); replayEvents(replayRuntime, replayClock, fixture); runtime.dispose(); replayRuntime.dispose();',
+  "Record through the wrapper",
+  "Only calls made through recording.runtime become fixture entries.",
+  "Freeze a V1 fixture",
+  "fixture stores relative non-negative times and preserves array order for ties.",
+  "Replay under injected time",
+  "replayEvents advances ManualClock before each dispatch and does not run until idle.",
+  "recordRuntime({ runtime, clock })",
+  "RuntimeRecording",
+  "Function",
+  "n/a",
+  "Returns a dispatch target plus immutable events, fixture, and clear methods.",
+  "RuntimeRecording.events()",
+  "readonly RecordedEvent[]",
+  "Method",
+  "[]",
+  "Returns frozen copies of accepted normalized events with relative timestamps.",
+  "RuntimeRecording.fixture()",
+  "ReplayFixtureV1",
+  "Method",
+  "n/a",
+  "Builds a validated frozen fixture from the current recording.",
+  "RuntimeRecording.clear()",
+  "void",
+  "Method",
+  "n/a",
+  "Removes recorded events without changing the target runtime or clock.",
+  "ReplayFixtureV1",
+  "{ format, version, startAt, events }",
+  "Type",
+  "n/a",
+  "Defines the versioned JSON envelope and ordered recorded events used by replay.",
+  "createReplayFixture(events, options?)",
+  "ReplayFixtureV1",
+  "Function",
+  "startAt: 0",
+  "Validates and freezes a versioned local replay fixture.",
+  "replayEvents(runtime, clock, fixture)",
+  "void",
+  "Function",
+  "n/a",
+  "Validates the fixture, advances ManualClock, and dispatches each copied event.",
+  "matchesPartial(actual, expected)",
+  "boolean",
+  "Function",
+  "n/a",
+  "Compares expected top-level semantic fields with an announcement or diagnostic object.",
+  "vitest",
+  "Opt-in Vitest matchers",
+  "Import @generative-a11y/core/testing only in Vitest setup. The root package entry has no Vitest runtime import.",
+  "typescript",
+  'import { expect } from "vitest"; import { installVitestMatchers } from "@generative-a11y/core/testing"; const accessibilityExpect = installVitestMatchers(expect); accessibilityExpect(recorder).toHaveAnnounced({ sourceType: "response.completed", });',
+  "Install once",
+  "Register matchers in the Vitest setup file used by the test project.",
+  "Assert semantic fields",
+  "Partial expectations keep tests focused on the contract under review.",
+  "toHaveAnnouncementTranscript(expected)",
+  "matcher",
+  "Vitest",
+  "n/a",
+  "Checks ordered announcement output with partial semantic fields.",
+  "toHaveAnnounced(expected)",
+  "matcher",
+  "Vitest",
+  "n/a",
+  "Checks that at least one announcement matches the expected fields.",
+  "toHaveDiagnostic(expected)",
+  "matcher",
+  "Vitest",
+  "n/a",
+  "Checks that at least one runtime diagnostic matches the expected fields.",
+  "limits",
+  "Validation and evidence limits",
+  "Replay rejects unsupported formats, versions, event types, backward times, and response or tool events without required IDs before dispatch. A passing transcript confirms deterministic core output. It does not prove browser delivery or screen-reader speech.",
+].join("\n");
+
+<span id="recorder"></span>
+
+## ManualClock and createAnnouncementRecorder
+
+ManualClock controls time without global timers. createAnnouncementRecorder
+bundles that clock with a runtime plus announcement and diagnostic transcripts.
+
+{/* prettier-ignore */}
+```typescript
+import { createAnnouncementRecorder } from "@generative-a11y/core";
+
+const recorder = createAnnouncementRecorder({
+  preset: "balanced",
+  startAt: 10_000,
+});
+
+recorder.runtime.dispatch({
+  type: "response.started",
+  responseId: "r1",
+});
+recorder.clock.runUntilIdle();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create controlled time
+
+The recorder owns a ManualClock and a runtime configured with that clock.
+
+</Step>
+
+<Step>
+
+### Settle intentionally
+
+runUntilIdle advances only the injected clock and keeps tests independent of
+wall time.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "new ManualClock(startAt)": {
+      type: <>ManualClock</>,
+      default: <>0</>,
+      description: (
+        <>
+          Constructor. Creates an injected clock at the supplied finite
+          timestamp.
+        </>
+      ),
+    },
+    "ManualClock.now()": {
+      type: <>number</>,
+      description: <>Method. Returns the current manual timestamp.</>,
+    },
+    "ManualClock.setTimeout(callback, delayMs)": {
+      type: <>ClockTimer</>,
+      description: (
+        <>Method. Schedules a callback in stable time and insertion order.</>
+      ),
+    },
+    "ManualClock.clearTimeout(timer)": {
+      type: <>void</>,
+      description: <>Method. Cancels a registered timer.</>,
+    },
+    "ManualClock.advanceBy(ms)": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Advances time by a finite non&#45;negative duration and runs
+          due callbacks.
+        </>
+      ),
+    },
+    "ManualClock.advanceTo(time)": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Advances to an absolute time without allowing time to move
+          backward.
+        </>
+      ),
+    },
+    "ManualClock.runNext()": {
+      type: <>boolean</>,
+      description: (
+        <>
+          Method. Runs the next pending callback and reports whether one
+          existed.
+        </>
+      ),
+    },
+    "ManualClock.runUntilIdle(maxTasks)": {
+      type: <>void</>,
+      default: <>10,000</>,
+      description: (
+        <>
+          Method. Runs pending callbacks until idle and throws before exceeding
+          the safety limit.
+        </>
+      ),
+    },
+    "ManualClock.pendingCount()": {
+      type: <>number</>,
+      description: (
+        <>Method. Returns the number of callbacks still registered.</>
+      ),
+    },
+    "createAnnouncementRecorder(options?)": {
+      type: <>AnnouncementRecorder</>,
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Function. Creates a runtime, ManualClock, immutable transcript
+          readers, and clear method.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="record&#45;replay"></span>
+
+## recordRuntime and replayEvents
+
+Recording captures accepted events sent through the returned dispatch target.
+Replay validates the full fixture before dispatching any event and advances the
+supplied ManualClock in recorded order.
+
+{/* prettier-ignore */}
+```typescript
+import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
+
+const clock = new ManualClock(0);
+const runtime = createGenerativeA11y({ clock });
+const recording = recordRuntime({ runtime, clock });
+recording.runtime.dispatch({
+  type: "response.started",
+  responseId: "report",
+});
+const fixture = recording.fixture();
+
+const replayClock = new ManualClock(fixture.startAt);
+const replayRuntime = createGenerativeA11y({ clock: replayClock });
+replayEvents(replayRuntime, replayClock, fixture);
+
+runtime.dispose();
+replayRuntime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Record through the wrapper
+
+Only calls made through recording.runtime become fixture entries.
+
+</Step>
+
+<Step>
+
+### Freeze a V1 fixture
+
+fixture stores relative non&#45;negative times and preserves array order for
+ties.
+
+</Step>
+
+<Step>
+
+### Replay under injected time
+
+replayEvents advances ManualClock before each dispatch and does not run until
+idle.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "recordRuntime({ runtime, clock })": {
+      type: <>RuntimeRecording</>,
+      description: (
+        <>
+          Function. Returns a dispatch target plus immutable events, fixture,
+          and clear methods.
+        </>
+      ),
+    },
+    "RuntimeRecording.events()": {
+      type: <>readonly RecordedEvent&#91;&#93;</>,
+      default: <>&#91;&#93;</>,
+      description: (
+        <>
+          Method. Returns frozen copies of accepted normalized events with
+          relative timestamps.
+        </>
+      ),
+    },
+    "RuntimeRecording.fixture()": {
+      type: <>ReplayFixtureV1</>,
+      description: (
+        <>
+          Method. Builds a validated frozen fixture from the current recording.
+        </>
+      ),
+    },
+    "RuntimeRecording.clear()": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Removes recorded events without changing the target runtime or
+          clock.
+        </>
+      ),
+    },
+    ReplayFixtureV1: {
+      type: <>&#123; format, version, startAt, events &#125;</>,
+      description: (
+        <>
+          Type. Defines the versioned JSON envelope and ordered recorded events
+          used by replay.
+        </>
+      ),
+    },
+    "createReplayFixture(events, options?)": {
+      type: <>ReplayFixtureV1</>,
+      default: <>startAt: 0</>,
+      description: (
+        <>Function. Validates and freezes a versioned local replay fixture.</>
+      ),
+    },
+    "replayEvents(runtime, clock, fixture)": {
+      type: <>void</>,
+      description: (
+        <>
+          Function. Validates the fixture, advances ManualClock, and dispatches
+          each copied event.
+        </>
+      ),
+    },
+    "matchesPartial(actual, expected)": {
+      type: <>boolean</>,
+      description: (
+        <>
+          Function. Compares expected top&#45;level semantic fields with an
+          announcement or diagnostic object.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="vitest"></span>
+
+## Opt&#45;in Vitest matchers
+
+Import @generative&#45;a11y/core/testing only in Vitest setup. The root package
+entry has no Vitest runtime import.
+
+{/* prettier-ignore */}
+```typescript
+import { expect } from "vitest";
+import { installVitestMatchers } from "@generative-a11y/core/testing";
+
+const accessibilityExpect = installVitestMatchers(expect);
+accessibilityExpect(recorder).toHaveAnnounced({
+  sourceType: "response.completed",
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Install once
+
+Register matchers in the Vitest setup file used by the test project.
+
+</Step>
+
+<Step>
+
+### Assert semantic fields
+
+Partial expectations keep tests focused on the contract under review.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "toHaveAnnouncementTranscript(expected)": {
+      type: <>matcher</>,
+      description: (
+        <>
+          Vitest. Checks ordered announcement output with partial semantic
+          fields.
+        </>
+      ),
+    },
+    "toHaveAnnounced(expected)": {
+      type: <>matcher</>,
+      description: (
+        <>
+          Vitest. Checks that at least one announcement matches the expected
+          fields.
+        </>
+      ),
+    },
+    "toHaveDiagnostic(expected)": {
+      type: <>matcher</>,
+      description: (
+        <>
+          Vitest. Checks that at least one runtime diagnostic matches the
+          expected fields.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="limits"></span>
+
+## Validation and evidence limits
+
+Replay rejects unsupported formats, versions, event types, backward times, and
+response or tool events without required IDs before dispatch. A passing
+transcript confirms deterministic core output. It does not prove browser
+delivery or screen&#45;reader speech.
+
+## Related
+
+- [/api/core](/api/core)
+- [/docs/testing/replay](/docs/testing/replay)
+- [/docs/testing](/docs/testing)

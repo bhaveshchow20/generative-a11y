@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import {
+  Geist,
+  IBM_Plex_Mono,
+  JetBrains_Mono,
+  Manrope,
+} from "next/font/google";
+import "fumadocs-ui/style.css";
 import "./globals.css";
+import "../styles/home.css";
+import "../styles/docs.css";
+
+import { AppProvider } from "../components/layout/app-provider";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../lib/site";
 
 const bodyFont = Manrope({
@@ -10,6 +20,17 @@ const bodyFont = Manrope({
 
 const monoFont = IBM_Plex_Mono({
   variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const homeSansFont = Geist({
+  variable: "--font-home-sans",
+  subsets: ["latin"],
+});
+
+const homeMonoFont = JetBrains_Mono({
+  variable: "--font-home-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -41,12 +62,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${bodyFont.variable} ${monoFont.variable}`}>
-        <a className="skip-link" href="#main-content">
-          Skip to content
-        </a>
-        <div id="main-content">{children}</div>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${bodyFont.variable} ${monoFont.variable} ${homeSansFont.variable} ${homeMonoFont.variable}`}
+      >
+        <AppProvider>
+          <a className="skip-link" href="#main-content">
+            Skip to content
+          </a>
+          <div id="main-content">{children}</div>
+        </AppProvider>
       </body>
     </html>
   );

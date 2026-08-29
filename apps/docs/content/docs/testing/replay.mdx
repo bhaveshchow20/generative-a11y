@@ -1,0 +1,205 @@
+---
+title: "Deterministic replay testing"
+description:
+  "Record normalized lifecycle events, replay them through a ManualClock, and
+  assert announcement or diagnostic transcripts with optional Vitest matchers."
+publicPath: "/docs/testing/replay"
+section: "Accessibility and testing"
+keywords:
+  [
+    "deterministic replay",
+    "Vitest",
+    "ManualClock",
+    "fixtures",
+    "accessibility testing",
+  ]
+related: ["/api/core/testing", "/docs/testing"]
+order: 18
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/testing/replay",
+  section: "Accessibility and testing",
+  related: ["/api/core/testing", "/docs/testing"],
+  order: 18,
+};
+
+export const searchableText = [
+  "Deterministic replay testing",
+  "Record normalized lifecycle events, replay them through a ManualClock, and assert announcement or diagnostic transcripts with optional Vitest matchers.",
+  "Accessibility and testing",
+  "deterministic replay",
+  "Vitest",
+  "ManualClock",
+  "fixtures",
+  "accessibility testing",
+  "/api/core/testing",
+  "/docs/testing",
+  "install",
+  "Use the testing entry from core",
+  "Testing helpers ship with @generative-a11y/core. Import the testing entry only in test code, and install Vitest only when the project uses the semantic matchers.",
+  "shell",
+  "npm install @generative-a11y/core npm install --save-dev vitest",
+  "Keep fixtures local",
+  "Replay files contain normalized application events and should follow the repository rules for test data.",
+  "Use one testing entry",
+  "Import recording, replay, and matcher helpers from @generative-a11y/core/testing.",
+  "record-and-replay",
+  "Record and replay normalized events",
+  "recordRuntime captures only events sent through the dispatch target it returns. Fixtures use a versioned JSON envelope, relative timestamps, and array order for events with the same time.",
+  "typescript",
+  'import { ManualClock, createGenerativeA11y } from "@generative-a11y/core"; import { recordRuntime, replayEvents } from "@generative-a11y/core/testing"; const clock = new ManualClock(0); const runtime = createGenerativeA11y({ clock }); const recording = recordRuntime({ runtime, clock }); recording.runtime.dispatch({ type: "response.started", responseId: "report", }); const fixture = recording.fixture(); const replayClock = new ManualClock(fixture.startAt); const replayRuntime = createGenerativeA11y({ clock: replayClock }); replayEvents(replayRuntime, replayClock, fixture); replayClock.runUntilIdle(); runtime.dispose(); replayRuntime.dispose();',
+  "Wrap the dispatch target",
+  "Send the same normalized events used by the application through recording.runtime.",
+  "Create a fixture",
+  "fixture returns a frozen V1 envelope with non-negative relative times.",
+  "Replay with controlled time",
+  "replayEvents advances ManualClock to each event and dispatches it in recorded order.",
+  "Settle only when intended",
+  "Call runUntilIdle when the test needs final delayed output rather than intermediate state.",
+  "vitest-matchers",
+  "Use semantic Vitest matchers",
+  "installVitestMatchers adds transcript, announcement, and diagnostic assertions. Expected objects use semantic partial fields, which keeps tests focused on the behavior under review.",
+  "toHaveAnnouncementTranscript checks ordered output",
+  "toHaveAnnounced checks that one matching intent exists",
+  "toHaveDiagnostic checks a matching runtime decision",
+  "evidence-limit",
+  "Keep the evidence boundary clear",
+  "Replay proves that normalized events produce repeatable runtime output under a controlled clock. It does not prove browser delivery or screen-reader speech. Keep browser fixtures and hands-on assistive-technology tests as separate release evidence.",
+].join("\n");
+
+<span id="install"></span>
+
+## Use the testing entry from core
+
+Testing helpers ship with @generative&#45;a11y/core. Import the testing entry
+only in test code, and install Vitest only when the project uses the semantic
+matchers.
+
+{/* prettier-ignore */}
+```shell
+npm install @generative-a11y/core
+npm install --save-dev vitest
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Keep fixtures local
+
+Replay files contain normalized application events and should follow the
+repository rules for test data.
+
+</Step>
+
+<Step>
+
+### Use one testing entry
+
+Import recording, replay, and matcher helpers from
+@generative&#45;a11y/core/testing.
+
+</Step>
+
+</Steps>
+
+<span id="record&#45;and&#45;replay"></span>
+
+## Record and replay normalized events
+
+recordRuntime captures only events sent through the dispatch target it returns.
+Fixtures use a versioned JSON envelope, relative timestamps, and array order for
+events with the same time.
+
+{/* prettier-ignore */}
+```typescript
+import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
+
+const clock = new ManualClock(0);
+const runtime = createGenerativeA11y({ clock });
+const recording = recordRuntime({ runtime, clock });
+recording.runtime.dispatch({
+  type: "response.started",
+  responseId: "report",
+});
+const fixture = recording.fixture();
+
+const replayClock = new ManualClock(fixture.startAt);
+const replayRuntime = createGenerativeA11y({ clock: replayClock });
+replayEvents(replayRuntime, replayClock, fixture);
+replayClock.runUntilIdle();
+
+runtime.dispose();
+replayRuntime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Wrap the dispatch target
+
+Send the same normalized events used by the application through
+recording.runtime.
+
+</Step>
+
+<Step>
+
+### Create a fixture
+
+fixture returns a frozen V1 envelope with non&#45;negative relative times.
+
+</Step>
+
+<Step>
+
+### Replay with controlled time
+
+replayEvents advances ManualClock to each event and dispatches it in recorded
+order.
+
+</Step>
+
+<Step>
+
+### Settle only when intended
+
+Call runUntilIdle when the test needs final delayed output rather than
+intermediate state.
+
+</Step>
+
+</Steps>
+
+<span id="vitest&#45;matchers"></span>
+
+## Use semantic Vitest matchers
+
+installVitestMatchers adds transcript, announcement, and diagnostic assertions.
+Expected objects use semantic partial fields, which keeps tests focused on the
+behavior under review.
+
+- toHaveAnnouncementTranscript checks ordered output
+- toHaveAnnounced checks that one matching intent exists
+- toHaveDiagnostic checks a matching runtime decision
+
+<span id="evidence&#45;limit"></span>
+
+## Keep the evidence boundary clear
+
+Replay proves that normalized events produce repeatable runtime output under a
+controlled clock. It does not prove browser delivery or screen&#45;reader
+speech. Keep browser fixtures and hands&#45;on assistive&#45;technology tests as
+separate release evidence.
+
+## Related
+
+- [/api/core/testing](/api/core/testing)
+- [/docs/testing](/docs/testing)

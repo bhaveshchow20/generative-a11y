@@ -1,0 +1,146 @@
+---
+title: "@generative-a11y/core"
+description:
+  "Core events, announcement rules, streaming text, scheduling, diagnostics,
+  test clocks, and recorders."
+publicPath: "/api/core"
+section: "Core"
+keywords: ["core", "exports", "runtime", "events", "scheduler"]
+related: []
+order: 1
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core",
+  section: "Core",
+  related: [],
+  order: 1,
+};
+
+export const searchableText = [
+  "@generative-a11y/core",
+  "Core events, announcement rules, streaming text, scheduling, diagnostics, test clocks, and recorders.",
+  "Core",
+  "core",
+  "exports",
+  "runtime",
+  "events",
+  "scheduler",
+  "install",
+  "Install and import",
+  "Core does not depend on the DOM, React, or an AI framework. Your app sends it GenerativeA11yEvent objects, and it creates AnnouncementIntent objects when there is something useful to announce.",
+  "shell",
+  "npm install @generative-a11y/core",
+  "Install core",
+  "Use core in any JavaScript runtime, including tests that do not have a document.",
+  "Add browser delivery",
+  "Browser apps pair core with @generative-a11y/dom or @generative-a11y/react.",
+  "exports",
+  "Public export map",
+  "Use the narrowest public export for the behavior you own.",
+  "Category",
+  "Exports",
+  "Reference",
+  "Runtime",
+  "createGenerativeA11y, GenerativeA11yRuntime",
+  "/api/core/create-generative-a11y",
+  "Events",
+  "GenerativeA11yEvent and lifecycle types",
+  "/api/core/events",
+  "Policy",
+  "presets, resolvePolicy, PolicyOverrides",
+  "/api/core/policy",
+  "Scheduler",
+  "createAnnouncementScheduler and scheduler types",
+  "/api/core/scheduler",
+  "Testing",
+  "ManualClock, createAnnouncementRecorder",
+  "/api/core/testing",
+  "Diagnostics",
+  "AnnouncementIntent, AnnouncementDiagnostic",
+  "/api/core/diagnostics",
+].join("\n");
+
+<span id="install"></span>
+
+## Install and import
+
+Core does not depend on the DOM, React, or an AI framework. Your app sends it
+GenerativeA11yEvent objects, and it creates AnnouncementIntent objects when
+there is something useful to announce.
+
+{/* prettier-ignore */}
+```shell
+npm install @generative-a11y/core
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Install core
+
+Use core in any JavaScript runtime, including tests that do not have a document.
+
+</Step>
+
+<Step>
+
+### Add browser delivery
+
+Browser apps pair core with @generative&#45;a11y/dom or
+@generative&#45;a11y/react.
+
+</Step>
+
+</Steps>
+
+<span id="exports"></span>
+
+## Public export map
+
+Use the narrowest public export for the behavior you own.
+
+<table aria-label="Public export map table">
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>Exports</th>
+      <th>Reference</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Runtime</td>
+      <td>createGenerativeA11y, GenerativeA11yRuntime</td>
+      <td>/api/core/create&#45;generative&#45;a11y</td>
+    </tr>
+    <tr>
+      <td>Events</td>
+      <td>GenerativeA11yEvent and lifecycle types</td>
+      <td>/api/core/events</td>
+    </tr>
+    <tr>
+      <td>Policy</td>
+      <td>presets, resolvePolicy, PolicyOverrides</td>
+      <td>/api/core/policy</td>
+    </tr>
+    <tr>
+      <td>Scheduler</td>
+      <td>createAnnouncementScheduler and scheduler types</td>
+      <td>/api/core/scheduler</td>
+    </tr>
+    <tr>
+      <td>Testing</td>
+      <td>ManualClock, createAnnouncementRecorder</td>
+      <td>/api/core/testing</td>
+    </tr>
+    <tr>
+      <td>Diagnostics</td>
+      <td>AnnouncementIntent, AnnouncementDiagnostic</td>
+      <td>/api/core/diagnostics</td>
+    </tr>
+  </tbody>
+</table>

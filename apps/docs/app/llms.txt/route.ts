@@ -1,4 +1,4 @@
-import { getDocPage } from "../../lib/content";
+import { getSourceManifest } from "../../lib/source-manifest";
 import {
   absoluteUrl,
   NPM_SCOPE_URL,
@@ -25,10 +25,12 @@ const importantPages = [
   "/api/core/testing",
 ] as const;
 
-export function GET() {
+export async function GET() {
+  const manifest = await getSourceManifest();
+  const pages = new Map(manifest.map((page) => [page.publicPath, page]));
   const links = importantPages
     .map((path) => {
-      const page = getDocPage(path);
+      const page = pages.get(path);
       return page
         ? `- [${page.title}](${absoluteUrl(path)}): ${page.description}`
         : undefined;

@@ -1,0 +1,140 @@
+---
+title: "API reference"
+description:
+  "Package and symbol-level reference for every public generative-a11y runtime,
+  browser, React, framework adapter, devtools, and testing contract."
+publicPath: "/api"
+section: "API overview"
+keywords: ["API", "reference", "exports", "packages", "TypeScript"]
+related: []
+order: 0
+---
+
+export const sourceMetadata = {
+  publicPath: "/api",
+  section: "API overview",
+  related: [],
+  order: 0,
+};
+
+export const searchableText = [
+  "API reference",
+  "Package and symbol-level reference for every public generative-a11y runtime, browser, React, framework adapter, devtools, and testing contract.",
+  "API overview",
+  "API",
+  "reference",
+  "exports",
+  "packages",
+  "TypeScript",
+  "packages",
+  "Choose the packages and entries you need",
+  "Start with core. Add DOM or React for browser updates, then add a framework adapter if your app uses that framework.",
+  "Package or entry",
+  "Primary exports",
+  "Use for",
+  "@generative-a11y/core",
+  "createGenerativeA11y, events, policy, scheduler",
+  "Framework-independent policy",
+  "@generative-a11y/dom",
+  "announcer, runtime binding, focus, attention, preferences",
+  "Browser updates and helpers",
+  "@generative-a11y/react",
+  "provider and hooks",
+  "React setup and element bindings",
+  "@generative-a11y/ai-sdk",
+  "observer, callbacks, React hooks",
+  "AI SDK useChat public state",
+  "@generative-a11y/assistant-ui",
+  "bindThreadRuntime",
+  "assistant-ui ThreadRuntime",
+  "@generative-a11y/ag-ui",
+  "bindAgent",
+  "AG-UI AgentSubscriber callbacks",
+  "@generative-a11y/devtools",
+  "createDevtoolsStore, overlay",
+  "Bounded redacted development traces",
+  "@generative-a11y/core/testing",
+  "recordRuntime, replayEvents, matchers",
+  "Deterministic lifecycle tests",
+  "reference-conventions",
+  "How to read this reference",
+  "Each symbol page lists the import path, signature, parameters, return value, defaults, cleanup rules, and related APIs. Every example uses public exports from the installed packages.",
+  "Method return values describe behavior the library can confirm.",
+  "Cleanup notes list the timers, subscriptions, DOM nodes, or framework objects released by dispose().",
+  "Test notes separate runtime and browser results from hands-on screen-reader tests.",
+  "You can link to any API page from an issue or code review.",
+].join("\n");
+
+<span id="packages"></span>
+
+## Choose the packages and entries you need
+
+Start with core. Add DOM or React for browser updates, then add a framework
+adapter if your app uses that framework.
+
+<table aria-label="Choose the packages and entries you need table">
+  <thead>
+    <tr>
+      <th>Package or entry</th>
+      <th>Primary exports</th>
+      <th>Use for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>@generative&#45;a11y/core</td>
+      <td>createGenerativeA11y, events, policy, scheduler</td>
+      <td>Framework&#45;independent policy</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/dom</td>
+      <td>announcer, runtime binding, focus, attention, preferences</td>
+      <td>Browser updates and helpers</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/react</td>
+      <td>provider and hooks</td>
+      <td>React setup and element bindings</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/ai&#45;sdk</td>
+      <td>observer, callbacks, React hooks</td>
+      <td>AI SDK useChat public state</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/assistant&#45;ui</td>
+      <td>bindThreadRuntime</td>
+      <td>assistant&#45;ui ThreadRuntime</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/ag&#45;ui</td>
+      <td>bindAgent</td>
+      <td>AG&#45;UI AgentSubscriber callbacks</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/devtools</td>
+      <td>createDevtoolsStore, overlay</td>
+      <td>Bounded redacted development traces</td>
+    </tr>
+    <tr>
+      <td>@generative&#45;a11y/core/testing</td>
+      <td>recordRuntime, replayEvents, matchers</td>
+      <td>Deterministic lifecycle tests</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="reference&#45;conventions"></span>
+
+## How to read this reference
+
+Each symbol page lists the import path, signature, parameters, return value,
+defaults, cleanup rules, and related APIs. Every example uses public exports
+from the installed packages.
+
+- Method return values describe behavior the library can confirm.
+- Cleanup notes list the timers, subscriptions, DOM nodes, or framework objects
+  released by dispose().
+- Test notes separate runtime and browser results from hands&#45;on
+  screen&#45;reader tests.
+- You can link to any API page from an issue or code review.

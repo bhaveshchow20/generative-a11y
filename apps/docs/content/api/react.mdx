@@ -1,0 +1,189 @@
+---
+title: "@generative-a11y/react"
+description:
+  "A React provider and hooks for browser updates, attention, preferences, and
+  refs for your existing interface."
+publicPath: "/api/react"
+section: "React"
+keywords: ["React", "GenerativeA11yProvider", "hooks", "bindings"]
+related: []
+order: 14
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/react",
+  section: "React",
+  related: [],
+  order: 14,
+};
+
+export const searchableText = [
+  "@generative-a11y/react",
+  "A React provider and hooks for browser updates, attention, preferences, and refs for your existing interface.",
+  "React",
+  "React",
+  "GenerativeA11yProvider",
+  "hooks",
+  "bindings",
+  "provider",
+  "GenerativeA11yProvider",
+  "GenerativeA11yProvider can own a runtime or borrow one from your app. It renders stable hidden delivery regions and leaves visible UI unchanged.",
+  "tsx",
+  'import { GenerativeA11yProvider } from "@generative-a11y/react"; export function App() { return ( <GenerativeA11yProvider preset="balanced" dom={{ mode: "auto" }} > <ExistingChat /> </GenerativeA11yProvider> ); }',
+  "Mount one provider",
+  "Wrap the part of your app that sends accessibility events.",
+  "Configure browser delivery",
+  "dom controls hidden screen-reader updates without replacing visible components.",
+  "Keep app behavior in the app",
+  "ExistingChat still owns its HTML, keyboard behavior, and focus.",
+  "runtime",
+  "GenerativeA11yRuntime",
+  "Optional",
+  "owned runtime",
+  "Borrows an existing runtime when provided. GenerativeA11yProvider never disposes app-supplied runtimes.",
+  "dom",
+  "false | GenerativeA11yDOMOptions",
+  "Optional",
+  "{}",
+  "Configures hidden DOM delivery or disables it.",
+  "attention",
+  "false | AttentionStoreOptions",
+  "Optional",
+  "{}",
+  "Configures the provider's attention store or disables browser signal collection.",
+  "attentionStore",
+  "AttentionStore",
+  "Optional",
+  "owned store",
+  "Borrows an application-supplied attention store.",
+  "preferences",
+  "PreferenceStoreOptions",
+  "Optional",
+  "{}",
+  "Configures an owned preference store.",
+  "preferenceStore",
+  "PreferenceStore",
+  "Optional",
+  "owned store",
+  "Borrows an application-supplied preference store.",
+  "ownership",
+  "Provider ownership",
+  "GenerativeA11yProvider cleans up every runtime, browser connection, store, timer, subscription, and live region it creates. Anything supplied by your app remains under your control.",
+  "Provider context is unavailable outside the provider.",
+  "Server rendering uses stable hidden structure and reports attention as unknown.",
+  "Routine announcements never move focus.",
+  "Preference changes update the runtime without replacing your components.",
+].join("\n");
+
+<span id="provider"></span>
+
+## GenerativeA11yProvider
+
+GenerativeA11yProvider can own a runtime or borrow one from your app. It renders
+stable hidden delivery regions and leaves visible UI unchanged.
+
+{/* prettier-ignore */}
+```tsx
+import { GenerativeA11yProvider } from "@generative-a11y/react";
+
+export function App() {
+  return (
+    <GenerativeA11yProvider
+      preset="balanced"
+      dom={{ mode: "auto" }}
+    >
+      <ExistingChat />
+    </GenerativeA11yProvider>
+  );
+}
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Mount one provider
+
+Wrap the part of your app that sends accessibility events.
+
+</Step>
+
+<Step>
+
+### Configure browser delivery
+
+dom controls hidden screen&#45;reader updates without replacing visible
+components.
+
+</Step>
+
+<Step>
+
+### Keep app behavior in the app
+
+ExistingChat still owns its HTML, keyboard behavior, and focus.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>GenerativeA11yRuntime</>,
+      default: <>owned runtime</>,
+      description: (
+        <>
+          Borrows an existing runtime when provided. GenerativeA11yProvider
+          never disposes app&#45;supplied runtimes.
+        </>
+      ),
+    },
+    dom: {
+      type: <>false &#124; GenerativeA11yDOMOptions</>,
+      default: <>&#123;&#125;</>,
+      description: <>Configures hidden DOM delivery or disables it.</>,
+    },
+    attention: {
+      type: <>false &#124; AttentionStoreOptions</>,
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Configures the provider's attention store or disables browser signal
+          collection.
+        </>
+      ),
+    },
+    attentionStore: {
+      type: <>AttentionStore</>,
+      default: <>owned store</>,
+      description: <>Borrows an application&#45;supplied attention store.</>,
+    },
+    preferences: {
+      type: <>PreferenceStoreOptions</>,
+      default: <>&#123;&#125;</>,
+      description: <>Configures an owned preference store.</>,
+    },
+    preferenceStore: {
+      type: <>PreferenceStore</>,
+      default: <>owned store</>,
+      description: <>Borrows an application&#45;supplied preference store.</>,
+    },
+  }}
+/>
+
+<span id="ownership"></span>
+
+## Provider ownership
+
+GenerativeA11yProvider cleans up every runtime, browser connection, store,
+timer, subscription, and live region it creates. Anything supplied by your app
+remains under your control.
+
+- Provider context is unavailable outside the provider.
+- Server rendering uses stable hidden structure and reports attention as
+  unknown.
+- Routine announcements never move focus.
+- Preference changes update the runtime without replacing your components.

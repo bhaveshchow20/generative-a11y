@@ -1,0 +1,188 @@
+---
+title: "Stability and migrations"
+description:
+  "Learn how package versions, supported framework ranges, deprecations, and
+  upgrades work."
+publicPath: "/docs/stability"
+section: "Reference"
+keywords:
+  [
+    "stability",
+    "SemVer",
+    "versioning",
+    "migration",
+    "deprecation",
+    "changeset",
+    "peer dependency",
+  ]
+related: []
+order: 22
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/stability",
+  section: "Reference",
+  related: [],
+  order: 22,
+};
+
+export const searchableText = [
+  "Stability and migrations",
+  "Learn how package versions, supported framework ranges, deprecations, and upgrades work.",
+  "Reference",
+  "stability",
+  "SemVer",
+  "versioning",
+  "migration",
+  "deprecation",
+  "changeset",
+  "peer dependency",
+  "versioning",
+  "Public packages follow semantic versioning",
+  "Published package versions describe the public exports, event contracts, and documented behavior of that package. Patch releases preserve compatible behavior and minor releases add compatible capability. Before 1.0, a documented minor release may include a breaking public API change; after 1.0, breaking public API changes require a major release.",
+  "Internal implementation details, private framework state, and undocumented deep imports are not compatibility surfaces.",
+  "compatibility",
+  "Adapter stability includes peer ranges",
+  "Framework adapters are supported only with the versions listed in their peer dependency ranges. A new framework version can change the public events an adapter receives even when generative-a11y has not changed.",
+  "Review the compatibility matrix before upgrading a framework peer.",
+  "Pin framework versions when your app depends on exact adapter behavior.",
+  "Send core events directly when a framework does not report an event your app needs.",
+  "package-contracts",
+  "Package contracts are checked before publication",
+  "Release validation inspects package exports, declaration files, provenance-ready metadata, packed contents, dependency boundaries, and installability. Public entry points must resolve from the package users install.",
+  "Every exported API has tests and documentation.",
+  "Package manifests expose only supported public entry points.",
+  "Packed artifacts are inspected instead of trusting the source tree.",
+  "Framework adapters stay within their declared peer ranges.",
+  "release-gates",
+  "Each release check answers a different question",
+  "A release runs code checks, browser tests, package validation, and a validator for hands-on screen-reader test records. Passing one check does not replace the others.",
+  "Check",
+  "What it covers",
+  "Limit",
+  "Repository check",
+  "Types, builds, unit behavior, rendered docs",
+  "Code and runtime behavior",
+  "Browser matrix",
+  "Keyboard, focus, semantics, page updates",
+  "Browser behavior only",
+  "Package validation",
+  "Exports, tarballs, installability",
+  "Files received by package users",
+  "Screen-reader test record",
+  "A dated, hands-on workflow",
+  "One named setup",
+  "migration-checklist",
+  "Migration checklist",
+  "Upgrade one package area at a time. Check runtime output first, then test in browsers and with the screen readers you support.",
+  "Read the package release notes and peer dependency changes.",
+  "Update one generative-a11y package family to a consistent version set.",
+  "Run type checking and adapter translation tests.",
+  "Compare diagnostics for suppression, cancellation, and delivery changes.",
+  "Exercise stop, retry, tool failure, and approval workflows in a browser.",
+  "Repeat the application's documented assistive-technology smoke test.",
+  "deprecations",
+  "Deprecations remain documented",
+  "Deprecated exports remain documented with their replacement and migration path until a major release removes them. Release notes identify changed defaults, event semantics, ownership rules, and peer dependency ranges.",
+].join("\n");
+
+<span id="versioning"></span>
+
+## Public packages follow semantic versioning
+
+Published package versions describe the public exports, event contracts, and
+documented behavior of that package. Patch releases preserve compatible behavior
+and minor releases add compatible capability. Before 1.0, a documented minor
+release may include a breaking public API change; after 1.0, breaking public API
+changes require a major release.
+
+Internal implementation details, private framework state, and undocumented deep
+imports are not compatibility surfaces.
+
+<span id="compatibility"></span>
+
+## Adapter stability includes peer ranges
+
+Framework adapters are supported only with the versions listed in their peer
+dependency ranges. A new framework version can change the public events an
+adapter receives even when generative&#45;a11y has not changed.
+
+- Review the compatibility matrix before upgrading a framework peer.
+- Pin framework versions when your app depends on exact adapter behavior.
+- Send core events directly when a framework does not report an event your app
+  needs.
+
+<span id="package&#45;contracts"></span>
+
+## Package contracts are checked before publication
+
+Release validation inspects package exports, declaration files,
+provenance&#45;ready metadata, packed contents, dependency boundaries, and
+installability. Public entry points must resolve from the package users install.
+
+- Every exported API has tests and documentation.
+- Package manifests expose only supported public entry points.
+- Packed artifacts are inspected instead of trusting the source tree.
+- Framework adapters stay within their declared peer ranges.
+
+<span id="release&#45;gates"></span>
+
+## Each release check answers a different question
+
+A release runs code checks, browser tests, package validation, and a validator
+for hands&#45;on screen&#45;reader test records. Passing one check does not
+replace the others.
+
+<table aria-label="Each release check answers a different question table">
+  <thead>
+    <tr>
+      <th>Check</th>
+      <th>What it covers</th>
+      <th>Limit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Repository check</td>
+      <td>Types, builds, unit behavior, rendered docs</td>
+      <td>Code and runtime behavior</td>
+    </tr>
+    <tr>
+      <td>Browser matrix</td>
+      <td>Keyboard, focus, semantics, page updates</td>
+      <td>Browser behavior only</td>
+    </tr>
+    <tr>
+      <td>Package validation</td>
+      <td>Exports, tarballs, installability</td>
+      <td>Files received by package users</td>
+    </tr>
+    <tr>
+      <td>Screen&#45;reader test record</td>
+      <td>A dated, hands&#45;on workflow</td>
+      <td>One named setup</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="migration&#45;checklist"></span>
+
+## Migration checklist
+
+Upgrade one package area at a time. Check runtime output first, then test in
+browsers and with the screen readers you support.
+
+- Read the package release notes and peer dependency changes.
+- Update one generative&#45;a11y package family to a consistent version set.
+- Run type checking and adapter translation tests.
+- Compare diagnostics for suppression, cancellation, and delivery changes.
+- Exercise stop, retry, tool failure, and approval workflows in a browser.
+- Repeat the application's documented assistive&#45;technology smoke test.
+
+<span id="deprecations"></span>
+
+## Deprecations remain documented
+
+Deprecated exports remain documented with their replacement and migration path
+until a major release removes them. Release notes identify changed defaults,
+event semantics, ownership rules, and peer dependency ranges.

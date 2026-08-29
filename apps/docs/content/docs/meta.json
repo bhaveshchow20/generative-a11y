@@ -1,0 +1,24 @@
+{
+  "root": true,
+  "pages": [
+    "getting-started",
+    "integrations",
+    "---Concepts---",
+    "why-generative-a11y",
+    "screen-readers-and-streaming-ai",
+    "aria-live-and-generative-ai",
+    "accessible-ai-agents",
+    "architecture",
+    "lifecycle",
+    "---Tools---",
+    "devtools",
+    "---Accessibility and testing---",
+    "testing",
+    "troubleshooting",
+    "---Reference---",
+    "compatibility",
+    "stability",
+    "limitations",
+    "project"
+  ]
+}

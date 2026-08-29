@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { JsonLd } from "../components/json-ld";
-import { getDocPage } from "../lib/content";
 import {
   createArticleJsonLd,
   createDocMetadata,
@@ -62,7 +61,11 @@ describe("site metadata contracts", () => {
       ]),
     );
 
-    const page = getDocPage("/docs/devtools")!;
+    const page = {
+      path: "/docs/devtools",
+      title: "Devtools",
+      description: "Inspect accessibility events without exposing private data.",
+    };
     expect(createDocMetadata(page).description).toBe(page.description);
     expect(createHomeJsonLd()).toEqual(
       expect.objectContaining({ "@context": "https://schema.org" }),
@@ -70,10 +73,16 @@ describe("site metadata contracts", () => {
   });
 
   it("matches structured breadcrumbs to the visible Docs and API hierarchy", () => {
-    const docs = createArticleJsonLd(
-      getDocPage("/docs/screen-readers-and-streaming-ai")!,
-    );
-    const api = createArticleJsonLd(getDocPage("/api/devtools")!);
+    const docs = createArticleJsonLd({
+      path: "/docs/screen-readers-and-streaming-ai",
+      title: "Screen readers and streaming AI",
+      description: "Understand accessible streaming behavior.",
+    });
+    const api = createArticleJsonLd({
+      path: "/api/devtools",
+      title: "Devtools",
+      description: "Inspect accessibility events.",
+    });
     const docsBreadcrumbs = (
       docs["@graph"] as Array<Record<string, unknown>>
     ).find((entry) => entry["@type"] === "BreadcrumbList")!;

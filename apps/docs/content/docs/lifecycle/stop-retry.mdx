@@ -1,0 +1,104 @@
+---
+title: "Stop, abort, retry, and stale responses"
+description:
+  "Stop pending announcements when a response is cancelled, and ignore late
+  updates from an older retry."
+publicPath: "/docs/lifecycle/stop-retry"
+section: "Lifecycle"
+keywords:
+  ["stop", "abort", "retry", "regeneration", "stale response", "replacement"]
+related: []
+order: 9
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/stop-retry",
+  section: "Lifecycle",
+  related: [],
+  order: 9,
+};
+
+export const searchableText = [
+  "Stop, abort, retry, and stale responses",
+  "Stop pending announcements when a response is cancelled, and ignore late updates from an older retry.",
+  "Lifecycle",
+  "stop",
+  "abort",
+  "retry",
+  "regeneration",
+  "stale response",
+  "replacement",
+  "interruption",
+  "Stopping a response clears pending text",
+  "Send response.interrupted when your app stops a response. Core discards waiting text and prepares a short status update. Adapters do not treat a generic ready state as proof that someone stopped a response.",
+  "retry",
+  "Tell the runtime when a retry starts",
+  "response.retrying cancels the current attempt. Keep one responseId for the logical answer and give each attempt a new responseInstanceId. Core ignores late updates from older attempts.",
+  "typescript",
+  'runtime.dispatch({ type: "response.retrying", responseId: "report", responseInstanceId: "attempt-1", nextResponseInstanceId: "attempt-2", attempt: 2, });',
+  "Identify the replaced attempt",
+  "responseInstanceId names the active attempt that is being cancelled.",
+  "Name the new attempt",
+  "nextResponseInstanceId becomes the accepted attempt for later text and final events.",
+  "Keep the response ID",
+  "responseId stays the same so the app can treat both attempts as one logical answer.",
+].join("\n");
+
+<span id="interruption"></span>
+
+## Stopping a response clears pending text
+
+Send response.interrupted when your app stops a response. Core discards waiting
+text and prepares a short status update. Adapters do not treat a generic ready
+state as proof that someone stopped a response.
+
+<span id="retry"></span>
+
+## Tell the runtime when a retry starts
+
+response.retrying cancels the current attempt. Keep one responseId for the
+logical answer and give each attempt a new responseInstanceId. Core ignores late
+updates from older attempts.
+
+{/* prettier-ignore */}
+```typescript
+runtime.dispatch({
+  type: "response.retrying",
+  responseId: "report",
+  responseInstanceId: "attempt-1",
+  nextResponseInstanceId: "attempt-2",
+  attempt: 2,
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Identify the replaced attempt
+
+responseInstanceId names the active attempt that is being cancelled.
+
+</Step>
+
+<Step>
+
+### Name the new attempt
+
+nextResponseInstanceId becomes the accepted attempt for later text and final
+events.
+
+</Step>
+
+<Step>
+
+### Keep the response ID
+
+responseId stays the same so the app can treat both attempts as one logical
+answer.
+
+</Step>
+
+</Steps>

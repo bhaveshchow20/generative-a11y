@@ -1,0 +1,71 @@
+---
+title: "Accessibility model and architecture"
+description:
+  "See how an event from your app becomes a clear, well-timed screen-reader
+  update."
+publicPath: "/docs/architecture"
+section: "Concepts"
+keywords: ["architecture", "policy", "delivery", "assistive technology"]
+related: []
+order: 6
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/architecture",
+  section: "Concepts",
+  related: [],
+  order: 6,
+};
+
+export const searchableText = [
+  "Accessibility model and architecture",
+  "See how an event from your app becomes a clear, well-timed screen-reader update.",
+  "Concepts",
+  "architecture",
+  "policy",
+  "delivery",
+  "assistive technology",
+  "flow",
+  "From an app event to a screen-reader update",
+  "AI framework → standard events → core runtime → browser delivery → screen reader.",
+  "An adapter reads events from your framework. Core chooses useful updates, removes repeats, and controls timing. DOM adds each update without changing your visible interface.",
+  "runtime-flow",
+  "boundaries",
+  "Report only what the app knows",
+  "generative-a11y turns confirmed app events into screen-reader updates. It records each update added to the page. Test with real screen readers to confirm what they speak.",
+  "Core does not use the DOM.",
+  "Adapters do not run framework actions or control your interface.",
+  "Streaming and status changes do not move focus.",
+  "generative-a11y does not copy backend errors or tool results into announcements.",
+].join("\n");
+
+<span id="flow"></span>
+
+## From an app event to a screen&#45;reader update
+
+AI framework → standard events → core runtime → browser delivery → screen
+reader.
+
+An adapter reads events from your framework. Core chooses useful updates,
+removes repeats, and controls timing. DOM adds each update without changing your
+visible interface.
+
+<div
+  aria-label="Runtime flow visual"
+  data-doc-visual="runtime&#45;flow"
+  role="img"
+/>
+
+<span id="boundaries"></span>
+
+## Report only what the app knows
+
+generative&#45;a11y turns confirmed app events into screen&#45;reader updates.
+It records each update added to the page. Test with real screen readers to
+confirm what they speak.
+
+- Core does not use the DOM.
+- Adapters do not run framework actions or control your interface.
+- Streaming and status changes do not move focus.
+- generative&#45;a11y does not copy backend errors or tool results into
+  announcements.

@@ -1,0 +1,131 @@
+---
+title: "CopilotKit v2"
+description:
+  "Connect CopilotKit v2 with the AG-UI adapter after the agent is ready."
+publicPath: "/docs/integrations/copilotkit"
+section: "Integrations"
+keywords: ["CopilotKit", "useAgent", "AG-UI", "human in the loop"]
+related: []
+order: 15
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/integrations/copilotkit",
+  section: "Integrations",
+  related: [],
+  order: 15,
+};
+
+export const searchableText = [
+  "CopilotKit v2",
+  "Connect CopilotKit v2 with the AG-UI adapter after the agent is ready.",
+  "Integrations",
+  "CopilotKit",
+  "useAgent",
+  "AG-UI",
+  "human in the loop",
+  "reuse-ag-ui",
+  "Use the AG-UI adapter",
+  "CopilotKit v2 exposes an AG-UI agent through useAgent. Bind only after isReady, use a stable scope, and dispose the subscription from the effect cleanup.",
+  "tsx",
+  "function CopilotKitAccessibility({ agentId, runtime }) { const bindingScopeId = useId(); const { agent, isReady } = useAgent({ agentId }); useEffect(() => { if (!isReady) return; const binding = bindAgent({ agent, runtime, scopeId: `copilotkit:${bindingScopeId}`, }); return () => binding.dispose(); }, [agent, isReady, runtime, bindingScopeId]); return null; }",
+  "Create a mount identity",
+  "useId supplies a stable namespace that survives normal rerenders.",
+  "Wait for readiness",
+  "Your effect subscribes only after CopilotKit exposes a ready AG-UI agent.",
+  "Reuse the protocol adapter",
+  "CopilotKit v2 exposes a public AG-UI agent, so the AG-UI adapter can connect it directly.",
+  "Return cleanup",
+  "React effect cleanup disposes exactly the subscription created by this mount.",
+  "no-duplicate-package",
+  "Why there is no CopilotKit package",
+  "A second adapter would duplicate the same work. If an app has client tools that AG-UI cannot identify, connect those tools directly instead of guessing from their names.",
+].join("\n");
+
+<span id="reuse&#45;ag&#45;ui"></span>
+
+## Use the AG&#45;UI adapter
+
+CopilotKit v2 exposes an AG&#45;UI agent through useAgent. Bind only after
+isReady, use a stable scope, and dispose the subscription from the effect
+cleanup.
+
+{/* prettier-ignore */}
+```tsx
+import { useEffect, useId } from "react";
+import { useAgent } from "@copilotkit/react-core/v2";
+import { bindAgent } from "@generative-a11y/ag-ui";
+import type { GenerativeA11yRuntime } from "@generative-a11y/core";
+
+interface CopilotKitAccessibilityProps {
+  agentId: string;
+  runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+}
+
+export function CopilotKitAccessibility({
+  agentId,
+  runtime,
+}: CopilotKitAccessibilityProps) {
+  const bindingScopeId = useId();
+  const { agent, isReady } = useAgent({ agentId });
+
+  useEffect(() => {
+    if (!isReady) return;
+    const binding = bindAgent({
+      agent,
+      runtime,
+      scopeId: `copilotkit:${bindingScopeId}`,
+    });
+    return () => binding.dispose();
+  }, [agent, isReady, runtime, bindingScopeId]);
+
+  return null;
+}
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create a mount identity
+
+useId supplies a stable namespace that survives normal rerenders.
+
+</Step>
+
+<Step>
+
+### Wait for readiness
+
+Your effect subscribes only after CopilotKit exposes a ready AG&#45;UI agent.
+
+</Step>
+
+<Step>
+
+### Reuse the protocol adapter
+
+CopilotKit v2 exposes a public AG&#45;UI agent, so the AG&#45;UI adapter can
+connect it directly.
+
+</Step>
+
+<Step>
+
+### Return cleanup
+
+React effect cleanup disposes exactly the subscription created by this mount.
+
+</Step>
+
+</Steps>
+
+<span id="no&#45;duplicate&#45;package"></span>
+
+## Why there is no CopilotKit package
+
+A second adapter would duplicate the same work. If an app has client tools that
+AG&#45;UI cannot identify, connect those tools directly instead of guessing from
+their names.
