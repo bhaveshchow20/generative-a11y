@@ -329,8 +329,9 @@ test("homepage dropdowns open and update their content", async ({ page }) => {
   const scenarioSelect = page.getByRole("combobox", { name: "Scenario" });
 
   expect(await scenarioSelect.evaluate((element) => element.tagName)).toBe(
-    "SELECT",
+    "BUTTON",
   );
+  await expect(scenarioSelect).toHaveClass(/install-package-trigger/);
   await expect(
     page.getByRole("button", { name: "Copy install command" }),
   ).toBeEnabled();
@@ -348,7 +349,11 @@ test("homepage dropdowns open and update their content", async ({ page }) => {
     "npm install @generative-a11y/assistant-ui",
   );
 
-  await scenarioSelect.selectOption("approval");
+  await scenarioSelect.click();
+  const scenarioList = page.getByRole("listbox", { name: "Scenario" });
+  await expect(scenarioList).toBeVisible();
+  await expect(scenarioList.locator("..")).toHaveClass(/install-package-menu/);
+  await scenarioList.getByRole("option", { name: "Approval" }).click();
   await expect(
     page.getByRole("region", { name: "Interactive runtime trace" }),
   ).toContainText("Approval");
@@ -603,6 +608,10 @@ test("homepage supports a dark theme", async ({ page }) => {
   await expect(darkTheme).toBeVisible();
   await darkTheme.click();
   await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.locator(".home-quick-start")).toHaveCSS(
+    "background-image",
+    /radial-gradient/,
+  );
 
   await expect(
     page.getByRole("button", { name: "Light", exact: true }),

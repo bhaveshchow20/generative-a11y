@@ -574,8 +574,8 @@
   background: var(--runtime-toolbar);
   backdrop-filter: blur(8px);
 }
-.runtime-toolbar label { display: flex; align-items: center; gap: 8px; color: var(--runtime-toolbar-ink); font: 600 .59rem var(--font-home-mono), monospace; text-transform: uppercase; }
-.runtime-toolbar select, .runtime-toolbar button {
+.runtime-scenario-control { display: flex; align-items: center; gap: 8px; color: var(--runtime-toolbar-ink); font: 600 .59rem var(--font-home-mono), monospace; text-transform: uppercase; }
+.runtime-toolbar button {
   min-height: 44px;
   border: 1px solid var(--home-cue-border);
   border-radius: 8px;
@@ -583,7 +583,26 @@
   color: var(--runtime-control-ink);
   font: 600 .67rem var(--font-home-mono), monospace;
 }
-.runtime-toolbar select { padding: 0 34px 0 11px; }
+.runtime-toolbar .runtime-scenario-trigger {
+  display: inline-flex;
+  min-width: 164px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+.runtime-toolbar .runtime-scenario-trigger:hover,
+.runtime-toolbar .runtime-scenario-trigger[data-popup-open] {
+  border-color: var(--home-cue-border-hover);
+  background: var(--terminal-bg);
+}
+.runtime-toolbar .runtime-scenario-trigger svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.runtime-scenario-menu { min-width: var(--anchor-width); }
 .runtime-controls { display: flex; gap: 6px; }
 .runtime-toolbar button { padding: 0 13px; cursor: pointer; }
 .runtime-toolbar button:hover:not(:disabled) { border-color: var(--home-cue-border-hover); color: var(--home-orange-dark); }
@@ -761,9 +780,18 @@
   overflow: hidden;
   border: 0;
   border-radius: 15px;
-  background: var(--home-surface);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(8,127,104,.13), transparent 36%),
+    radial-gradient(circle at 88% 84%, rgba(200,219,99,.14), transparent 40%),
+    var(--home-surface);
   box-shadow: 0 3px 9px rgba(30,30,20,.07);
   grid-template-columns: .75fr 1.25fr;
+}
+.dark .home-site .home-quick-start {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(67,194,166,.18), transparent 38%),
+    radial-gradient(circle at 88% 84%, rgba(137,152,70,.1), transparent 42%),
+    #030604;
 }
 .home-quick-start .home-section-heading { align-self: center; margin: 0; padding: 42px; text-align: left; }
 .home-quick-start .home-section-heading h2 { font-size: clamp(2.2rem, 4vw, 4rem); }
@@ -884,8 +912,8 @@
   .home-manifesto p { font-size: 1.65rem; }
   .home-runtime-section { margin-bottom: 48px; }
   .runtime-toolbar { align-items: stretch; flex-wrap: wrap; }
-  .runtime-toolbar label { width: 100%; }
-  .runtime-toolbar select { flex: 1; min-width: 0; }
+  .runtime-scenario-control { width: 100%; }
+  .runtime-toolbar .runtime-scenario-trigger { width: 100%; min-width: 0; }
   .runtime-status { margin-left: auto; }
   .runtime-laboratory { min-height: 660px; }
   .runtime-stage { width: calc(100% - 24px); margin-top: 14px; }

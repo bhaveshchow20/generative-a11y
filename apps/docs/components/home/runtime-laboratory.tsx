@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@base-ui/react/select";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -13,6 +14,11 @@ const playbackLabels: Record<PlaybackState, string> = {
   paused: "Paused",
   complete: "Complete",
 };
+
+const scenarioItems = runtimeScenarios.map(({ id, label }) => ({
+  label,
+  value: id,
+}));
 
 function subscribeToReducedMotion(onStoreChange: () => void) {
   const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -104,6 +110,16 @@ export function RuntimeLaboratory() {
     setPlayback(reduceMotion ? "complete" : "playing");
   }
 
+  function selectScenario(id: string) {
+    cancelTimer();
+    const nextIndex = runtimeScenarios.findIndex(
+      (candidate) => candidate.id === id,
+    );
+    setScenarioIndex(Math.max(0, nextIndex));
+    setVisibleCount(0);
+    setPlayback("ready");
+  }
+
   return (
     <section className="home-runtime-section" aria-labelledby="runtime-lab-title">
       <div className="home-section-heading">
@@ -120,25 +136,48 @@ export function RuntimeLaboratory() {
         data-state={playback}
       >
         <div className="runtime-toolbar">
-          <label>
+          <div className="runtime-scenario-control">
             <span>Scenario</span>
-            <select
+            <Select.Root
+              items={scenarioItems}
               value={scenario.id}
-              onChange={(event) => {
-                cancelTimer();
-                const nextIndex = runtimeScenarios.findIndex(
-                  ({ id }) => id === event.target.value,
-                );
-                setScenarioIndex(Math.max(0, nextIndex));
-                setVisibleCount(0);
-                setPlayback("ready");
+              onValueChange={(value) => {
+                if (value) selectScenario(value);
               }}
             >
-              {runtimeScenarios.map(({ id, label }) => (
-                <option key={id} value={id}>{label}</option>
-              ))}
-            </select>
-          </label>
+              <Select.Trigger
+                className="runtime-scenario-trigger install-package-trigger"
+                aria-label="Scenario"
+              >
+                <Select.Value />
+                <Select.Icon>
+                  <svg aria-hidden="true" viewBox="0 0 12 8" width="10" height="7">
+                    <path d="m1 1 5 5 5-5" />
+                  </svg>
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner
+                  className="install-package-positioner"
+                  side="bottom"
+                  sideOffset={8}
+                  alignItemWithTrigger={false}
+                >
+                  <Select.Popup className="install-package-menu runtime-scenario-menu">
+                    <p>Choose a scenario</p>
+                    <Select.List aria-label="Scenario">
+                      {runtimeScenarios.map(({ id, label }) => (
+                        <Select.Item key={id} value={id}>
+                          <Select.ItemText>{label}</Select.ItemText>
+                          <Select.ItemIndicator aria-hidden="true">✓</Select.ItemIndicator>
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </div>
           <div className="runtime-controls" aria-label="Playback controls">
             <button type="button" onClick={play} disabled={playback === "playing"}>
               Play <span className="sr-only">demo</span>
