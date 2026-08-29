@@ -28,7 +28,7 @@ export const searchableText = [
   "Use the AG-UI adapter",
   "CopilotKit v2 exposes an AG-UI agent through useAgent. Bind only after isReady, use a stable scope, and dispose the subscription from the effect cleanup.",
   "tsx",
-  "const bindingScopeId = useId(); const { agent, isReady } = useAgent({ agentId }); useEffect(() => { if (!isReady) return; const binding = bindAgent({ agent, runtime, scopeId: `copilotkit:${bindingScopeId}`, }); return () => binding.dispose(); }, [agent, isReady, runtime, bindingScopeId]);",
+  "function CopilotKitAccessibility({ agentId, runtime }) { const bindingScopeId = useId(); const { agent, isReady } = useAgent({ agentId }); useEffect(() => { if (!isReady) return; const binding = bindAgent({ agent, runtime, scopeId: `copilotkit:${bindingScopeId}`, }); return () => binding.dispose(); }, [agent, isReady, runtime, bindingScopeId]); return null; }",
   "Create a mount identity",
   "useId supplies a stable namespace that survives normal rerenders.",
   "Wait for readiness",
@@ -55,19 +55,32 @@ cleanup.
 import { useEffect, useId } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { bindAgent } from "@generative-a11y/ag-ui";
+import type { GenerativeA11yRuntime } from "@generative-a11y/core";
 
-const bindingScopeId = useId();
-const { agent, isReady } = useAgent({ agentId });
+interface CopilotKitAccessibilityProps {
+  agentId: string;
+  runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+}
 
-useEffect(() => {
-  if (!isReady) return;
-  const binding = bindAgent({
-    agent,
-    runtime,
-    scopeId: `copilotkit:${bindingScopeId}`,
-  });
-  return () => binding.dispose();
-}, [agent, isReady, runtime, bindingScopeId]);
+export function CopilotKitAccessibility({
+  agentId,
+  runtime,
+}: CopilotKitAccessibilityProps) {
+  const bindingScopeId = useId();
+  const { agent, isReady } = useAgent({ agentId });
+
+  useEffect(() => {
+    if (!isReady) return;
+    const binding = bindAgent({
+      agent,
+      runtime,
+      scopeId: `copilotkit:${bindingScopeId}`,
+    });
+    return () => binding.dispose();
+  }, [agent, isReady, runtime, bindingScopeId]);
+
+  return null;
+}
 ```
 
 ### Walkthrough

@@ -63,6 +63,9 @@ describe("Fumadocs content", () => {
     expect(content).toContain(
       'import { bindAgent } from "@generative-a11y/ag-ui";',
     );
+    expect(content).toMatch(
+      /function CopilotKitAccessibility[\s\S]*const bindingScopeId = useId\(\)/,
+    );
   });
 
   it("links every DOM export-map reference to its API page", async () => {
