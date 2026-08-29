@@ -1,0 +1,280 @@
+---
+title: "Intents and diagnostics"
+description:
+  "AnnouncementIntent output and AnnouncementDiagnostic decisions for delivery,
+  tests, telemetry, and bounded failure analysis."
+publicPath: "/api/core/diagnostics"
+section: "Core"
+keywords:
+  ["AnnouncementIntent", "AnnouncementDiagnostic", "DiagnosticReason", "count"]
+related: []
+order: 6
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/diagnostics",
+  section: "Core",
+  related: [],
+  order: 6,
+};
+
+export const searchableText = [
+  "Intents and diagnostics",
+  "AnnouncementIntent output and AnnouncementDiagnostic decisions for delivery, tests, telemetry, and bounded failure analysis.",
+  "Core",
+  "AnnouncementIntent",
+  "AnnouncementDiagnostic",
+  "DiagnosticReason",
+  "count",
+  "intent",
+  "AnnouncementIntent",
+  "An AnnouncementIntent describes an update prepared by core. It does not confirm that the browser delivered it or that a screen reader spoke it.",
+  "id",
+  "string",
+  "Required",
+  "n/a",
+  "Unique scheduled output identity.",
+  "at",
+  "number",
+  "Required",
+  "n/a",
+  "Injected clock timestamp at delivery.",
+  "channel",
+  "polite | assertive",
+  "Required",
+  "n/a",
+  "Requested urgency for the delivery layer.",
+  "text",
+  "string",
+  "Required",
+  "n/a",
+  "Translated text with normalized whitespace.",
+  "sourceType",
+  "event type",
+  "Required",
+  "n/a",
+  "Identifies the app event that caused this intent.",
+  "responseId / toolId / interactionId",
+  "string",
+  "Optional",
+  "undefined",
+  "Optional source lifecycle correlation.",
+  "diagnostic",
+  "AnnouncementDiagnostic",
+  "Diagnostics record runtime decisions for tests and telemetry. Listener failures do not change runtime behavior. Repeated queue-limit decisions can share one diagnostic with a count.",
+  "Disposition",
+  "Typical reasons",
+  "Meaning",
+  "queued",
+  "scheduled",
+  "Candidate entered the scheduler",
+  "merged",
+  "coalesced",
+  "Pending equivalent work was replaced",
+  "suppressed",
+  "duplicate, policy-silent, stale-response",
+  "Policy or identity prevented output",
+  "cancelled",
+  "scope-cancelled, runtime-disposed",
+  "Pending work became invalid",
+  "announced",
+  "delivered, delivery-error",
+  "Listeners accepted output or every attempt failed",
+  "disposition",
+  "DiagnosticDisposition",
+  "Required",
+  "n/a",
+  "High-level outcome category.",
+  "reason",
+  "DiagnosticReason",
+  "Required",
+  "n/a",
+  "Stable machine-readable explanation for the decision.",
+  "count",
+  "number",
+  "Optional",
+  "undefined",
+  "Number of equivalent decisions represented by an aggregated diagnostic.",
+  "runtime-observability",
+  "Versioned runtime observability",
+  "subscribeDiagnosticEvents emits each normalized source event before the decisions caused by that dispatch. getDiagnosticSnapshot returns current lifecycle and queue timing without response text, labels, errors, scopes, deduplication keys, or timer handles.",
+  "RuntimeDiagnosticEventV1",
+  "event-observed | decision",
+  "Event",
+  "n/a",
+  "Schema-versioned ordered diagnostic event with injected time and a monotonic sequence.",
+  "RuntimeDiagnosticSnapshotV1",
+  "immutable object",
+  "Snapshot",
+  "n/a",
+  "Content-free active response, tool, pending announcement, and response flush state.",
+  "pending.announcements",
+  "readonly DiagnosticPendingAnnouncement[]",
+  "Snapshot field",
+  "[]",
+  "Stable correlation, channel, source, scheduling, due-time, delay, and queue sequence fields ordered by due time.",
+  "Runtime diagnostics explain library behavior. They do not prove DOM delivery or screen-reader speech.",
+].join("\n");
+
+<span id="intent"></span>
+
+## AnnouncementIntent
+
+An AnnouncementIntent describes an update prepared by core. It does not confirm
+that the browser delivered it or that a screen reader spoke it.
+
+<TypeTable
+  type={{
+    id: {
+      type: <>string</>,
+      required: true,
+      description: <>Unique scheduled output identity.</>,
+    },
+    at: {
+      type: <>number</>,
+      required: true,
+      description: <>Injected clock timestamp at delivery.</>,
+    },
+    channel: {
+      type: <>polite &#124; assertive</>,
+      required: true,
+      description: <>Requested urgency for the delivery layer.</>,
+    },
+    text: {
+      type: <>string</>,
+      required: true,
+      description: <>Translated text with normalized whitespace.</>,
+    },
+    sourceType: {
+      type: <>event type</>,
+      required: true,
+      description: <>Identifies the app event that caused this intent.</>,
+    },
+    "responseId / toolId / interactionId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Optional source lifecycle correlation.</>,
+    },
+  }}
+/>
+
+<span id="diagnostic"></span>
+
+## AnnouncementDiagnostic
+
+Diagnostics record runtime decisions for tests and telemetry. Listener failures
+do not change runtime behavior. Repeated queue&#45;limit decisions can share one
+diagnostic with a count.
+
+<table aria-label="AnnouncementDiagnostic table">
+  <thead>
+    <tr>
+      <th>Disposition</th>
+      <th>Typical reasons</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>queued</td>
+      <td>scheduled</td>
+      <td>Candidate entered the scheduler</td>
+    </tr>
+    <tr>
+      <td>merged</td>
+      <td>coalesced</td>
+      <td>Pending equivalent work was replaced</td>
+    </tr>
+    <tr>
+      <td>suppressed</td>
+      <td>duplicate, policy&#45;silent, stale&#45;response</td>
+      <td>Policy or identity prevented output</td>
+    </tr>
+    <tr>
+      <td>cancelled</td>
+      <td>scope&#45;cancelled, runtime&#45;disposed</td>
+      <td>Pending work became invalid</td>
+    </tr>
+    <tr>
+      <td>announced</td>
+      <td>delivered, delivery&#45;error</td>
+      <td>Listeners accepted output or every attempt failed</td>
+    </tr>
+  </tbody>
+</table>
+
+<TypeTable
+  type={{
+    disposition: {
+      type: <>DiagnosticDisposition</>,
+      required: true,
+      description: <>High&#45;level outcome category.</>,
+    },
+    reason: {
+      type: <>DiagnosticReason</>,
+      required: true,
+      description: (
+        <>Stable machine&#45;readable explanation for the decision.</>
+      ),
+    },
+    count: {
+      type: <>number</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Number of equivalent decisions represented by an aggregated
+          diagnostic.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="runtime&#45;observability"></span>
+
+## Versioned runtime observability
+
+subscribeDiagnosticEvents emits each normalized source event before the
+decisions caused by that dispatch. getDiagnosticSnapshot returns current
+lifecycle and queue timing without response text, labels, errors, scopes,
+deduplication keys, or timer handles.
+
+<TypeTable
+  type={{
+    RuntimeDiagnosticEventV1: {
+      type: <>event&#45;observed &#124; decision</>,
+      description: (
+        <>
+          Event. Schema&#45;versioned ordered diagnostic event with injected
+          time and a monotonic sequence.
+        </>
+      ),
+    },
+    RuntimeDiagnosticSnapshotV1: {
+      type: <>immutable object</>,
+      description: (
+        <>
+          Snapshot. Content&#45;free active response, tool, pending
+          announcement, and response flush state.
+        </>
+      ),
+    },
+    "pending.announcements": {
+      type: <>readonly DiagnosticPendingAnnouncement&#91;&#93;</>,
+      default: <>&#91;&#93;</>,
+      description: (
+        <>
+          Snapshot field. Stable correlation, channel, source, scheduling,
+          due&#45;time, delay, and queue sequence fields ordered by due time.
+        </>
+      ),
+    },
+  }}
+/>
+
+<Callout title="Evidence and testing note">
+
+Runtime diagnostics explain library behavior. They do not prove DOM delivery or
+screen&#45;reader speech.
+
+</Callout>

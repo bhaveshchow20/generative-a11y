@@ -1,0 +1,240 @@
+---
+title: "bindThreadRuntime"
+description:
+  "Connect one assistant-ui ThreadRuntime and send its public events to a core
+  runtime supplied by your app."
+publicPath: "/api/assistant-ui/bind-thread-runtime"
+section: "assistant-ui"
+keywords: ["bindThreadRuntime", "BindThreadRuntimeOptions", "ThreadBinding"]
+related: []
+order: 19
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/assistant-ui/bind-thread-runtime",
+  section: "assistant-ui",
+  related: [],
+  order: 19,
+};
+
+export const searchableText = [
+  "bindThreadRuntime",
+  "Connect one assistant-ui ThreadRuntime and send its public events to a core runtime supplied by your app.",
+  "assistant-ui",
+  "bindThreadRuntime",
+  "BindThreadRuntimeOptions",
+  "ThreadBinding",
+  "signature",
+  "Signature and import",
+  "Create one binding per thread scope and dispose it when that subscription owner unmounts.",
+  "typescript",
+  'import { bindThreadRuntime } from "@generative-a11y/assistant-ui"; const binding = bindThreadRuntime({ runtime, scopeId: "support-thread", thread, maxTrackedEntities: 1_000, }); // Removes only the subscription and adapter state. binding.dispose();',
+  "Use the app runtime",
+  "ThreadBinding sends events to core without disposing your runtime.",
+  "Separate thread IDs",
+  "scopeId prevents ID collisions across mounted conversations.",
+  "Read public thread state",
+  "ThreadBinding needs only getState and subscribe from ThreadRuntime.",
+  "Dispose the binding",
+  "dispose removes the subscription without changing the thread runtime.",
+  "runtime",
+  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Required",
+  "n/a",
+  "Receives adapter events while remaining under your app's control.",
+  "scopeId",
+  "string",
+  "Required",
+  "n/a",
+  "Stable non-empty namespace for message, tool, approval, and citation identity.",
+  "thread",
+  "ThreadRuntimeSource",
+  "Required",
+  "n/a",
+  "Borrowed getState and subscribe surface from assistant-ui.",
+  "maxTrackedEntities",
+  "number",
+  "Optional",
+  "1000",
+  "Bounds message, part, tool, and approval identity tracking.",
+  "return",
+  "ThreadBinding",
+  "Return",
+  "n/a",
+  "An idempotent dispose method for the adapter subscription.",
+  "translation",
+  "Events reported from thread state",
+  "Each public thread snapshot is compared with its previous value, and confirmed changes become events.",
+  "assistant-ui state",
+  "generative-a11y event",
+  "Source",
+  "Assistant message starts running",
+  "response.started",
+  "Public message state",
+  "Text grows",
+  "response.text.delta",
+  "New text only",
+  "Message finishes, stops, or fails",
+  "completed, interrupted, failed",
+  "Public message status",
+  "Tool call and result parts",
+  "tool lifecycle",
+  "Public content parts",
+  "Approval state",
+  "approval requested or resolved",
+  "Public content parts",
+  "Source parts",
+  "citation.available",
+  "Optional content parts",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and import
+
+Create one binding per thread scope and dispose it when that subscription owner
+unmounts.
+
+{/* prettier-ignore */}
+```typescript
+import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+
+const binding = bindThreadRuntime({
+  runtime,
+  scopeId: "support-thread",
+  thread,
+  maxTrackedEntities: 1_000,
+});
+
+// Removes only the subscription and adapter state.
+binding.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Use the app runtime
+
+ThreadBinding sends events to core without disposing your runtime.
+
+</Step>
+
+<Step>
+
+### Separate thread IDs
+
+scopeId prevents ID collisions across mounted conversations.
+
+</Step>
+
+<Step>
+
+### Read public thread state
+
+ThreadBinding needs only getState and subscribe from ThreadRuntime.
+
+</Step>
+
+<Step>
+
+### Dispose the binding
+
+dispose removes the subscription without changing the thread runtime.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      required: true,
+      description: (
+        <>Receives adapter events while remaining under your app's control.</>
+      ),
+    },
+    scopeId: {
+      type: <>string</>,
+      required: true,
+      description: (
+        <>
+          Stable non&#45;empty namespace for message, tool, approval, and
+          citation identity.
+        </>
+      ),
+    },
+    thread: {
+      type: <>ThreadRuntimeSource</>,
+      required: true,
+      description: (
+        <>Borrowed getState and subscribe surface from assistant&#45;ui.</>
+      ),
+    },
+    maxTrackedEntities: {
+      type: <>number</>,
+      default: <>1000</>,
+      description: (
+        <>Bounds message, part, tool, and approval identity tracking.</>
+      ),
+    },
+    return: {
+      type: <>ThreadBinding</>,
+      description: (
+        <>Return. An idempotent dispose method for the adapter subscription.</>
+      ),
+    },
+  }}
+/>
+
+<span id="translation"></span>
+
+## Events reported from thread state
+
+Each public thread snapshot is compared with its previous value, and confirmed
+changes become events.
+
+<table aria-label="Events reported from thread state table">
+  <thead>
+    <tr>
+      <th>assistant&#45;ui state</th>
+      <th>generative&#45;a11y event</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Assistant message starts running</td>
+      <td>response.started</td>
+      <td>Public message state</td>
+    </tr>
+    <tr>
+      <td>Text grows</td>
+      <td>response.text.delta</td>
+      <td>New text only</td>
+    </tr>
+    <tr>
+      <td>Message finishes, stops, or fails</td>
+      <td>completed, interrupted, failed</td>
+      <td>Public message status</td>
+    </tr>
+    <tr>
+      <td>Tool call and result parts</td>
+      <td>tool lifecycle</td>
+      <td>Public content parts</td>
+    </tr>
+    <tr>
+      <td>Approval state</td>
+      <td>approval requested or resolved</td>
+      <td>Public content parts</td>
+    </tr>
+    <tr>
+      <td>Source parts</td>
+      <td>citation.available</td>
+      <td>Optional content parts</td>
+    </tr>
+  </tbody>
+</table>

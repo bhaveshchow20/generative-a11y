@@ -1,0 +1,120 @@
+---
+title: "Custom applications"
+description:
+  "Connect a custom app by reporting its response, tool, and interaction events
+  directly to generative-a11y."
+publicPath: "/docs/integrations/custom"
+section: "Integrations"
+keywords: ["custom", "framework neutral", "adapter", "normalized event"]
+related: []
+order: 16
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/integrations/custom",
+  section: "Integrations",
+  related: [],
+  order: 16,
+};
+
+export const searchableText = [
+  "Custom applications",
+  "Connect a custom app by reporting its response, tool, and interaction events directly to generative-a11y.",
+  "Integrations",
+  "custom",
+  "framework neutral",
+  "adapter",
+  "normalized event",
+  "thin-adapter",
+  "Keep translation thin",
+  "Report events where your app knows what happened. Keep the original IDs and send only newly added text. Report how each response or tool ends, and provide translated labels for users.",
+  "typescript",
+  'import { createGenerativeA11y } from "@generative-a11y/core"; import { connectRuntimeToDOM } from "@generative-a11y/dom"; const runtime = createGenerativeA11y({}); const delivery = connectRuntimeToDOM(runtime); runtime.dispatch({ type: "response.started", responseId: "response-1" }); runtime.dispatch({ type: "response.text.delta", responseId: "response-1", delta: "A complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "response-1" }); delivery.dispose(); runtime.dispose();',
+  "Report events at the source",
+  "Call dispatch from the transport or app callback that confirms what happened.",
+  "Preserve stable IDs",
+  "Use the response and tool IDs from your app instead of labels, array positions, or render counts.",
+  "Connect browser delivery",
+  "DOM adds announcements without changing visible rendering or app actions.",
+  "Dispose by ownership",
+  "Your adapter cleans up its subscriptions, then the application disposes resources it created.",
+  "never-infer",
+  "Leave out events the framework cannot report",
+  "Do not treat streamed arguments as a completed tool, a repeated render as a retry, a ready state as an interruption, or a tool name as an approval. If the framework does not report an event, the adapter leaves it out.",
+].join("\n");
+
+<span id="thin&#45;adapter"></span>
+
+## Keep translation thin
+
+Report events where your app knows what happened. Keep the original IDs and send
+only newly added text. Report how each response or tool ends, and provide
+translated labels for users.
+
+{/* prettier-ignore */}
+```typescript
+import { createGenerativeA11y } from "@generative-a11y/core";
+import { connectRuntimeToDOM } from "@generative-a11y/dom";
+
+const runtime = createGenerativeA11y({});
+const delivery = connectRuntimeToDOM(runtime);
+
+runtime.dispatch({ type: "response.started", responseId: "response-1" });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "response-1",
+  delta: "A complete sentence.",
+});
+runtime.dispatch({ type: "response.completed", responseId: "response-1" });
+
+delivery.dispose();
+runtime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Report events at the source
+
+Call dispatch from the transport or app callback that confirms what happened.
+
+</Step>
+
+<Step>
+
+### Preserve stable IDs
+
+Use the response and tool IDs from your app instead of labels, array positions,
+or render counts.
+
+</Step>
+
+<Step>
+
+### Connect browser delivery
+
+DOM adds announcements without changing visible rendering or app actions.
+
+</Step>
+
+<Step>
+
+### Dispose by ownership
+
+Your adapter cleans up its subscriptions, then the application disposes
+resources it created.
+
+</Step>
+
+</Steps>
+
+<span id="never&#45;infer"></span>
+
+## Leave out events the framework cannot report
+
+Do not treat streamed arguments as a completed tool, a repeated render as a
+retry, a ready state as an interruption, or a tool name as an approval. If the
+framework does not report an event, the adapter leaves it out.

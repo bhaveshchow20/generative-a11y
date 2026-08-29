@@ -1,0 +1,259 @@
+---
+title: "AG-UI accessibility"
+description:
+  "Add paced screen-reader updates to an AG-UI agent through documented
+  callbacks for responses, tools, and user interactions."
+publicPath: "/docs/integrations/ag-ui"
+section: "Integrations"
+keywords: ["AG-UI", "bindAgent", "AgentSubscriber", "interrupt", "protocol"]
+related:
+  [
+    "/docs/accessible-ai-agents",
+    "/docs/getting-started",
+    "/api/ag-ui/bind-agent",
+  ]
+order: 14
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/integrations/ag-ui",
+  section: "Integrations",
+  related: [
+    "/docs/accessible-ai-agents",
+    "/docs/getting-started",
+    "/api/ag-ui/bind-agent",
+  ],
+  order: 14,
+};
+
+export const searchableText = [
+  "AG-UI accessibility",
+  "Add paced screen-reader updates to an AG-UI agent through documented callbacks for responses, tools, and user interactions.",
+  "Integrations",
+  "AG-UI",
+  "bindAgent",
+  "AgentSubscriber",
+  "interrupt",
+  "protocol",
+  "/docs/accessible-ai-agents",
+  "/docs/getting-started",
+  "/api/ag-ui/bind-agent",
+  "installation",
+  "Install the AG-UI adapter",
+  "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/ag-ui beside the AG-UI client used by your application. Bind the existing agent after it is ready, and keep ownership of the agent and accessibility runtime in your application.",
+  "bind-agent",
+  "Subscribe to the public agent API",
+  "bindAgent observes an AbstractAgent through subscribe callbacks. It does not invoke actions, subscribe to private observables, or mutate agent state.",
+  "typescript",
+  'import { bindAgent } from "@generative-a11y/ag-ui"; const binding = bindAgent({ runtime, scopeId: "research-agent", agent, }); // Never disposes the borrowed agent or runtime. binding.dispose();',
+  "Connect the agent",
+  "bindAgent uses documented AgentSubscriber callbacks and does not run agent actions.",
+  "Use a stable scope",
+  "scopeId prefixes protocol message, tool, and interrupt IDs for each mounted agent.",
+  "Translate confirmed events",
+  "Text, tool, and interrupt callbacks become standard events when their public data confirms what happened.",
+  "Clean up locally",
+  "dispose removes this subscriber without disposing the AG-UI agent or accessibility runtime.",
+  "runtime",
+  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Required",
+  "none",
+  "Receives events translated from documented protocol callbacks.",
+  "scopeId",
+  "string",
+  "Required",
+  "none",
+  "Namespaces message, tool, and interrupt identity for one agent binding.",
+  "agent",
+  "Pick<AbstractAgent, 'subscribe'>",
+  "Required",
+  "none",
+  "A borrowed AG-UI agent exposing the documented subscriber API.",
+  "maxTrackedEntities",
+  "number",
+  "Optional",
+  "1000",
+  "Bounds response, tool, and interaction records and fails closed after saturation.",
+  "dispose()",
+  "void",
+  "Return",
+  "n/a",
+  "Unsubscribes this binding and clears adapter-owned identity records.",
+  "lifecycle-mapping",
+  "Lifecycle mapping",
+  "Text callbacks map to response start, content, and completion. Tool callbacks map to confirmed progress and results. Interrupt and resume callbacks map to requests for user input and their resolution. Stable protocol IDs keep each update attached to the correct response or tool.",
+  "screen-reader-behavior",
+  "Expected screen-reader behavior",
+  "The runtime paces response text, prioritizes approval and failure states, and suppresses duplicate progress updates. The DOM delivery layer updates live regions without moving focus for normal agent activity. Treat its transcript as browser evidence and run assistive-technology tests for spoken behavior.",
+  "protocol-evidence",
+  "What the protocol can report",
+  "Text start, content, and end callbacks report a response. Tool callbacks report work and results. Interrupt and resume callbacks report requests for user input. Your adapter does not guess about replay, connection recovery, or retries when AG-UI stays silent.",
+  "troubleshooting",
+  "Troubleshooting",
+  "Missing interaction updates usually trace to an agent that was bound before readiness or callbacks that omit stable IDs. Duplicate updates can come from multiple subscribers. Confirm one binding per agent, a stable scopeId, and documented callbacks before adding custom event inference.",
+].join("\n");
+
+<span id="installation"></span>
+
+## Install the AG&#45;UI adapter
+
+Install @generative&#45;a11y/core, @generative&#45;a11y/dom, and
+@generative&#45;a11y/ag&#45;ui beside the AG&#45;UI client used by your
+application. Bind the existing agent after it is ready, and keep ownership of
+the agent and accessibility runtime in your application.
+
+<span id="bind&#45;agent"></span>
+
+## Subscribe to the public agent API
+
+bindAgent observes an AbstractAgent through subscribe callbacks. It does not
+invoke actions, subscribe to private observables, or mutate agent state.
+
+{/* prettier-ignore */}
+```typescript
+import { bindAgent } from "@generative-a11y/ag-ui";
+
+const binding = bindAgent({
+  runtime,
+  scopeId: "research-agent",
+  agent,
+});
+
+// Never disposes the borrowed agent or runtime.
+binding.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Connect the agent
+
+bindAgent uses documented AgentSubscriber callbacks and does not run agent
+actions.
+
+</Step>
+
+<Step>
+
+### Use a stable scope
+
+scopeId prefixes protocol message, tool, and interrupt IDs for each mounted
+agent.
+
+</Step>
+
+<Step>
+
+### Translate confirmed events
+
+Text, tool, and interrupt callbacks become standard events when their public
+data confirms what happened.
+
+</Step>
+
+<Step>
+
+### Clean up locally
+
+dispose removes this subscriber without disposing the AG&#45;UI agent or
+accessibility runtime.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>Receives events translated from documented protocol callbacks.</>
+      ),
+    },
+    scopeId: {
+      type: <>string</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>
+          Namespaces message, tool, and interrupt identity for one agent
+          binding.
+        </>
+      ),
+    },
+    agent: {
+      type: <>Pick&lt;AbstractAgent, 'subscribe'&#62;</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>A borrowed AG&#45;UI agent exposing the documented subscriber API.</>
+      ),
+    },
+    maxTrackedEntities: {
+      type: <>number</>,
+      default: <>1000</>,
+      description: (
+        <>
+          Bounds response, tool, and interaction records and fails closed after
+          saturation.
+        </>
+      ),
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Return. Unsubscribes this binding and clears adapter&#45;owned
+          identity records.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="lifecycle&#45;mapping"></span>
+
+## Lifecycle mapping
+
+Text callbacks map to response start, content, and completion. Tool callbacks
+map to confirmed progress and results. Interrupt and resume callbacks map to
+requests for user input and their resolution. Stable protocol IDs keep each
+update attached to the correct response or tool.
+
+<span id="screen&#45;reader&#45;behavior"></span>
+
+## Expected screen&#45;reader behavior
+
+The runtime paces response text, prioritizes approval and failure states, and
+suppresses duplicate progress updates. The DOM delivery layer updates live
+regions without moving focus for normal agent activity. Treat its transcript as
+browser evidence and run assistive&#45;technology tests for spoken behavior.
+
+<span id="protocol&#45;evidence"></span>
+
+## What the protocol can report
+
+Text start, content, and end callbacks report a response. Tool callbacks report
+work and results. Interrupt and resume callbacks report requests for user input.
+Your adapter does not guess about replay, connection recovery, or retries when
+AG&#45;UI stays silent.
+
+<span id="troubleshooting"></span>
+
+## Troubleshooting
+
+Missing interaction updates usually trace to an agent that was bound before
+readiness or callbacks that omit stable IDs. Duplicate updates can come from
+multiple subscribers. Confirm one binding per agent, a stable scopeId, and
+documented callbacks before adding custom event inference.
+
+## Related
+
+- [/docs/accessible-ai-agents](/docs/accessible-ai-agents)
+- [/docs/getting-started](/docs/getting-started)
+- [/api/ag-ui/bind-agent](/api/ag-ui/bind-agent)

@@ -1,0 +1,14 @@
+{
+  "root": true,
+  "pages": [
+    "index",
+    "core",
+    "dom",
+    "react",
+    "ai-sdk",
+    "assistant-ui",
+    "ag-ui",
+    "---Devtools---",
+    "devtools"
+  ]
+}

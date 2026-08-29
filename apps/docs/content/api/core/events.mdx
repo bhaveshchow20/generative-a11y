@@ -1,0 +1,227 @@
+---
+title: "GenerativeA11yEvent"
+description:
+  "Report responses, tools, interactions, approvals, connection changes, and
+  citations with this event union."
+publicPath: "/api/core/events"
+section: "Core"
+keywords:
+  [
+    "GenerativeA11yEvent",
+    "response.started",
+    "tool.started",
+    "interaction.requested",
+  ]
+related: []
+order: 3
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/events",
+  section: "Core",
+  related: [],
+  order: 3,
+};
+
+export const searchableText = [
+  "GenerativeA11yEvent",
+  "Report responses, tools, interactions, approvals, connection changes, and citations with this event union.",
+  "Core",
+  "GenerativeA11yEvent",
+  "response.started",
+  "tool.started",
+  "interaction.requested",
+  "families",
+  "Event families",
+  "Events describe actions and changes your app can confirm. They contain serializable data, not rendered components or private framework state.",
+  "Family",
+  "Events",
+  "Required identity",
+  "Response",
+  "started, text.delta, completed, interrupted, failed, retrying",
+  "responseId",
+  "Tool",
+  "started, progress, completed, failed",
+  "toolId",
+  "Interaction",
+  "requested, resolved",
+  "interactionId",
+  "Approval",
+  "requested, resolved",
+  "approvalId",
+  "Connection",
+  "lost, restored",
+  "none",
+  "Citation",
+  "available",
+  "responseId",
+  "response-example",
+  "Response replacement example",
+  "Use responseInstanceId when one logical response can be replaced. Late events from the old instance are suppressed as stale.",
+  "typescript",
+  'runtime.dispatch({ type: "response.retrying", responseId: "report", responseInstanceId: "attempt-1", nextResponseInstanceId: "attempt-2", attempt: 2, });',
+  "Keep logical identity",
+  "responseId continues to identify the answer being regenerated.",
+  "Replace the epoch",
+  "nextResponseInstanceId becomes the accepted attempt for later deltas and terminals.",
+  "common-fields",
+  "Common fields",
+  "ID fields connect related events. Labels and messages contain translated text for users.",
+  "type",
+  "string literal",
+  "Required",
+  "n/a",
+  "Selects one member of the discriminated event union.",
+  "eventId",
+  "string",
+  "Optional",
+  "undefined",
+  "Connects an event to your app's logs without being used as the ID for a response, tool, or interaction.",
+  "locale",
+  "string",
+  "Optional",
+  "undefined",
+  "Carries the language for user-facing text into intents and DOM delivery.",
+  "label / message / announcement",
+  "string",
+  "Event-specific",
+  "undefined",
+  "Short, translated text supplied by your app. Do not pass raw arguments, results, or backend errors.",
+].join("\n");
+
+<span id="families"></span>
+
+## Event families
+
+Events describe actions and changes your app can confirm. They contain
+serializable data, not rendered components or private framework state.
+
+<table aria-label="Event families table">
+  <thead>
+    <tr>
+      <th>Family</th>
+      <th>Events</th>
+      <th>Required identity</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Response</td>
+      <td>started, text.delta, completed, interrupted, failed, retrying</td>
+      <td>responseId</td>
+    </tr>
+    <tr>
+      <td>Tool</td>
+      <td>started, progress, completed, failed</td>
+      <td>toolId</td>
+    </tr>
+    <tr>
+      <td>Interaction</td>
+      <td>requested, resolved</td>
+      <td>interactionId</td>
+    </tr>
+    <tr>
+      <td>Approval</td>
+      <td>requested, resolved</td>
+      <td>approvalId</td>
+    </tr>
+    <tr>
+      <td>Connection</td>
+      <td>lost, restored</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td>Citation</td>
+      <td>available</td>
+      <td>responseId</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="response&#45;example"></span>
+
+## Response replacement example
+
+Use responseInstanceId when one logical response can be replaced. Late events
+from the old instance are suppressed as stale.
+
+{/* prettier-ignore */}
+```typescript
+runtime.dispatch({
+  type: "response.retrying",
+  responseId: "report",
+  responseInstanceId: "attempt-1",
+  nextResponseInstanceId: "attempt-2",
+  attempt: 2,
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Keep logical identity
+
+responseId continues to identify the answer being regenerated.
+
+</Step>
+
+<Step>
+
+### Replace the epoch
+
+nextResponseInstanceId becomes the accepted attempt for later deltas and
+terminals.
+
+</Step>
+
+</Steps>
+
+<span id="common&#45;fields"></span>
+
+## Common fields
+
+ID fields connect related events. Labels and messages contain translated text
+for users.
+
+<TypeTable
+  type={{
+    type: {
+      type: <>string literal</>,
+      required: true,
+      description: <>Selects one member of the discriminated event union.</>,
+    },
+    eventId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Connects an event to your app's logs without being used as the ID for
+          a response, tool, or interaction.
+        </>
+      ),
+    },
+    locale: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Carries the language for user&#45;facing text into intents and DOM
+          delivery.
+        </>
+      ),
+    },
+    "label / message / announcement": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Event&#45;specific. Short, translated text supplied by your app. Do
+          not pass raw arguments, results, or backend errors.
+        </>
+      ),
+    },
+  }}
+/>

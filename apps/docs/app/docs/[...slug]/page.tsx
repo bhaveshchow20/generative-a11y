@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { DocPageView } from "../../../components/doc-page";
-import { DOC_PAGES, getDocPage } from "../../../lib/content";
-import { createDocMetadata } from "../../../lib/seo";
+import { DocumentationPage as NativeDocsPage } from "../../../components/docs/docs-page";
+import { createPageMetadata } from "../../../lib/seo";
+import { docsSource } from "../../../lib/source";
 
 const legacyReferenceRoutes: Readonly<Record<string, string>> = {
   "/docs/packages/core": "/api/core",
@@ -19,9 +19,11 @@ const legacyReferenceRoutes: Readonly<Record<string, string>> = {
 
 export function generateStaticParams() {
   return [
-    ...DOC_PAGES.filter((page) => page.path.startsWith("/docs/")).map((page) => page.path),
-    ...Object.keys(legacyReferenceRoutes),
-  ].map((path) => ({ slug: path.slice("/docs/".length).split("/") }));
+    ...docsSource.getPages().map((page) => ({ slug: page.slugs })),
+    ...Object.keys(legacyReferenceRoutes).map((path) => ({
+      slug: path.slice("/docs/".length).split("/"),
+    })),
+  ];
 }
 
 export async function generateMetadata({
@@ -33,12 +35,15 @@ export async function generateMetadata({
   const path = `/docs/${slug.join("/")}`;
   const destination = legacyReferenceRoutes[path];
   if (destination) {
-    const page = getDocPage(destination);
-    return page ? createDocMetadata(page) : {};
+    return {};
   }
-  const page = getDocPage(path);
+  const page = docsSource.getPage(slug);
   if (!page) return {};
-  return createDocMetadata(page);
+  return createPageMetadata({
+    path: page.url,
+    title: page.data.title,
+    description: page.data.description ?? "",
+  });
 }
 
 export default async function DocumentationPage({
@@ -50,7 +55,14 @@ export default async function DocumentationPage({
   const path = `/docs/${slug.join("/")}`;
   const destination = legacyReferenceRoutes[path];
   if (destination) redirect(destination);
-  const page = getDocPage(path);
+  const page = docsSource.getPage(slug);
   if (!page) notFound();
-  return <DocPageView page={page} />;
+  return (
+    <NativeDocsPage
+      body={page.data.body}
+      description={page.data.description}
+      title={page.data.title}
+      toc={page.data.toc}
+    />
+  );
 }

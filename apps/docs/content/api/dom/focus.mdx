@@ -1,0 +1,178 @@
+---
+title: "Focus helpers"
+description:
+  "Helpers for capturing, moving, and restoring focus in dialogs and other app
+  interactions."
+publicPath: "/api/dom/focus"
+section: "DOM"
+keywords: ["captureFocus", "focusElement", "restoreFocus", "FocusResult"]
+related: []
+order: 11
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/dom/focus",
+  section: "DOM",
+  related: [],
+  order: 11,
+};
+
+export const searchableText = [
+  "Focus helpers",
+  "Helpers for capturing, moving, and restoring focus in dialogs and other app interactions.",
+  "DOM",
+  "captureFocus",
+  "focusElement",
+  "restoreFocus",
+  "FocusResult",
+  "workflow",
+  "Capture and restore application focus",
+  "Call these helpers from dialogs and other interactions that your app controls. Do not move focus for streaming text or routine status updates.",
+  "typescript",
+  "const capture = captureFocus(document); const opened = focusElement(dialogHeading, { preventScroll: true }); // After the application-owned interaction closes: const restored = restoreFocus(capture, { onlyIfFocusWithin: dialog, });",
+  "Capture current focus",
+  "captureFocus records the active element without moving focus.",
+  "Focus the dialog",
+  "Your app chooses the correct element inside the dialog.",
+  "Restore when appropriate",
+  "onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.",
+  "captureFocus(document)",
+  "FocusCapture",
+  "Function",
+  "global document",
+  "Captures the deep active element from the supplied document.",
+  "focusElement(element, options)",
+  "FocusResult",
+  "Function",
+  "preventScroll: true",
+  "Attempts focus and reports focused or a stable skipped reason.",
+  "restoreFocus(capture, options)",
+  "FocusResult",
+  "Function",
+  "n/a",
+  "Restores only when the captured target remains eligible and optional guards still match.",
+  "results",
+  "FocusResult",
+  "Results are explicit so applications can test focus workflows without guessing.",
+  "Status",
+  "Meaning",
+  "Application response",
+  "focused",
+  "Target became active",
+  "Continue the workflow",
+  "skipped",
+  "A documented eligibility check, browser failure, or restoration guard prevented focus",
+  "Preserve current focus and inspect reason",
+].join("\n");
+
+<span id="workflow"></span>
+
+## Capture and restore application focus
+
+Call these helpers from dialogs and other interactions that your app controls.
+Do not move focus for streaming text or routine status updates.
+
+{/* prettier-ignore */}
+```typescript
+const capture = captureFocus(document);
+const opened = focusElement(dialogHeading, { preventScroll: true });
+
+// After the application-owned interaction closes:
+const restored = restoreFocus(capture, {
+  onlyIfFocusWithin: dialog,
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Capture current focus
+
+captureFocus records the active element without moving focus.
+
+</Step>
+
+<Step>
+
+### Focus the dialog
+
+Your app chooses the correct element inside the dialog.
+
+</Step>
+
+<Step>
+
+### Restore when appropriate
+
+onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "captureFocus(document)": {
+      type: <>FocusCapture</>,
+      default: <>global document</>,
+      description: (
+        <>
+          Function. Captures the deep active element from the supplied document.
+        </>
+      ),
+    },
+    "focusElement(element, options)": {
+      type: <>FocusResult</>,
+      default: <>preventScroll: true</>,
+      description: (
+        <>
+          Function. Attempts focus and reports focused or a stable skipped
+          reason.
+        </>
+      ),
+    },
+    "restoreFocus(capture, options)": {
+      type: <>FocusResult</>,
+      description: (
+        <>
+          Function. Restores only when the captured target remains eligible and
+          optional guards still match.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="results"></span>
+
+## FocusResult
+
+Results are explicit so applications can test focus workflows without guessing.
+
+<table aria-label="FocusResult table">
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Meaning</th>
+      <th>Application response</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>focused</td>
+      <td>Target became active</td>
+      <td>Continue the workflow</td>
+    </tr>
+    <tr>
+      <td>skipped</td>
+      <td>
+        A documented eligibility check, browser failure, or restoration guard
+        prevented focus
+      </td>
+      <td>Preserve current focus and inspect reason</td>
+    </tr>
+  </tbody>
+</table>

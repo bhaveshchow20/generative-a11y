@@ -1,0 +1,206 @@
+---
+title: "Choose an integration"
+description:
+  "Choose the smallest package that connects generative-a11y to your app."
+publicPath: "/docs/integrations"
+section: "Getting started"
+keywords:
+  [
+    "choose",
+    "integration",
+    "package",
+    "AI SDK",
+    "assistant-ui",
+    "AG-UI",
+    "React",
+    "custom",
+  ]
+related: []
+order: 1
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/integrations",
+  section: "Getting started",
+  related: [],
+  order: 1,
+};
+
+export const searchableText = [
+  "Choose an integration",
+  "Choose the smallest package that connects generative-a11y to your app.",
+  "Getting started",
+  "choose",
+  "integration",
+  "package",
+  "AI SDK",
+  "assistant-ui",
+  "AG-UI",
+  "React",
+  "custom",
+  "decision-table",
+  "Start with the framework your app uses",
+  "Choose an adapter based on the framework in your code, not the way the interface looks. An adapter can only report events the framework makes publicly available.",
+  "Your app",
+  "Install",
+  "Choose when",
+  "Events available",
+  "Custom JavaScript",
+  "core + dom",
+  "Your app already knows when work starts and finishes",
+  "All standard library events",
+  "React application",
+  "react",
+  "You want a provider, browser updates, preferences, and element bindings",
+  "Events sent by your app",
+  "AI SDK useChat",
+  "ai-sdk + core",
+  "Your UI uses public useChat state and callbacks",
+  "Responses, tools, approvals, sources, and final response states",
+  "assistant-ui",
+  "assistant-ui + core",
+  "Your app exposes a public ThreadRuntime",
+  "Messages, tools, approvals, sources, and final response states",
+  "AG-UI or CopilotKit v2",
+  "ag-ui + core",
+  "Your agent exposes documented protocol callbacks",
+  "Response text, tools, interruptions, and final response states",
+  "fidelity",
+  "Check which events the adapter can see",
+  "Each adapter lists the events its framework reports and the events that are unavailable. Adapters do not guess by reading rendered text, timing interface changes, or using private framework fields.",
+  "Use the core integration directly when your app knows about retries, connection changes, or custom interactions that the framework adapter cannot see.",
+  "Question",
+  "Use an adapter",
+  "Dispatch core events",
+  "Does the framework report the event you need?",
+  "Yes",
+  "Not required",
+  "Do you need the framework's IDs translated?",
+  "Yes",
+  "Optional",
+  "Does your app know when retries or connection changes happen?",
+  "Only if the framework reports them",
+  "Yes",
+  "Can the integration depend on rendered UI text?",
+  "Never",
+  "Never",
+  "installation",
+  "Install only the layers you use",
+  "Your app supplies a core runtime to its framework adapter. DOM or React handles browser announcements separately.",
+  "Custom browser application: @generative-a11y/core and @generative-a11y/dom",
+  "React application: @generative-a11y/core and @generative-a11y/react",
+  "AI SDK: add @generative-a11y/ai-sdk to the core and delivery layers",
+  "assistant-ui: add @generative-a11y/assistant-ui to the core and delivery layers",
+  "AG-UI or CopilotKit v2: add @generative-a11y/ag-ui to the core and delivery layers",
+].join("\n");
+
+<span id="decision&#45;table"></span>
+
+## Start with the framework your app uses
+
+Choose an adapter based on the framework in your code, not the way the interface
+looks. An adapter can only report events the framework makes publicly available.
+
+<table aria-label="Start with the framework your app uses table">
+  <thead>
+    <tr>
+      <th>Your app</th>
+      <th>Install</th>
+      <th>Choose when</th>
+      <th>Events available</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Custom JavaScript</td>
+      <td>core &#43; dom</td>
+      <td>Your app already knows when work starts and finishes</td>
+      <td>All standard library events</td>
+    </tr>
+    <tr>
+      <td>React application</td>
+      <td>react</td>
+      <td>
+        You want a provider, browser updates, preferences, and element bindings
+      </td>
+      <td>Events sent by your app</td>
+    </tr>
+    <tr>
+      <td>AI SDK useChat</td>
+      <td>ai&#45;sdk &#43; core</td>
+      <td>Your UI uses public useChat state and callbacks</td>
+      <td>Responses, tools, approvals, sources, and final response states</td>
+    </tr>
+    <tr>
+      <td>assistant&#45;ui</td>
+      <td>assistant&#45;ui &#43; core</td>
+      <td>Your app exposes a public ThreadRuntime</td>
+      <td>Messages, tools, approvals, sources, and final response states</td>
+    </tr>
+    <tr>
+      <td>AG&#45;UI or CopilotKit v2</td>
+      <td>ag&#45;ui &#43; core</td>
+      <td>Your agent exposes documented protocol callbacks</td>
+      <td>Response text, tools, interruptions, and final response states</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="fidelity"></span>
+
+## Check which events the adapter can see
+
+Each adapter lists the events its framework reports and the events that are
+unavailable. Adapters do not guess by reading rendered text, timing interface
+changes, or using private framework fields.
+
+Use the core integration directly when your app knows about retries, connection
+changes, or custom interactions that the framework adapter cannot see.
+
+<table aria-label="Check which events the adapter can see table">
+  <thead>
+    <tr>
+      <th>Question</th>
+      <th>Use an adapter</th>
+      <th>Dispatch core events</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Does the framework report the event you need?</td>
+      <td>Yes</td>
+      <td>Not required</td>
+    </tr>
+    <tr>
+      <td>Do you need the framework's IDs translated?</td>
+      <td>Yes</td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>Does your app know when retries or connection changes happen?</td>
+      <td>Only if the framework reports them</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Can the integration depend on rendered UI text?</td>
+      <td>Never</td>
+      <td>Never</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="installation"></span>
+
+## Install only the layers you use
+
+Your app supplies a core runtime to its framework adapter. DOM or React handles
+browser announcements separately.
+
+- Custom browser application: @generative&#45;a11y/core and
+  @generative&#45;a11y/dom
+- React application: @generative&#45;a11y/core and @generative&#45;a11y/react
+- AI SDK: add @generative&#45;a11y/ai&#45;sdk to the core and delivery layers
+- assistant&#45;ui: add @generative&#45;a11y/assistant&#45;ui to the core and
+  delivery layers
+- AG&#45;UI or CopilotKit v2: add @generative&#45;a11y/ag&#45;ui to the core and
+  delivery layers

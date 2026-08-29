@@ -1,0 +1,57 @@
+---
+title: "Interactions and approvals"
+description:
+  "Announce approvals, confirmations, and requests for input when your app can
+  confirm that they opened or closed."
+publicPath: "/docs/lifecycle/interactions"
+section: "Lifecycle"
+keywords:
+  [
+    "interaction",
+    "approval",
+    "confirmation",
+    "input required",
+    "human in the loop",
+  ]
+related: []
+order: 10
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/interactions",
+  section: "Lifecycle",
+  related: [],
+  order: 10,
+};
+
+export const searchableText = [
+  "Interactions and approvals",
+  "Announce approvals, confirmations, and requests for input when your app can confirm that they opened or closed.",
+  "Lifecycle",
+  "interaction",
+  "approval",
+  "confirmation",
+  "input required",
+  "human in the loop",
+  "general-events",
+  "Prefer the general interaction model",
+  "Use interaction.requested and interaction.resolved for confirmations and other requests for input. Use approval events when the framework provides a specific approval state.",
+  "focus",
+  "Announcements do not move focus",
+  "generative-a11y can announce when your app needs input. Your app still opens the dialog, manages its controls, and restores focus when it closes.",
+].join("\n");
+
+<span id="general&#45;events"></span>
+
+## Prefer the general interaction model
+
+Use interaction.requested and interaction.resolved for confirmations and other
+requests for input. Use approval events when the framework provides a specific
+approval state.
+
+<span id="focus"></span>
+
+## Announcements do not move focus
+
+generative&#45;a11y can announce when your app needs input. Your app still opens
+the dialog, manages its controls, and restores focus when it closes.

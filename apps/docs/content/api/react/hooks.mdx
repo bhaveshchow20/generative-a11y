@@ -1,0 +1,222 @@
+---
+title: "React hooks"
+description:
+  "React hooks for the runtime, attention, preferences, and refs for existing
+  app elements."
+publicPath: "/api/react/hooks"
+section: "React"
+keywords:
+  [
+    "useGenerativeA11y",
+    "useGenerativeA11yRuntime",
+    "useGenerativeA11yBindings",
+    "hooks",
+  ]
+related: []
+order: 15
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/react/hooks",
+  section: "React",
+  related: [],
+  order: 15,
+};
+
+export const searchableText = [
+  "React hooks",
+  "React hooks for the runtime, attention, preferences, and refs for existing app elements.",
+  "React",
+  "useGenerativeA11y",
+  "useGenerativeA11yRuntime",
+  "useGenerativeA11yBindings",
+  "hooks",
+  "complete-example",
+  "Bind an existing chat interface",
+  "Bindings contain refs only. Add them to semantic elements already in your app.",
+  "tsx",
+  'function ExistingChat() { const runtime = useGenerativeA11yRuntime(); const attention = useGenerativeA11yAttention(); const { preferences, setPreferences } = useGenerativeA11yPreferences(); const bindings = useGenerativeA11yBindings(); return ( <main {...bindings.conversationProps}> <article {...bindings.newestResponseProps}>Latest response</article> <textarea {...bindings.composerProps} /> <button onClick={() => runtime.dispatch(startEvent)}>Send</button> <output>{attention.mode}</output> <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}> Reduce streaming detail </button> </main> ); }',
+  "Read the app runtime",
+  "Send only events that your app knows happened.",
+  "Register existing elements",
+  "Ref bindings track focus and visibility without changing markup or styles.",
+  "Expose user control",
+  "Preference updates remain validated and versioned.",
+  "useGenerativeA11y()",
+  "GenerativeA11yContextValue",
+  "Hook",
+  "n/a",
+  "Returns runtime, attentionStore, and preferenceStore from the nearest provider.",
+  "useGenerativeA11yRuntime()",
+  "GenerativeA11yRuntime",
+  "Hook",
+  "n/a",
+  "Returns the provider runtime.",
+  "useGenerativeA11yAttention()",
+  "AttentionSnapshot",
+  "Hook",
+  "unknown SSR snapshot",
+  "Uses useSyncExternalStore to report browser focus and visibility without guessing missing values.",
+  "useGenerativeA11yPreferences()",
+  "GenerativeA11yPreferencesResult",
+  "Hook",
+  "n/a",
+  "Returns validated preferences, setPreferences, and the underlying store.",
+  "useGenerativeA11yBindings()",
+  "GenerativeA11yBindings",
+  "Hook",
+  "n/a",
+  "Returns stable composer, conversation, and newest-response ref props.",
+  "binding-contracts",
+  "GenerativeA11yBindings",
+  "Each property contains a React ref for an existing part of your interface.",
+  "Property",
+  "Target",
+  "Purpose",
+  "composerProps",
+  "HTMLTextAreaElement",
+  "Detects focus in the composer",
+  "conversationProps",
+  "HTMLElement",
+  "Detects focus in conversation history",
+  "newestResponseProps",
+  "HTMLElement",
+  "Checks whether the newest response is visible",
+].join("\n");
+
+<span id="complete&#45;example"></span>
+
+## Bind an existing chat interface
+
+Bindings contain refs only. Add them to semantic elements already in your app.
+
+{/* prettier-ignore */}
+```tsx
+function ExistingChat() {
+  const runtime = useGenerativeA11yRuntime();
+  const attention = useGenerativeA11yAttention();
+  const { preferences, setPreferences } = useGenerativeA11yPreferences();
+  const bindings = useGenerativeA11yBindings();
+
+  return (
+    <main {...bindings.conversationProps}>
+      <article {...bindings.newestResponseProps}>Latest response</article>
+      <textarea {...bindings.composerProps} />
+      <button onClick={() => runtime.dispatch(startEvent)}>Send</button>
+      <output>{attention.mode}</output>
+      <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}>
+        Reduce streaming detail
+      </button>
+    </main>
+  );
+}
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Read the app runtime
+
+Send only events that your app knows happened.
+
+</Step>
+
+<Step>
+
+### Register existing elements
+
+Ref bindings track focus and visibility without changing markup or styles.
+
+</Step>
+
+<Step>
+
+### Expose user control
+
+Preference updates remain validated and versioned.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "useGenerativeA11y()": {
+      type: <>GenerativeA11yContextValue</>,
+      description: (
+        <>
+          Hook. Returns runtime, attentionStore, and preferenceStore from the
+          nearest provider.
+        </>
+      ),
+    },
+    "useGenerativeA11yRuntime()": {
+      type: <>GenerativeA11yRuntime</>,
+      description: <>Hook. Returns the provider runtime.</>,
+    },
+    "useGenerativeA11yAttention()": {
+      type: <>AttentionSnapshot</>,
+      default: <>unknown SSR snapshot</>,
+      description: (
+        <>
+          Hook. Uses useSyncExternalStore to report browser focus and visibility
+          without guessing missing values.
+        </>
+      ),
+    },
+    "useGenerativeA11yPreferences()": {
+      type: <>GenerativeA11yPreferencesResult</>,
+      description: (
+        <>
+          Hook. Returns validated preferences, setPreferences, and the
+          underlying store.
+        </>
+      ),
+    },
+    "useGenerativeA11yBindings()": {
+      type: <>GenerativeA11yBindings</>,
+      description: (
+        <>
+          Hook. Returns stable composer, conversation, and newest&#45;response
+          ref props.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="binding&#45;contracts"></span>
+
+## GenerativeA11yBindings
+
+Each property contains a React ref for an existing part of your interface.
+
+<table aria-label="GenerativeA11yBindings table">
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Target</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>composerProps</td>
+      <td>HTMLTextAreaElement</td>
+      <td>Detects focus in the composer</td>
+    </tr>
+    <tr>
+      <td>conversationProps</td>
+      <td>HTMLElement</td>
+      <td>Detects focus in conversation history</td>
+    </tr>
+    <tr>
+      <td>newestResponseProps</td>
+      <td>HTMLElement</td>
+      <td>Checks whether the newest response is visible</td>
+    </tr>
+  </tbody>
+</table>

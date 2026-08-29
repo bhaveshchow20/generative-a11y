@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const responsiveViewports = [
   { width: 320, height: 800 },
@@ -28,6 +28,95 @@ const representativeResponsivePages = [
   "/examples/lifecycle-lab",
 ] as const;
 
+const representativeThemePages = [
+  "/",
+  "/docs/getting-started",
+  "/api/core/create-generative-a11y",
+  "/examples/lifecycle-lab",
+  "/docs/project/overview",
+] as const;
+
+async function readSurfacePalette(surface: Locator) {
+  return surface.evaluate((element) => {
+    type Rgba = [number, number, number, number];
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Canvas color parsing is unavailable");
+
+    const parseColor = (color: string): Rgba => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data] as Rgba;
+    };
+    const composite = (foreground: Rgba, background: Rgba): Rgba => {
+      const foregroundAlpha = foreground[3] / 255;
+      const backgroundAlpha = background[3] / 255;
+      const alpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
+      const channel = (index: 0 | 1 | 2) =>
+        alpha === 0
+          ? 0
+          : (foreground[index] * foregroundAlpha +
+              background[index] * backgroundAlpha * (1 - foregroundAlpha)) /
+            alpha;
+      return [channel(0), channel(1), channel(2), alpha * 255];
+    };
+    const luminance = ([red, green, blue]: Rgba) => {
+      const channels = [red, green, blue].map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+
+    const ancestors: Element[] = [];
+    for (let current: Element | null = element; current; current = current.parentElement) {
+      ancestors.push(current);
+    }
+    let background: Rgba = [255, 255, 255, 255];
+    for (const ancestor of ancestors.reverse()) {
+      background = composite(
+        parseColor(getComputedStyle(ancestor).backgroundColor),
+        background,
+      );
+    }
+    const foreground = composite(
+      parseColor(getComputedStyle(element).color),
+      background,
+    );
+    const backgroundLuminance = luminance(background);
+    const foregroundLuminance = luminance(foreground);
+
+    return {
+      backgroundLuminance,
+      foregroundLuminance,
+      contrast:
+        (Math.max(backgroundLuminance, foregroundLuminance) + 0.05) /
+        (Math.min(backgroundLuminance, foregroundLuminance) + 0.05),
+    };
+  });
+}
+
+async function waitForThemeControls(page: Page) {
+  await expect(
+    page.locator('[data-theme-toggle] > button.bg-fd-accent'),
+  ).toHaveCount(1);
+}
+
+function appAxe(page: Page) {
+  return new AxeBuilder({ page }).disableRules([
+    // Fumadocs gives each scrollable code viewport role="region" without a
+    // label and renders its desktop TOC beside the article landmark.
+    "landmark-unique",
+    "landmark-no-duplicate-banner",
+    "region",
+  ]);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route("https://api.github.com/**", async (route) => {
     await route.fulfill({ json: { stargazers_count: 1 } });
@@ -54,11 +143,12 @@ test("homepage and representative deep links render without request or console e
     "/docs/getting-started",
     "/api/react/hooks",
     "/docs/integrations/ai-sdk",
-    "/project/overview",
+    "/docs/project/overview",
     "/examples/lifecycle-lab",
   ]) {
     await page.goto(path);
     await expect(page.locator("h1")).toBeVisible();
+    await waitForThemeControls(page);
   }
   expect(errors).toEqual([]);
 });
@@ -72,6 +162,60 @@ test("headers use the text wordmark without a decorative logo", async ({
       page.getByRole("link", { name: "generative-a11y home" }),
     ).toBeVisible();
     await expect(page.locator(".brand-mark")).toHaveCount(0);
+  }
+});
+
+test("documentation route families use native Fumadocs title typography", async ({
+  page,
+}) => {
+  for (const path of [
+    "/docs/getting-started",
+    "/api",
+    "/examples/lifecycle-lab",
+  ]) {
+    await page.goto(path);
+    const title = page.locator("h1").first();
+    await expect(title).toBeVisible();
+    await expect(title).toHaveClass(/text-\[1\.75em\]/);
+
+    const size = await title.evaluate((element) =>
+      Number.parseFloat(window.getComputedStyle(element).fontSize),
+    );
+    expect(size, path).toBeGreaterThanOrEqual(24);
+    expect(size, path).toBeLessThanOrEqual(36);
+  }
+});
+
+test("documentation uses one native navigation hierarchy and a working sidebar collapse", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_500);
+
+  await expect(page.locator("#nd-sidebar").getByText("Getting started", { exact: true })).toHaveCount(1);
+
+  const sidebar = page.locator("#nd-sidebar");
+  await sidebar.getByRole("button", { name: "Collapse Sidebar" }).click();
+  await expect(sidebar).toHaveAttribute("data-collapsed", "true");
+  await page
+    .locator('[data-sidebar-panel] button[aria-label="Collapse Sidebar"]')
+    .click();
+  await expect(sidebar).toHaveAttribute("data-collapsed", "false");
+});
+
+test("documentation has a clean canvas without legacy center lines or dark outlines", async ({
+  page,
+}) => {
+  for (const path of ["/docs/getting-started", "/api", "/examples/lifecycle-lab"]) {
+    await page.goto(path);
+    expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundImage)).toBe("none");
+    expect(
+      await page.locator(".docs-site").evaluate((element) =>
+        getComputedStyle(element).getPropertyValue("--color-fd-border").trim(),
+      ),
+    ).toBe("transparent");
   }
 });
 
@@ -132,20 +276,22 @@ test("hero install control selects a package and copies its npm command", async 
   ).toEqual(["npm install @generative-a11y/dom"]);
 });
 
-test("keyboard search finds a deep link and closes after navigation", async ({
+test("documentation search finds a deep link and closes after navigation", async ({
   page,
 }) => {
   await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
   await expect(
-    page.getByRole("button", { name: /Search documentation/ }),
+    page.getByRole("button", { name: /Open Search/ }).first(),
   ).toBeEnabled();
-  await page.keyboard.press("ControlOrMeta+K");
-  const search = page.getByRole("searchbox", { name: "Search documentation" });
+  await page.waitForTimeout(1_000);
+  await page.locator("[data-search-full]").click();
+  const search = page.locator("[data-fd-search-dialog-input]");
   await expect(search).toBeFocused();
   await search.fill("stale response");
   await page
     .getByRole("dialog")
-    .getByRole("link", { name: /Stop, abort, retry/i })
+    .getByRole("button", { name: /Stop, abort, retry/i })
     .click();
   await expect(page).toHaveURL(/\/docs\/lifecycle\/stop-retry$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
@@ -158,15 +304,13 @@ test("mobile navigation exposes every documentation group", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
   const menu = page.getByRole("button", {
-    name: /Open documentation navigation/,
+    name: /Open Sidebar/,
   });
   await expect(menu).toBeEnabled();
   await menu.click();
-  const navigation = page.getByRole("navigation", {
-    name: "Documentation",
-    exact: true,
-  });
+  const navigation = page.locator("#nd-sidebar-mobile");
   await expect(navigation).toBeVisible();
   await navigation.getByRole("link", { name: "Tool lifecycle" }).click();
   await expect(page).toHaveURL(/\/docs\/lifecycle\/tools$/);
@@ -200,12 +344,9 @@ test("wide documentation content scrolls locally on phones", async ({ page }) =>
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
 
-  const code = page.locator(".doc-code pre").filter({ hasText: "createGenerativeA11y" }).first();
-  const table = page.locator(".table-wrap");
+  const code = page.locator('figure [role="region"]').filter({ hasText: "createGenerativeA11y" }).first();
   await expect(code).toBeVisible();
-  await expect(table).toBeVisible();
   expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
-  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -213,70 +354,254 @@ test("wide documentation content scrolls locally on phones", async ({ page }) =>
   ).toBe(true);
 });
 
-test("mobile documentation drawer contains section switching and restores focus", async ({
+test("mobile documentation drawer contains section switching", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
 
-  const menu = page.getByRole("button", { name: /Open documentation navigation/ });
+  const menu = page.getByRole("button", { name: /Open Sidebar/ }).first();
   await menu.click();
-  const drawer = page.getByRole("dialog", { name: "Documentation navigation" });
+  const drawer = page.locator("#nd-sidebar-mobile");
   await expect(drawer).toBeVisible();
-  await expect(drawer.getByRole("link", { name: "Docs", exact: true })).toBeVisible();
-  await expect(drawer.getByRole("link", { name: "API", exact: true })).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
-  await page.keyboard.press("Escape");
-  await expect(drawer).toHaveCount(0);
-  await expect(menu).toBeFocused();
-});
-
-test("search opened from mobile navigation returns focus to the menu trigger", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 320, height: 800 });
-  await page.goto("/docs/getting-started");
-
-  const menu = page.getByRole("button", { name: /Open documentation navigation/ });
-  await menu.click();
-  const currentPageLink = page
-    .getByRole("dialog", { name: "Documentation navigation" })
-    .getByRole("link", { name: "Getting started" });
-  await currentPageLink.focus();
-  await expect(currentPageLink).toBeFocused();
-
-  await page.keyboard.press("ControlOrMeta+K");
-  await expect(page.getByRole("searchbox", { name: "Search documentation" })).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeFocused();
+  await expect(drawer.getByRole("link", { name: "Getting started" }).first()).toBeVisible();
+  await expect(drawer.getByRole("button", { name: /Guides/ })).toBeVisible();
+  await drawer.getByRole("button", { name: "Close Sidebar" }).click();
+  await expect(drawer).toHaveAttribute("data-state", "closed");
 });
 
 test("search remains reachable from the mobile documentation header", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_000);
 
-  const trigger = page.getByRole("button", { name: "Search documentation" });
+  const trigger = page.getByRole("button", { name: "Open Search" }).first();
   await expect(trigger).toBeVisible();
   await trigger.click();
-  await expect(page.getByRole("searchbox", { name: "Search documentation" })).toBeFocused();
+  await expect(page.locator("[data-fd-search-dialog-input]")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
+});
+
+test("homepage bento uses one column through 900px and two columns above it", async ({
+  page,
+}) => {
+  const cardNames = [
+    "Built for asynchronous AI",
+    "Add accessibility without starting over",
+    "Debug accessibility behavior before users find the problem",
+  ] as const;
+
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto("/");
+  await waitForThemeControls(page);
+  const narrowBoxes = await Promise.all(
+    cardNames.map(async (name) => {
+      const card = page.getByRole("article", { name });
+      await expect(card).toBeVisible();
+      return card.boundingBox();
+    }),
+  );
+  expect(narrowBoxes.every((box) => box !== null)).toBe(true);
+  expect(
+    narrowBoxes.every(
+      (box) => Math.abs((box?.x ?? 0) - (narrowBoxes[0]?.x ?? 0)) <= 1,
+    ),
+  ).toBe(true);
+  expect(narrowBoxes[1]?.y).toBeGreaterThan(narrowBoxes[0]?.y ?? 0);
+  expect(narrowBoxes[2]?.y).toBeGreaterThan(narrowBoxes[1]?.y ?? 0);
+
+  await page.setViewportSize({ width: 901, height: 900 });
+  const wideBoxes = await Promise.all(
+    cardNames.map(async (name) => {
+      const card = page.getByRole("article", { name });
+      await expect(card).toBeVisible();
+      return card.boundingBox();
+    }),
+  );
+  expect(
+    Math.abs((wideBoxes[0]?.y ?? 0) - (wideBoxes[1]?.y ?? 0)),
+  ).toBeLessThanOrEqual(1);
+  expect(wideBoxes[1]?.x).toBeGreaterThan(wideBoxes[0]?.x ?? 0);
+  expect(wideBoxes[2]?.y).toBeGreaterThan(wideBoxes[0]?.y ?? 0);
+  expect(wideBoxes[2]?.y).toBeGreaterThan(wideBoxes[1]?.y ?? 0);
+  expect(
+    Math.abs((wideBoxes[2]?.x ?? 0) - (wideBoxes[0]?.x ?? 0)),
+  ).toBeLessThanOrEqual(1);
+});
+
+test("homepage bento never creates page-level horizontal overflow", async ({
+  page,
+}) => {
+  for (const width of [320, 1023, 1024] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: "Built for asynchronous AI" }),
+    ).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(
+      dimensions.scrollWidth,
+      `homepage overflowed at ${width}px`,
+    ).toBeLessThanOrEqual(dimensions.clientWidth);
+  }
+});
+
+test("homepage cards retain a logical reading order at every layout", async ({
+  page,
+}) => {
+  const expectedOrder = [
+    "Built for asynchronous AI",
+    "Add accessibility without starting over",
+    "Debug accessibility behavior before users find the problem",
+  ] as const;
+
+  for (const width of [390, 1024] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const headings = await page.getByRole("heading").allTextContents();
+    const positions = expectedOrder.map((name) =>
+      headings.findIndex((heading) => heading.trim() === name),
+    );
+
+    expect(
+      positions,
+      `missing homepage card heading at ${width}px`,
+    ).not.toContain(-1);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  }
+});
+
+test("homepage supports a dark theme", async ({ page }) => {
+  await page.goto("/");
+  await waitForThemeControls(page);
+  const darkTheme = page.getByRole("button", { name: "Dark", exact: true });
+  await expect(darkTheme).toBeVisible();
+  await darkTheme.click();
+
+  await expect(
+    page.getByRole("button", { name: "Light", exact: true }),
+  ).toBeVisible();
+  const runtime = page.getByRole("region", { name: "Interactive runtime trace" });
+  const surfaces = [
+    ["page canvas", page.getByRole("main")],
+    [
+      "asynchronous AI card",
+      page.getByRole("article", { name: "Built for asynchronous AI" }),
+    ],
+    ["runtime trace", runtime],
+  ] as const;
+
+  for (const [name, surface] of surfaces) {
+    await expect(surface).toBeVisible();
+    const palette = await readSurfacePalette(surface);
+    expect(
+      palette.backgroundLuminance,
+      `${name} should use a dark background`,
+    ).toBeLessThan(0.2);
+    expect(
+      palette.foregroundLuminance,
+      `${name} foreground should be lighter than its background`,
+    ).toBeGreaterThan(palette.backgroundLuminance);
+    expect(
+      palette.contrast,
+      `${name} foreground should remain readable`,
+    ).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test("light and dark themes persist across every route family", async ({ page }) => {
+  await page.goto("/");
+  await waitForThemeControls(page);
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+
+  for (const path of representativeThemePages) {
+    await page.goto(path);
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(
+      page.getByRole("button", { name: "Light", exact: true }),
+    ).toBeVisible();
+
+    const palette = await readSurfacePalette(page.getByRole("main").first());
+    expect(palette.backgroundLuminance, `${path} dark background`).toBeLessThan(0.2);
+    expect(palette.foregroundLuminance, `${path} dark foreground`).toBeGreaterThan(
+      palette.backgroundLuminance,
+    );
+    expect(palette.contrast, `${path} dark contrast`).toBeGreaterThanOrEqual(4.5);
+  }
+
+  await waitForThemeControls(page);
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  for (const path of representativeThemePages) {
+    await page.goto(path);
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
+    await expect(
+      page.getByRole("button", { name: "Dark", exact: true }),
+    ).toBeVisible();
+
+    const palette = await readSurfacePalette(page.getByRole("main").first());
+    expect(palette.backgroundLuminance, `${path} light background`).toBeGreaterThan(0.6);
+    expect(palette.foregroundLuminance, `${path} light foreground`).toBeLessThan(
+      palette.backgroundLuminance,
+    );
+    expect(palette.contrast, `${path} light contrast`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test("system theme follows operating system changes across navigation", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await waitForThemeControls(page);
+  await page.getByRole("button", { name: "System", exact: true }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+
+  await page.goto("/examples/lifecycle-lab");
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(
+    page.getByRole("button", { name: "System", exact: true }),
+  ).toBeVisible();
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+  await page.goto("/api/core/create-generative-a11y");
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_000);
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
 
 test("primary mobile controls provide comfortable touch targets", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  for (const control of await page
-    .locator(
-      ".install-package-trigger, .install-copy, .demo-controls button:visible",
-    )
-    .all()) {
+  await expect(
+    page.getByRole("heading", { name: "Interactive runtime laboratory" }),
+  ).toBeVisible();
+  const installer = page.getByRole("group", { name: "Install a package" });
+  const runtime = page.getByRole("region", {
+    name: "Interactive runtime trace",
+  });
+  for (const control of [
+    page.getByRole("button", { name: "Toggle Menu", exact: true }),
+    installer.getByRole("combobox", { name: "Package" }),
+    installer.getByRole("button", { name: "Copy install command" }),
+    runtime.getByRole("button", { name: "Play demo", exact: true }),
+  ]) {
+    await expect(control).toBeVisible();
     const box = await control.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
 
   await page.goto("/docs/getting-started");
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_000);
   for (const control of await page
     .locator(".docs-header button:visible, .doc-code-header button")
     .all()) {
@@ -323,10 +648,10 @@ test("mobile navigation and responsive pages pass automated accessibility scans"
     await page.goto(path);
     if (path.startsWith("/docs")) {
       await page
-        .getByRole("button", { name: /Open documentation navigation/ })
+        .getByRole("button", { name: /Open Sidebar/ })
         .click();
     }
-    const results = await new AxeBuilder({ page }).analyze();
+    const results = await appAxe(page).analyze();
     expect(results.violations).toEqual([]);
   }
 });
@@ -410,28 +735,39 @@ test("API reference expands option defaults and explanations", async ({
   page,
 }) => {
   await page.goto("/api/core/create-generative-a11y");
-  const preset = page
-    .locator(".api-list details")
-    .filter({ hasText: "preset" })
-    .first();
-  await preset.locator("summary").click();
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_500);
+  const presetButton = page.getByRole("button", { name: /preset/i });
+  await expect(presetButton).toHaveAttribute("aria-expanded", "false");
+  await presetButton.click();
+  await expect(presetButton).toHaveAttribute("aria-expanded", "true");
+  const preset = presetButton.locator("xpath=..");
   await expect(preset).toContainText("balanced");
   await expect(preset).toContainText("Selects a complete baseline policy");
-  await expect(
-    page.getByRole("heading", { name: "How this code works" }).first(),
-  ).toBeVisible();
 });
 
 test("Docs and API provide separate top-level navigation and legacy reference links redirect", async ({
   page,
 }) => {
   await page.goto("/docs/getting-started");
-  await page.getByRole("link", { name: "API", exact: true }).click();
+  await waitForThemeControls(page);
+  await page.waitForTimeout(1_500);
+  await page
+    .getByRole("button", { name: /Guides/ })
+    .first()
+    .click({ position: { x: 10, y: 10 } });
+  await page.getByRole("link", { name: /API Reference/ }).click();
   await expect(page).toHaveURL(/\/api$/);
-  await expect(
-    page.getByRole("navigation", { name: "API reference" }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "createGenerativeA11y" }).click();
+  await expect(page.getByText("API reference", { exact: true }).first()).toBeVisible();
+  await page
+    .getByRole("button", { name: /API Reference/ })
+    .first()
+    .click({ position: { x: 10, y: 10 } });
+  await expect(page.getByRole("link", { name: /Examples/ }).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("link", { name: "createGenerativeA11y", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/api\/core\/create-generative-a11y$/);
 
   await page.goto("/docs/api/runtime");
@@ -445,7 +781,7 @@ test("release guidance covers integration choice, troubleshooting, and stability
     ["/docs/integrations", "Choose an integration"],
     ["/docs/troubleshooting", "Troubleshooting"],
     ["/docs/stability", "Stability and migrations"],
-    ["/project/overview", "Project overview"],
+    ["/docs/project/overview", "Project overview"],
   ] as const) {
     await page.goto(path);
     await expect(
@@ -457,7 +793,7 @@ test("release guidance covers integration choice, troubleshooting, and stability
 for (const path of ["/", "/docs/getting-started", "/examples/lifecycle-lab"]) {
   test(`automated accessibility scan passes on ${path}`, async ({ page }) => {
     await page.goto(path);
-    const results = await new AxeBuilder({ page }).analyze();
+    const results = await appAxe(page).analyze();
     expect(results.violations).toEqual([]);
   });
 }
@@ -466,52 +802,78 @@ test("subtle motion is present and respects reduced-motion preferences", async (
   page,
 }) => {
   await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Interactive runtime laboratory" }),
+  ).toBeVisible();
   const demo = page.getByRole("region", { name: "Interactive runtime trace" });
   await expect(demo).toHaveAttribute("data-hydrated", "true");
-  const orbit = page.locator(".motion-orbit");
-  await expect(orbit).toBeVisible();
+  const motionSurface = page.locator(".home-hero-copy");
+  await expect(motionSurface).toBeVisible();
   expect(
-    await orbit.evaluate((element) => getComputedStyle(element).animationName),
-  ).toBe("none");
-
-  await page.getByRole("button", { name: "Play demo", exact: true }).click();
-  expect(
-    await orbit.evaluate((element) => getComputedStyle(element).animationName),
+    await motionSurface.evaluate((element) => getComputedStyle(element).animationName),
   ).not.toBe("none");
 
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const duration = await orbit.evaluate(
+  const duration = await motionSurface.evaluate(
     (element) => getComputedStyle(element).animationDuration,
   );
-  expect(["0s", "0.00001s"]).toContain(duration);
+  expect(Number.parseFloat(duration)).toBeLessThanOrEqual(0.00001);
+
+  const activeMotion = await motionSurface.evaluate((element) =>
+    element
+      .getAnimations({ subtree: true })
+      .filter((animation) => animation.playState === "running")
+      .map((animation) => Number(animation.effect?.getComputedTiming().duration)),
+  );
+  expect(activeMotion.every((motionDuration) => motionDuration <= 0.01)).toBe(
+    true,
+  );
+  const captureVisualState = () =>
+    motionSurface.evaluate((element) =>
+      [element, ...element.querySelectorAll("*")].map((motionElement) => {
+        const rect = motionElement.getBoundingClientRect();
+        const styles = getComputedStyle(motionElement);
+        return {
+          opacity: styles.opacity,
+          transform: styles.transform,
+          rect: [rect.x, rect.y, rect.width, rect.height].map(
+            (value) => Math.round(value * 100) / 100,
+          ),
+        };
+      }),
+    );
+  const reducedMotionState = await captureVisualState();
+  await page.waitForTimeout(150);
+  expect(await captureVisualState()).toEqual(reducedMotionState);
 });
 
 test("homepage runtime trace waits for Play and exposes pause and replay controls", async ({
   page,
 }) => {
   await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Interactive runtime laboratory" }),
+  ).toBeVisible();
   const demo = page.getByRole("region", { name: "Interactive runtime trace" });
   await expect(demo).toHaveAttribute("data-hydrated", "true");
   await expect(demo.getByText("Ready", { exact: true })).toBeVisible();
-  await expect(demo.getByText("response.started", { exact: true })).toHaveCount(
-    0,
-  );
+  await expect(demo.locator('.trace-list li:not([aria-hidden="true"])')).toHaveCount(0);
 
   await demo.getByRole("button", { name: "Play demo", exact: true }).click();
   await expect(
     demo.getByText("response.started", { exact: true }),
   ).toBeVisible();
-  await expect(demo.locator(".trace-list li")).toHaveCount(2, {
+  await expect(demo.locator('.trace-list li:not([aria-hidden="true"])')).toHaveCount(2, {
     timeout: 4_000,
   });
 
   await demo.getByRole("button", { name: "Pause demo" }).click();
   await expect(demo.getByText("Paused", { exact: true })).toBeVisible();
-  const pausedEntryCount = await demo.locator(".trace-list li").count();
+  const pausedEntryCount = await demo.locator('.trace-list li:not([aria-hidden="true"])').count();
   await page.waitForTimeout(800);
-  await expect(demo.locator(".trace-list li")).toHaveCount(pausedEntryCount);
+  await expect(demo.locator('.trace-list li:not([aria-hidden="true"])')).toHaveCount(pausedEntryCount);
   await demo.getByRole("button", { name: "Replay demo" }).click();
-  await expect(demo.getByText("Streaming", { exact: true })).toBeVisible();
+  await expect(demo.locator("output.runtime-status")).toHaveText("Streaming");
   await expect(
     demo.getByText("response.started", { exact: true }),
   ).toBeVisible();

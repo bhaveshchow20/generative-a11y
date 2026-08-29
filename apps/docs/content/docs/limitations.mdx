@@ -1,0 +1,76 @@
+---
+title: "Limitations and honest claims"
+description:
+  "Understand what the library can confirm, what it cannot see, and what still
+  needs hands-on screen-reader testing."
+publicPath: "/docs/limitations"
+section: "Reference"
+keywords:
+  [
+    "limitations",
+    "unsupported",
+    "screen reader spoke",
+    "planned",
+    "experimental",
+  ]
+related: []
+order: 23
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/limitations",
+  section: "Reference",
+  related: [],
+  order: 23,
+};
+
+export const searchableText = [
+  "Limitations and honest claims",
+  "Understand what the library can confirm, what it cannot see, and what still needs hands-on screen-reader testing.",
+  "Reference",
+  "limitations",
+  "unsupported",
+  "screen reader spoke",
+  "planned",
+  "experimental",
+  "what-tests-prove",
+  "What automated tests prove",
+  "Core tests check which updates the runtime prepares and when. Adapter tests check how framework events are translated. DOM and browser tests check page structure and updates. None can confirm what a specific screen reader spoke or what a person heard.",
+  "Test with real browsers and screen readers before release.",
+  "unsupported",
+  "Unsupported by design",
+  "generative-a11y does not replace semantic HTML, keyboard support, focus management, visible status messages, or dialogs. It cannot read private framework state, run remote code, guarantee screen-reader speech, or guess missing events from page text.",
+  "No general assistant-ui retry or connection event",
+  "No general AI SDK retry event unless your app reports the retry",
+  "No AG-UI replay deduplication without a mandatory cursor",
+  "No duplicate CopilotKit adapter package",
+].join("\n");
+
+<span id="what&#45;tests&#45;prove"></span>
+
+## What automated tests prove
+
+Core tests check which updates the runtime prepares and when. Adapter tests
+check how framework events are translated. DOM and browser tests check page
+structure and updates. None can confirm what a specific screen reader spoke or
+what a person heard.
+
+<Callout title="Evidence and testing note">
+
+Test with real browsers and screen readers before release.
+
+</Callout>
+
+<span id="unsupported"></span>
+
+## Unsupported by design
+
+generative&#45;a11y does not replace semantic HTML, keyboard support, focus
+management, visible status messages, or dialogs. It cannot read private
+framework state, run remote code, guarantee screen&#45;reader speech, or guess
+missing events from page text.
+
+- No general assistant&#45;ui retry or connection event
+- No general AI SDK retry event unless your app reports the retry
+- No AG&#45;UI replay deduplication without a mandatory cursor
+- No duplicate CopilotKit adapter package

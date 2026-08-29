@@ -1,0 +1,121 @@
+---
+title: "Project overview"
+description:
+  "See what each generative-a11y package does and how the project keeps
+  integrations small and reliable."
+publicPath: "/docs/project/overview"
+section: "Project"
+keywords: ["project", "packages", "architecture", "validation", "overview"]
+related: []
+order: 24
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/project/overview",
+  section: "Project",
+  related: [],
+  order: 24,
+};
+
+export const searchableText = [
+  "Project overview",
+  "See what each generative-a11y package does and how the project keeps integrations small and reliable.",
+  "Project",
+  "project",
+  "packages",
+  "architecture",
+  "validation",
+  "overview",
+  "packages",
+  "A focused package family",
+  "Each package has one job: decide what to announce, update the browser, connect React, or connect an AI framework. Install only what your app needs.",
+  "Package",
+  "Purpose",
+  "What it does not depend on",
+  "core",
+  "Policy, scheduling, segmentation, and testing helpers",
+  "No DOM or framework dependency",
+  "dom",
+  "Browser delivery, focus, attention, preferences",
+  "No React or AI framework dependency",
+  "react",
+  "Provider and host-element bindings",
+  "Leaves the visual interface unchanged",
+  "ai-sdk",
+  "useChat lifecycle translation",
+  "Public state and callbacks only",
+  "assistant-ui",
+  "Thread runtime translation",
+  "getState and subscribe only",
+  "ag-ui",
+  "Protocol lifecycle translation",
+  "Documented subscriber callbacks only",
+  "devtools",
+  "Bounded redacted diagnostics and a trace explorer",
+  "No application content or runtime control",
+  "validation",
+  "Test each part at the right level",
+  "Runtime, adapter, browser, and hands-on screen-reader tests answer different questions. Keeping them separate prevents anyone from mistaking an automated transcript for what a person heard.",
+].join("\n");
+
+<span id="packages"></span>
+
+## A focused package family
+
+Each package has one job: decide what to announce, update the browser, connect
+React, or connect an AI framework. Install only what your app needs.
+
+<table aria-label="A focused package family table">
+  <thead>
+    <tr>
+      <th>Package</th>
+      <th>Purpose</th>
+      <th>What it does not depend on</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>core</td>
+      <td>Policy, scheduling, segmentation, and testing helpers</td>
+      <td>No DOM or framework dependency</td>
+    </tr>
+    <tr>
+      <td>dom</td>
+      <td>Browser delivery, focus, attention, preferences</td>
+      <td>No React or AI framework dependency</td>
+    </tr>
+    <tr>
+      <td>react</td>
+      <td>Provider and host&#45;element bindings</td>
+      <td>Leaves the visual interface unchanged</td>
+    </tr>
+    <tr>
+      <td>ai&#45;sdk</td>
+      <td>useChat lifecycle translation</td>
+      <td>Public state and callbacks only</td>
+    </tr>
+    <tr>
+      <td>assistant&#45;ui</td>
+      <td>Thread runtime translation</td>
+      <td>getState and subscribe only</td>
+    </tr>
+    <tr>
+      <td>ag&#45;ui</td>
+      <td>Protocol lifecycle translation</td>
+      <td>Documented subscriber callbacks only</td>
+    </tr>
+    <tr>
+      <td>devtools</td>
+      <td>Bounded redacted diagnostics and a trace explorer</td>
+      <td>No application content or runtime control</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="validation"></span>
+
+## Test each part at the right level
+
+Runtime, adapter, browser, and hands&#45;on screen&#45;reader tests answer
+different questions. Keeping them separate prevents anyone from mistaking an
+automated transcript for what a person heard.

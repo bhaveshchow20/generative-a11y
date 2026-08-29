@@ -1,0 +1,243 @@
+---
+title: "Getting started"
+description:
+  "Install the core and DOM packages, connect one runtime, and tell it when
+  responses and tools change."
+publicPath: "/docs/getting-started"
+section: "Getting started"
+keywords: ["install", "quick start", "framework neutral", "TypeScript"]
+related: []
+order: 0
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/getting-started",
+  section: "Getting started",
+  related: [],
+  order: 0,
+};
+
+export const searchableText = [
+  "Getting started",
+  "Install the core and DOM packages, connect one runtime, and tell it when responses and tools change.",
+  "Getting started",
+  "install",
+  "quick start",
+  "framework neutral",
+  "TypeScript",
+  "install",
+  "Install the core and browser packages",
+  "Core decides what to announce and when. DOM adds those announcements to the page. Add a framework adapter only when your app needs one.",
+  "shell",
+  "npm install @generative-a11y/core @generative-a11y/dom",
+  "Add the core runtime",
+  "@generative-a11y/core turns app events into useful screen-reader updates and controls their timing.",
+  "Add browser delivery",
+  "@generative-a11y/dom adds those updates to the page without changing the visible interface.",
+  "minimal-integration",
+  "Minimal integration",
+  "Create one runtime and connect it to the browser. Send only the new text from each streaming update. Report when the response finishes, fails, or stops. Dispose both resources when the session ends.",
+  "typescript",
+  'import { createGenerativeA11y } from "@generative-a11y/core"; import { connectRuntimeToDOM } from "@generative-a11y/dom"; const runtime = createGenerativeA11y({}); const delivery = connectRuntimeToDOM(runtime); runtime.dispatch({ type: "response.started", responseId: "response-1" }); runtime.dispatch({ type: "response.text.delta", responseId: "response-1", delta: "A complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "response-1" }); delivery.dispose(); runtime.dispose();',
+  "Create one runtime",
+  "Your runtime tracks responses, prepares useful text, and controls update timing.",
+  "Connect the browser",
+  "connectRuntimeToDOM creates and manages the hidden live regions used for screen-reader updates.",
+  "Report app events",
+  "Tell the runtime when a response starts, receives text, and finishes.",
+  "Clean up",
+  "Dispose the browser connection first, then dispose the runtime when the session ends.",
+  "generative-a11y can confirm when it adds an announcement to the page. Test with real screen readers to confirm what people hear.",
+  "choose-an-integration",
+  "Choose the package that matches your app",
+  "Use a framework adapter when your app already uses that framework. For a custom app, send events directly to the core runtime.",
+  "Application",
+  "Package",
+  "What it reports",
+  "Framework-neutral",
+  "@generative-a11y/core + /dom",
+  "All standard library events",
+  "React",
+  "@generative-a11y/react",
+  "Provider, delivery, attention, preferences",
+  "AI SDK useChat",
+  "@generative-a11y/ai-sdk/react",
+  "Streaming, terminals, tools, approvals, citations",
+  "assistant-ui",
+  "@generative-a11y/assistant-ui",
+  "Messages, tools, approvals, sources",
+  "AG-UI / CopilotKit v2",
+  "@generative-a11y/ag-ui",
+  "Protocol text, tools, interrupts",
+  "Development diagnostics",
+  "@generative-a11y/devtools",
+  "Redacted runtime and DOM delivery traces",
+  "Deterministic tests",
+  "@generative-a11y/core/testing",
+  "Event recording, replay, and semantic assertions",
+].join("\n");
+
+<span id="install"></span>
+
+## Install the core and browser packages
+
+Core decides what to announce and when. DOM adds those announcements to the
+page. Add a framework adapter only when your app needs one.
+
+{/* prettier-ignore */}
+```shell
+npm install @generative-a11y/core @generative-a11y/dom
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Add the core runtime
+
+@generative&#45;a11y/core turns app events into useful screen&#45;reader updates
+and controls their timing.
+
+</Step>
+
+<Step>
+
+### Add browser delivery
+
+@generative&#45;a11y/dom adds those updates to the page without changing the
+visible interface.
+
+</Step>
+
+</Steps>
+
+<span id="minimal&#45;integration"></span>
+
+## Minimal integration
+
+Create one runtime and connect it to the browser. Send only the new text from
+each streaming update. Report when the response finishes, fails, or stops.
+Dispose both resources when the session ends.
+
+{/* prettier-ignore */}
+```typescript
+import { createGenerativeA11y } from "@generative-a11y/core";
+import { connectRuntimeToDOM } from "@generative-a11y/dom";
+
+const runtime = createGenerativeA11y({});
+const delivery = connectRuntimeToDOM(runtime);
+
+runtime.dispatch({ type: "response.started", responseId: "response-1" });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "response-1",
+  delta: "A complete sentence.",
+});
+runtime.dispatch({ type: "response.completed", responseId: "response-1" });
+
+delivery.dispose();
+runtime.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create one runtime
+
+Your runtime tracks responses, prepares useful text, and controls update timing.
+
+</Step>
+
+<Step>
+
+### Connect the browser
+
+connectRuntimeToDOM creates and manages the hidden live regions used for
+screen&#45;reader updates.
+
+</Step>
+
+<Step>
+
+### Report app events
+
+Tell the runtime when a response starts, receives text, and finishes.
+
+</Step>
+
+<Step>
+
+### Clean up
+
+Dispose the browser connection first, then dispose the runtime when the session
+ends.
+
+</Step>
+
+</Steps>
+
+<Callout title="Evidence and testing note">
+
+generative&#45;a11y can confirm when it adds an announcement to the page. Test
+with real screen readers to confirm what people hear.
+
+</Callout>
+
+<span id="choose&#45;an&#45;integration"></span>
+
+## Choose the package that matches your app
+
+Use a framework adapter when your app already uses that framework. For a custom
+app, send events directly to the core runtime.
+
+<table aria-label="Choose the package that matches your app table">
+  <thead>
+    <tr>
+      <th>Application</th>
+      <th>Package</th>
+      <th>What it reports</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Framework&#45;neutral</td>
+      <td>@generative&#45;a11y/core &#43; /dom</td>
+      <td>All standard library events</td>
+    </tr>
+    <tr>
+      <td>React</td>
+      <td>@generative&#45;a11y/react</td>
+      <td>Provider, delivery, attention, preferences</td>
+    </tr>
+    <tr>
+      <td>AI SDK useChat</td>
+      <td>@generative&#45;a11y/ai&#45;sdk/react</td>
+      <td>Streaming, terminals, tools, approvals, citations</td>
+    </tr>
+    <tr>
+      <td>assistant&#45;ui</td>
+      <td>@generative&#45;a11y/assistant&#45;ui</td>
+      <td>Messages, tools, approvals, sources</td>
+    </tr>
+    <tr>
+      <td>AG&#45;UI / CopilotKit v2</td>
+      <td>@generative&#45;a11y/ag&#45;ui</td>
+      <td>Protocol text, tools, interrupts</td>
+    </tr>
+    <tr>
+      <td>Development diagnostics</td>
+      <td>@generative&#45;a11y/devtools</td>
+      <td>Redacted runtime and DOM delivery traces</td>
+    </tr>
+    <tr>
+      <td>Deterministic tests</td>
+      <td>@generative&#45;a11y/core/testing</td>
+      <td>Event recording, replay, and semantic assertions</td>
+    </tr>
+  </tbody>
+</table>

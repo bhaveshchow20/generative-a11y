@@ -1,0 +1,209 @@
+---
+title: "Debug AI accessibility with the trace explorer"
+description:
+  "Inspect bounded, redacted runtime decisions and browser delivery evidence
+  with the optional generative-a11y devtools package."
+publicPath: "/docs/devtools"
+section: "Tools"
+keywords:
+  ["devtools", "accessibility trace", "diagnostics", "debugging", "redaction"]
+related: ["/api/devtools", "/api/core/diagnostics", "/docs/troubleshooting"]
+order: 17
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/devtools",
+  section: "Tools",
+  related: ["/api/devtools", "/api/core/diagnostics", "/docs/troubleshooting"],
+  order: 17,
+};
+
+export const searchableText = [
+  "Debug AI accessibility with the trace explorer",
+  "Inspect bounded, redacted runtime decisions and browser delivery evidence with the optional generative-a11y devtools package.",
+  "Tools",
+  "devtools",
+  "accessibility trace",
+  "diagnostics",
+  "debugging",
+  "redaction",
+  "/api/devtools",
+  "/api/core/diagnostics",
+  "/docs/troubleshooting",
+  "install",
+  "Install development-only diagnostics",
+  "Install @generative-a11y/devtools in development environments. The package observes public core diagnostics and does not patch dispatch, change announcement policy, or depend on an AI framework.",
+  "shell",
+  "npm install --save-dev @generative-a11y/devtools",
+  "Keep it development-only",
+  "The package helps inspect runtime behavior and should not become part of the production accessibility path.",
+  "Attach an existing runtime",
+  "The store borrows public diagnostic methods from a runtime your app owns.",
+  "trace-explorer",
+  "Open the Accessibility Trace Explorer",
+  "The optional overlay mounts only when your code calls mountDevtoolsOverlay. It starts collapsed inside an open Shadow DOM and provides search, filters, causal evidence, capture controls, and explicit trace copy.",
+  "typescript",
+  'import { createDevtoolsStore } from "@generative-a11y/devtools"; import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay"; const store = createDevtoolsStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const overlay = mountDevtoolsOverlay({ store }); // Dispose in reverse ownership order. overlay.dispose(); detach(); store.dispose();',
+  "Create a bounded store",
+  "maxEntries limits retained diagnostic records and reports how many older records were dropped.",
+  "Attach one runtime identity",
+  "A stable runtime ID connects observed events, decisions, snapshots, and optional DOM delivery results.",
+  "Mount the overlay",
+  "The browser helper creates the launcher and trace workspace only after this explicit call.",
+  "Dispose owned resources",
+  "Close the overlay, detach the borrowed runtime, then dispose the store.",
+  "captured-evidence",
+  "Captured evidence and redaction",
+  "The store retains event categories, outcomes, timing, stable IDs, queue and entity snapshots, declared adapter evidence, and browser delivery metadata. It excludes assistant text, labels, errors, tool data, stacks, DOM content, deduplication keys, and timer handles.",
+  "Pass adapter metadata through source only when a documented integration can support it. Devtools does not detect a framework or invent events that the framework did not report.",
+  "delivery-correlation",
+  "Correlate runtime decisions with DOM delivery",
+  "Send DOMDeliveryResult values from createDOMAnnouncer onDiagnostic to store.recordDelivery. Safe announcement and entity IDs connect the browser action to the runtime decision that requested it.",
+  "A trace can confirm a runtime decision and a browser API call or live-region mutation. It cannot prove that assistive technology spoke the announcement.",
+  "keyboard-and-focus",
+  "Overlay keyboard and focus behavior",
+  "Opening the workspace moves focus into it. Escape or the close control collapses the workspace and restores the element focused before opening. Streaming records do not move focus, the overlay does not trap focus, and it creates no live region or global keyboard shortcut.",
+].join("\n");
+
+<span id="install"></span>
+
+## Install development&#45;only diagnostics
+
+Install @generative&#45;a11y/devtools in development environments. The package
+observes public core diagnostics and does not patch dispatch, change
+announcement policy, or depend on an AI framework.
+
+{/* prettier-ignore */}
+```shell
+npm install --save-dev @generative-a11y/devtools
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Keep it development&#45;only
+
+The package helps inspect runtime behavior and should not become part of the
+production accessibility path.
+
+</Step>
+
+<Step>
+
+### Attach an existing runtime
+
+The store borrows public diagnostic methods from a runtime your app owns.
+
+</Step>
+
+</Steps>
+
+<span id="trace&#45;explorer"></span>
+
+## Open the Accessibility Trace Explorer
+
+The optional overlay mounts only when your code calls mountDevtoolsOverlay. It
+starts collapsed inside an open Shadow DOM and provides search, filters, causal
+evidence, capture controls, and explicit trace copy.
+
+{/* prettier-ignore */}
+```typescript
+import { createDevtoolsStore } from "@generative-a11y/devtools";
+import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+
+const store = createDevtoolsStore({ maxEntries: 250 });
+const detach = store.attachRuntime({ id: "support", runtime });
+const overlay = mountDevtoolsOverlay({ store });
+
+// Dispose in reverse ownership order.
+overlay.dispose();
+detach();
+store.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Create a bounded store
+
+maxEntries limits retained diagnostic records and reports how many older records
+were dropped.
+
+</Step>
+
+<Step>
+
+### Attach one runtime identity
+
+A stable runtime ID connects observed events, decisions, snapshots, and optional
+DOM delivery results.
+
+</Step>
+
+<Step>
+
+### Mount the overlay
+
+The browser helper creates the launcher and trace workspace only after this
+explicit call.
+
+</Step>
+
+<Step>
+
+### Dispose owned resources
+
+Close the overlay, detach the borrowed runtime, then dispose the store.
+
+</Step>
+
+</Steps>
+
+<span id="captured&#45;evidence"></span>
+
+## Captured evidence and redaction
+
+The store retains event categories, outcomes, timing, stable IDs, queue and
+entity snapshots, declared adapter evidence, and browser delivery metadata. It
+excludes assistant text, labels, errors, tool data, stacks, DOM content,
+deduplication keys, and timer handles.
+
+Pass adapter metadata through source only when a documented integration can
+support it. Devtools does not detect a framework or invent events that the
+framework did not report.
+
+<span id="delivery&#45;correlation"></span>
+
+## Correlate runtime decisions with DOM delivery
+
+Send DOMDeliveryResult values from createDOMAnnouncer onDiagnostic to
+store.recordDelivery. Safe announcement and entity IDs connect the browser
+action to the runtime decision that requested it.
+
+<Callout title="Evidence and testing note">
+
+A trace can confirm a runtime decision and a browser API call or live&#45;region
+mutation. It cannot prove that assistive technology spoke the announcement.
+
+</Callout>
+
+<span id="keyboard&#45;and&#45;focus"></span>
+
+## Overlay keyboard and focus behavior
+
+Opening the workspace moves focus into it. Escape or the close control collapses
+the workspace and restores the element focused before opening. Streaming records
+do not move focus, the overlay does not trap focus, and it creates no live
+region or global keyboard shortcut.
+
+## Related
+
+- [/api/devtools](/api/devtools)
+- [/api/core/diagnostics](/api/core/diagnostics)
+- [/docs/troubleshooting](/docs/troubleshooting)

@@ -1,0 +1,83 @@
+.docs-site {
+  --color-fd-background: #f8faf8;
+  --color-fd-foreground: #10241f;
+  --color-fd-muted: #eef3ef;
+  --color-fd-muted-foreground: #40514b;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #10241f;
+  --color-fd-card: #ffffff;
+  --color-fd-card-foreground: #10241f;
+  --color-fd-border: transparent;
+  --color-fd-primary: #06705f;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: #edf4f0;
+  --color-fd-secondary-foreground: #18352d;
+  --color-fd-accent: #e6f0eb;
+  --color-fd-accent-foreground: #123b31;
+  --color-fd-ring: #0b8c77;
+  color: var(--color-fd-foreground);
+  font-family: var(--font-home-sans), var(--font-body), sans-serif;
+}
+
+.dark .docs-site {
+  --color-fd-background: #000000;
+  --color-fd-foreground: #edf6f1;
+  --color-fd-muted: #101513;
+  --color-fd-muted-foreground: #93a39d;
+  --color-fd-popover: #090c0b;
+  --color-fd-popover-foreground: #edf6f1;
+  --color-fd-card: #080b0a;
+  --color-fd-card-foreground: #edf6f1;
+  --color-fd-border: transparent;
+  --color-fd-primary: #55d5ba;
+  --color-fd-primary-foreground: #001c16;
+  --color-fd-secondary: #111816;
+  --color-fd-secondary-foreground: #d8e8e1;
+  --color-fd-accent: #15201c;
+  --color-fd-accent-foreground: #e5f5ee;
+  --color-fd-ring: #63dbc1;
+}
+
+.docs-site .home-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  text-decoration: none;
+}
+
+.docs-site .home-wordmark-mark {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+/* Keep the native Fumadocs controls clickable when their Lucide icon is the
+   pointer target. Vinext currently drops the delegated click in that case. */
+.docs-site button > svg {
+  pointer-events: none;
+}
+
+.docs-site article {
+  --fd-docs-row-2: minmax(0, 48rem);
+}
+
+/* Vinext does not currently expand Fumadocs' layout custom variant. Keep the
+   native grid variables explicit until its Tailwind pipeline supports it. */
+@media (max-width: 767px) {
+  .docs-site #nd-docs-layout { --fd-header-height: 3.5rem; }
+}
+
+@media (min-width: 768px) {
+  .docs-site #nd-docs-layout { --fd-sidebar-width: 268px; }
+}
+
+@media (max-width: 1279px) {
+  .docs-site #nd-docs-layout { --fd-toc-popover-height: 2.5rem; }
+}
+
+@media (min-width: 1280px) {
+  .docs-site #nd-docs-layout { --fd-toc-width: 268px; }
+}

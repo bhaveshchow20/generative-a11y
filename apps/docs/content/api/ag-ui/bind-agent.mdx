@@ -1,0 +1,234 @@
+---
+title: "bindAgent"
+description:
+  "Connect one AG-UI agent through its public callbacks and send those events to
+  a core runtime supplied by your app."
+publicPath: "/api/ag-ui/bind-agent"
+section: "AG-UI"
+keywords: ["bindAgent", "BindAgentOptions", "AgentBinding", "AgentSubscriber"]
+related: []
+order: 21
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/ag-ui/bind-agent",
+  section: "AG-UI",
+  related: [],
+  order: 21,
+};
+
+export const searchableText = [
+  "bindAgent",
+  "Connect one AG-UI agent through its public callbacks and send those events to a core runtime supplied by your app.",
+  "AG-UI",
+  "bindAgent",
+  "BindAgentOptions",
+  "AgentBinding",
+  "AgentSubscriber",
+  "signature",
+  "Signature and import",
+  "Create the binding after the agent is ready, then dispose it when the owning application scope ends.",
+  "typescript",
+  'import { bindAgent } from "@generative-a11y/ag-ui"; const binding = bindAgent({ runtime, scopeId: "research-agent", agent, maxTrackedEntities: 1_000, }); // Unsubscribes without disposing agent or runtime. binding.dispose();',
+  "Connect the agent",
+  "AgentBinding subscribes to documented callbacks without running your agent.",
+  "Separate agent IDs",
+  "scopeId prevents message, tool, and interrupt IDs from colliding across agents.",
+  "Limit stored IDs",
+  "After reaching its limit, the adapter ignores new IDs instead of removing active records.",
+  "Dispose the subscription",
+  "Your app still owns the runtime and agent after the binding is disposed.",
+  "runtime",
+  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Required",
+  "n/a",
+  "Receives adapter events while remaining under your app's control.",
+  "scopeId",
+  "string",
+  "Required",
+  "n/a",
+  "Stable non-empty namespace for AG-UI message, tool, and interrupt IDs.",
+  "agent",
+  "AgentSource",
+  "Required",
+  "n/a",
+  "Borrowed object exposing documented subscribe behavior.",
+  "maxTrackedEntities",
+  "number",
+  "Optional",
+  "1000",
+  "Positive safe integer bounding tracked responses, tools, and interactions.",
+  "return",
+  "AgentBinding",
+  "Return",
+  "n/a",
+  "An idempotent dispose method for the protocol subscription.",
+  "translation",
+  "How AgentSubscriber callbacks map to events",
+  "AG-UI integration reads public callbacks instead of rendered UI.",
+  "AG-UI callback family",
+  "generative-a11y event",
+  "Notes",
+  "Text message start, content, end",
+  "response lifecycle",
+  "Each update contains only new text",
+  "Tool call start, args, result, end",
+  "tool lifecycle",
+  "Arguments alone do not mean execution started",
+  "Run error or interruption",
+  "response.failed or interrupted",
+  "Uses short, translated text that is safe to share",
+  "Interrupt and resume",
+  "interaction requested or resolved",
+  "Reports when the app needs user input",
+  "Run initialized",
+  "interaction resolution",
+  "Matches known active interrupt IDs",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and import
+
+Create the binding after the agent is ready, then dispose it when the owning
+application scope ends.
+
+{/* prettier-ignore */}
+```typescript
+import { bindAgent } from "@generative-a11y/ag-ui";
+
+const binding = bindAgent({
+  runtime,
+  scopeId: "research-agent",
+  agent,
+  maxTrackedEntities: 1_000,
+});
+
+// Unsubscribes without disposing agent or runtime.
+binding.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Connect the agent
+
+AgentBinding subscribes to documented callbacks without running your agent.
+
+</Step>
+
+<Step>
+
+### Separate agent IDs
+
+scopeId prevents message, tool, and interrupt IDs from colliding across agents.
+
+</Step>
+
+<Step>
+
+### Limit stored IDs
+
+After reaching its limit, the adapter ignores new IDs instead of removing active
+records.
+
+</Step>
+
+<Step>
+
+### Dispose the subscription
+
+Your app still owns the runtime and agent after the binding is disposed.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      required: true,
+      description: (
+        <>Receives adapter events while remaining under your app's control.</>
+      ),
+    },
+    scopeId: {
+      type: <>string</>,
+      required: true,
+      description: (
+        <>
+          Stable non&#45;empty namespace for AG&#45;UI message, tool, and
+          interrupt IDs.
+        </>
+      ),
+    },
+    agent: {
+      type: <>AgentSource</>,
+      required: true,
+      description: <>Borrowed object exposing documented subscribe behavior.</>,
+    },
+    maxTrackedEntities: {
+      type: <>number</>,
+      default: <>1000</>,
+      description: (
+        <>
+          Positive safe integer bounding tracked responses, tools, and
+          interactions.
+        </>
+      ),
+    },
+    return: {
+      type: <>AgentBinding</>,
+      description: (
+        <>Return. An idempotent dispose method for the protocol subscription.</>
+      ),
+    },
+  }}
+/>
+
+<span id="translation"></span>
+
+## How AgentSubscriber callbacks map to events
+
+AG&#45;UI integration reads public callbacks instead of rendered UI.
+
+<table aria-label="How AgentSubscriber callbacks map to events table">
+  <thead>
+    <tr>
+      <th>AG&#45;UI callback family</th>
+      <th>generative&#45;a11y event</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Text message start, content, end</td>
+      <td>response lifecycle</td>
+      <td>Each update contains only new text</td>
+    </tr>
+    <tr>
+      <td>Tool call start, args, result, end</td>
+      <td>tool lifecycle</td>
+      <td>Arguments alone do not mean execution started</td>
+    </tr>
+    <tr>
+      <td>Run error or interruption</td>
+      <td>response.failed or interrupted</td>
+      <td>Uses short, translated text that is safe to share</td>
+    </tr>
+    <tr>
+      <td>Interrupt and resume</td>
+      <td>interaction requested or resolved</td>
+      <td>Reports when the app needs user input</td>
+    </tr>
+    <tr>
+      <td>Run initialized</td>
+      <td>interaction resolution</td>
+      <td>Matches known active interrupt IDs</td>
+    </tr>
+  </tbody>
+</table>

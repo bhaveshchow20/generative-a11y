@@ -1,0 +1,236 @@
+---
+title: "PreferenceStore"
+description:
+  "Validated, versioned external store for user-controlled streaming and tool
+  verbosity with optional persistence."
+publicPath: "/api/dom/preferences"
+section: "DOM"
+keywords:
+  [
+    "createPreferenceStore",
+    "PreferenceSchemaV1",
+    "preferencesToCoreConfiguration",
+    "storage",
+  ]
+related: []
+order: 13
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/dom/preferences",
+  section: "DOM",
+  related: [],
+  order: 13,
+};
+
+export const searchableText = [
+  "PreferenceStore",
+  "Validated, versioned external store for user-controlled streaming and tool verbosity with optional persistence.",
+  "DOM",
+  "createPreferenceStore",
+  "PreferenceSchemaV1",
+  "preferencesToCoreConfiguration",
+  "storage",
+  "store",
+  "createPreferenceStore",
+  "createPreferenceStore validates loaded and assigned values before exposing a stable snapshot.",
+  "typescript",
+  'const store = createPreferenceStore({ defaultValue: defaultPreferences, persistence: { key: "chat:a11y-preferences", storage: window.localStorage, events: { subscribe(listener) { const handle = (event: StorageEvent) => listener(event); window.addEventListener("storage", handle); return () => window.removeEventListener("storage", handle); }, }, }, }); const unsubscribe = store.subscribe(() => { const preferences = store.getSnapshot(); const configuration = preferencesToCoreConfiguration(preferences); applyConfiguration(configuration); }); store.setPreferences({ version: 1, preset: "balanced", streaming: "sentence", tools: "status", });',
+  "Supply storage",
+  "Pass storage when you need persistence, server rendering, or controlled tests.",
+  "Subscribe to changes",
+  "getSnapshot returns validated, versioned preferences.",
+  "Map preferences to core",
+  "preferencesToCoreConfiguration converts selected verbosity into a core preset and policy override.",
+  "defaultValue",
+  "PreferenceSchemaV1",
+  "Optional",
+  "defaultPreferences",
+  "Validated snapshot used when persistence is missing or invalid.",
+  "persistence.key",
+  "string",
+  "Optional",
+  "library key",
+  "Storage key for the serialized versioned schema.",
+  "persistence.storage",
+  "PreferenceStorage",
+  "Optional",
+  "localStorage when available",
+  "Injected getItem and setItem surface.",
+  "persistence.events",
+  "PreferenceStorageEventSource",
+  "Optional",
+  "storage events when available",
+  "Synchronizes validated changes from other documents.",
+  "onDiagnostic",
+  "callback",
+  "Optional",
+  "undefined",
+  "Observes invalid, unavailable, read, write, and event-source outcomes.",
+  "schema",
+  "PreferenceSchemaV1 and helpers",
+  "A version field makes persistence migrations explicit.",
+  "defaultPreferences",
+  "PreferenceSchemaV1",
+  "Constant",
+  "balanced",
+  "Frozen balanced user preference snapshot.",
+  "normalizePreferences(value)",
+  "PreferenceSchemaV1",
+  "Function",
+  "n/a",
+  "Validates and freezes a schema value. Invalid fields or unsupported versions throw TypeError.",
+  "samePreferences(left, right)",
+  "boolean",
+  "Function",
+  "n/a",
+  "Compares the supported schema fields.",
+  "preferencesToCoreConfiguration(value)",
+  "CorePreferenceConfiguration",
+  "Function",
+  "n/a",
+  "Maps user verbosity to a core preset and policy overrides.",
+].join("\n");
+
+<span id="store"></span>
+
+## createPreferenceStore
+
+createPreferenceStore validates loaded and assigned values before exposing a
+stable snapshot.
+
+{/* prettier-ignore */}
+```typescript
+const store = createPreferenceStore({
+  defaultValue: defaultPreferences,
+  persistence: {
+    key: "chat:a11y-preferences",
+    storage: window.localStorage,
+    events: {
+      subscribe(listener) {
+        const handle = (event: StorageEvent) => listener(event);
+        window.addEventListener("storage", handle);
+        return () => window.removeEventListener("storage", handle);
+      },
+    },
+  },
+});
+
+const unsubscribe = store.subscribe(() => {
+  const preferences = store.getSnapshot();
+  const configuration = preferencesToCoreConfiguration(preferences);
+  applyConfiguration(configuration);
+});
+
+store.setPreferences({
+  version: 1,
+  preset: "balanced",
+  streaming: "sentence",
+  tools: "status",
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Supply storage
+
+Pass storage when you need persistence, server rendering, or controlled tests.
+
+</Step>
+
+<Step>
+
+### Subscribe to changes
+
+getSnapshot returns validated, versioned preferences.
+
+</Step>
+
+<Step>
+
+### Map preferences to core
+
+preferencesToCoreConfiguration converts selected verbosity into a core preset
+and policy override.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    defaultValue: {
+      type: <>PreferenceSchemaV1</>,
+      default: <>defaultPreferences</>,
+      description: (
+        <>Validated snapshot used when persistence is missing or invalid.</>
+      ),
+    },
+    "persistence.key": {
+      type: <>string</>,
+      default: <>library key</>,
+      description: <>Storage key for the serialized versioned schema.</>,
+    },
+    "persistence.storage": {
+      type: <>PreferenceStorage</>,
+      default: <>localStorage when available</>,
+      description: <>Injected getItem and setItem surface.</>,
+    },
+    "persistence.events": {
+      type: <>PreferenceStorageEventSource</>,
+      default: <>storage events when available</>,
+      description: <>Synchronizes validated changes from other documents.</>,
+    },
+    onDiagnostic: {
+      type: <>callback</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Observes invalid, unavailable, read, write, and event&#45;source
+          outcomes.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="schema"></span>
+
+## PreferenceSchemaV1 and helpers
+
+A version field makes persistence migrations explicit.
+
+<TypeTable
+  type={{
+    defaultPreferences: {
+      type: <>PreferenceSchemaV1</>,
+      default: <>balanced</>,
+      description: <>Constant. Frozen balanced user preference snapshot.</>,
+    },
+    "normalizePreferences(value)": {
+      type: <>PreferenceSchemaV1</>,
+      description: (
+        <>
+          Function. Validates and freezes a schema value. Invalid fields or
+          unsupported versions throw TypeError.
+        </>
+      ),
+    },
+    "samePreferences(left, right)": {
+      type: <>boolean</>,
+      description: <>Function. Compares the supported schema fields.</>,
+    },
+    "preferencesToCoreConfiguration(value)": {
+      type: <>CorePreferenceConfiguration</>,
+      description: (
+        <>
+          Function. Maps user verbosity to a core preset and policy overrides.
+        </>
+      ),
+    },
+  }}
+/>

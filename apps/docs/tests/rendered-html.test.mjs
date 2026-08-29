@@ -31,24 +31,66 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /<title>generative-a11y/i);
   assert.match(html, /Accessible AI,/i);
   assert.match(html, /without rebuilding your interface/i);
-  assert.match(html, /AI framework/i);
-  assert.match(html, /screen-reader users/i);
-  assert.match(html, /Chromium, Firefox, and WebKit/i);
-  assert.match(html, /Test with a real screen reader/i);
+  assert.match(html, /Built for asynchronous AI/i);
+  assert.match(html, /Add accessibility without starting over/i);
+  assert.match(html, /Debug accessibility behavior before users find the problem/i);
   assert.match(html, /href="\/api"[^>]*>API</i);
   assert.match(html, /npm install @generative-a11y\/core/i);
   assert.match(html, /aria-label="Package"/i);
-  assert.match(html, /href="\/docs\/screen-readers-and-streaming-ai"/i);
-  assert.match(html, /href="\/docs\/accessible-ai-agents"/i);
-  assert.match(html, /href="\/docs\/integrations\/ai-sdk"/i);
-  assert.match(html, /href="\/docs\/integrations\/assistant-ui"/i);
-  assert.match(html, /href="\/docs\/integrations\/ag-ui"/i);
+  assert.match(html, /href="\/docs\/getting-started"/i);
+  assert.match(html, /href="\/examples\/lifecycle-lab"/i);
+  assert.match(html, /href="\/docs\/integrations"/i);
   assert.match(html, /href="\/docs\/devtools"/i);
+  assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
+});
+
+test("homepage renders the approved product narrative", async () => {
+  const response = await render();
+  const html = await response.text();
+  const visibleMarkup = html.replace(
+    /<(script|style|template)\b[^>]*>[\s\S]*?<\/\1>/gi,
+    " ",
+  );
+  const renderedText = visibleMarkup
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ");
+
+  for (const phrase of [
+    "Accessible AI, without rebuilding your interface.",
+    "Interactive runtime laboratory",
+    "Built for asynchronous AI",
+    "Add accessibility without starting over",
+    "Debug accessibility behavior before users find the problem",
+    "Accessible behavior, clear boundaries.",
+    "npm install @generative-a11y/core",
+  ]) {
+    assert.ok(renderedText.includes(phrase), phrase);
+  }
+});
+
+test("homepage server-renders the Batch A shell and product boundaries", async () => {
+  const response = await render();
+  const html = await response.text();
+  const h1Matches = html.match(/<h1\b[^>]*>/gi) ?? [];
+
+  assert.equal(response.status, 200);
+  assert.equal(h1Matches.length, 1);
   assert.match(
     html,
-    /How does generative-a11y make streaming AI accessible\?/i,
+    /<h1\b[^>]*>\s*Accessible AI, without rebuilding your interface\.\s*<\/h1>/i,
   );
-  assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
+  assert.match(html, /The interface stays yours/i);
+  assert.match(html, /framework-independent/i);
+  assert.match(html, /without replacing its UI or stealing focus/i);
+  assert.match(html, /lifecycle evidence is incomplete/i);
+  assert.match(html, /href="\/docs\/getting-started"/i);
+  assert.match(html, /href="\/examples\/lifecycle-lab"/i);
+  assert.match(html, /aria-hidden="true"[^>]*>[\s\S]*response\.started/i);
+  assert.match(
+    html,
+    /href="https:\/\/github\.com\/bhaveshchow20\/generative-a11y"/i,
+  );
+  assert.match(html, /href="https:\/\/www\.npmjs\.com\/org\/generative-a11y"/i);
 });
 
 test("exposes canonical metadata and machine-readable project data", async () => {
@@ -91,7 +133,10 @@ test("serves crawler and AI discovery resources", async () => {
     sitemapXml,
     /<loc>https:\/\/generativea11y\.com\/api\/core<\/loc>/i,
   );
-  assert.doesNotMatch(sitemapXml, /localhost|openai-sites|\/docs\/api\/runtime/i);
+  assert.doesNotMatch(
+    sitemapXml,
+    /localhost|openai-sites|\/docs\/api\/runtime/i,
+  );
 
   const llms = await render("/llms.txt");
   assert.equal(llms.status, 200);
@@ -119,15 +164,16 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
     assert.equal(response.status, 200, pathname);
     const html = await response.text();
     assert.match(html, expected, pathname);
-    assert.match(html, />Docs<.*>API</is, pathname);
+    assert.match(html, /href="\/api"/i, pathname);
   }
 });
 
-test("homepage explains testing limits without roadmap language", async () => {
+test("homepage explains its evidence boundary without roadmap language", async () => {
   const response = await render();
   const html = await response.text();
 
-  assert.match(html, /Test with a real screen reader/i);
+  assert.match(html, /lifecycle evidence is incomplete/i);
+  assert.match(html, /without replacing its UI or stealing focus/i);
   assert.doesNotMatch(html, /Phase\s+\d|implemented|deferred|pre-release/i);
 });
 
@@ -145,7 +191,7 @@ test("server-renders documentation and project deep links", async () => {
     ["/docs/integrations/ag-ui", /bindAgent/i],
     ["/docs/devtools", /Accessibility Trace Explorer/i],
     ["/docs/testing/replay", /deterministic replay/i],
-    ["/project/overview", /Project overview/i],
+    ["/docs/project/overview", /Project overview/i],
   ];
 
   for (const [pathname, expected] of routes) {
@@ -155,14 +201,13 @@ test("server-renders documentation and project deep links", async () => {
   }
 });
 
-test("concept guides expose semantic breadcrumbs and related routes", async () => {
+test("concept guides expose native documentation navigation and related routes", async () => {
   const response = await render("/docs/screen-readers-and-streaming-ai");
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /<nav[^>]+aria-label="Breadcrumb"/i);
-  assert.match(html, /href="\/docs\/getting-started"[^>]*>Docs</i);
-  assert.match(html, /<nav[^>]+aria-label="Related documentation"/i);
+  assert.match(html, /Accessible streaming AI for screen readers/i);
+  assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/docs\/aria-live-and-generative-ai"/i);
   assert.match(html, /href="\/docs\/integrations\/ai-sdk"/i);
 });

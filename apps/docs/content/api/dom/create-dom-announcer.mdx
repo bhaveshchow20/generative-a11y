@@ -1,0 +1,355 @@
+---
+title: "createDOMAnnouncer"
+description:
+  "Create an owned browser announcer with progressive ariaNotify delivery,
+  stable live-region fallback, diagnostics, and cleanup."
+publicPath: "/api/dom/create-dom-announcer"
+section: "DOM"
+keywords:
+  [
+    "createDOMAnnouncer",
+    "DOMAnnouncerOptions",
+    "DOMDeliveryResult",
+    "live region",
+  ]
+related: []
+order: 9
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/dom/create-dom-announcer",
+  section: "DOM",
+  related: [],
+  order: 9,
+};
+
+export const searchableText = [
+  "createDOMAnnouncer",
+  "Create an owned browser announcer with progressive ariaNotify delivery, stable live-region fallback, diagnostics, and cleanup.",
+  "DOM",
+  "createDOMAnnouncer",
+  "DOMAnnouncerOptions",
+  "DOMDeliveryResult",
+  "live region",
+  "signature",
+  "Signature and import",
+  "auto mode attempts ariaNotify when available, then falls back to the selected polite or assertive live region.",
+  "typescript",
+  'import { createDOMAnnouncer } from "@generative-a11y/dom"; const announcer = createDOMAnnouncer({ mode: "auto", onDiagnostic(result) { console.log(result.status, result.method); }, }); const result = announcer.announce(intent); announcer.dispose();',
+  "Use progressive delivery",
+  "auto keeps the fallback available when ariaNotify is absent or throws.",
+  "Observe the attempt",
+  "DOMDeliveryResult reports the browser action without making a speech claim.",
+  "Release owned nodes",
+  "Dispose removes only live regions created by this announcer.",
+  "options",
+  "DOMAnnouncerOptions",
+  "Optional",
+  "{}",
+  "Selects document, delivery mode, supplied regions, and diagnostic observation.",
+  "return",
+  "DOMAnnouncer",
+  "Return",
+  "n/a",
+  "Owned announcer with announce, getRegions, and dispose methods.",
+  "options",
+  "DOMAnnouncerOptions",
+  "Supplying regions transfers neither node ownership nor removal responsibility to the library.",
+  "document",
+  "Document",
+  "Optional",
+  "global document",
+  "Document used to create live regions. Without a document, the announcer remains inert and reports unavailable.",
+  "mode",
+  "auto | aria-notify | live-region",
+  "Optional",
+  '"auto"',
+  "Selects progressive enhancement or a forced test path.",
+  "regions",
+  "DOMLiveRegions",
+  "Optional",
+  "owned regions",
+  "Supplies stable polite and assertive elements. Both must belong to the same document.",
+  "onDiagnostic",
+  "(result) => void",
+  "Optional",
+  "undefined",
+  "Observes each delivery attempt. Callback failures cannot alter delivery.",
+  "result",
+  "DOMDeliveryResult",
+  "announce returns one result synchronously.",
+  "Status",
+  "Method",
+  "Meaning",
+  "notified",
+  "aria-notify",
+  "ariaNotify returned without throwing",
+  "mutated",
+  "live-region",
+  "Selected stable region text changed",
+  "unavailable",
+  "none",
+  "No usable document or region exists",
+  "disposed",
+  "none",
+  "announce was called after disposal",
+  "channel",
+  "polite | assertive",
+  "Required",
+  "n/a",
+  "Intent channel selected for this attempt.",
+  "announcementId",
+  "string",
+  "Required",
+  "n/a",
+  "Stable ID copied from the AnnouncementIntent for diagnostic correlation.",
+  "sourceType",
+  "GenerativeA11yEvent['type']",
+  "Required",
+  "n/a",
+  "Event type that produced the announcement intent.",
+  "at",
+  "number",
+  "Required",
+  "n/a",
+  "Injected-clock timestamp copied from the announcement intent.",
+  "sourceEventId",
+  "string",
+  "Optional",
+  "undefined",
+  "Application event ID when the source event supplied one.",
+  "responseId / toolId / interactionId",
+  "string",
+  "Optional",
+  "undefined",
+  "Entity IDs copied from the announcement intent when present.",
+  "error",
+  "{ name, message }",
+  "Optional",
+  "undefined",
+  "Serializable ariaNotify failure information when fallback was needed.",
+  "A notified or mutated result confirms that the library updated the browser. Test with a real screen reader to confirm what it speaks.",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and import
+
+auto mode attempts ariaNotify when available, then falls back to the selected
+polite or assertive live region.
+
+{/* prettier-ignore */}
+```typescript
+import { createDOMAnnouncer } from "@generative-a11y/dom";
+
+const announcer = createDOMAnnouncer({
+  mode: "auto",
+  onDiagnostic(result) {
+    console.log(result.status, result.method);
+  },
+});
+
+const result = announcer.announce(intent);
+announcer.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Use progressive delivery
+
+auto keeps the fallback available when ariaNotify is absent or throws.
+
+</Step>
+
+<Step>
+
+### Observe the attempt
+
+DOMDeliveryResult reports the browser action without making a speech claim.
+
+</Step>
+
+<Step>
+
+### Release owned nodes
+
+Dispose removes only live regions created by this announcer.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    options: {
+      type: <>DOMAnnouncerOptions</>,
+      default: <>&#123;&#125;</>,
+      description: (
+        <>
+          Selects document, delivery mode, supplied regions, and diagnostic
+          observation.
+        </>
+      ),
+    },
+    return: {
+      type: <>DOMAnnouncer</>,
+      description: (
+        <>
+          Return. Owned announcer with announce, getRegions, and dispose
+          methods.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="options"></span>
+
+## DOMAnnouncerOptions
+
+Supplying regions transfers neither node ownership nor removal responsibility to
+the library.
+
+<TypeTable
+  type={{
+    document: {
+      type: <>Document</>,
+      default: <>global document</>,
+      description: (
+        <>
+          Document used to create live regions. Without a document, the
+          announcer remains inert and reports unavailable.
+        </>
+      ),
+    },
+    mode: {
+      type: <>auto &#124; aria&#45;notify &#124; live&#45;region</>,
+      default: <>"auto"</>,
+      description: <>Selects progressive enhancement or a forced test path.</>,
+    },
+    regions: {
+      type: <>DOMLiveRegions</>,
+      default: <>owned regions</>,
+      description: (
+        <>
+          Supplies stable polite and assertive elements. Both must belong to the
+          same document.
+        </>
+      ),
+    },
+    onDiagnostic: {
+      type: <>(result) &#61;&#62; void</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Observes each delivery attempt. Callback failures cannot alter
+          delivery.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="result"></span>
+
+## DOMDeliveryResult
+
+announce returns one result synchronously.
+
+<table aria-label="DOMDeliveryResult table">
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Method</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>notified</td>
+      <td>aria&#45;notify</td>
+      <td>ariaNotify returned without throwing</td>
+    </tr>
+    <tr>
+      <td>mutated</td>
+      <td>live&#45;region</td>
+      <td>Selected stable region text changed</td>
+    </tr>
+    <tr>
+      <td>unavailable</td>
+      <td>none</td>
+      <td>No usable document or region exists</td>
+    </tr>
+    <tr>
+      <td>disposed</td>
+      <td>none</td>
+      <td>announce was called after disposal</td>
+    </tr>
+  </tbody>
+</table>
+
+<TypeTable
+  type={{
+    channel: {
+      type: <>polite &#124; assertive</>,
+      required: true,
+      description: <>Intent channel selected for this attempt.</>,
+    },
+    announcementId: {
+      type: <>string</>,
+      required: true,
+      description: (
+        <>
+          Stable ID copied from the AnnouncementIntent for diagnostic
+          correlation.
+        </>
+      ),
+    },
+    sourceType: {
+      type: <>GenerativeA11yEvent&#91;'type'&#93;</>,
+      required: true,
+      description: <>Event type that produced the announcement intent.</>,
+    },
+    at: {
+      type: <>number</>,
+      required: true,
+      description: (
+        <>Injected&#45;clock timestamp copied from the announcement intent.</>
+      ),
+    },
+    sourceEventId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Application event ID when the source event supplied one.</>
+      ),
+    },
+    "responseId / toolId / interactionId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Entity IDs copied from the announcement intent when present.</>
+      ),
+    },
+    error: {
+      type: <>&#123; name, message &#125;</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Serializable ariaNotify failure information when fallback was needed.
+        </>
+      ),
+    },
+  }}
+/>
+
+<Callout title="Evidence and testing note">
+
+A notified or mutated result confirms that the library updated the browser. Test
+with a real screen reader to confirm what it speaks.
+
+</Callout>

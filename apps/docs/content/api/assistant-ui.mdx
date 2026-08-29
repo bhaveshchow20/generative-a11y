@@ -1,0 +1,103 @@
+---
+title: "@generative-a11y/assistant-ui"
+description:
+  "Turn public assistant-ui ThreadRuntime state into response, tool, approval,
+  and source events."
+publicPath: "/api/assistant-ui"
+section: "assistant-ui"
+keywords: ["assistant-ui", "ThreadRuntime", "THREAD_ADAPTER_METADATA"]
+related: []
+order: 18
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/assistant-ui",
+  section: "assistant-ui",
+  related: [],
+  order: 18,
+};
+
+export const searchableText = [
+  "@generative-a11y/assistant-ui",
+  "Turn public assistant-ui ThreadRuntime state into response, tool, approval, and source events.",
+  "assistant-ui",
+  "assistant-ui",
+  "ThreadRuntime",
+  "THREAD_ADAPTER_METADATA",
+  "exports",
+  "Public exports",
+  "assistant-ui integration uses only getState and subscribe from your ThreadRuntime.",
+  "Export",
+  "Kind",
+  "Purpose",
+  "bindThreadRuntime",
+  "Function",
+  "Create one adapter subscription",
+  "THREAD_ADAPTER_METADATA",
+  "Frozen constant",
+  "List supported events and methods",
+  "BindThreadRuntimeOptions",
+  "Interface",
+  "Options for the binding",
+  "ThreadBinding",
+  "Interface",
+  "Cleanup method for the binding",
+  "fidelity",
+  "Events the adapter can report",
+  "Public thread state can report interruptions but not general retries or connection changes. Tool failures and sources depend on content parts from assistant-ui.",
+  "Missing events are never guessed from rendered text, timing, or private runtime fields.",
+].join("\n");
+
+<span id="exports"></span>
+
+## Public exports
+
+assistant&#45;ui integration uses only getState and subscribe from your
+ThreadRuntime.
+
+<table aria-label="Public exports table">
+  <thead>
+    <tr>
+      <th>Export</th>
+      <th>Kind</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>bindThreadRuntime</td>
+      <td>Function</td>
+      <td>Create one adapter subscription</td>
+    </tr>
+    <tr>
+      <td>THREAD&#95;ADAPTER&#95;METADATA</td>
+      <td>Frozen constant</td>
+      <td>List supported events and methods</td>
+    </tr>
+    <tr>
+      <td>BindThreadRuntimeOptions</td>
+      <td>Interface</td>
+      <td>Options for the binding</td>
+    </tr>
+    <tr>
+      <td>ThreadBinding</td>
+      <td>Interface</td>
+      <td>Cleanup method for the binding</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="fidelity"></span>
+
+## Events the adapter can report
+
+Public thread state can report interruptions but not general retries or
+connection changes. Tool failures and sources depend on content parts from
+assistant&#45;ui.
+
+<Callout title="Evidence and testing note">
+
+Missing events are never guessed from rendered text, timing, or private runtime
+fields.
+
+</Callout>

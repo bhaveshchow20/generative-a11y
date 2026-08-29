@@ -1,4 +1,4 @@
-import { DOC_PAGES } from "../../lib/content";
+import { getSourceManifest } from "../../lib/source-manifest";
 import { absoluteUrl } from "../../lib/site";
 
 const staticRoutes = ["/", "/examples/lifecycle-lab"] as const;
@@ -11,8 +11,9 @@ function escapeXml(value: string): string {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 }
-export function GET() {
-  const paths = [...staticRoutes, ...DOC_PAGES.map(({ path }) => path)];
+export async function GET() {
+  const manifest = await getSourceManifest();
+  const paths = [...staticRoutes, ...manifest.map(({ publicPath }) => publicPath)];
   const canonicalPaths = [...new Set(paths)].sort((left, right) =>
     left.localeCompare(right),
   );

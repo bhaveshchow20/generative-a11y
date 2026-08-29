@@ -1,0 +1,318 @@
+---
+title: "createAnnouncementScheduler"
+description:
+  "Low-level scheduler for timing, duplicate removal, merging, cancellation,
+  queue priority, and repeatable tests."
+publicPath: "/api/core/scheduler"
+section: "Core"
+keywords:
+  [
+    "createAnnouncementScheduler",
+    "ScheduleAnnouncement",
+    "capacityPriority",
+    "cancelScope",
+  ]
+related: []
+order: 5
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/scheduler",
+  section: "Core",
+  related: [],
+  order: 5,
+};
+
+export const searchableText = [
+  "createAnnouncementScheduler",
+  "Low-level scheduler for timing, duplicate removal, merging, cancellation, queue priority, and repeatable tests.",
+  "Core",
+  "createAnnouncementScheduler",
+  "ScheduleAnnouncement",
+  "capacityPriority",
+  "cancelScope",
+  "signature",
+  "Signature and cleanup",
+  "Most apps should use createGenerativeA11y. Use the scheduler directly only if your app already decides which events should produce announcements.",
+  "typescript",
+  'const scheduler = createAnnouncementScheduler({ clock, minimumGapMs: 750, dedupeWindowMs: 4_000, maxQueueSize: 64, onAnnouncement: deliver, onDiagnostic: recordDiagnostic, }); scheduler.schedule({ channel: "polite", text: "The report is ready.", sourceType: "response.completed", scope: "response:report-1", capacityPriority: "content", });',
+  "Supply a clock",
+  "Scheduler timers use your Clock, so tests can control time.",
+  "Limit the queue",
+  "maxQueueSize limits pending output.",
+  "Set queue priority",
+  "Response text can replace a status update when the queue is full.",
+  "Group related work",
+  "Use one scope to cancel pending work when that response or tool ends.",
+  "options",
+  "AnnouncementSchedulerOptions",
+  "Required",
+  "n/a",
+  "Clock, pacing, capacity, announcement listener, and optional diagnostic callbacks.",
+  "return",
+  "AnnouncementScheduler",
+  "Return",
+  "n/a",
+  "Owned scheduler with schedule, cancelScope, pendingCount, and dispose methods.",
+  "candidate",
+  "ScheduleAnnouncement",
+  "A candidate describes prepared user-facing output. It must not contain raw backend data.",
+  "channel",
+  "polite | assertive",
+  "Required",
+  "n/a",
+  "Requested announcement urgency.",
+  "text",
+  "string",
+  "Required",
+  "n/a",
+  "Translated text with whitespace normalized by the runtime.",
+  "sourceType",
+  "GenerativeA11yEvent['type']",
+  "Required",
+  "n/a",
+  "Identifies the app event that produced this candidate.",
+  "delayMs",
+  "number",
+  "Optional",
+  "0",
+  "Additional eligibility delay measured by the injected clock.",
+  "scope",
+  "string",
+  "Optional",
+  "undefined",
+  "Key used to cancel pending work for one response, tool, or interaction.",
+  "coalesceKey",
+  "string",
+  "Optional",
+  "undefined",
+  "Replaces equivalent pending work with the newest candidate.",
+  "dedupeKey",
+  "string",
+  "Optional",
+  "normalized text",
+  "Suppresses equivalent recent delivery within the dedupe window.",
+  "capacityPriority",
+  "status | content",
+  "Optional",
+  '"content"',
+  "Allows content to displace status work when bounded capacity is exhausted.",
+  "methods",
+  "AnnouncementScheduler methods",
+  "Dispose cancels the owned timer and pending queue.",
+  "schedule(candidate)",
+  "string | undefined",
+  "Method",
+  "n/a",
+  "Returns a scheduled ID, or undefined when the candidate is merged, deduplicated, rejected, or the scheduler is disposed.",
+  "cancelScope(scope)",
+  "void",
+  "Method",
+  "n/a",
+  "Cancels every pending candidate with the matching scope.",
+  "pendingCount()",
+  "number",
+  "Method",
+  "n/a",
+  "Returns the current bounded queue length.",
+  "dispose()",
+  "void",
+  "Method",
+  "n/a",
+  "Cancels the timer and queue. Repeated calls are safe.",
+].join("\n");
+
+<span id="signature"></span>
+
+## Signature and cleanup
+
+Most apps should use createGenerativeA11y. Use the scheduler directly only if
+your app already decides which events should produce announcements.
+
+{/* prettier-ignore */}
+```typescript
+const scheduler = createAnnouncementScheduler({
+  clock,
+  minimumGapMs: 750,
+  dedupeWindowMs: 4_000,
+  maxQueueSize: 64,
+  onAnnouncement: deliver,
+  onDiagnostic: recordDiagnostic,
+});
+
+scheduler.schedule({
+  channel: "polite",
+  text: "The report is ready.",
+  sourceType: "response.completed",
+  scope: "response:report-1",
+  capacityPriority: "content",
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Supply a clock
+
+Scheduler timers use your Clock, so tests can control time.
+
+</Step>
+
+<Step>
+
+### Limit the queue
+
+maxQueueSize limits pending output.
+
+</Step>
+
+<Step>
+
+### Set queue priority
+
+Response text can replace a status update when the queue is full.
+
+</Step>
+
+<Step>
+
+### Group related work
+
+Use one scope to cancel pending work when that response or tool ends.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    options: {
+      type: <>AnnouncementSchedulerOptions</>,
+      required: true,
+      description: (
+        <>
+          Clock, pacing, capacity, announcement listener, and optional
+          diagnostic callbacks.
+        </>
+      ),
+    },
+    return: {
+      type: <>AnnouncementScheduler</>,
+      description: (
+        <>
+          Return. Owned scheduler with schedule, cancelScope, pendingCount, and
+          dispose methods.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="candidate"></span>
+
+## ScheduleAnnouncement
+
+A candidate describes prepared user&#45;facing output. It must not contain raw
+backend data.
+
+<TypeTable
+  type={{
+    channel: {
+      type: <>polite &#124; assertive</>,
+      required: true,
+      description: <>Requested announcement urgency.</>,
+    },
+    text: {
+      type: <>string</>,
+      required: true,
+      description: (
+        <>Translated text with whitespace normalized by the runtime.</>
+      ),
+    },
+    sourceType: {
+      type: <>GenerativeA11yEvent&#91;'type'&#93;</>,
+      required: true,
+      description: <>Identifies the app event that produced this candidate.</>,
+    },
+    delayMs: {
+      type: <>number</>,
+      default: <>0</>,
+      description: (
+        <>Additional eligibility delay measured by the injected clock.</>
+      ),
+    },
+    scope: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Key used to cancel pending work for one response, tool, or
+          interaction.
+        </>
+      ),
+    },
+    coalesceKey: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Replaces equivalent pending work with the newest candidate.</>
+      ),
+    },
+    dedupeKey: {
+      type: <>string</>,
+      default: <>normalized text</>,
+      description: (
+        <>Suppresses equivalent recent delivery within the dedupe window.</>
+      ),
+    },
+    capacityPriority: {
+      type: <>status &#124; content</>,
+      default: <>"content"</>,
+      description: (
+        <>
+          Allows content to displace status work when bounded capacity is
+          exhausted.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="methods"></span>
+
+## AnnouncementScheduler methods
+
+Dispose cancels the owned timer and pending queue.
+
+<TypeTable
+  type={{
+    "schedule(candidate)": {
+      type: <>string &#124; undefined</>,
+      description: (
+        <>
+          Method. Returns a scheduled ID, or undefined when the candidate is
+          merged, deduplicated, rejected, or the scheduler is disposed.
+        </>
+      ),
+    },
+    "cancelScope(scope)": {
+      type: <>void</>,
+      description: (
+        <>Method. Cancels every pending candidate with the matching scope.</>
+      ),
+    },
+    "pendingCount()": {
+      type: <>number</>,
+      description: <>Method. Returns the current bounded queue length.</>,
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>Method. Cancels the timer and queue. Repeated calls are safe.</>
+      ),
+    },
+  }}
+/>

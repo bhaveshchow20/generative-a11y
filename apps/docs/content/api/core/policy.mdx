@@ -1,0 +1,242 @@
+---
+title: "Policy and presets"
+description:
+  "Settings for streaming text, tool updates, response status, announcement
+  channels, timing, and queue limits."
+publicPath: "/api/core/policy"
+section: "Core"
+keywords: ["presets", "resolvePolicy", "PolicyOverrides", "minimumGapMs"]
+related: []
+order: 4
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/policy",
+  section: "Core",
+  related: [],
+  order: 4,
+};
+
+export const searchableText = [
+  "Policy and presets",
+  "Settings for streaming text, tool updates, response status, announcement channels, timing, and queue limits.",
+  "Core",
+  "presets",
+  "resolvePolicy",
+  "PolicyOverrides",
+  "minimumGapMs",
+  "presets",
+  "PresetName",
+  "Each preset defines a complete set of default values.",
+  "Preset",
+  "Streaming",
+  "Status updates",
+  "minimal",
+  "Restrained",
+  "Final states",
+  "balanced",
+  "Sentence-paced",
+  "Useful status",
+  "verbose",
+  "More frequent",
+  "Progress enabled",
+  "completion-only",
+  "Final text only",
+  "Minimal",
+  "override",
+  "PolicyOverrides",
+  "Nested overrides merge with the selected preset. Unspecified values remain controlled by that preset.",
+  "typescript",
+  'const runtime = createGenerativeA11y({ preset: "balanced", policy: { text: { minimumCharacters: 48, maximumDelayMs: 1_800 }, tools: { announceProgress: false }, minimumGapMs: 900, maxQueueSize: 64, }, });',
+  "Keep a tested baseline",
+  "balanced continues to supply every property not shown.",
+  "Tune useful differences",
+  "Text becomes less fragmented and tool progress remains quiet.",
+  "Keep work bounded",
+  "maxQueueSize prevents an inactive consumer from creating unlimited pending output.",
+  "text.strategy",
+  "TextStrategy",
+  "Optional",
+  "preset value",
+  "Selects silent, sentence, paragraph, or completion segmentation.",
+  "text.minimumCharacters",
+  "number",
+  "Optional",
+  "preset value",
+  "Avoids tiny fragments except when a terminal or maximum-delay flush applies.",
+  "text.maximumDelayMs",
+  "number",
+  "Optional",
+  "preset value",
+  "Bounds how long useful buffered text waits for a natural boundary.",
+  "minimumGapMs",
+  "number",
+  "Optional",
+  "preset value",
+  "Paces adjacent intents to reduce interruption and overlap.",
+  "dedupeWindowMs",
+  "number",
+  "Optional",
+  "preset value",
+  "Suppresses equivalent recent output.",
+  "maxQueueSize",
+  "number",
+  "Optional",
+  "preset value",
+  "Bounds scheduler candidates and favors content over status during eviction.",
+  "maxActiveEntities",
+  "number",
+  "Optional",
+  "preset value",
+  "Bounds response and tool identity state and fails closed after capacity.",
+].join("\n");
+
+<span id="presets"></span>
+
+## PresetName
+
+Each preset defines a complete set of default values.
+
+<table aria-label="PresetName table">
+  <thead>
+    <tr>
+      <th>Preset</th>
+      <th>Streaming</th>
+      <th>Status updates</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>minimal</td>
+      <td>Restrained</td>
+      <td>Final states</td>
+    </tr>
+    <tr>
+      <td>balanced</td>
+      <td>Sentence&#45;paced</td>
+      <td>Useful status</td>
+    </tr>
+    <tr>
+      <td>verbose</td>
+      <td>More frequent</td>
+      <td>Progress enabled</td>
+    </tr>
+    <tr>
+      <td>completion&#45;only</td>
+      <td>Final text only</td>
+      <td>Minimal</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="override"></span>
+
+## PolicyOverrides
+
+Nested overrides merge with the selected preset. Unspecified values remain
+controlled by that preset.
+
+{/* prettier-ignore */}
+```typescript
+const runtime = createGenerativeA11y({
+  preset: "balanced",
+  policy: {
+    text: { minimumCharacters: 48, maximumDelayMs: 1_800 },
+    tools: { announceProgress: false },
+    minimumGapMs: 900,
+    maxQueueSize: 64,
+  },
+});
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Keep a tested baseline
+
+balanced continues to supply every property not shown.
+
+</Step>
+
+<Step>
+
+### Tune useful differences
+
+Text becomes less fragmented and tool progress remains quiet.
+
+</Step>
+
+<Step>
+
+### Keep work bounded
+
+maxQueueSize prevents an inactive consumer from creating unlimited pending
+output.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    "text.strategy": {
+      type: <>TextStrategy</>,
+      default: <>preset value</>,
+      description: (
+        <>Selects silent, sentence, paragraph, or completion segmentation.</>
+      ),
+    },
+    "text.minimumCharacters": {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>
+          Avoids tiny fragments except when a terminal or maximum&#45;delay
+          flush applies.
+        </>
+      ),
+    },
+    "text.maximumDelayMs": {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>Bounds how long useful buffered text waits for a natural boundary.</>
+      ),
+    },
+    minimumGapMs: {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>Paces adjacent intents to reduce interruption and overlap.</>
+      ),
+    },
+    dedupeWindowMs: {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: <>Suppresses equivalent recent output.</>,
+    },
+    maxQueueSize: {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>
+          Bounds scheduler candidates and favors content over status during
+          eviction.
+        </>
+      ),
+    },
+    maxActiveEntities: {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>
+          Bounds response and tool identity state and fails closed after
+          capacity.
+        </>
+      ),
+    },
+  }}
+/>

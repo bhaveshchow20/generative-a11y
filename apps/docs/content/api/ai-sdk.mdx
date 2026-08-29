@@ -1,0 +1,96 @@
+---
+title: "@generative-a11y/ai-sdk"
+description:
+  "Turn documented AI SDK useChat state and callbacks into generative-a11y
+  events."
+publicPath: "/api/ai-sdk"
+section: "AI SDK"
+keywords: ["AI SDK", "createObserver", "composeChatCallbacks", "useChat"]
+related: []
+order: 16
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/ai-sdk",
+  section: "AI SDK",
+  related: [],
+  order: 16,
+};
+
+export const searchableText = [
+  "@generative-a11y/ai-sdk",
+  "Turn documented AI SDK useChat state and callbacks into generative-a11y events.",
+  "AI SDK",
+  "AI SDK",
+  "createObserver",
+  "composeChatCallbacks",
+  "useChat",
+  "surface",
+  "Public APIs used",
+  "AI SDK adapters read documented messages, status, and error state. onFinish and onError report final response state.",
+  "Surface",
+  "Exports",
+  "Use",
+  "Framework-neutral",
+  "createObserver, composeChatCallbacks",
+  "Custom subscription or state bridge",
+  "React",
+  "useChatAccessibility, useObserveChatAccessibility",
+  "AI SDK useChat components",
+  "Metadata",
+  "CHAT_ADAPTER_METADATA",
+  "Supported events and framework APIs",
+  "ownership",
+  "Runtime and app ownership",
+  "Your app owns the core runtime. Adapters report events without running chat actions or reading rendered messages and private AI SDK fields.",
+  "scopeId separates response and message IDs across chat instances.",
+  "Tool arguments do not mean that execution started.",
+  "Your onFinish and onError callbacks remain intact.",
+  "Disposing the observer clears only records created by the adapter.",
+].join("\n");
+
+<span id="surface"></span>
+
+## Public APIs used
+
+AI SDK adapters read documented messages, status, and error state. onFinish and
+onError report final response state.
+
+<table aria-label="Public APIs used table">
+  <thead>
+    <tr>
+      <th>Surface</th>
+      <th>Exports</th>
+      <th>Use</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Framework&#45;neutral</td>
+      <td>createObserver, composeChatCallbacks</td>
+      <td>Custom subscription or state bridge</td>
+    </tr>
+    <tr>
+      <td>React</td>
+      <td>useChatAccessibility, useObserveChatAccessibility</td>
+      <td>AI SDK useChat components</td>
+    </tr>
+    <tr>
+      <td>Metadata</td>
+      <td>CHAT&#95;ADAPTER&#95;METADATA</td>
+      <td>Supported events and framework APIs</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="ownership"></span>
+
+## Runtime and app ownership
+
+Your app owns the core runtime. Adapters report events without running chat
+actions or reading rendered messages and private AI SDK fields.
+
+- scopeId separates response and message IDs across chat instances.
+- Tool arguments do not mean that execution started.
+- Your onFinish and onError callbacks remain intact.
+- Disposing the observer clears only records created by the adapter.

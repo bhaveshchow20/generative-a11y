@@ -1,0 +1,265 @@
+---
+title: "assistant-ui accessibility"
+description:
+  "Add paced screen-reader updates to an assistant-ui thread without replaying
+  messages already present in its history."
+publicPath: "/docs/integrations/assistant-ui"
+section: "Integrations"
+keywords:
+  ["assistant-ui", "bindThreadRuntime", "ThreadRuntime", "approval", "source"]
+related:
+  [
+    "/docs/accessible-ai-agents",
+    "/docs/getting-started",
+    "/api/assistant-ui/bind-thread-runtime",
+  ]
+order: 13
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/integrations/assistant-ui",
+  section: "Integrations",
+  related: [
+    "/docs/accessible-ai-agents",
+    "/docs/getting-started",
+    "/api/assistant-ui/bind-thread-runtime",
+  ],
+  order: 13,
+};
+
+export const searchableText = [
+  "assistant-ui accessibility",
+  "Add paced screen-reader updates to an assistant-ui thread without replaying messages already present in its history.",
+  "Integrations",
+  "assistant-ui",
+  "bindThreadRuntime",
+  "ThreadRuntime",
+  "approval",
+  "source",
+  "/docs/accessible-ai-agents",
+  "/docs/getting-started",
+  "/api/assistant-ui/bind-thread-runtime",
+  "installation",
+  "Install the assistant-ui adapter",
+  "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/assistant-ui beside assistant-ui. The adapter subscribes to a thread runtime you already own and leaves rendering, actions, and focus behavior with the host application.",
+  "bind",
+  "Connect an existing thread runtime",
+  "bindThreadRuntime reads only getState and subscribe. It cannot run thread actions, render an interface, or dispose your core runtime.",
+  "typescript",
+  'import { bindThreadRuntime } from "@generative-a11y/assistant-ui"; const binding = bindThreadRuntime({ runtime, scopeId: "support-thread", thread, }); // Removes only the subscription it created. binding.dispose();',
+  "Pass the public thread",
+  "Your adapter needs only getState and subscribe, so it cannot invoke composer, message, or run actions.",
+  "Namespace framework IDs",
+  "scopeId prevents identical message and tool IDs from colliding across mounted threads.",
+  "Record existing history",
+  "bindThreadRuntime records existing messages at startup and skips old content after hydration.",
+  "Dispose the subscription",
+  "Returned cleanup stops observation while leaving assistant-ui and core running.",
+  "runtime",
+  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Required",
+  "none",
+  "The runtime that receives events from this adapter. Your app owns it.",
+  "scopeId",
+  "string",
+  "Required",
+  "none",
+  "A stable namespace for assistant messages, tools, approvals, and sources in this thread.",
+  "thread",
+  "Pick<ThreadRuntime, 'getState' | 'subscribe'>",
+  "Required",
+  "none",
+  "The documented assistant-ui thread interface. The adapter does not read actions or private state.",
+  "maxTrackedEntities",
+  "number",
+  "Optional",
+  "1000",
+  "Bounds tracked response, tool, approval, source, and text-part identities.",
+  "dispose()",
+  "void",
+  "Return",
+  "n/a",
+  "Stops the subscription and clears adapter records. It does not dispose the thread or runtime supplied by your app.",
+  "lifecycle-mapping",
+  "Lifecycle mapping",
+  "Documented thread state supplies response text, final states, tool progress, approvals, and sources. The binding records existing history before it starts dispatching, which prevents old messages from becoming new announcements after hydration.",
+  "screen-reader-behavior",
+  "Expected screen-reader behavior",
+  "New response text becomes paced announcement intents. Tool and approval changes receive priority based on the shared policy, while routine status changes leave focus in place. Browser transcripts show what the DOM package wrote; confirm spoken output with the screen readers and browsers your application supports.",
+  "limits",
+  "What public state cannot prove",
+  "Your adapter can report streaming, known final states, tools, approvals, and sources. assistant-ui does not provide general retry or connection events, so generative-a11y does not guess.",
+  "troubleshooting",
+  "Troubleshooting",
+  "Repeated historical messages can indicate that a new binding received a different scopeId or started before thread hydration settled. Missing updates can indicate that the supplied thread does not expose the expected public state. Check one active subscription, stable identity, and the documented assistant-ui version before changing announcement policy.",
+].join("\n");
+
+<span id="installation"></span>
+
+## Install the assistant&#45;ui adapter
+
+Install @generative&#45;a11y/core, @generative&#45;a11y/dom, and
+@generative&#45;a11y/assistant&#45;ui beside assistant&#45;ui. The adapter
+subscribes to a thread runtime you already own and leaves rendering, actions,
+and focus behavior with the host application.
+
+<span id="bind"></span>
+
+## Connect an existing thread runtime
+
+bindThreadRuntime reads only getState and subscribe. It cannot run thread
+actions, render an interface, or dispose your core runtime.
+
+{/* prettier-ignore */}
+```typescript
+import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+
+const binding = bindThreadRuntime({
+  runtime,
+  scopeId: "support-thread",
+  thread,
+});
+
+// Removes only the subscription it created.
+binding.dispose();
+```
+
+### Walkthrough
+
+<Steps>
+
+<Step>
+
+### Pass the public thread
+
+Your adapter needs only getState and subscribe, so it cannot invoke composer,
+message, or run actions.
+
+</Step>
+
+<Step>
+
+### Namespace framework IDs
+
+scopeId prevents identical message and tool IDs from colliding across mounted
+threads.
+
+</Step>
+
+<Step>
+
+### Record existing history
+
+bindThreadRuntime records existing messages at startup and skips old content
+after hydration.
+
+</Step>
+
+<Step>
+
+### Dispose the subscription
+
+Returned cleanup stops observation while leaving assistant&#45;ui and core
+running.
+
+</Step>
+
+</Steps>
+
+<TypeTable
+  type={{
+    runtime: {
+      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>
+          The runtime that receives events from this adapter. Your app owns it.
+        </>
+      ),
+    },
+    scopeId: {
+      type: <>string</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>
+          A stable namespace for assistant messages, tools, approvals, and
+          sources in this thread.
+        </>
+      ),
+    },
+    thread: {
+      type: <>Pick&lt;ThreadRuntime, 'getState' &#124; 'subscribe'&#62;</>,
+      required: true,
+      default: <>none</>,
+      description: (
+        <>
+          The documented assistant&#45;ui thread interface. The adapter does not
+          read actions or private state.
+        </>
+      ),
+    },
+    maxTrackedEntities: {
+      type: <>number</>,
+      default: <>1000</>,
+      description: (
+        <>
+          Bounds tracked response, tool, approval, source, and text&#45;part
+          identities.
+        </>
+      ),
+    },
+    "dispose()": {
+      type: <>void</>,
+      description: (
+        <>
+          Return. Stops the subscription and clears adapter records. It does not
+          dispose the thread or runtime supplied by your app.
+        </>
+      ),
+    },
+  }}
+/>
+
+<span id="lifecycle&#45;mapping"></span>
+
+## Lifecycle mapping
+
+Documented thread state supplies response text, final states, tool progress,
+approvals, and sources. The binding records existing history before it starts
+dispatching, which prevents old messages from becoming new announcements after
+hydration.
+
+<span id="screen&#45;reader&#45;behavior"></span>
+
+## Expected screen&#45;reader behavior
+
+New response text becomes paced announcement intents. Tool and approval changes
+receive priority based on the shared policy, while routine status changes leave
+focus in place. Browser transcripts show what the DOM package wrote; confirm
+spoken output with the screen readers and browsers your application supports.
+
+<span id="limits"></span>
+
+## What public state cannot prove
+
+Your adapter can report streaming, known final states, tools, approvals, and
+sources. assistant&#45;ui does not provide general retry or connection events,
+so generative&#45;a11y does not guess.
+
+<span id="troubleshooting"></span>
+
+## Troubleshooting
+
+Repeated historical messages can indicate that a new binding received a
+different scopeId or started before thread hydration settled. Missing updates
+can indicate that the supplied thread does not expose the expected public state.
+Check one active subscription, stable identity, and the documented
+assistant&#45;ui version before changing announcement policy.
+
+## Related
+
+- [/docs/accessible-ai-agents](/docs/accessible-ai-agents)
+- [/docs/getting-started](/docs/getting-started)
+- [/api/assistant-ui/bind-thread-runtime](/api/assistant-ui/bind-thread-runtime)

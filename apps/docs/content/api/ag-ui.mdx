@@ -1,0 +1,101 @@
+---
+title: "@generative-a11y/ag-ui"
+description:
+  "Turn documented AG-UI AgentSubscriber callbacks into response, tool, and
+  interaction events."
+publicPath: "/api/ag-ui"
+section: "AG-UI"
+keywords: ["AG-UI", "AgentSubscriber", "AGENT_ADAPTER_METADATA"]
+related: []
+order: 20
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/ag-ui",
+  section: "AG-UI",
+  related: [],
+  order: 20,
+};
+
+export const searchableText = [
+  "@generative-a11y/ag-ui",
+  "Turn documented AG-UI AgentSubscriber callbacks into response, tool, and interaction events.",
+  "AG-UI",
+  "AG-UI",
+  "AgentSubscriber",
+  "AGENT_ADAPTER_METADATA",
+  "exports",
+  "Public exports",
+  "AG-UI integration subscribes through agent.subscribe(AgentSubscriber).",
+  "Export",
+  "Kind",
+  "Purpose",
+  "bindAgent",
+  "Function",
+  "Create one protocol subscription",
+  "AGENT_ADAPTER_METADATA",
+  "Frozen constant",
+  "List supported events and limits",
+  "BindAgentOptions",
+  "Interface",
+  "Options for the binding",
+  "AgentBinding",
+  "Interface",
+  "Cleanup method for the binding",
+  "fidelity",
+  "Events the adapter can report",
+  "Protocol events report interruptions. AG-UI does not provide general retry or connection events. Interrupt callbacks report requests for user input.",
+  "AG-UI integration never uses private observables or guesses events missing from the protocol.",
+].join("\n");
+
+<span id="exports"></span>
+
+## Public exports
+
+AG&#45;UI integration subscribes through agent.subscribe(AgentSubscriber).
+
+<table aria-label="Public exports table">
+  <thead>
+    <tr>
+      <th>Export</th>
+      <th>Kind</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>bindAgent</td>
+      <td>Function</td>
+      <td>Create one protocol subscription</td>
+    </tr>
+    <tr>
+      <td>AGENT&#95;ADAPTER&#95;METADATA</td>
+      <td>Frozen constant</td>
+      <td>List supported events and limits</td>
+    </tr>
+    <tr>
+      <td>BindAgentOptions</td>
+      <td>Interface</td>
+      <td>Options for the binding</td>
+    </tr>
+    <tr>
+      <td>AgentBinding</td>
+      <td>Interface</td>
+      <td>Cleanup method for the binding</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="fidelity"></span>
+
+## Events the adapter can report
+
+Protocol events report interruptions. AG&#45;UI does not provide general retry
+or connection events. Interrupt callbacks report requests for user input.
+
+<Callout title="Evidence and testing note">
+
+AG&#45;UI integration never uses private observables or guesses events missing
+from the protocol.
+
+</Callout>

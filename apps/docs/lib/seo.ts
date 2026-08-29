@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import type { DocPage } from "./content";
 import {
   absoluteUrl,
   REPOSITORY_URL,
@@ -16,6 +15,13 @@ interface PageMetadataInput {
   readonly description: string;
   readonly keywords?: readonly string[];
   readonly absoluteTitle?: boolean;
+}
+
+interface DocumentationPageInput {
+  readonly path: string;
+  readonly title: string;
+  readonly description: string;
+  readonly keywords?: readonly string[];
 }
 
 /** Builds canonical search and social metadata for one public route. */
@@ -59,7 +65,7 @@ export function createPageMetadata({
 }
 
 /** Maps one documentation registry entry to its route metadata. */
-export function createDocMetadata(page: DocPage): Metadata {
+export function createDocMetadata(page: DocumentationPageInput): Metadata {
   return createPageMetadata({
     path: page.path,
     title: page.title,
@@ -105,7 +111,7 @@ export function createHomeJsonLd(): Record<string, unknown> {
 }
 
 /** Builds article and breadcrumb JSON-LD that matches the visible page hierarchy. */
-export function createArticleJsonLd(page: DocPage): Record<string, unknown> {
+export function createArticleJsonLd(page: DocumentationPageInput): Record<string, unknown> {
   const pageUrl = absoluteUrl(page.path);
   const sectionPath = page.path.startsWith("/api")
     ? "/api"
