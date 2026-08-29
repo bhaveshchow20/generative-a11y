@@ -359,26 +359,54 @@
 .hero-install { margin-top: 17px; }
 .home-site .hero-install .install-command { width: min(100%, 560px); margin: 0; }
 .home-site .hero-install .install-command-shell {
+  display: flex;
   min-height: 42px;
+  align-items: stretch;
+  overflow: hidden;
   border: 1px solid var(--terminal-line);
   border-radius: 8px;
   background: var(--terminal-bg-deep);
   color: var(--terminal-ink);
   box-shadow: none;
   font-family: var(--font-home-mono), monospace;
+  font-size: .7rem;
 }
 .home-site .hero-install :where(.install-prompt, .install-prefix) {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
   color: var(--terminal-ink);
+  white-space: nowrap;
 }
+.home-site .hero-install .install-prompt { padding-left: 12px; }
+.home-site .hero-install .install-package-select { display: flex; flex: 0 0 auto; }
 .home-site .hero-install :where(.install-package-trigger, .install-copy) {
+  display: inline-flex;
   min-height: 44px;
   min-width: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 0;
+  border-left: 1px solid var(--home-cue-border);
   color: var(--terminal-ink);
   font-family: var(--font-home-mono), monospace;
+  font-size: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+.home-site .hero-install .install-copy { margin-left: auto; }
+.home-site .hero-install .install-copy svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
 }
 .home-site .hero-install .install-package-trigger {
   cursor: pointer;
-  border-color: var(--home-cue-border);
   background: var(--terminal-active);
 }
 .home-site .hero-install :where(.install-package-trigger, .install-copy):hover,

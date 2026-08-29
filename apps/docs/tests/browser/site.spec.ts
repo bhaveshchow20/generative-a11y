@@ -280,6 +280,48 @@ test("hero install control selects a package and copies its npm command", async 
   ).toEqual(["npm install @generative-a11y/dom"]);
 });
 
+test("hero install control keeps its command and actions aligned", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const installer = page.getByRole("group", { name: "Install a package" });
+  const shell = installer.locator(".install-command-shell");
+  const prefix = installer.locator(".install-prefix");
+  const packageSelect = installer.getByRole("combobox", { name: "Package" });
+  const copy = installer.getByRole("button", { name: "Copy install command" });
+  const copyIcon = copy.locator("svg");
+  const copyLabel = copy.locator("span");
+
+  const [shellBox, prefixBox, selectBox, copyBox, iconBox, labelBox] =
+    await Promise.all(
+      [shell, prefix, packageSelect, copy, copyIcon, copyLabel].map((locator) =>
+        locator.boundingBox(),
+      ),
+    );
+
+  expect([shellBox, prefixBox, selectBox, copyBox, iconBox, labelBox].every(Boolean)).toBe(
+    true,
+  );
+  expect((prefixBox?.x ?? 0) + (prefixBox?.width ?? 0)).toBeLessThanOrEqual(
+    (selectBox?.x ?? 0) + 1,
+  );
+  expect((selectBox?.x ?? 0) + (selectBox?.width ?? 0)).toBeLessThanOrEqual(
+    (copyBox?.x ?? 0) + 1,
+  );
+  expect((copyBox?.x ?? 0) + (copyBox?.width ?? 0)).toBeLessThanOrEqual(
+    (shellBox?.x ?? 0) + (shellBox?.width ?? 0) + 1,
+  );
+  expect(
+    Math.abs(
+      (iconBox?.y ?? 0) + (iconBox?.height ?? 0) / 2 -
+        ((labelBox?.y ?? 0) + (labelBox?.height ?? 0) / 2),
+    ),
+  ).toBeLessThan(2);
+  await expect(copyIcon).toHaveCSS("fill", "none");
+  await expect(copyIcon).not.toHaveCSS("stroke", "none");
+});
+
 test("homepage dropdowns open and update their content", async ({ page }) => {
   await page.goto("/");
 
