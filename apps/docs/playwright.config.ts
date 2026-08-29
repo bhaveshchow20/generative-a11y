@@ -17,6 +17,8 @@ const serverUrl = `http://localhost:${port}`;
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: false,
+  // Run the three isolated browser projects concurrently, including on small CI runners.
+  workers: 3,
   retries: 0,
   reporter: "line",
   use: {
