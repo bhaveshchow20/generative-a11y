@@ -17,8 +17,8 @@ const serverUrl = `http://localhost:${port}`;
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: false,
-  // Run the three isolated browser projects concurrently, including on small CI runners.
-  workers: 3,
+  // Serialize on resource-constrained CI runners; local projects remain parallel.
+  workers: process.env.CI ? 1 : undefined,
   retries: 0,
   reporter: "line",
   use: {
