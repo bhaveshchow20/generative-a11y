@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { runtimeScenarios } from "./runtime-scenarios";
@@ -14,8 +14,22 @@ const playbackLabels: Record<PlaybackState, string> = {
   complete: "Complete",
 };
 
+function subscribeToReducedMotion(onStoreChange: () => void) {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", onStoreChange);
+  return () => query.removeEventListener("change", onStoreChange);
+}
+
+function getReducedMotionPreference() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function RuntimeLaboratory() {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionPreference,
+    () => false,
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -42,7 +56,15 @@ export function RuntimeLaboratory() {
     cancelTimer();
     if (playback !== "playing") return;
 
-    if (reduceMotion || visibleCount >= scenario.events.length) return;
+    if (reduceMotion) {
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        setVisibleCount(scenario.events.length);
+        setPlayback("complete");
+      }, 0);
+      return cancelTimer;
+    }
+    if (visibleCount >= scenario.events.length) return;
 
     timerRef.current = setTimeout(() => {
       timerRef.current = null;

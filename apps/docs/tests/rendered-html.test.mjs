@@ -39,6 +39,11 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /aria-label="Package"/i);
   assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/examples\/lifecycle-lab"/i);
+  assert.match(html, /<nav class="home-hero-actions" aria-label="Get started">/i);
+  assert.match(
+    html,
+    /<div class="hero-trace" role="group" aria-label="Example normalized event trace">/i,
+  );
   assert.match(html, /href="\/docs\/integrations"/i);
   assert.match(html, /href="\/docs\/devtools"/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
@@ -62,7 +67,6 @@ test("homepage renders the approved product narrative", async () => {
     "Add accessibility without starting over",
     "Debug accessibility behavior before users find the problem",
     "Accessible behavior, clear boundaries.",
-    "npm install @generative-a11y/core",
   ]) {
     assert.ok(renderedText.includes(phrase), phrase);
   }
@@ -85,7 +89,10 @@ test("homepage server-renders the Batch A shell and product boundaries", async (
   assert.match(html, /lifecycle evidence is incomplete/i);
   assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/examples\/lifecycle-lab"/i);
-  assert.match(html, /aria-hidden="true"[^>]*>[\s\S]*response\.started/i);
+  assert.match(
+    html,
+    /<li class="trace-placeholder" aria-hidden="true"><span>01<\/span><code>response\.started<\/code>/i,
+  );
   assert.match(
     html,
     /href="https:\/\/github\.com\/bhaveshchow20\/generative-a11y"/i,

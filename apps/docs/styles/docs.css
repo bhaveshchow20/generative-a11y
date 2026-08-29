@@ -15,6 +15,7 @@
   --color-fd-accent: #e6f0eb;
   --color-fd-accent-foreground: #123b31;
   --color-fd-ring: #0b8c77;
+
   color: var(--color-fd-foreground);
   font-family: var(--font-home-sans), var(--font-body), sans-serif;
 }

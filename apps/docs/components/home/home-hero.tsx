@@ -20,14 +20,14 @@ export function HomeHero() {
         <p className="home-hero-lede">
           Framework-independent accessibility for the AI interface you already have.
         </p>
-        <div className="home-hero-actions" aria-label="Get started">
+        <nav className="home-hero-actions" aria-label="Get started">
           <Link className="home-button home-button-primary" href="/docs/getting-started">
             Getting started <span aria-hidden="true">↗</span>
           </Link>
           <Link className="home-button home-button-secondary" href="/examples/lifecycle-lab">
             Open lifecycle lab
           </Link>
-        </div>
+        </nav>
       </div>
 
       <div className="home-hero-product">
@@ -47,7 +47,11 @@ export function HomeHero() {
             <p className="hero-doc-label">RUNTIME / QUICK START</p>
             <h2>Start with the package that fits your stack.</h2>
             <div className="hero-install"><InstallCommand /></div>
-            <div className="hero-trace" aria-label="Example normalized event trace">
+            <div
+              className="hero-trace"
+              role="group"
+              aria-label="Example normalized event trace"
+            >
               <div><span>event trace</span><span className="hero-live"><i /> complete</span></div>
               {trace.map(([index, event, result]) => (
                 <p key={event}><b>{index}</b><code>{event}</code><span>{result}</span></p>

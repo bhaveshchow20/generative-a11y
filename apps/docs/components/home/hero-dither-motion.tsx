@@ -46,6 +46,7 @@ export function HeroDitherMotion() {
     let columns = 0;
     let rows = 0;
     let frame = 0;
+    let resizeFrame = 0;
     let previousPointer: { x: number; y: number; time: number } | null = null;
     let emerald = "#087f68";
     let burntOrange = "#cc4822";
@@ -188,8 +189,16 @@ export function HeroDitherMotion() {
       requestDraw();
     };
 
+    const scheduleResize = () => {
+      if (resizeFrame) return;
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0;
+        resize();
+      });
+    };
+
     resize();
-    const resizeObserver = new ResizeObserver(resize);
+    const resizeObserver = new ResizeObserver(scheduleResize);
     resizeObserver.observe(hero);
     const themeObserver = new MutationObserver(() => {
       readPalette();
@@ -201,17 +210,32 @@ export function HeroDitherMotion() {
       attributeFilter: ["class"],
     });
 
-    if (canTrackPointer.matches && !reducedMotion.matches) {
-      hero.addEventListener("pointermove", handlePointerMove, { passive: true });
-      hero.addEventListener("pointerleave", handlePointerLeave);
-    }
+    const syncPointerTracking = () => {
+      hero.removeEventListener("pointermove", handlePointerMove);
+      hero.removeEventListener("pointerleave", handlePointerLeave);
+      if (canTrackPointer.matches && !reducedMotion.matches) {
+        hero.addEventListener("pointermove", handlePointerMove, { passive: true });
+        hero.addEventListener("pointerleave", handlePointerLeave);
+        return;
+      }
+      previousPointer = null;
+      displaced.clear();
+      requestDraw();
+    };
+
+    syncPointerTracking();
+    reducedMotion.addEventListener("change", syncPointerTracking);
+    canTrackPointer.addEventListener("change", syncPointerTracking);
 
     return () => {
       resizeObserver.disconnect();
       themeObserver.disconnect();
+      reducedMotion.removeEventListener("change", syncPointerTracking);
+      canTrackPointer.removeEventListener("change", syncPointerTracking);
       hero.removeEventListener("pointermove", handlePointerMove);
       hero.removeEventListener("pointerleave", handlePointerLeave);
       if (frame) window.cancelAnimationFrame(frame);
+      if (resizeFrame) window.cancelAnimationFrame(resizeFrame);
     };
   }, []);
 

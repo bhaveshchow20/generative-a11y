@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
+import { runtimeScenarios } from "../components/home/runtime-scenarios";
 import { getSourceManifest } from "../lib/source-manifest";
 import { apiSource, docsSource } from "../lib/source";
 
@@ -10,7 +12,7 @@ describe("Fumadocs content", () => {
     const paths = manifest.map(({ publicPath }) => publicPath);
 
     expect(manifest).toHaveLength(sourceCount);
-    expect(new Set(paths)).toHaveLength(paths.length);
+    expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain("/docs/getting-started");
     expect(paths).toContain("/docs/project/overview");
     expect(paths).toContain("/api/core/create-generative-a11y");
@@ -35,7 +37,48 @@ describe("Fumadocs content", () => {
         "name" in node ? String(node.name) : "",
       );
       const populated = names.filter(Boolean);
-      expect(new Set(populated)).toHaveLength(populated.length);
+      expect(new Set(populated).size).toBe(populated.length);
+    }
+  });
+
+  it("keeps approval request and resolution events correlated", () => {
+    const approval = runtimeScenarios.find(({ id }) => id === "approval");
+    const request = approval?.events.find(({ type }) => type === "approval.requested");
+    const resolution = approval?.events.find(({ type }) => type === "approval.resolved");
+
+    expect(request?.detail).toContain("approvalId: publish-4");
+    expect(resolution?.detail).toContain("approvalId: publish-4");
+  });
+
+  it("keeps CopilotKit examples self-contained", async () => {
+    const content = await readFile(
+      new URL("../content/docs/integrations/copilotkit.mdx", import.meta.url),
+      "utf8",
+    );
+
+    expect(content).toContain('import { useEffect, useId } from "react";');
+    expect(content).toContain(
+      'import { useAgent } from "@copilotkit/react-core/v2";',
+    );
+    expect(content).toContain(
+      'import { bindAgent } from "@generative-a11y/ag-ui";',
+    );
+  });
+
+  it("links every DOM export-map reference to its API page", async () => {
+    const content = await readFile(
+      new URL("../content/api/dom.mdx", import.meta.url),
+      "utf8",
+    );
+
+    for (const path of [
+      "/api/dom/create-dom-announcer",
+      "/api/dom/connect-runtime-to-dom",
+      "/api/dom/focus",
+      "/api/dom/attention",
+      "/api/dom/preferences",
+    ]) {
+      expect(content).toContain(`<a href="${path}">${path}</a>`);
     }
   });
 });

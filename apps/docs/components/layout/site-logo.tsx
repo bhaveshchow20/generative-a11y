@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 
+/** Renders the linked product mark used by native Fumadocs navigation layouts. */
 export function SiteLogo({ className, ...props }: ComponentProps<"a">) {
   return (
     <a

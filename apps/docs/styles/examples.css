@@ -4,6 +4,7 @@
   --example-code: #eef4f1;
   --example-code-ink: #16362e;
   --example-code-muted: #62766f;
+
   display: grid;
   margin-top: 2.5rem;
   gap: 1.5rem;

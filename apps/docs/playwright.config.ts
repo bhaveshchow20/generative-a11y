@@ -17,7 +17,8 @@ const serverUrl = `http://localhost:${port}`;
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: false,
-  workers: 1,
+  // CI serializes projects around the shared application server; local runs stay parallel.
+  workers: process.env.CI ? 1 : undefined,
   retries: 0,
   reporter: "line",
   use: {

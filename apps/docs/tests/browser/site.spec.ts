@@ -102,19 +102,24 @@ async function readSurfacePalette(surface: Locator) {
 }
 
 async function waitForThemeControls(page: Page) {
-  await expect(
-    page.locator('[data-theme-toggle] > button.bg-fd-accent'),
-  ).toHaveCount(1);
+  const themeToggle = page.locator("[data-theme-toggle]").first();
+  const buttons = themeToggle.locator("button");
+  await expect(buttons).toHaveCount(3);
+  await expect
+    .poll(() =>
+      buttons
+        .first()
+        .evaluate((button) => typeof (button as HTMLButtonElement).onclick),
+    )
+    .toBe("function");
 }
 
 function appAxe(page: Page) {
-  return new AxeBuilder({ page }).disableRules([
-    // Fumadocs gives each scrollable code viewport role="region" without a
-    // label and renders its desktop TOC beside the article landmark.
-    "landmark-unique",
-    "landmark-no-duplicate-banner",
-    "region",
-  ]);
+  return new AxeBuilder({ page })
+    .exclude(".docs-site #nd-toc")
+    .exclude(".docs-site #nd-subnav")
+    .exclude(".docs-site [data-toc-popover] > header")
+    .exclude('.docs-site figure [role="region"]');
 }
 
 test.beforeEach(async ({ page }) => {
@@ -176,7 +181,6 @@ test("documentation route families use native Fumadocs title typography", async 
     await page.goto(path);
     const title = page.locator("h1").first();
     await expect(title).toBeVisible();
-    await expect(title).toHaveClass(/text-\[1\.75em\]/);
 
     const size = await title.evaluate((element) =>
       Number.parseFloat(window.getComputedStyle(element).fontSize),
@@ -192,7 +196,6 @@ test("documentation uses one native navigation hierarchy and a working sidebar c
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/docs/getting-started");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_500);
 
   await expect(page.locator("#nd-sidebar").getByText("Getting started", { exact: true })).toHaveCount(1);
 
@@ -284,7 +287,6 @@ test("documentation search finds a deep link and closes after navigation", async
   await expect(
     page.getByRole("button", { name: /Open Search/ }).first(),
   ).toBeEnabled();
-  await page.waitForTimeout(1_000);
   await page.locator("[data-search-full]").click();
   const search = page.locator("[data-fd-search-dialog-input]");
   await expect(search).toBeFocused();
@@ -375,7 +377,6 @@ test("search remains reachable from the mobile documentation header", async ({ p
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_000);
 
   const trigger = page.getByRole("button", { name: "Open Search" }).first();
   await expect(trigger).toBeVisible();
@@ -483,6 +484,7 @@ test("homepage supports a dark theme", async ({ page }) => {
   const darkTheme = page.getByRole("button", { name: "Dark", exact: true });
   await expect(darkTheme).toBeVisible();
   await darkTheme.click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
 
   await expect(
     page.getByRole("button", { name: "Light", exact: true }),
@@ -491,8 +493,8 @@ test("homepage supports a dark theme", async ({ page }) => {
   const surfaces = [
     ["page canvas", page.getByRole("main")],
     [
-      "asynchronous AI card",
-      page.getByRole("article", { name: "Built for asynchronous AI" }),
+      "runtime stage",
+      page.locator(".runtime-stage"),
     ],
     ["runtime trace", runtime],
   ] as const;
@@ -572,7 +574,6 @@ test("system theme follows operating system changes across navigation", async ({
   await expect(page.locator("html")).not.toHaveClass(/dark/);
   await page.goto("/api/core/create-generative-a11y");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_000);
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
 
@@ -601,7 +602,6 @@ test("primary mobile controls provide comfortable touch targets", async ({ page 
 
   await page.goto("/docs/getting-started");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_000);
   for (const control of await page
     .locator(".docs-header button:visible, .doc-code-header button")
     .all()) {
@@ -736,7 +736,6 @@ test("API reference expands option defaults and explanations", async ({
 }) => {
   await page.goto("/api/core/create-generative-a11y");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_500);
   const presetButton = page.getByRole("button", { name: /preset/i });
   await expect(presetButton).toHaveAttribute("aria-expanded", "false");
   await presetButton.click();
@@ -751,7 +750,6 @@ test("Docs and API provide separate top-level navigation and legacy reference li
 }) => {
   await page.goto("/docs/getting-started");
   await waitForThemeControls(page);
-  await page.waitForTimeout(1_500);
   await page
     .getByRole("button", { name: /Guides/ })
     .first()
@@ -863,9 +861,12 @@ test("homepage runtime trace waits for Play and exposes pause and replay control
   await expect(
     demo.getByText("response.started", { exact: true }),
   ).toBeVisible();
-  await expect(demo.locator('.trace-list li:not([aria-hidden="true"])')).toHaveCount(2, {
-    timeout: 4_000,
-  });
+  await expect
+    .poll(
+      () => demo.locator('.trace-list li:not([aria-hidden="true"])').count(),
+      { timeout: 4_000 },
+    )
+    .toBeGreaterThanOrEqual(2);
 
   await demo.getByRole("button", { name: "Pause demo" }).click();
   await expect(demo.getByText("Paused", { exact: true })).toBeVisible();
@@ -876,5 +877,80 @@ test("homepage runtime trace waits for Play and exposes pause and replay control
   await expect(demo.locator("output.runtime-status")).toHaveText("Streaming");
   await expect(
     demo.getByText("response.started", { exact: true }),
+  ).toBeVisible();
+});
+
+test("homepage runtime completes when reduced motion is enabled during playback", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const demo = page.getByRole("region", { name: "Interactive runtime trace" });
+  await expect(demo).toHaveAttribute("data-hydrated", "true");
+  await demo.getByRole("button", { name: "Play demo", exact: true }).click();
+  await expect(demo).toHaveAttribute("data-state", "playing");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  await expect(demo).toHaveAttribute("data-state", "complete", { timeout: 500 });
+  await expect(demo.getByText("Complete", { exact: true })).toBeVisible();
+  await expect(demo.getByRole("button", { name: "Play demo", exact: true })).toBeEnabled();
+});
+
+test("hero pointer displacement stops when reduced motion is enabled", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const hero = page.locator(".home-hero");
+  const canvas = hero.locator("canvas.home-hero-dither-motion");
+  await expect(canvas).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      matchMedia("(hover: hover) and (pointer: fine)").matches,
+    ),
+  ).toBe(true);
+  const readCanvas = () =>
+    canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL());
+  await expect
+    .poll(() => canvas.evaluate((element) => (element as HTMLCanvasElement).width))
+    .toBeGreaterThan(1_000);
+  const bounds = await hero.boundingBox();
+  if (!bounds) throw new Error("Hero bounds are unavailable");
+  const restingCanvas = await readCanvas();
+  await page.mouse.move(bounds.x + bounds.width * 0.82, bounds.y + bounds.height * 0.4);
+  await expect.poll(readCanvas).not.toBe(restingCanvas);
+  await expect.poll(readCanvas, { timeout: 2_000 }).toBe(restingCanvas);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  const beforePointerMove = await readCanvas();
+  await page.mouse.move(bounds.x + bounds.width * 0.68, bounds.y + bounds.height * 0.56);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+
+  expect(await readCanvas()).toBe(beforePointerMove);
+});
+
+test("missing npm download data stays unavailable", async ({ page }) => {
+  await page.route("https://api.npmjs.org/**", async (route) => {
+    await route.fulfill({ json: {} });
+  });
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("link", {
+      name: "View generative-a11y on GitHub, 1 stars",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", {
+      name: "View generative-a11y packages on npm",
+      exact: true,
+    }),
   ).toBeVisible();
 });

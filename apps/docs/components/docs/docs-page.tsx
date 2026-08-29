@@ -7,6 +7,7 @@ import { useMDXComponents } from "../../mdx-components";
 
 type MdxBody = ComponentType<{ components?: MDXComponents }>;
 
+/** Content and navigation metadata required to render one documentation page. */
 export interface DocumentationPageProps {
   body: MdxBody;
   description?: string;
@@ -14,6 +15,7 @@ export interface DocumentationPageProps {
   toc: TOCItemType[];
 }
 
+/** Renders an MDX source through the native Fumadocs page composition. */
 export function DocumentationPage({
   body: Body,
   description,

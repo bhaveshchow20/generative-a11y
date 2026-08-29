@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { publishedPackages } from "../../lib/home-content";
+import { REPOSITORY_URL } from "../../lib/site";
 import { ProjectStats } from "../project-stats";
 
 export function OpenSourceSection() {
@@ -13,7 +14,7 @@ export function OpenSourceSection() {
         <ProjectStats className="home-project-stats" />
         <div className="home-open-source-actions">
           <Link className="home-button home-button-primary" href="/docs/getting-started">Open the docs</Link>
-          <a className="home-button home-button-secondary" href="https://github.com/bhaveshchow20/generative-a11y">View on GitHub</a>
+          <a className="home-button home-button-secondary" href={REPOSITORY_URL}>View on GitHub</a>
         </div>
       </div>
       <ol className="home-package-list">

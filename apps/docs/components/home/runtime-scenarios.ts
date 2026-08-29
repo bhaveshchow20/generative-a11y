@@ -46,7 +46,11 @@ export const runtimeScenarios = [
     events: [
       { id: "a-1", type: "tool.started", detail: "label: Publish changes" },
       { id: "a-2", type: "approval.requested", detail: "approvalId: publish-4" },
-      { id: "a-3", type: "approval.resolved", detail: "outcome: approved" },
+      {
+        id: "a-3",
+        type: "approval.resolved",
+        detail: "approvalId: publish-4; outcome: approved",
+      },
       { id: "a-4", type: "tool.completed", detail: "label: Publish changes", terminal: true },
     ],
   },

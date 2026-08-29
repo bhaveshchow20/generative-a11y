@@ -67,7 +67,10 @@ export function ProjectStats({ className = "" }: { className?: string }) {
           );
           if (!response.ok) throw new Error("npm stats unavailable");
           const data = (await response.json()) as { downloads?: number };
-          return data.downloads ?? 0;
+          if (typeof data.downloads !== "number") {
+            throw new Error("npm stats response omitted downloads");
+          }
+          return data.downloads;
         }),
       ).then((counts) => counts.reduce((total, count) => total + count, 0));
 

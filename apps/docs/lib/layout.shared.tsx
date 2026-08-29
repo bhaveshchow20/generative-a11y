@@ -23,6 +23,7 @@ function HomeShellContainer({
   );
 }
 
+/** Shared Fumadocs navigation, search, and theme options for marketing pages. */
 export const homeLayoutOptions = {
   nav: {
     title: SiteLogo,
@@ -41,6 +42,7 @@ export const homeLayoutOptions = {
   slots: { container: HomeShellContainer },
 } satisfies HomeLayoutProps;
 
+/** Shared Fumadocs sidebar, tabs, search, and theme options for documentation. */
 export const docsLayoutOptions = {
   nav: {
     title: SiteLogo,

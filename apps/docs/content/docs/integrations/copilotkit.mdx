@@ -52,6 +52,10 @@ cleanup.
 
 {/* prettier-ignore */}
 ```tsx
+import { useEffect, useId } from "react";
+import { useAgent } from "@copilotkit/react-core/v2";
+import { bindAgent } from "@generative-a11y/ag-ui";
+
 const bindingScopeId = useId();
 const { agent, isReady } = useAgent({ agentId });
 
