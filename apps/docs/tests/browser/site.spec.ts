@@ -765,6 +765,20 @@ test("lifecycle lab uses real runtime output for streaming, stale retry, and app
   await expect(page.getByText("Completed", { exact: true })).toBeVisible();
 });
 
+test("lifecycle lab uses the available documentation width", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/examples/lifecycle-lab");
+
+  const pageShell = page.locator("#nd-page");
+  const labGrid = page.locator(".lab-grid");
+  await expect(labGrid).toBeVisible();
+
+  const pageBox = await pageShell.boundingBox();
+  const labBox = await labGrid.boundingBox();
+  expect(pageBox?.width).toBeGreaterThan(1_100);
+  expect(labBox?.width).toBeGreaterThan(1_000);
+});
+
 test("framework showcase runs both installed framework runtimes and production adapters", async ({
   page,
 }) => {

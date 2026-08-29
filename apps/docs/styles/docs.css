@@ -95,4 +95,7 @@
 
 @media (min-width: 1280px) {
   .docs-site #nd-docs-layout { --fd-toc-width: 268px; }
+  .docs-site #nd-docs-layout:has(#nd-page[data-full="true"]) {
+    --fd-toc-width: 0px;
+  }
 }
