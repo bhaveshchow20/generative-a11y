@@ -37,6 +37,6 @@ export default defineConfig({
     command: serverCommand,
     url: serverUrl,
     reuseExistingServer: true,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });
