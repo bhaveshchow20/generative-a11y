@@ -19,6 +19,14 @@ export interface ThreadAdapterMetadata {
 export const THREAD_ADAPTER_METADATA: ThreadAdapterMetadata = Object.freeze({
   name: "assistant-ui",
   fidelity: Object.freeze({
+    runs: "unavailable",
+    steps: "unavailable",
+    hierarchy: "unavailable",
+    tools: "exact",
+    interactions: "unavailable",
+    replay: "partial",
+    reconnection: "unavailable",
+    customEvents: "unsupported",
     interruption: "exact",
     retries: "unavailable",
     connection: "unavailable",

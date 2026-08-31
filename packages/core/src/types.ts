@@ -489,6 +489,22 @@ export type ReadonlyAnnouncementPolicy = Readonly<
 >;
 
 export interface AdapterFidelity {
+  /** Evidence quality for top-level and delegated run lifecycle. */
+  runs: "exact" | "partial" | "unavailable";
+  /** Evidence quality for step lifecycle and stable step identity. */
+  steps: "exact" | "partial" | "unavailable";
+  /** Evidence quality for parent-child relationships. */
+  hierarchy: "exact" | "partial" | "unavailable";
+  /** Evidence quality for tool lifecycle and workflow attribution. */
+  tools: "exact" | "partial" | "unavailable";
+  /** Evidence quality for human-interaction lifecycle and attribution. */
+  interactions: "exact" | "partial" | "unavailable";
+  /** Ability to suppress lifecycle duplicates when historical events replay. */
+  replay: "exact" | "partial" | "unavailable";
+  /** Evidence quality after a transport reconnects. */
+  reconnection: "exact" | "partial" | "unavailable";
+  /** Custom protocol events require a host-supplied explicit mapping. */
+  customEvents: "explicit-mapping" | "unsupported";
   interruption: "exact" | "action-wrapper" | "unavailable";
   retries: "exact" | "action-wrapper" | "unavailable";
   connection: "exact" | "inferred" | "unavailable";

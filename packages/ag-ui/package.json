@@ -51,7 +51,7 @@
     "@generative-a11y/core": "workspace:*"
   },
   "peerDependencies": {
-    "@ag-ui/client": ">=0.0.57 <0.0.59"
+    "@ag-ui/client": ">=0.0.59 <0.0.60"
   },
   "engines": {
     "node": ">=22"
