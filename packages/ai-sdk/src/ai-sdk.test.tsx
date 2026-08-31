@@ -65,6 +65,9 @@ describe("AI SDK observer", () => {
     expect(Object.isFrozen(CHAT_ADAPTER_METADATA)).toBe(true);
     expect(CHAT_ADAPTER_METADATA.fidelity.interruption).toBe("exact");
     expect(CHAT_ADAPTER_METADATA.fidelity.retries).toBe("unavailable");
+    expect(CHAT_ADAPTER_METADATA.fidelity.runs).toBe("unavailable");
+    expect(CHAT_ADAPTER_METADATA.fidelity.steps).toBe("unavailable");
+    expect(CHAT_ADAPTER_METADATA.fidelity.hierarchy).toBe("unavailable");
     expect(CHAT_ADAPTER_METADATA.saturation).toBe(
       "suppress-after-baseline-capacity",
     );

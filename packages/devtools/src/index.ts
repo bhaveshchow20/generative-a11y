@@ -239,6 +239,28 @@ function copyRuntimeSource(
     throw new TypeError("source fidelity must be an object");
   const lifecycleFidelity = new Set(["exact", "action-wrapper", "unavailable"]);
   const connectionFidelity = new Set([...lifecycleFidelity, "inferred"]);
+  const workflowFidelity = new Set(["exact", "partial", "unavailable"]);
+  for (const field of [
+    "runs",
+    "steps",
+    "hierarchy",
+    "tools",
+    "interactions",
+    "replay",
+    "reconnection",
+  ] as const) {
+    if (!workflowFidelity.has(fidelity[field]))
+      throw new TypeError(
+        `source ${field} fidelity contains an unsupported value`,
+      );
+  }
+  if (
+    fidelity.customEvents !== "explicit-mapping" &&
+    fidelity.customEvents !== "unsupported"
+  )
+    throw new TypeError(
+      "source custom event fidelity contains an unsupported value",
+    );
   if (!lifecycleFidelity.has(fidelity.interruption))
     throw new TypeError(
       "source interruption fidelity contains an unsupported value",
@@ -266,6 +288,14 @@ function copyRuntimeSource(
     adapter: source.adapter.trim(),
     evidence: Object.freeze(source.evidence.map((item) => item.trim())),
     fidelity: Object.freeze({
+      runs: fidelity.runs,
+      steps: fidelity.steps,
+      hierarchy: fidelity.hierarchy,
+      tools: fidelity.tools,
+      interactions: fidelity.interactions,
+      replay: fidelity.replay,
+      reconnection: fidelity.reconnection,
+      customEvents: fidelity.customEvents,
       interruption: fidelity.interruption,
       retries: fidelity.retries,
       connection: fidelity.connection,

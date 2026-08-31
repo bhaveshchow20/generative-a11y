@@ -97,6 +97,9 @@ terminal or retry evidence. Retry fidelity is therefore `unavailable` in frozen
 recovery is reported only after a later successful `onFinish`, so connection
 fidelity is `inferred`.
 
+The public chat snapshot does not expose stable run, step, or hierarchy
+lifecycles, so those fidelity fields remain `unavailable` rather than inferred.
+
 `maxTrackedEntities` is a positive safe integer (default: 1000) that caps each
 response, that response's text-part indices, tool, approval, and source identity
 collection. Active response, pending approval, active tool, terminal, and

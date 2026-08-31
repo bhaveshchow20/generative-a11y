@@ -22,17 +22,26 @@ const binding = bindAgent({ runtime, scopeId: "support", agent });
 // Later: binding.dispose(); // unsubscribes only
 ```
 
-| Public AG-UI evidence                                         | Normalized event                                          |
-| ------------------------------------------------------------- | --------------------------------------------------------- |
-| Assistant `TEXT_MESSAGE_START` / content / end                | Response start / delta / completion                       |
-| `RUN_ERROR`                                                   | Failure of observed active responses, without error text  |
-| `RUN_FINISHED` interrupt, then a later `input.resume[]` entry | Interrupted response, requested then resolved interaction |
-| `TOOL_CALL_START`, then `TOOL_CALL_RESULT`                    | Tool start, then completion; `TOOL_CALL_END` is ignored   |
+| Public AG-UI evidence                                         | Normalized event                                             |
+| ------------------------------------------------------------- | ------------------------------------------------------------ |
+| `RUN_STARTED` / `RUN_FINISHED` / `RUN_ERROR`                  | Run start / completion, interruption, or safe failure        |
+| `SUBAGENT_STARTED` / finished / error                         | Child run lifecycle with documented parent IDs               |
+| `STEP_STARTED` / `STEP_FINISHED`                              | Partial step lifecycle; `stepName` remains a label, not ID   |
+| Assistant `TEXT_MESSAGE_START` / content / end                | Response lifecycle attributed to its run when exposed        |
+| `RUN_FINISHED` interrupt, then a later `input.resume[]` entry | Requested then resolved interaction, attributed when exposed |
+| `TOOL_CALL_START`, then `TOOL_CALL_RESULT`                    | Tool lifecycle attributed to its run; end alone is ignored   |
 
-The root entry is SSR-safe. Replay/reconnection and retry fidelity are
-unavailable without a mandatory protocol cursor or host-owned action evidence.
-All identities are bounded; capacity exhaustion suppresses later events rather
-than replaying untracked protocol history as new output.
+AG-UI 0.0.59 exposes stable run and subagent-run IDs. Step events expose only
+`stepName`, so the adapter deliberately omits `stepId`; names never become
+identity and concurrent same-name steps cannot be correlated exactly. The
+protocol's top-level `parentRunId` describes run lineage and is not treated as
+delegation hierarchy. Custom events and arbitrary state deltas are ignored.
+
+The root entry is SSR-safe. In-memory entity tracking suppresses duplicate
+callbacks while a binding remains active, but replay and reconnection fidelity
+remain partial because AG-UI subscriptions provide no mandatory persistent
+cursor. Retry fidelity remains unavailable without host-owned action evidence.
+All identities are bounded; capacity exhaustion suppresses later events.
 
 ## Documentation
 

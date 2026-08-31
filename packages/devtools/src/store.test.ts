@@ -3,6 +3,17 @@ import { describe, expect, it, vi } from "vitest";
 import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
 import { createDevtoolsStore } from "./index.js";
 
+const workflowFidelity = {
+  runs: "unavailable",
+  steps: "unavailable",
+  hierarchy: "unavailable",
+  tools: "exact",
+  interactions: "unavailable",
+  replay: "partial",
+  reconnection: "unavailable",
+  customEvents: "unsupported",
+} as const;
+
 describe("devtools store", () => {
   it("captures bounded redacted records from independent runtimes without changing them", () => {
     const clock = new ManualClock();
@@ -211,6 +222,7 @@ describe("devtools store", () => {
         adapter: "assistant-ui",
         evidence,
         fidelity: {
+          ...workflowFidelity,
           interruption: "exact",
           retries: "unavailable",
           connection: "unavailable",
@@ -240,6 +252,7 @@ describe("devtools store", () => {
       adapter: "assistant-ui",
       evidence: ["ThreadRuntime.getState", "ThreadRuntime.subscribe"],
       fidelity: {
+        ...workflowFidelity,
         interruption: "exact",
         retries: "unavailable",
         connection: "unavailable",
@@ -286,6 +299,7 @@ describe("devtools store", () => {
       adapter,
       evidence: [`${adapter}.subscribe`],
       fidelity: {
+        ...workflowFidelity,
         interruption: "exact" as const,
         retries: "unavailable" as const,
         connection: "unavailable" as const,
@@ -334,6 +348,7 @@ describe("devtools store", () => {
           adapter,
           evidence: [`${adapter}.subscribe`],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",
@@ -367,6 +382,7 @@ describe("devtools store", () => {
           adapter: "",
           evidence: [],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",
@@ -401,6 +417,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["x".repeat(121)],
           fidelity: {
+            ...workflowFidelity,
             interruption: "inferred" as never,
             retries: "unavailable",
             connection: "unavailable",
@@ -419,6 +436,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["CustomAdapter.observe"],
           fidelity: {
+            ...workflowFidelity,
             interruption: "inferred" as never,
             retries: "unavailable",
             connection: "unavailable",
@@ -434,6 +452,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["CustomAdapter.observe"],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",

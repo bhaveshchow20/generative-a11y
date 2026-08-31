@@ -23,6 +23,14 @@ export interface ChatAdapterMetadata {
 export const CHAT_ADAPTER_METADATA: ChatAdapterMetadata = Object.freeze({
   name: "ai-sdk",
   fidelity: Object.freeze({
+    runs: "unavailable",
+    steps: "unavailable",
+    hierarchy: "unavailable",
+    tools: "exact",
+    interactions: "exact",
+    replay: "partial",
+    reconnection: "partial",
+    customEvents: "unsupported",
     interruption: "exact",
     retries: "unavailable",
     connection: "inferred",

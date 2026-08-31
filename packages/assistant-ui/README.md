@@ -37,6 +37,10 @@ Text is emitted only for append-only changes. A rewrite, an unknown incomplete
 reason, or an observer that reaches its bounded identity capacity fails closed;
 it never invents a stop, error, retry, or connection event.
 
+The documented thread snapshot does not expose stable run, step, or hierarchy
+lifecycle evidence. Those fidelity fields remain `unavailable`; the adapter
+continues to report only the response, tool, and citation evidence it observes.
+
 Tool labels are intentionally generic (`"A tool"`), and backend tool results and
 errors are never copied into announcements. An approval is resolved only after
 this binding observed that approval requested. Source IDs are counted but never
