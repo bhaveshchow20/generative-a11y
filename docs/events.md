@@ -6,6 +6,29 @@ metadata; entity identifiers are required where correlation matters. Response
 events may carry a `responseInstanceId` so late transport events from a replaced
 attempt can be rejected even when the logical response ID is reused.
 
+## Run and step hierarchy
+
+| Event                               | Meaning                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| `run.started`                       | Starts one stable run identity and optional attempt, with explicit parent lineage.   |
+| `run.completed/interrupted/failed`  | Terminates only the addressed run attempt.                                           |
+| `run.retrying`                      | Replaces one run attempt and cancels its queued descendants.                         |
+| `step.started/progress`             | Starts or updates an identified step within a run.                                   |
+| `step.completed/interrupted/failed` | Terminates only the addressed step; a child failure does not terminate sibling work. |
+| `step.retrying`                     | Replaces one step attempt so late output from the earlier attempt can be rejected.   |
+
+Run IDs and step IDs are stable logical identities. Optional `runInstanceId` and
+`stepInstanceId` values identify attempts. `parentRunId` and `parentStepId`
+express hierarchy; optional parent instance IDs disambiguate attempts. Existing
+response, tool and interaction events can carry the same run/step context so
+cancellation and diagnostics stay scoped.
+
+`stepId` is intentionally optional on normalized step events. A source that
+exposes a step boundary and label but no stable ID may preserve that partial
+evidence. The runtime diagnoses it as `partial-identity`, does not retain it as
+an entity, and does not use its label for correlation, cancellation, retry or
+child attribution.
+
 ## Response lifecycle
 
 | Event                  | Meaning                                                                            |
@@ -40,6 +63,11 @@ attempt can be rejected even when the logical response ID is reused.
   flushes it.
 - Multiple responses and tools may be active concurrently; scheduling and
   deduplication scopes are isolated by identifiers.
+- Multiple runs and sibling steps may be active concurrently. A failed step
+  preserves siblings. Successful parent completion is rejected while known
+  identified children remain active.
+- Retry events replace only their declared attempt. Events that still carry the
+  earlier instance ID are suppressed as stale.
 - Fast tools may complete before their delayed start announcement. In that case,
   the start is cancelled and completion is announced once.
 - Approvals are a subset of interactions. Adapters should prefer the general
@@ -50,6 +78,11 @@ attempt can be rejected even when the logical response ID is reused.
 - Adapters must emit terminal response/tool events. The runtime also enforces a
   configurable `maxActiveEntities` ceiling so malformed streams cannot grow
   tracked active state indefinitely.
+
+Ordering follows dispatch order and replay fixture order. Core does not infer
+ordering, parentage or lifecycle from display text, array positions, render
+counts or timing. Integrations must omit unavailable fields and declare reduced
+fidelity.
 
 ## Adapter capability metadata
 

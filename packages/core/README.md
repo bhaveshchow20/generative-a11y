@@ -36,6 +36,49 @@ through a framework adapter and DOM driver.
 response flush timers. Backend `error` fields are diagnostic-only; use an
 event's `announcement` field for short, localized, user-safe spoken error copy.
 
+### Hierarchical workflows
+
+Core models `run.*` and `step.*` lifecycle directly rather than collapsing agent
+work into responses or tools. Stable logical IDs can be paired with explicit
+instance IDs for retries, parent run/step IDs for nesting, and optional run/step
+context on responses, tools and interactions.
+
+```ts
+runtime.dispatch({
+  type: "run.started",
+  runId: "research",
+  runInstanceId: "1",
+});
+runtime.dispatch({
+  type: "step.started",
+  runId: "research",
+  runInstanceId: "1",
+  stepId: "sources",
+  stepInstanceId: "sources-1",
+  label: "Collect sources",
+});
+runtime.dispatch({
+  type: "step.completed",
+  runId: "research",
+  runInstanceId: "1",
+  stepId: "sources",
+  stepInstanceId: "sources-1",
+  label: "Collect sources",
+});
+runtime.dispatch({
+  type: "run.completed",
+  runId: "research",
+  runInstanceId: "1",
+});
+```
+
+The balanced policy announces terminal run summaries and only identified,
+long-running top-level steps. Nested steps and progress are quiet by default. A
+step event without `stepId` is retained only as partial diagnostic evidence; the
+runtime never uses display labels as identity. A failed child preserves sibling
+work, while retry replacement cancels only the replaced attempt and its
+descendants. Known active children block a successful parent completion.
+
 ## Runtime contract
 
 `createGenerativeA11y(options)` accepts a preset, nested policy overrides, an
@@ -68,12 +111,13 @@ optional injected `Clock`, and optional delivery callbacks:
   normalized source events and diagnostic decisions. It is explicitly opt-in;
   listener failures are isolated and it never changes scheduling.
 - `getDiagnosticSnapshot()` returns an immutable, serializable snapshot of the
-  active response/tool lifecycle plus pending announcement and flush timing. It
-  intentionally excludes buffered response text, labels, errors, scopes,
-  deduplication keys, and timer handles. Each pending announcement includes its
-  stable ID, channel, source type, correlation IDs when present, scheduling
-  time, due time, delay and queue sequence. Entries are ordered by due time and
-  then queue sequence. The returned array and every entry are frozen.
+  active response/tool/run/step lifecycle plus pending announcement and flush
+  timing. It intentionally excludes buffered response text, labels, errors,
+  scopes, deduplication keys, and timer handles. Each pending announcement
+  includes its stable ID, channel, source type, correlation IDs when present,
+  scheduling time, due time, delay and queue sequence. Entries are ordered by
+  due time and then queue sequence. The returned array and every entry are
+  frozen.
 - `dispose()` is idempotent, cancels owned timers/queues and makes later
   subscription attempts throw; later dispatches return `false`.
 
@@ -94,6 +138,10 @@ values are suppressed diagnostically.
 `completion-only` policies. `resolvePolicy(preset, overrides)` validates and
 freezes a customized snapshot. Timing values must be finite and non-negative;
 queue/entity ceilings must be positive integers.
+
+`policy.workflows` controls run boundary verbosity, step verbosity, the
+long-running step threshold, explicit progress, and nested-step announcements.
+No policy setting manufactures hierarchy that a source cannot identify.
 
 ## Scheduler
 
@@ -185,6 +233,8 @@ Fixtures use a stable V1 JSON envelope, non-negative relative timestamps, and
 array order for simultaneous events. Replay validates the complete fixture
 before dispatch and does not run the clock until idle. Transcript assertions
 confirm deterministic runtime behavior, not browser delivery or spoken output.
+Run and step fixtures use the same event union and preserve explicit parent and
+attempt identity without inferring missing relationships.
 
 ## Segmentation
 

@@ -16,16 +16,24 @@ distinct host-UI mechanisms.
 
 ## Presets
 
-| Preset            | Text                                   | Tools                               | Lifecycle                            |
-| ----------------- | -------------------------------------- | ----------------------------------- | ------------------------------------ |
-| `minimal`         | Full response at completion            | Failures only                       | Interactions, errors, stop           |
-| `balanced`        | Completed sentences                    | Start if slow; completion/failure   | Meaningful lifecycle changes         |
-| `verbose`         | Completed sentences with shorter delay | Start, progress, completion/failure | Detailed lifecycle changes           |
-| `completion-only` | Full response at completion            | Silent                              | Response failure and completion only |
+| Preset            | Text                                   | Tools                               | Workflow hierarchy                                      |
+| ----------------- | -------------------------------------- | ----------------------------------- | ------------------------------------------------------- |
+| `minimal`         | Full response at completion            | Failures only                       | Terminal runs; steps silent                             |
+| `balanced`        | Completed sentences                    | Start if slow; completion/failure   | Terminal run summary; long-running top-level steps only |
+| `verbose`         | Completed sentences with shorter delay | Start, progress, completion/failure | Run boundaries; identified steps and coalesced progress |
+| `completion-only` | Full response at completion            | Silent                              | Runs and steps silent                                   |
 
 All presets are policy objects and can be overridden. Policy affects what the
 runtime emits; it cannot guarantee what a browser/screen-reader combination
 speaks.
+
+The `workflows` group keeps the hierarchy surface small: `runs` selects silent,
+terminal-only or all boundaries; `steps` selects silent, long-running or all
+identified boundaries; `announceStepAfterMs` sets the long-running threshold;
+and progress/nested-step switches remain off in the balanced preset. Anonymous
+step evidence stays silent because a label is not identity. Assertive delivery
+is reserved for explicit step/run failures and urgent interactions; routine
+concurrent updates remain polite and coalesced.
 
 ## DOM requirements for Phase 2
 

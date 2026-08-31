@@ -18,6 +18,10 @@ export interface ScheduleAnnouncement {
   responseId?: string;
   toolId?: string;
   interactionId?: string;
+  runId?: string;
+  runInstanceId?: string;
+  stepId?: string;
+  stepInstanceId?: string;
   locale?: string;
   delayMs?: number;
   scope?: string;
@@ -100,6 +104,10 @@ export function createAnnouncementScheduler(
       ...(item?.responseId ? { responseId: item.responseId } : {}),
       ...(item?.toolId ? { toolId: item.toolId } : {}),
       ...(item?.interactionId ? { interactionId: item.interactionId } : {}),
+      ...(item?.runId ? { runId: item.runId } : {}),
+      ...(item?.runInstanceId ? { runInstanceId: item.runInstanceId } : {}),
+      ...(item?.stepId ? { stepId: item.stepId } : {}),
+      ...(item?.stepInstanceId ? { stepInstanceId: item.stepInstanceId } : {}),
       ...(item
         ? {
             scheduledAt: item.scheduledAt,
@@ -166,6 +174,10 @@ export function createAnnouncementScheduler(
       ...(item.responseId ? { responseId: item.responseId } : {}),
       ...(item.toolId ? { toolId: item.toolId } : {}),
       ...(item.interactionId ? { interactionId: item.interactionId } : {}),
+      ...(item.runId ? { runId: item.runId } : {}),
+      ...(item.runInstanceId ? { runInstanceId: item.runInstanceId } : {}),
+      ...(item.stepId ? { stepId: item.stepId } : {}),
+      ...(item.stepInstanceId ? { stepInstanceId: item.stepInstanceId } : {}),
       ...(item.locale ? { locale: item.locale } : {}),
     };
   }
@@ -363,6 +375,14 @@ export function createAnnouncementScheduler(
               ...(item.toolId ? { toolId: item.toolId } : {}),
               ...(item.interactionId
                 ? { interactionId: item.interactionId }
+                : {}),
+              ...(item.runId ? { runId: item.runId } : {}),
+              ...(item.runInstanceId
+                ? { runInstanceId: item.runInstanceId }
+                : {}),
+              ...(item.stepId ? { stepId: item.stepId } : {}),
+              ...(item.stepInstanceId
+                ? { stepInstanceId: item.stepInstanceId }
                 : {}),
               ...(item.locale ? { locale: item.locale } : {}),
               scheduledAt: item.scheduledAt,

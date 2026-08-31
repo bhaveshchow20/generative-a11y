@@ -39,6 +39,8 @@ export type {
   DiagnosticReason,
   DiagnosticPendingAnnouncement,
   DiagnosticResponseSnapshot,
+  DiagnosticRunSnapshot,
+  DiagnosticStepSnapshot,
   DiagnosticToolSnapshot,
   GenerativeA11yEvent,
   InteractionKind,
@@ -49,4 +51,6 @@ export type {
   TextPolicy,
   TextStrategy,
   ToolPolicy,
+  WorkflowContext,
+  WorkflowPolicy,
 } from "./types.js";
