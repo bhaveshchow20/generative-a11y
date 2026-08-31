@@ -237,13 +237,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         ...(tool.runId ? { runId: tool.runId } : {}),
       });
     },
-    onRunErrorEvent({ input }) {
-      const inputRunId = input?.runId;
-      const run = inputRunId ? runs.get(inputRunId) : undefined;
-      if (run && !run.terminal && inputRunId) {
-        run.terminal = true;
-        dispatch({ type: "run.failed", runId: runId(scopeId, inputRunId) });
-      }
+    onRunErrorEvent() {
       for (const [id, response] of responses) {
         if (response.terminal) continue;
         response.terminal = true;
@@ -252,6 +246,12 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
           responseId: responseId(scopeId, id),
           ...(response.runId ? { runId: response.runId } : {}),
         });
+      }
+      for (const tool of tools.values()) tool.terminal = true;
+      for (const [id, run] of [...runs].reverse()) {
+        if (run.terminal) continue;
+        run.terminal = true;
+        dispatch({ type: "run.failed", runId: runId(scopeId, id) });
       }
     },
     onRunFinishedEvent(params) {

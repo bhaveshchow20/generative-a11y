@@ -102,6 +102,7 @@ describe("AG-UI binding", () => {
         runId: "agent:run:root",
       }),
     ]);
+    recorder.clock.runUntilIdle();
     expect(recorder.runtime.getDiagnosticSnapshot().steps).toEqual([]);
     expect(recorder.transcript()).toEqual([]);
   });
@@ -283,6 +284,97 @@ describe("AG-UI binding", () => {
         label: "Input is needed",
       },
     ]);
+  });
+
+  it("terminalizes active child runs and tools before a top-level run error", () => {
+    const recorder = createAnnouncementRecorder();
+    const agent = agentFor();
+    bindAgent({
+      runtime: recorder.runtime,
+      scopeId: "agent",
+      agent: agent as never,
+    });
+    const input = { runId: "root" };
+
+    agent.emit("onRunStartedEvent", {
+      input,
+      event: { type: "RUN_STARTED", threadId: "thread", runId: "root" },
+    });
+    agent.emit("onSubagentStartedEvent", {
+      input,
+      event: {
+        type: "SUBAGENT_STARTED",
+        subagentRunId: "research",
+        name: "Research",
+      },
+    });
+    agent.emit("onToolCallStartEvent", {
+      input,
+      event: {
+        type: "TOOL_CALL_START",
+        toolCallId: "search",
+        toolCallName: "search",
+        subagentRunId: "research",
+      },
+    });
+    agent.emit("onTextMessageStartEvent", {
+      input,
+      event: {
+        type: "TEXT_MESSAGE_START",
+        messageId: "answer",
+        role: "assistant",
+        subagentRunId: "research",
+      },
+    });
+    agent.emit("onRunErrorEvent", {
+      input,
+      event: { type: "RUN_ERROR", message: "private" },
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot()).toMatchObject({
+      runs: expect.arrayContaining([
+        expect.objectContaining({
+          runId: "agent:run:research",
+          status: "failed",
+        }),
+        expect.objectContaining({
+          runId: "agent:run:root",
+          status: "failed",
+        }),
+      ]),
+      tools: [
+        expect.objectContaining({
+          toolId: "agent:tool:search",
+          status: "failed",
+        }),
+      ],
+      responses: [
+        expect.objectContaining({
+          responseId: "agent:message:answer",
+          status: "failed",
+        }),
+      ],
+    });
+
+    const diagnosticCount = recorder.diagnosticTranscript().length;
+    agent.emit("onToolCallResultEvent", {
+      input,
+      event: {
+        type: "TOOL_CALL_RESULT",
+        toolCallId: "search",
+        content: "late",
+        subagentRunId: "research",
+      },
+    });
+    agent.emit("onSubagentFinishedEvent", {
+      input,
+      event: {
+        type: "SUBAGENT_FINISHED",
+        subagentRunId: "research",
+        outcome: { type: "success" },
+      },
+    });
+    expect(recorder.diagnosticTranscript()).toHaveLength(diagnosticCount);
   });
   it("fails closed at capacity and ignores callbacks after disposal", () => {
     const { events, runtime } = recorder();
