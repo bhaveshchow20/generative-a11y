@@ -5,7 +5,15 @@ import { siGithub, siNpm, type SimpleIcon } from "simple-icons";
 
 const repositoryUrl = "https://github.com/bhaveshchow20/generative-a11y";
 const npmUrl = "https://www.npmjs.com/org/generative-a11y";
-const packages = ["core", "dom", "react", "ag-ui", "ai-sdk", "assistant-ui"];
+const packages = [
+  "core",
+  "dom",
+  "react",
+  "ag-ui",
+  "ai-sdk",
+  "assistant-ui",
+  "devtools",
+];
 
 type ProjectStats = {
   stars: number | null;
