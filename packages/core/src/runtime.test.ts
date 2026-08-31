@@ -1724,6 +1724,74 @@ describe("generative accessibility runtime", () => {
     expect(recorder.clock.pendingCount()).toBe(0);
   });
 
+  it("isolates descendants when a new run.started replaces an active attempt", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Draft",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "old-tool",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Old tool",
+    });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-2",
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot()).toMatchObject({
+      runs: [{ runId: "run-1", instanceId: "attempt-2", status: "active" }],
+      steps: [
+        {
+          runId: "run-1",
+          stepId: "draft",
+          instanceId: "draft-1",
+          status: "interrupted",
+        },
+      ],
+      tools: [{ toolId: "old-tool", status: "failed" }],
+    });
+
+    recorder.runtime.dispatch({
+      type: "step.completed",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Draft",
+    });
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "stale-run",
+      runId: "run-1",
+      stepId: "draft",
+    });
+
+    recorder.runtime.dispatch({
+      type: "run.completed",
+      runId: "run-1",
+      runInstanceId: "attempt-2",
+    });
+    expect(recorder.runtime.getDiagnosticSnapshot().runs?.[0]).toMatchObject({
+      instanceId: "attempt-2",
+      status: "completed",
+    });
+  });
+
   it("does not complete a parent step while an identified nested step is active", () => {
     const recorder = createAnnouncementRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });

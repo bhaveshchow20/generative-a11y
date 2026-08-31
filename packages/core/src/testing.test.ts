@@ -216,4 +216,19 @@ describe("core testing utilities", () => {
       ]),
     ).toThrow("requires runId");
   });
+
+  it("rejects step fixtures without the label required by runtime dispatch", () => {
+    expect(() =>
+      createReplayFixture([
+        {
+          at: 0,
+          event: {
+            type: "step.started",
+            runId: "run",
+            stepId: "draft",
+          } as never,
+        },
+      ]),
+    ).toThrow("requires label");
+  });
 });

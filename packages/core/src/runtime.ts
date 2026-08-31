@@ -995,14 +995,21 @@ export function createGenerativeA11y(
       }
       const previous = runs.get(event.runId);
       if (
+        previous?.status === "active" &&
+        previous.instanceId === event.runInstanceId
+      )
+        return diagnose(event, "duplicate");
+      if (
         previous?.status !== "active" &&
         activeEntityCount() >= policy.maxActiveEntities
       )
         return diagnose(event, "invalid-event");
-      if (previous)
+      if (previous) {
+        cancelRunDescendants(event.runId);
         scheduler.cancelScope(
           runLifecycleScope(event.runId, previous.instanceId),
         );
+      }
       const state: RunState = {
         status: "active",
         completedSteps: 0,

@@ -106,6 +106,7 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
     toolId?: unknown;
     runId?: unknown;
     stepId?: unknown;
+    label?: unknown;
   };
   if (
     typeof candidate.type !== "string" ||
@@ -131,6 +132,11 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
     throw new TypeError("Replay fixture stepId must be a string");
   if (candidate.stepId !== undefined && typeof candidate.runId !== "string")
     throw new TypeError("Replay fixture step context requires runId");
+  if (
+    candidate.type.startsWith("step.") &&
+    typeof candidate.label !== "string"
+  )
+    throw new TypeError("Replay fixture step event requires label");
 }
 
 function validateFixture(fixture: ReplayFixtureV1): void {
