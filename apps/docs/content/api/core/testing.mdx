@@ -7,14 +7,20 @@ publicPath: "/api/core/testing"
 section: "Core"
 keywords:
   ["recordRuntime", "replayEvents", "ReplayFixtureV1", "installVitestMatchers"]
-related: ["/api/core", "/docs/testing/replay", "/docs/testing"]
+related:
+  ["/api/core", "/api/core/workflows", "/docs/testing/replay", "/docs/testing"]
 order: 7
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/core/testing",
   section: "Core",
-  related: ["/api/core", "/docs/testing/replay", "/docs/testing"],
+  related: [
+    "/api/core",
+    "/api/core/workflows",
+    "/docs/testing/replay",
+    "/docs/testing",
+  ],
   order: 7,
 };
 
@@ -165,7 +171,8 @@ export const searchableText = [
   "Checks that at least one runtime diagnostic matches the expected fields.",
   "limits",
   "Validation and evidence limits",
-  "Replay rejects unsupported formats, versions, event types, backward times, and response or tool events without required IDs before dispatch. A passing transcript confirms deterministic core output. It does not prove browser delivery or screen-reader speech.",
+  "Replay rejects unsupported formats, versions, event types, backward times, malformed workflow identity, and lifecycle events without required IDs before dispatch. Run and step attempt boundaries remain in recorded fixtures.",
+  "A passing transcript confirms deterministic core output. It does not prove browser delivery or screen-reader speech.",
 ].join("\n");
 
 <span id="recorder"></span>
@@ -509,13 +516,15 @@ Partial expectations keep tests focused on the contract under review.
 
 ## Validation and evidence limits
 
-Replay rejects unsupported formats, versions, event types, backward times, and
-response or tool events without required IDs before dispatch. A passing
-transcript confirms deterministic core output. It does not prove browser
-delivery or screen&#45;reader speech.
+Replay rejects unsupported formats, versions, event types, backward times,
+malformed workflow identity, and lifecycle events without required IDs before
+dispatch. Run and step attempt boundaries remain in recorded fixtures. A
+passing transcript confirms deterministic core output. It does not prove
+browser delivery or screen&#45;reader speech.
 
 ## Related
 
 - [/api/core](/api/core)
+- [/api/core/workflows](/api/core/workflows)
 - [/docs/testing/replay](/docs/testing/replay)
 - [/docs/testing](/docs/testing)

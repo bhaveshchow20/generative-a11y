@@ -122,7 +122,13 @@ export const searchableText = [
   "readonly DevtoolsRecord[]",
   "Snapshot and export",
   "[]",
-  "Contains redacted events, decisions, and optional DOM delivery results in capture order.",
+  "Contains redacted events, decisions, and optional DOM delivery results in capture order, including workflow identity and attempt replacement fields.",
+  "workflow-records",
+  "Workflow record correlation",
+  "runId, runInstanceId, stepId, and stepInstanceId connect records to exact workflow attempts. Parent fields preserve explicit hierarchy. nextRunInstanceId and nextStepInstanceId connect retries to replacement attempts.",
+  "The trace explorer builds causal chains from exact attempt keys and does not merge concurrent or replaced attempts by label.",
+  "Adapter fidelity",
+  "DevtoolsRuntimeSource stores declared runs, steps, hierarchy, tools, interactions, replay, reconnection, retry, interruption, connection, and custom-event fidelity.",
   "runtimeSnapshots",
   "Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>",
   "Snapshot and export",
@@ -376,8 +382,9 @@ data it dropped.
       default: <>&#91;&#93;</>,
       description: (
         <>
-          Snapshot and export. Contains redacted events, decisions, and optional
-          DOM delivery results in capture order.
+          Snapshot and export. Contains redacted events, decisions, optional
+          DOM delivery results, workflow identity, hierarchy, and attempt
+          replacement fields in capture order.
         </>
       ),
     },
@@ -405,6 +412,53 @@ data it dropped.
     },
   }}
 />
+
+<span id="workflow&#45;records"></span>
+
+## Workflow record correlation
+
+Workflow records retain `runId`, `runInstanceId`, `stepId`, and
+`stepInstanceId`. Parent fields preserve only hierarchy supplied by the source.
+`nextRunInstanceId` and `nextStepInstanceId` connect a retry record to its
+replacement attempt. The trace explorer uses these exact attempt keys so
+concurrent or replaced attempts are not merged by label.
+
+<TypeTable
+  type={{
+    "runId / runInstanceId / nextRunInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Logical run, current attempt, and replacement attempt.</>,
+    },
+    "stepId / stepInstanceId / nextStepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Logical step, current attempt, and replacement attempt.</>,
+    },
+    "parentRunId / parentRunInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit parent run correlation.</>,
+    },
+    "parentStepId / parentStepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit parent step correlation.</>,
+    },
+    "parentToolId / parentResponseId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit delegation and response ownership.</>,
+    },
+  }}
+/>
+
+### Adapter fidelity
+
+`DevtoolsRuntimeSource` stores an integration's declared evidence and fidelity.
+Workflow fields cover runs, steps, hierarchy, tools, interactions, replay,
+reconnection, retries, interruption, connection, and custom events. Devtools
+does not inspect framework internals or fill in evidence the adapter lacks.
 
 <span id="overlay"></span>
 

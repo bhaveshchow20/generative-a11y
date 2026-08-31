@@ -169,6 +169,8 @@ Close the overlay, detach the borrowed runtime, then dispose the store.
 Workflow records expose content-free run and step identity, parent
 relationships, attempts, active or terminal state, and associated entity IDs
 when the adapter supplies them. The inspector does not infer missing hierarchy.
+Retry records connect the replaced and replacement attempt IDs, so causal chains
+remain separate across retries and concurrent siblings.
 
 <span id="captured&#45;evidence"></span>
 
