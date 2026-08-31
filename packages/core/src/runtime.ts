@@ -1088,7 +1088,18 @@ export function createGenerativeA11y(
         : event.type === "run.interrupted"
           ? "interrupted"
           : "failed";
-    if (policy.workflows.runs === "silent") {
+    const repeatsResponseBoundary =
+      event.type === "run.completed" &&
+      event.announcement === undefined &&
+      policy.workflows.runs === "terminal" &&
+      policy.announceResponseCompleted &&
+      state.completedSteps === 0 &&
+      state.failedSteps === 0 &&
+      [...responses.values()].some(
+        (response) =>
+          response.runId === event.runId && response.status === "completed",
+      );
+    if (policy.workflows.runs === "silent" || repeatsResponseBoundary) {
       diagnose(event, "policy-silent");
     } else if (event.type === "run.completed") {
       announce(event, event.announcement ?? runSummary(state), "polite", {

@@ -1568,6 +1568,33 @@ describe("generative accessibility runtime", () => {
     ]);
   });
 
+  it("does not repeat a completed response boundary as an empty run summary", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "response-1",
+      runId: "run-1",
+    });
+    recorder.runtime.dispatch({
+      type: "response.completed",
+      responseId: "response-1",
+      runId: "run-1",
+    });
+    recorder.runtime.dispatch({ type: "run.completed", runId: "run-1" });
+    recorder.clock.runUntilIdle();
+
+    expect(spoken(recorder)).toEqual([
+      { channel: "polite", text: "Response complete." },
+    ]);
+    expect(recorder.diagnosticTranscript()).toContainEqual(
+      expect.objectContaining({
+        sourceType: "run.completed",
+        reason: "policy-silent",
+      }),
+    );
+  });
+
   it("keeps concurrent siblings active when one step fails", () => {
     const recorder = createAnnouncementRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
