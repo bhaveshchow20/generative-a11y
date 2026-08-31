@@ -54,7 +54,7 @@ export const searchableText = [
   "Required",
   "n/a",
   "Identifies the app event that caused this intent.",
-  "responseId / toolId / interactionId / runId / stepId",
+  "responseId / toolId / interactionId / runId / runInstanceId / stepId / stepInstanceId",
   "string",
   "Optional",
   "undefined",
@@ -156,7 +156,7 @@ that the browser delivered it or that a screen reader spoke it.
       required: true,
       description: <>Identifies the app event that caused this intent.</>,
     },
-    "responseId / toolId / interactionId / runId / stepId": {
+    "responseId / toolId / interactionId / runId / runInstanceId / stepId / stepInstanceId": {
       type: <>string</>,
       default: <>undefined</>,
       description: <>Optional source lifecycle correlation.</>,
