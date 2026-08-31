@@ -1,8 +1,8 @@
 ---
 title: "@generative-a11y/ag-ui"
 description:
-  "Turn documented AG-UI AgentSubscriber callbacks into response, tool, and
-  interaction events."
+  "Turn documented AG-UI AgentSubscriber callbacks into hierarchical run,
+  partial step, response, tool, and interaction events."
 publicPath: "/api/ag-ui"
 section: "AG-UI"
 keywords: ["AG-UI", "AgentSubscriber", "AGENT_ADAPTER_METADATA"]
@@ -19,7 +19,7 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "@generative-a11y/ag-ui",
-  "Turn documented AG-UI AgentSubscriber callbacks into response, tool, and interaction events.",
+  "Turn documented AG-UI AgentSubscriber callbacks into hierarchical run, partial step, response, tool, and interaction events.",
   "AG-UI",
   "AG-UI",
   "AgentSubscriber",
@@ -44,7 +44,7 @@ export const searchableText = [
   "Cleanup method for the binding",
   "fidelity",
   "Events the adapter can report",
-  "Protocol events report interruptions. AG-UI does not provide general retry or connection events. Interrupt callbacks report requests for user input.",
+  "AG-UI 0.0.59 reports exact run and delegated subagent identity. Step events expose labels but no stable IDs, making step and hierarchy support partial. Replay and reconnection are partial; retries remain unavailable.",
   "AG-UI integration never uses private observables or guesses events missing from the protocol.",
 ].join("\n");
 
@@ -90,8 +90,10 @@ AG&#45;UI integration subscribes through agent.subscribe(AgentSubscriber).
 
 ## Events the adapter can report
 
-Protocol events report interruptions. AG&#45;UI does not provide general retry
-or connection events. Interrupt callbacks report requests for user input.
+AG&#45;UI 0.0.59 reports exact run and delegated subagent identity. Step events
+expose labels but no stable IDs, making step and hierarchy support partial.
+Replay and reconnection are partial because there is no mandatory persistent
+cursor; retry support remains unavailable.
 
 <Callout title="Evidence and testing note">
 

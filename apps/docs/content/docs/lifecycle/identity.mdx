@@ -1,8 +1,8 @@
 ---
 title: "Keep updates connected with stable IDs"
 description:
-  "Use stable IDs to keep every update connected to the correct response, tool,
-  interaction, or approval."
+  "Use stable IDs to keep every update connected to the correct run, step,
+  response, tool, interaction, or approval."
 publicPath: "/docs/lifecycle/identity"
 section: "Lifecycle"
 keywords:
@@ -27,11 +27,13 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Keep updates connected with stable IDs",
-  "Use stable IDs to keep every update connected to the correct response, tool, interaction, or approval.",
+  "Use stable IDs to keep every update connected to the correct run, step, response, tool, interaction, or approval.",
   "Lifecycle",
   "identity",
   "responseId",
   "responseInstanceId",
+  "runId",
+  "stepId",
   "toolId",
   "scopeId",
   "message",
@@ -65,9 +67,9 @@ export const searchableText = [
 
 ## Use a stable ID for each piece of work
 
-responseId identifies an answer, and responseInstanceId separates its retry
-attempts. toolId identifies a tool call, and toolInstanceId separates repeated
-runs. interactionId and approvalId connect each request to its result.
+runId and stepId identify workflow entities, while their instance IDs separate
+attempts. responseId identifies an answer, toolId identifies a tool call, and
+interactionId or approvalId connects each request to its result.
 
 <table aria-label="Use a stable ID for each piece of work table">
   <thead>
@@ -78,6 +80,16 @@ runs. interactionId and approvalId connect each request to its result.
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td>Run attempt</td>
+      <td>runId &#43; runInstanceId</td>
+      <td>Separates workflow retries and delegated work</td>
+    </tr>
+    <tr>
+      <td>Step attempt</td>
+      <td>stepId &#43; stepInstanceId</td>
+      <td>Preserves concurrent siblings and rejects stale retry output</td>
+    </tr>
     <tr>
       <td>Response</td>
       <td>responseId</td>

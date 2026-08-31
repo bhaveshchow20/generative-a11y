@@ -1,0 +1,13 @@
+{
+  "name": "@generative-a11y/example-hierarchical-workflow",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node --test test.mjs"
+  },
+  "dependencies": {
+    "@generative-a11y/core": "workspace:*"
+  }
+}

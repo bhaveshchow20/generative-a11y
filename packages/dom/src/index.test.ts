@@ -76,6 +76,10 @@ describe("createDOMAnnouncer", () => {
       responseId: "response-1",
       toolId: "tool-1",
       interactionId: "interaction-1",
+      runId: "run-1",
+      runInstanceId: "run-attempt-1",
+      stepId: "step-1",
+      stepInstanceId: "step-attempt-1",
     };
     const expectedContext = {
       announcementId: "announcement-correlated",
@@ -85,6 +89,10 @@ describe("createDOMAnnouncer", () => {
       responseId: "response-1",
       toolId: "tool-1",
       interactionId: "interaction-1",
+      runId: "run-1",
+      runInstanceId: "run-attempt-1",
+      stepId: "step-1",
+      stepInstanceId: "step-attempt-1",
     };
 
     const unavailable = createDOMAnnouncer().announce(sourceIntent);
