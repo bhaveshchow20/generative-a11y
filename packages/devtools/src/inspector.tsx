@@ -54,6 +54,8 @@ function correlationKeys(record: DevtoolsRecord): readonly string[] {
     keys.add(
       `${prefix}run:${record.runId}:${record.runInstanceId ?? "unidentified"}`,
     );
+  if (record.runId && record.nextRunInstanceId)
+    keys.add(`${prefix}run:${record.runId}:${record.nextRunInstanceId}`);
   if (record.parentRunId)
     keys.add(
       `${prefix}run:${record.parentRunId}:${record.parentRunInstanceId ?? "unidentified"}`,
@@ -61,6 +63,10 @@ function correlationKeys(record: DevtoolsRecord): readonly string[] {
   if (record.stepId)
     keys.add(
       `${prefix}step:${record.runId ?? "unknown"}:${record.runInstanceId ?? "unidentified"}:${record.stepId}:${record.stepInstanceId ?? "unidentified"}`,
+    );
+  if (record.stepId && record.nextStepInstanceId)
+    keys.add(
+      `${prefix}step:${record.runId ?? "unknown"}:${record.runInstanceId ?? "unidentified"}:${record.stepId}:${record.nextStepInstanceId}`,
     );
   if (record.parentStepId)
     keys.add(

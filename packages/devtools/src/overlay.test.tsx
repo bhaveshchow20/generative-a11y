@@ -234,6 +234,44 @@ test("joins run, step, and tool evidence into a hierarchical causal chain", () =
   mounted.dispose();
 });
 
+test("links a retry record to its replacement run attempt", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-1",
+  });
+  runtime.dispatch({
+    type: "run.retrying",
+    runId: "run",
+    runInstanceId: "attempt-1",
+    nextRunInstanceId: "attempt-2",
+  });
+  runtime.dispatch({
+    type: "run.completed",
+    runId: "run",
+    runInstanceId: "attempt-2",
+  });
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const retry = [...root.querySelectorAll<HTMLElement>(".ga-trace-row")].find(
+    (row) => row.textContent?.includes("run.retrying"),
+  );
+  if (!retry) throw new Error("run retry record missing");
+  fireEvent.click(retry);
+
+  expect(
+    root.querySelector('[data-testid="causal-chain"]')?.textContent,
+  ).toContain("run.completed");
+  mounted.dispose();
+});
+
 test("does not display a newer attempt snapshot for an older record", () => {
   const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
   const store = createDevtoolsStore();
