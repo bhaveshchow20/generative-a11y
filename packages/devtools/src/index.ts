@@ -185,7 +185,9 @@ function asRecord(
       kind: event.kind,
       sourceType: event.event.type,
       ...(event.event.eventId ? { sourceEventId: event.event.eventId } : {}),
-      ...("runId" in event.event ? { runId: event.event.runId } : {}),
+      ...("runId" in event.event && event.event.runId
+        ? { runId: event.event.runId }
+        : {}),
       ...("runInstanceId" in event.event && event.event.runInstanceId
         ? { runInstanceId: event.event.runInstanceId }
         : {}),
