@@ -279,7 +279,17 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
           response.runId,
         );
       }
-      for (const tool of tools.values()) tool.terminal = true;
+      for (const [id, tool] of tools) {
+        if (tool.terminal) continue;
+        tool.terminal = true;
+        if (!tool.runId) {
+          dispatch({
+            type: "tool.failed",
+            toolId: toolId(scopeId, id),
+            label: "A tool",
+          });
+        }
+      }
       for (const [id, run] of [...runs].reverse()) {
         if (run.terminal) continue;
         run.terminal = true;

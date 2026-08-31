@@ -376,6 +376,34 @@ describe("AG-UI binding", () => {
     });
     expect(recorder.diagnosticTranscript()).toHaveLength(diagnosticCount);
   });
+
+  it("fails an active tool without run ownership on a top-level error", () => {
+    const recorder = createAnnouncementRecorder();
+    const agent = agentFor();
+    bindAgent({
+      runtime: recorder.runtime,
+      scopeId: "agent",
+      agent: agent as never,
+    });
+
+    agent.emit("onToolCallStartEvent", {
+      event: {
+        type: "TOOL_CALL_START",
+        toolCallId: "orphaned",
+        toolCallName: "search",
+      },
+    });
+    agent.emit("onRunErrorEvent", {
+      event: { type: "RUN_ERROR", message: "private" },
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot().tools).toEqual([
+      expect.objectContaining({
+        toolId: "agent:tool:orphaned",
+        status: "failed",
+      }),
+    ]);
+  });
   it("fails closed at capacity and ignores callbacks after disposal", () => {
     const { events, runtime } = recorder();
     const agent = agentFor();
