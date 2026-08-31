@@ -7,14 +7,14 @@ publicPath: "/api/core/diagnostics"
 section: "Core"
 keywords:
   ["AnnouncementIntent", "AnnouncementDiagnostic", "DiagnosticReason", "count"]
-related: []
+related: ["/api/core/workflows", "/api/devtools"]
 order: 6
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/core/diagnostics",
   section: "Core",
-  related: [],
+  related: ["/api/core/workflows", "/api/devtools"],
   order: 6,
 };
 
@@ -54,7 +54,7 @@ export const searchableText = [
   "Required",
   "n/a",
   "Identifies the app event that caused this intent.",
-  "responseId / toolId / interactionId",
+  "responseId / toolId / interactionId / runId / stepId",
   "string",
   "Optional",
   "undefined",
@@ -72,7 +72,7 @@ export const searchableText = [
   "coalesced",
   "Pending equivalent work was replaced",
   "suppressed",
-  "duplicate, policy-silent, stale-response",
+  "duplicate, policy-silent, stale-response, stale-run, stale-step, partial-identity",
   "Policy or identity prevented output",
   "cancelled",
   "scope-cancelled, runtime-disposed",
@@ -107,7 +107,13 @@ export const searchableText = [
   "immutable object",
   "Snapshot",
   "n/a",
-  "Content-free active response, tool, pending announcement, and response flush state.",
+  "Content-free response, tool, run, identified step, pending announcement, and response flush state.",
+  "runs",
+  "readonly DiagnosticRunSnapshot[]",
+  "Content-free run attempts with explicit hierarchy, status, and identified step counts.",
+  "steps",
+  "readonly DiagnosticStepSnapshot[]",
+  "Content-free identified step attempts with explicit hierarchy, status, start time, and progress bucket.",
   "pending.announcements",
   "readonly DiagnosticPendingAnnouncement[]",
   "Snapshot field",
@@ -150,7 +156,7 @@ that the browser delivered it or that a screen reader spoke it.
       required: true,
       description: <>Identifies the app event that caused this intent.</>,
     },
-    "responseId / toolId / interactionId": {
+    "responseId / toolId / interactionId / runId / stepId": {
       type: <>string</>,
       default: <>undefined</>,
       description: <>Optional source lifecycle correlation.</>,
@@ -187,7 +193,10 @@ diagnostic with a count.
     </tr>
     <tr>
       <td>suppressed</td>
-      <td>duplicate, policy&#45;silent, stale&#45;response</td>
+      <td>
+        duplicate, policy&#45;silent, stale&#45;response, stale&#45;run,
+        stale&#45;step, partial&#45;identity
+      </td>
       <td>Policy or identity prevented output</td>
     </tr>
     <tr>
@@ -254,8 +263,8 @@ deduplication keys, or timer handles.
       type: <>immutable object</>,
       description: (
         <>
-          Snapshot. Content&#45;free active response, tool, pending
-          announcement, and response flush state.
+          Snapshot. Content&#45;free response, tool, run, identified step,
+          pending announcement, and response flush state.
         </>
       ),
     },
@@ -269,6 +278,27 @@ deduplication keys, or timer handles.
         </>
       ),
     },
+    runs: {
+      type: <>readonly DiagnosticRunSnapshot&#91;&#93;</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Content&#45;free run attempts with explicit hierarchy, status, and
+          identified step counts. Optional for schema&#45;version compatibility.
+        </>
+      ),
+    },
+    steps: {
+      type: <>readonly DiagnosticStepSnapshot&#91;&#93;</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Content&#45;free identified step attempts with explicit hierarchy,
+          status, start time, and progress bucket. Optional for
+          schema&#45;version compatibility.
+        </>
+      ),
+    },
   }}
 />
 
@@ -278,3 +308,8 @@ Runtime diagnostics explain library behavior. They do not prove DOM delivery or
 screen&#45;reader speech.
 
 </Callout>
+
+## Related
+
+- [/api/core/workflows](/api/core/workflows)
+- [/api/devtools](/api/devtools)

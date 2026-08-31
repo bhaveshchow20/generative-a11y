@@ -211,6 +211,7 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
     ["/api", /API reference/i],
     ["/api/core", /@generative-a11y\/core/i],
     ["/api/core/create-generative-a11y", /dispatch\(event\)/i],
+    ["/api/core/workflows", /WorkflowContext/i],
     ["/api/dom/create-dom-announcer", /DOMAnnouncerOptions/i],
     ["/api/react/hooks", /useGenerativeA11yRuntime/i],
     ["/api/ai-sdk/use-chat-accessibility", /useChatAccessibility/i],

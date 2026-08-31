@@ -123,6 +123,11 @@ export const searchableText = [
   "Optional",
   "undefined",
   "Entity IDs copied from the announcement intent when present.",
+  "runId / runInstanceId / stepId / stepInstanceId",
+  "string",
+  "Optional",
+  "undefined",
+  "Workflow IDs copied from the announcement intent when present.",
   "error",
   "{ name, message }",
   "Optional",
@@ -334,6 +339,16 @@ announce returns one result synchronously.
       description: (
         <>Entity IDs copied from the announcement intent when present.</>
       ),
+    },
+    "runId / runInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Run and attempt IDs copied from the intent when present.</>,
+    },
+    "stepId / stepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Step and attempt IDs copied from the intent when present.</>,
     },
     error: {
       type: <>&#123; name, message &#125;</>,

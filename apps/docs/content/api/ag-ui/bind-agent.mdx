@@ -6,14 +6,14 @@ description:
 publicPath: "/api/ag-ui/bind-agent"
 section: "AG-UI"
 keywords: ["bindAgent", "BindAgentOptions", "AgentBinding", "AgentSubscriber"]
-related: []
+related: ["/docs/integrations/ag-ui", "/api/core/workflows"]
 order: 21
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/ag-ui/bind-agent",
   section: "AG-UI",
-  related: [],
+  related: ["/docs/integrations/ag-ui", "/api/core/workflows"],
   order: 21,
 };
 
@@ -33,7 +33,7 @@ export const searchableText = [
   "Connect the agent",
   "AgentBinding subscribes to documented callbacks without running your agent.",
   "Separate agent IDs",
-  "scopeId prevents message, tool, and interrupt IDs from colliding across agents.",
+  "scopeId prevents run, message, tool, and interrupt IDs from colliding across agents.",
   "Limit stored IDs",
   "After reaching its limit, the adapter ignores new IDs instead of removing active records.",
   "Dispose the subscription",
@@ -47,7 +47,7 @@ export const searchableText = [
   "string",
   "Required",
   "n/a",
-  "Stable non-empty namespace for AG-UI message, tool, and interrupt IDs.",
+  "Stable non-empty namespace for AG-UI run, message, tool, and interrupt IDs.",
   "agent",
   "AgentSource",
   "Required",
@@ -57,7 +57,7 @@ export const searchableText = [
   "number",
   "Optional",
   "1000",
-  "Positive safe integer bounding tracked responses, tools, and interactions.",
+  "Positive safe integer bounding tracked runs, responses, tools, and interactions.",
   "return",
   "AgentBinding",
   "Return",
@@ -69,6 +69,15 @@ export const searchableText = [
   "AG-UI callback family",
   "generative-a11y event",
   "Notes",
+  "Run start and finish",
+  "run lifecycle",
+  "Uses protocol run identity and preserves documented lineage",
+  "Subagent start and finish",
+  "delegated child run lifecycle",
+  "Preserves explicit parent run, tool, and message ownership",
+  "Step start and finish",
+  "partial step lifecycle",
+  "Keeps stepName as a label and omits stepId",
   "Text message start, content, end",
   "response lifecycle",
   "Each update contains only new text",
@@ -76,8 +85,8 @@ export const searchableText = [
   "tool lifecycle",
   "Arguments alone do not mean execution started",
   "Run error or interruption",
-  "response.failed or interrupted",
-  "Uses short, translated text that is safe to share",
+  "run and active descendant terminal events",
+  "Ends active response, tool, child run, and root run state",
   "Interrupt and resume",
   "interaction requested or resolved",
   "Reports when the app needs user input",
@@ -124,7 +133,8 @@ AgentBinding subscribes to documented callbacks without running your agent.
 
 ### Separate agent IDs
 
-scopeId prevents message, tool, and interrupt IDs from colliding across agents.
+scopeId prevents run, message, tool, and interrupt IDs from colliding across
+agents.
 
 </Step>
 
@@ -161,7 +171,7 @@ Your app still owns the runtime and agent after the binding is disposed.
       required: true,
       description: (
         <>
-          Stable non&#45;empty namespace for AG&#45;UI message, tool, and
+          Stable non&#45;empty namespace for AG&#45;UI run, message, tool, and
           interrupt IDs.
         </>
       ),
@@ -176,7 +186,7 @@ Your app still owns the runtime and agent after the binding is disposed.
       default: <>1000</>,
       description: (
         <>
-          Positive safe integer bounding tracked responses, tools, and
+          Positive safe integer bounding tracked runs, responses, tools, and
           interactions.
         </>
       ),
@@ -206,6 +216,21 @@ AG&#45;UI integration reads public callbacks instead of rendered UI.
   </thead>
   <tbody>
     <tr>
+      <td>Run start and finish</td>
+      <td>run lifecycle</td>
+      <td>Uses protocol run identity and preserves documented lineage</td>
+    </tr>
+    <tr>
+      <td>Subagent start and finish</td>
+      <td>delegated child run lifecycle</td>
+      <td>Preserves explicit parent run, tool, and message ownership</td>
+    </tr>
+    <tr>
+      <td>Step start and finish</td>
+      <td>partial step lifecycle</td>
+      <td>Keeps stepName as a label and omits stepId</td>
+    </tr>
+    <tr>
       <td>Text message start, content, end</td>
       <td>response lifecycle</td>
       <td>Each update contains only new text</td>
@@ -217,8 +242,8 @@ AG&#45;UI integration reads public callbacks instead of rendered UI.
     </tr>
     <tr>
       <td>Run error or interruption</td>
-      <td>response.failed or interrupted</td>
-      <td>Uses short, translated text that is safe to share</td>
+      <td>run and active descendant terminal events</td>
+      <td>Ends active response, tool, child run, and root run state</td>
     </tr>
     <tr>
       <td>Interrupt and resume</td>
@@ -232,3 +257,17 @@ AG&#45;UI integration reads public callbacks instead of rendered UI.
     </tr>
   </tbody>
 </table>
+
+<Callout title="Declared fidelity">
+
+AG&#45;UI 0.0.59 provides stable run and subagent IDs. Step callbacks provide
+`stepName` but no stable step ID, so step and hierarchy fidelity are partial.
+Replay and reconnection are partial, retry support is unavailable, and custom
+events require an explicit host mapping.
+
+</Callout>
+
+## Related
+
+- [/docs/integrations/ag-ui](/docs/integrations/ag-ui)
+- [/api/core/workflows](/api/core/workflows)

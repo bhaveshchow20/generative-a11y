@@ -1,8 +1,8 @@
 ---
 title: "GenerativeA11yEvent"
 description:
-  "Report responses, tools, interactions, approvals, connection changes, and
-  citations with this event union."
+  "Report runs, steps, responses, tools, interactions, approvals, connection
+  changes, and citations with this event union."
 publicPath: "/api/core/events"
 section: "Core"
 keywords:
@@ -12,20 +12,20 @@ keywords:
     "tool.started",
     "interaction.requested",
   ]
-related: []
+related: ["/api/core/workflows"]
 order: 3
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/core/events",
   section: "Core",
-  related: [],
+  related: ["/api/core/workflows"],
   order: 3,
 };
 
 export const searchableText = [
   "GenerativeA11yEvent",
-  "Report responses, tools, interactions, approvals, connection changes, and citations with this event union.",
+  "Report runs, steps, responses, tools, interactions, approvals, connection changes, and citations with this event union.",
   "Core",
   "GenerativeA11yEvent",
   "response.started",
@@ -37,6 +37,12 @@ export const searchableText = [
   "Family",
   "Events",
   "Required identity",
+  "Run",
+  "started, completed, interrupted, failed, retrying",
+  "runId",
+  "Step",
+  "started, progress, completed, interrupted, failed, retrying",
+  "runId; stepId when stable identity exists",
   "Response",
   "started, text.delta, completed, interrupted, failed, retrying",
   "responseId",
@@ -64,6 +70,7 @@ export const searchableText = [
   "responseId continues to identify the answer being regenerated.",
   "Replace the epoch",
   "nextResponseInstanceId becomes the accepted attempt for later deltas and terminals.",
+  "A later response.started with the same responseId also replaces the active attempt and makes older instance events stale.",
   "common-fields",
   "Common fields",
   "ID fields connect related events. Labels and messages contain translated text for users.",
@@ -105,6 +112,16 @@ serializable data, not rendered components or private framework state.
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td>Run</td>
+      <td>started, completed, interrupted, failed, retrying</td>
+      <td>runId</td>
+    </tr>
+    <tr>
+      <td>Step</td>
+      <td>started, progress, completed, interrupted, failed, retrying</td>
+      <td>runId; stepId when stable identity exists</td>
+    </tr>
     <tr>
       <td>Response</td>
       <td>started, text.delta, completed, interrupted, failed, retrying</td>
@@ -175,6 +192,9 @@ responseId continues to identify the answer being regenerated.
 nextResponseInstanceId becomes the accepted attempt for later deltas and
 terminals.
 
+A later `response.started` with the same `responseId` also replaces the active
+attempt and makes events from older instance IDs stale.
+
 </Step>
 
 </Steps>
@@ -199,7 +219,7 @@ for users.
       description: (
         <>
           Connects an event to your app's logs without being used as the ID for
-          a response, tool, or interaction.
+          a response, tool, interaction, run, or step.
         </>
       ),
     },
@@ -225,3 +245,7 @@ for users.
     },
   }}
 />
+
+## Related
+
+- [/api/core/workflows](/api/core/workflows)

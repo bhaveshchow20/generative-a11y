@@ -1,4 +1,4 @@
 {
   "title": "Core",
-  "pages": ["create-generative-a11y", "events", "policy", "scheduler", "diagnostics", "testing"]
+  "pages": ["create-generative-a11y", "events", "workflows", "policy", "scheduler", "diagnostics", "testing"]
 }
