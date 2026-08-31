@@ -1,5 +1,16 @@
 # @generative-a11y/core
 
+## 0.3.0
+
+### Minor Changes
+
+- ca06bfa: Add normalized hierarchical run and step lifecycle, attempt-aware
+  cancellation, quiet workflow policy defaults, replay fixtures, and
+  content-free hierarchy diagnostics.
+- 0512916: Declare workflow fidelity across adapters and map documented AG-UI
+  0.0.59 run, subagent, partial step, tool, response, and interaction ownership
+  into the normalized hierarchy.
+
 ## 0.2.0
 
 ### Minor Changes

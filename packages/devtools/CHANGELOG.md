@@ -1,5 +1,19 @@
 # @generative-a11y/devtools
 
+## 0.1.1
+
+### Patch Changes
+
+- beaa7c7: Preserve workflow correlation through DOM delivery, keep redacted run
+  and step snapshots, and expose hierarchy, attempts, and terminal state in the
+  optional trace inspector.
+- 0512916: Declare workflow fidelity across adapters and map documented AG-UI
+  0.0.59 run, subagent, partial step, tool, response, and interaction ownership
+  into the normalized hierarchy.
+- Updated dependencies [ca06bfa]
+- Updated dependencies [0512916]
+  - @generative-a11y/core@0.3.0
+
 ## 0.1.0
 
 ### Minor Changes

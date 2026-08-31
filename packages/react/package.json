@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "React accessibility provider and hooks for paced screen-reader announcements in streaming AI and agent interfaces.",
   "keywords": [
     "accessibility",

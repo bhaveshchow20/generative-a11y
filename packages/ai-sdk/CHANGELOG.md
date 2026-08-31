@@ -1,5 +1,16 @@
 # @generative-a11y/ai-sdk
 
+## 0.1.2
+
+### Patch Changes
+
+- 0512916: Declare workflow fidelity across adapters and map documented AG-UI
+  0.0.59 run, subagent, partial step, tool, response, and interaction ownership
+  into the normalized hierarchy.
+- Updated dependencies [ca06bfa]
+- Updated dependencies [0512916]
+  - @generative-a11y/core@0.3.0
+
 ## 0.1.1
 
 ### Patch Changes

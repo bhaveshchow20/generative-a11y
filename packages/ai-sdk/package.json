@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/ai-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vercel AI SDK accessibility adapter for streaming responses, tools, and paced screen-reader announcements.",
   "keywords": [
     "accessibility",
