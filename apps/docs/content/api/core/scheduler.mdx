@@ -12,14 +12,14 @@ keywords:
     "capacityPriority",
     "cancelScope",
   ]
-related: []
+related: ["/api/core/workflows"]
 order: 5
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/core/scheduler",
   section: "Core",
-  related: [],
+  related: ["/api/core/workflows"],
   order: 5,
 };
 
@@ -43,7 +43,7 @@ export const searchableText = [
   "Set queue priority",
   "Response text can replace a status update when the queue is full.",
   "Group related work",
-  "Use one scope to cancel pending work when that response or tool ends.",
+  "Use one scope to cancel pending work when a response, tool, run, or step ends.",
   "options",
   "AnnouncementSchedulerOptions",
   "Required",
@@ -81,7 +81,10 @@ export const searchableText = [
   "string",
   "Optional",
   "undefined",
-  "Key used to cancel pending work for one response, tool, or interaction.",
+  "Key used to cancel pending work for one response, tool, interaction, run, or step.",
+  "runId / runInstanceId / stepId / stepInstanceId",
+  "string",
+  "Optional workflow correlation copied into intents and diagnostics.",
   "coalesceKey",
   "string",
   "Optional",
@@ -115,6 +118,9 @@ export const searchableText = [
   "Method",
   "n/a",
   "Returns the current bounded queue length.",
+  "getDiagnosticSnapshot()",
+  "readonly DiagnosticPendingAnnouncement[]",
+  "Returns the current content-free pending queue projection in due-time order.",
   "dispose()",
   "void",
   "Method",
@@ -181,7 +187,7 @@ Response text can replace a status update when the queue is full.
 
 ### Group related work
 
-Use one scope to cancel pending work when that response or tool ends.
+Use one scope to cancel pending work when a response, tool, run, or step ends.
 
 </Step>
 
@@ -249,9 +255,16 @@ backend data.
       default: <>undefined</>,
       description: (
         <>
-          Key used to cancel pending work for one response, tool, or
-          interaction.
+          Key used to cancel pending work for one response, tool, interaction,
+          run, or step.
         </>
+      ),
+    },
+    "runId / runInstanceId / stepId / stepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Optional workflow correlation copied into intents and diagnostics.</>
       ),
     },
     coalesceKey: {
@@ -308,6 +321,15 @@ Dispose cancels the owned timer and pending queue.
       type: <>number</>,
       description: <>Method. Returns the current bounded queue length.</>,
     },
+    "getDiagnosticSnapshot()": {
+      type: <>readonly DiagnosticPendingAnnouncement&#91;&#93;</>,
+      description: (
+        <>
+          Method. Returns the current content&#45;free pending queue projection in
+          due&#45;time order.
+        </>
+      ),
+    },
     "dispose()": {
       type: <>void</>,
       description: (
@@ -316,3 +338,7 @@ Dispose cancels the owned timer and pending queue.
     },
   }}
 />
+
+## Related
+
+- [/api/core/workflows](/api/core/workflows)

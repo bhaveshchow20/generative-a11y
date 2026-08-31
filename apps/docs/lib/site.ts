@@ -8,6 +8,10 @@ export const SITE_DESCRIPTION =
 /** Canonical source repository. */
 export const REPOSITORY_URL =
   "https://github.com/bhaveshchow20/generative-a11y";
+/** Project author and maintainer named in the repository license. */
+export const PROJECT_AUTHOR_NAME = "Bhavesh Chowdhury";
+/** Public author profile used to connect project identity across discovery surfaces. */
+export const PROJECT_AUTHOR_URL = "https://github.com/bhaveshchow20";
 /** npm organization page for the published package family. */
 export const NPM_SCOPE_URL = "https://www.npmjs.com/org/generative-a11y";
 /** Site-relative Open Graph and social card image. */

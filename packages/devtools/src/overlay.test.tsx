@@ -166,6 +166,176 @@ test("correlates source and decision records when no event id was supplied", () 
   mounted.dispose();
 });
 
+test("renders workflow identity, hierarchy, attempt, and terminal state", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({ type: "run.started", runId: "parent" });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "child",
+    runInstanceId: "attempt-1",
+    parentRunId: "parent",
+  });
+  runtime.dispatch({
+    type: "step.started",
+    runId: "child",
+    runInstanceId: "attempt-1",
+    stepId: "search",
+    stepInstanceId: "step-attempt-1",
+    label: "Search",
+  });
+  store.refreshSnapshots();
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>("button");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("Workflow hierarchy");
+  expect(detail?.textContent).toContain("child");
+  expect(detail?.textContent).toContain("attempt-1");
+  expect(detail?.textContent).toContain("search");
+  expect(detail?.textContent).toContain("active");
+  mounted.dispose();
+});
+
+test("joins run, step, and tool evidence into a hierarchical causal chain", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({ type: "run.started", runId: "run" });
+  runtime.dispatch({
+    type: "step.started",
+    runId: "run",
+    stepId: "search",
+    label: "Search",
+  });
+  runtime.dispatch({
+    type: "tool.started",
+    toolId: "browser",
+    runId: "run",
+    stepId: "search",
+    label: "Browser",
+  });
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+
+  const chain = root.querySelector('[data-testid="causal-chain"]')?.textContent;
+  expect(chain).toContain("run.started");
+  expect(chain).toContain("step.started");
+  expect(chain).toContain("tool.started");
+  mounted.dispose();
+});
+
+test("links a retry record to its replacement run attempt", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-1",
+  });
+  runtime.dispatch({
+    type: "run.retrying",
+    runId: "run",
+    runInstanceId: "attempt-1",
+    nextRunInstanceId: "attempt-2",
+  });
+  runtime.dispatch({
+    type: "run.completed",
+    runId: "run",
+    runInstanceId: "attempt-2",
+  });
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const retry = [...root.querySelectorAll<HTMLElement>(".ga-trace-row")].find(
+    (row) => row.textContent?.includes("run.retrying"),
+  );
+  if (!retry) throw new Error("run retry record missing");
+  fireEvent.click(retry);
+
+  expect(
+    root.querySelector('[data-testid="causal-chain"]')?.textContent,
+  ).toContain("run.completed");
+  mounted.dispose();
+});
+
+test("does not display a newer attempt snapshot for an older record", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-1",
+  });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-2",
+  });
+  store.refreshSnapshots();
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const oldStart = [...root.querySelectorAll<HTMLElement>(".ga-trace-row")]
+    .filter((row) => row.textContent?.includes("run.started"))
+    .at(-1);
+  if (!oldStart) throw new Error("older run start record missing");
+  fireEvent.click(oldStart);
+
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("attempt-1");
+  expect(detail?.textContent).toContain("Run stateNot retained");
+  mounted.dispose();
+});
+
+test("does not infer an attempt snapshot for a record without attempt identity", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({ type: "run.started", runId: "run" });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-2",
+  });
+  store.refreshSnapshots();
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const unidentifiedStart = [
+    ...root.querySelectorAll<HTMLElement>(".ga-trace-row"),
+  ]
+    .filter((row) => row.textContent?.includes("run.started"))
+    .at(-1);
+  if (!unidentifiedStart) throw new Error("unidentified run start missing");
+  fireEvent.click(unidentifiedStart);
+
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("Run attemptNot supplied");
+  expect(detail?.textContent).toContain("Run stateNot retained");
+  mounted.dispose();
+});
+
 test("cancels feedback cleanup when the workspace unmounts", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");

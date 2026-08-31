@@ -3,6 +3,17 @@ import { describe, expect, it, vi } from "vitest";
 import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
 import { createDevtoolsStore } from "./index.js";
 
+const workflowFidelity = {
+  runs: "unavailable",
+  steps: "unavailable",
+  hierarchy: "unavailable",
+  tools: "exact",
+  interactions: "unavailable",
+  replay: "partial",
+  reconnection: "unavailable",
+  customEvents: "unsupported",
+} as const;
+
 describe("devtools store", () => {
   it("captures bounded redacted records from independent runtimes without changing them", () => {
     const clock = new ManualClock();
@@ -146,6 +157,10 @@ describe("devtools store", () => {
         error: { name: "NotAllowedError", message: "Private browser failure" },
         method: "live-region",
         responseId: "response-1",
+        runId: "run-1",
+        runInstanceId: "run-attempt-1",
+        stepId: "step-1",
+        stepInstanceId: "step-attempt-1",
         sourceType: "response.completed",
         status: "mutated",
       },
@@ -159,6 +174,10 @@ describe("devtools store", () => {
       errorName: "NotAllowedError",
       kind: "dom-delivery",
       runtimeId: "primary",
+      runId: "run-1",
+      runInstanceId: "run-attempt-1",
+      stepId: "step-1",
+      stepInstanceId: "step-attempt-1",
     });
     expect(JSON.stringify(store.exportTrace())).not.toContain(
       "Private browser failure",
@@ -211,6 +230,7 @@ describe("devtools store", () => {
         adapter: "assistant-ui",
         evidence,
         fidelity: {
+          ...workflowFidelity,
           interruption: "exact",
           retries: "unavailable",
           connection: "unavailable",
@@ -240,6 +260,7 @@ describe("devtools store", () => {
       adapter: "assistant-ui",
       evidence: ["ThreadRuntime.getState", "ThreadRuntime.subscribe"],
       fidelity: {
+        ...workflowFidelity,
         interruption: "exact",
         retries: "unavailable",
         connection: "unavailable",
@@ -286,6 +307,7 @@ describe("devtools store", () => {
       adapter,
       evidence: [`${adapter}.subscribe`],
       fidelity: {
+        ...workflowFidelity,
         interruption: "exact" as const,
         retries: "unavailable" as const,
         connection: "unavailable" as const,
@@ -334,6 +356,7 @@ describe("devtools store", () => {
           adapter,
           evidence: [`${adapter}.subscribe`],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",
@@ -367,6 +390,7 @@ describe("devtools store", () => {
           adapter: "",
           evidence: [],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",
@@ -376,6 +400,35 @@ describe("devtools store", () => {
     ).toThrow("source adapter must be a non-empty string");
     expect(subscribe).not.toHaveBeenCalled();
     expect(store.getSnapshot().runtimeIds).toEqual([]);
+  });
+
+  it("accepts legacy source fidelity without workflow evidence fields", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+    store.attachRuntime({
+      id: "primary",
+      runtime,
+      source: {
+        adapter: "legacy-adapter",
+        evidence: ["LegacyAdapter.subscribe"],
+        fidelity: {
+          interruption: "exact",
+          retries: "unavailable",
+          connection: "unavailable",
+        },
+      },
+    });
+
+    expect(store.getSnapshot().runtimeSources).toEqual({
+      primary: expect.objectContaining({
+        adapter: "legacy-adapter",
+        fidelity: {
+          interruption: "exact",
+          retries: "unavailable",
+          connection: "unavailable",
+        },
+      }),
+    });
   });
 
   it("rejects unsupported fidelity declarations and non-public evidence", () => {
@@ -401,6 +454,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["x".repeat(121)],
           fidelity: {
+            ...workflowFidelity,
             interruption: "inferred" as never,
             retries: "unavailable",
             connection: "unavailable",
@@ -419,6 +473,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["CustomAdapter.observe"],
           fidelity: {
+            ...workflowFidelity,
             interruption: "inferred" as never,
             retries: "unavailable",
             connection: "unavailable",
@@ -434,6 +489,7 @@ describe("devtools store", () => {
           adapter: "custom",
           evidence: ["CustomAdapter.observe"],
           fidelity: {
+            ...workflowFidelity,
             interruption: "exact",
             retries: "unavailable",
             connection: "unavailable",
@@ -473,6 +529,66 @@ describe("devtools store", () => {
       responseId: "response-1",
       responseInstanceId: "attempt-1",
     });
+  });
+
+  it("projects workflow hierarchy and attempt boundaries as safe metadata", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+    store.attachRuntime({ id: "workflow", runtime });
+
+    runtime.dispatch({ type: "run.started", runId: "parent" });
+    runtime.dispatch({
+      type: "run.started",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      parentRunId: "parent",
+      parentToolId: "delegate",
+      parentResponseId: "message",
+    });
+    runtime.dispatch({
+      type: "step.started",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      label: "Private label",
+    });
+    runtime.dispatch({
+      type: "step.retrying",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      nextStepInstanceId: "search-attempt-2",
+      attempt: 2,
+      label: "Private label",
+    });
+
+    const records = store.getSnapshot().records;
+    expect(
+      records.find((record) => record.sourceType === "run.started"),
+    ).toMatchObject({ runId: "parent" });
+    expect(
+      records.find(
+        (record) =>
+          record.sourceType === "run.started" && record.runId === "child",
+      ),
+    ).toMatchObject({
+      runInstanceId: "child-attempt-1",
+      parentRunId: "parent",
+      parentToolId: "delegate",
+      parentResponseId: "message",
+    });
+    expect(
+      records.find((record) => record.sourceType === "step.retrying"),
+    ).toMatchObject({
+      runId: "child",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      nextStepInstanceId: "search-attempt-2",
+      attempt: 2,
+    });
+    expect(JSON.stringify(store.exportTrace())).not.toContain("Private label");
   });
 
   it("keeps snapshot identity stable until captured state changes", () => {

@@ -1,25 +1,26 @@
 ---
 title: "Policy and presets"
 description:
-  "Settings for streaming text, tool updates, response status, announcement
+  "Settings for streaming text, tools, workflow runs and steps, announcement
   channels, timing, and queue limits."
 publicPath: "/api/core/policy"
 section: "Core"
-keywords: ["presets", "resolvePolicy", "PolicyOverrides", "minimumGapMs"]
-related: []
+keywords:
+  ["presets", "resolvePolicy", "PolicyOverrides", "WorkflowPolicy", "minimumGapMs"]
+related: ["/api/core/workflows"]
 order: 4
 ---
 
 export const sourceMetadata = {
   publicPath: "/api/core/policy",
   section: "Core",
-  related: [],
+  related: ["/api/core/workflows"],
   order: 4,
 };
 
 export const searchableText = [
   "Policy and presets",
-  "Settings for streaming text, tool updates, response status, announcement channels, timing, and queue limits.",
+  "Settings for streaming text, tools, workflow runs and steps, announcement channels, timing, and queue limits.",
   "Core",
   "presets",
   "resolvePolicy",
@@ -31,18 +32,23 @@ export const searchableText = [
   "Preset",
   "Streaming",
   "Status updates",
+  "Workflow updates",
   "minimal",
   "Restrained",
   "Final states",
+  "Terminal runs; steps silent",
   "balanced",
   "Sentence-paced",
   "Useful status",
+  "Terminal runs; long-running steps",
   "verbose",
   "More frequent",
   "Progress enabled",
+  "All run and step updates",
   "completion-only",
   "Final text only",
   "Minimal",
+  "Workflow silent",
   "override",
   "PolicyOverrides",
   "Nested overrides merge with the selected preset. Unspecified values remain controlled by that preset.",
@@ -88,7 +94,12 @@ export const searchableText = [
   "number",
   "Optional",
   "preset value",
-  "Bounds response and tool identity state and fails closed after capacity.",
+  "Bounds response, tool, run, and step identity state and fails closed after capacity.",
+  "workflows.runs silent terminal all",
+  "workflows.steps silent long-running all",
+  "workflows.announceStepAfterMs",
+  "workflows.announceProgress",
+  "workflows.announceNestedSteps",
 ].join("\n");
 
 <span id="presets"></span>
@@ -103,6 +114,7 @@ Each preset defines a complete set of default values.
       <th>Preset</th>
       <th>Streaming</th>
       <th>Status updates</th>
+      <th>Workflow updates</th>
     </tr>
   </thead>
   <tbody>
@@ -110,21 +122,25 @@ Each preset defines a complete set of default values.
       <td>minimal</td>
       <td>Restrained</td>
       <td>Final states</td>
+      <td>Terminal runs; steps silent</td>
     </tr>
     <tr>
       <td>balanced</td>
       <td>Sentence&#45;paced</td>
       <td>Useful status</td>
+      <td>Terminal runs; long&#45;running steps</td>
     </tr>
     <tr>
       <td>verbose</td>
       <td>More frequent</td>
       <td>Progress enabled</td>
+      <td>All run and step updates</td>
     </tr>
     <tr>
       <td>completion&#45;only</td>
       <td>Final text only</td>
       <td>Minimal</td>
+      <td>Workflow silent</td>
     </tr>
   </tbody>
 </table>
@@ -143,6 +159,7 @@ const runtime = createGenerativeA11y({
   policy: {
     text: { minimumCharacters: 48, maximumDelayMs: 1_800 },
     tools: { announceProgress: false },
+    workflows: { steps: "long-running", announceStepAfterMs: 3_000 },
     minimumGapMs: 900,
     maxQueueSize: 64,
   },
@@ -233,10 +250,44 @@ output.
       default: <>preset value</>,
       description: (
         <>
-          Bounds response and tool identity state and fails closed after
-          capacity.
+          Bounds response, tool, run, and step identity state and fails closed
+          after capacity.
         </>
       ),
     },
+    "workflows.runs": {
+      type: <>silent &#124; terminal &#124; all</>,
+      default: <>preset value</>,
+      description: <>Controls run boundary announcements.</>,
+    },
+    "workflows.steps": {
+      type: <>silent &#124; long&#45;running &#124; all</>,
+      default: <>preset value</>,
+      description: <>Controls identified step boundary announcements.</>,
+    },
+    "workflows.announceStepAfterMs": {
+      type: <>number</>,
+      default: <>preset value</>,
+      description: (
+        <>
+          Sets the start delay and completion duration threshold for
+          long&#45;running steps.
+        </>
+      ),
+    },
+    "workflows.announceProgress": {
+      type: <>boolean</>,
+      default: <>preset value</>,
+      description: <>Allows explicit identified step progress announcements.</>,
+    },
+    "workflows.announceNestedSteps": {
+      type: <>boolean</>,
+      default: <>preset value</>,
+      description: <>Allows identified nested steps to announce.</>,
+    },
   }}
 />
+
+## Related
+
+- [/api/core/workflows](/api/core/workflows)

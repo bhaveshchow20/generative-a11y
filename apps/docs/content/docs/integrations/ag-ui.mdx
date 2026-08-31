@@ -1,8 +1,8 @@
 ---
 title: "AG-UI accessibility"
 description:
-  "Add paced screen-reader updates to an AG-UI agent through documented
-  callbacks for responses, tools, and user interactions."
+  "Map documented AG-UI runs, subagents, partial steps, responses, tools, and
+  interactions into paced accessible workflow updates."
 publicPath: "/docs/integrations/ag-ui"
 section: "Integrations"
 keywords: ["AG-UI", "bindAgent", "AgentSubscriber", "interrupt", "protocol"]
@@ -28,7 +28,7 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "AG-UI accessibility",
-  "Add paced screen-reader updates to an AG-UI agent through documented callbacks for responses, tools, and user interactions.",
+  "Map documented AG-UI runs, subagents, partial steps, responses, tools, and interactions into paced accessible workflow updates.",
   "Integrations",
   "AG-UI",
   "bindAgent",
@@ -81,13 +81,13 @@ export const searchableText = [
   "Unsubscribes this binding and clears adapter-owned identity records.",
   "lifecycle-mapping",
   "Lifecycle mapping",
-  "Text callbacks map to response start, content, and completion. Tool callbacks map to confirmed progress and results. Interrupt and resume callbacks map to requests for user input and their resolution. Stable protocol IDs keep each update attached to the correct response or tool.",
+  "Run callbacks map top-level run lifecycle. Subagent callbacks map delegated child runs and documented parent IDs. Step names remain labels because AG-UI does not expose stable step IDs. Text, tools, and interrupts retain run ownership when exposed.",
   "screen-reader-behavior",
   "Expected screen-reader behavior",
   "The runtime paces response text, prioritizes approval and failure states, and suppresses duplicate progress updates. The DOM delivery layer updates live regions without moving focus for normal agent activity. Treat its transcript as browser evidence and run assistive-technology tests for spoken behavior.",
   "protocol-evidence",
   "What the protocol can report",
-  "Text start, content, and end callbacks report a response. Tool callbacks report work and results. Interrupt and resume callbacks report requests for user input. Your adapter does not guess about replay, connection recovery, or retries when AG-UI stays silent.",
+  "AG-UI 0.0.59 reports stable run and subagent IDs. Step callbacks expose only stepName, so step support and hierarchy are partial. Replay and reconnection support are partial, retry support is unavailable, and custom events or state deltas are not mapped automatically.",
   "troubleshooting",
   "Troubleshooting",
   "Missing interaction updates usually trace to an agent that was bound before readiness or callbacks that omit stable IDs. Duplicate updates can come from multiple subscribers. Confirm one binding per agent, a stable scopeId, and documented callbacks before adding custom event inference.",
@@ -140,7 +140,7 @@ actions.
 
 ### Use a stable scope
 
-scopeId prefixes protocol message, tool, and interrupt IDs for each mounted
+scopeId prefixes protocol run, message, tool, and interrupt IDs for each mounted
 agent.
 
 </Step>
@@ -149,8 +149,8 @@ agent.
 
 ### Translate confirmed events
 
-Text, tool, and interrupt callbacks become standard events when their public
-data confirms what happened.
+Run, subagent, step, text, tool, and interrupt callbacks become standard events
+when their public data confirms what happened.
 
 </Step>
 
@@ -181,7 +181,7 @@ accessibility runtime.
       default: <>none</>,
       description: (
         <>
-          Namespaces message, tool, and interrupt identity for one agent
+          Namespaces run, message, tool, and interrupt identity for one agent
           binding.
         </>
       ),
@@ -220,10 +220,15 @@ accessibility runtime.
 
 ## Lifecycle mapping
 
-Text callbacks map to response start, content, and completion. Tool callbacks
-map to confirmed progress and results. Interrupt and resume callbacks map to
-requests for user input and their resolution. Stable protocol IDs keep each
-update attached to the correct response or tool.
+Run callbacks map top&#45;level lifecycle. Subagent callbacks map delegated child
+runs and documented parent run, tool, or message IDs. Text, tool, and interrupt
+callbacks retain their run ownership when the protocol exposes it.
+
+Step callbacks expose `stepName` but no stable step ID. The adapter keeps that
+value as a label and omits `stepId`, so step and hierarchy fidelity are partial;
+same&#45;name concurrent steps cannot be correlated exactly. Core reports these
+callbacks only as ephemeral partial&#45;identity diagnostics; they do not create
+step snapshots, announcements, or run summary counts.
 
 <span id="screen&#45;reader&#45;behavior"></span>
 
@@ -238,10 +243,11 @@ browser evidence and run assistive&#45;technology tests for spoken behavior.
 
 ## What the protocol can report
 
-Text start, content, and end callbacks report a response. Tool callbacks report
-work and results. Interrupt and resume callbacks report requests for user input.
-Your adapter does not guess about replay, connection recovery, or retries when
-AG&#45;UI stays silent.
+AG&#45;UI 0.0.59 reports stable run and subagent IDs. Its top&#45;level `parentRunId`
+describes run lineage, so the adapter does not reinterpret it as delegation.
+Replay and reconnection fidelity are partial because the subscription has no
+mandatory persistent cursor. Retry fidelity remains unavailable. Custom events
+and arbitrary state deltas are ignored without an explicit host mapping.
 
 <span id="troubleshooting"></span>
 

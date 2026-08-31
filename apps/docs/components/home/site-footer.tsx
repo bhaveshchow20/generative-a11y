@@ -6,6 +6,10 @@ const internalLinks = [
   ["Docs", "/docs/getting-started"],
   ["API", "/api"],
   ["Examples", "/examples/lifecycle-lab"],
+  ["Why it exists", "/docs/why-generative-a11y"],
+  ["Streaming AI", "/docs/screen-readers-and-streaming-ai"],
+  ["ARIA live regions", "/docs/aria-live-and-generative-ai"],
+  ["AI agents", "/docs/accessible-ai-agents"],
 ] as const;
 
 export function SiteFooter() {

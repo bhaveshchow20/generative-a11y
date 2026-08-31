@@ -36,7 +36,7 @@
   "scripts": {
     "build": "pnpm --filter './packages/*' build",
     "changeset": "changeset",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build && pnpm package:check && pnpm --filter @generative-a11y/docs test",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build && pnpm package:check && pnpm --filter @generative-a11y/example-hierarchical-workflow test && pnpm --filter @generative-a11y/docs test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0 && pnpm --filter @generative-a11y/docs lint",
@@ -55,8 +55,8 @@
     "version-packages": "changeset version"
   },
   "devDependencies": {
-    "@ag-ui/client": "0.0.58",
-    "@ag-ui/core": "0.0.58",
+    "@ag-ui/client": "0.0.59",
+    "@ag-ui/core": "0.0.59",
     "@ai-sdk/react": "4.0.80",
     "@assistant-ui/core": "0.3.15",
     "@assistant-ui/react": "0.15.16",

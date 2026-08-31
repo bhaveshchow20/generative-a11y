@@ -66,6 +66,7 @@ export const searchableText = [
   "evidence-limit",
   "Keep the evidence boundary clear",
   "Replay proves that normalized events produce repeatable runtime output under a controlled clock. It does not prove browser delivery or screen-reader speech. Keep browser fixtures and hands-on assistive-technology tests as separate release evidence.",
+  "Workflow fixtures preserve run and step IDs, parent relationships, attempts, and same-time ordering so nested, concurrent, retry, stale-event, and completion-race behavior remains deterministic.",
 ].join("\n");
 
 <span id="install"></span>
@@ -136,6 +137,10 @@ replayClock.runUntilIdle();
 runtime.dispose();
 replayRuntime.dispose();
 ```
+
+Run and step events use the same fixture envelope. Preserve their IDs, parent
+relationships, and instance IDs to test nested or concurrent work, retry
+boundaries, late stale events, and parent completion races deterministically.
 
 ### Walkthrough
 

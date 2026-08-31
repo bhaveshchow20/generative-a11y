@@ -10,30 +10,27 @@ import {
 import { LifecycleLab } from "../../../components/lifecycle-lab";
 import { FrameworkShowcaseLoader } from "../../../components/framework-showcase-loader";
 import { JsonLd } from "../../../components/json-ld";
-import { createPageMetadata } from "../../../lib/seo";
-import { absoluteUrl } from "../../../lib/site";
+import { createArticleJsonLd, createPageMetadata } from "../../../lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   path: "/examples/lifecycle-lab",
   title: "Interactive examples",
   description:
-    "Run response, tool, retry, and approval scenarios through the generative-a11y runtime and DOM package.",
+    "Run streaming response, tool, approval, failure, and retry scenarios through the real generative-a11y runtime and browser DOM delivery package.",
 });
 
 export default function LifecycleLabPage() {
   return (
     <>
       <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "TechArticle",
-          headline: "Accessible AI lifecycle examples",
+        data={createArticleJsonLd({
+          path: "/examples/lifecycle-lab",
+          title: "Interactive examples",
           description:
             "Interactive examples of paced screen-reader announcements for streaming responses, tool execution, approval, failure, and retry states.",
-          mainEntityOfPage: absoluteUrl("/examples/lifecycle-lab"),
-        }}
+        })}
       />
-      <DocsPage toc={[]}>
+      <DocsPage toc={[]} full>
         <DocsTitle>See the library at work</DocsTitle>
         <DocsDescription>
           Run response, tool, retry, and approval scenarios through the real

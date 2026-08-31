@@ -63,6 +63,14 @@ export interface DOMDeliveryResult {
   responseId?: string;
   toolId?: string;
   interactionId?: string;
+  /** Stable logical run identity associated with the delivered intent. */
+  runId?: string;
+  /** Stable run attempt identity associated with the delivered intent. */
+  runInstanceId?: string;
+  /** Stable logical step identity associated with the delivered intent. */
+  stepId?: string;
+  /** Stable step attempt identity associated with the delivered intent. */
+  stepInstanceId?: string;
   error?: { name: string; message: string };
 }
 
@@ -189,6 +197,10 @@ function deliveryContext(
   | "responseId"
   | "toolId"
   | "interactionId"
+  | "runId"
+  | "runInstanceId"
+  | "stepId"
+  | "stepInstanceId"
 > {
   return {
     announcementId: intent.id,
@@ -203,6 +215,14 @@ function deliveryContext(
     ...(intent.toolId !== undefined ? { toolId: intent.toolId } : {}),
     ...(intent.interactionId !== undefined
       ? { interactionId: intent.interactionId }
+      : {}),
+    ...(intent.runId !== undefined ? { runId: intent.runId } : {}),
+    ...(intent.runInstanceId !== undefined
+      ? { runInstanceId: intent.runInstanceId }
+      : {}),
+    ...(intent.stepId !== undefined ? { stepId: intent.stepId } : {}),
+    ...(intent.stepInstanceId !== undefined
+      ? { stepInstanceId: intent.stepInstanceId }
       : {}),
   };
 }

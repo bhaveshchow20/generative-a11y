@@ -39,6 +39,24 @@ npm install @generative-a11y/core @generative-a11y/dom
 · [Framework adapters](docs/framework-adapters.md) ·
 [Contributing](CONTRIBUTING.md)
 
+## Contents
+
+- [Packages](#packages)
+- [Why generative-a11y?](#why-generative-a11y)
+- [How it fits](#how-it-fits)
+- [Ecosystem](#ecosystem)
+- [Core and DOM example](#core-and-dom-example)
+- [Development](#development)
+- [Community](#community)
+
+## Use generative-a11y when
+
+Your interface streams responses, runs tools, pauses for approval, retries work,
+or reconnects after an interruption. The application reports the lifecycle
+events it can confirm; generative-a11y turns those events into paced
+announcement intents and browser delivery while your visual UI and focus
+behavior stay under application control.
+
 ## Packages
 
 Install the package that matches your integration. Package dependencies such as
@@ -199,6 +217,12 @@ issues should follow the private reporting process in
 - [Report a bug](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=bug_report.yml)
 - [Share an assistive-technology test result](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=assistive_technology_report.yml)
 - [Get support](SUPPORT.md)
+
+## Maintainer and citation
+
+[Bhavesh Chowdhury](https://github.com/bhaveshchow20) created and maintains
+generative-a11y. Use [CITATION.cff](CITATION.cff) when you cite the project in
+research, documentation, or technical reports.
 
 ## License
 

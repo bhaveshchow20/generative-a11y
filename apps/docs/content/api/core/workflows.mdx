@@ -1,0 +1,184 @@
+---
+title: "Workflow lifecycle"
+description:
+  "Model explicit runs, steps, hierarchy, attempts, and workflow ownership
+  without inferring identity from labels or timing."
+publicPath: "/api/core/workflows"
+section: "Core"
+keywords:
+  ["WorkflowContext", "run.started", "step.started", "runInstanceId", "stepId"]
+related:
+  ["/api/core/events", "/api/core/policy", "/docs/lifecycle/workflows"]
+order: 3.5
+---
+
+export const sourceMetadata = {
+  publicPath: "/api/core/workflows",
+  section: "Core",
+  related: [
+    "/api/core/events",
+    "/api/core/policy",
+    "/docs/lifecycle/workflows",
+  ],
+  order: 3.5,
+};
+
+export const searchableText = [
+  "Workflow lifecycle",
+  "Model explicit runs, steps, hierarchy, attempts, and workflow ownership without inferring identity from labels or timing.",
+  "WorkflowContext run.started run.completed run.interrupted run.failed run.retrying step.started step.progress step.completed step.interrupted step.failed step.retrying",
+  "Workflow identity",
+  "runId and stepId identify logical work. runInstanceId and stepInstanceId identify attempts. A step always belongs to a run. Attempt IDs cannot be supplied without their logical IDs.",
+  "Hierarchy",
+  "parentRunId, parentRunInstanceId, parentStepId, parentStepInstanceId, parentToolId, and parentResponseId record only relationships the source explicitly exposes.",
+  "Retry replacement",
+  "nextRunInstanceId and nextStepInstanceId replace attempts while preserving logical identity. Late events from replaced attempts are stale.",
+  "Partial identity",
+  "Omit stepId when a source exposes only a display name. The runtime records partial-identity but does not create a step snapshot or announcement from the label.",
+  "WorkflowContext ownership",
+  "Responses, tools, interactions, and approvals can carry runId, runInstanceId, stepId, and stepInstanceId to connect them to explicit workflow work.",
+].join("\n");
+
+<span id="identity"></span>
+
+## Workflow identity
+
+`runId` and `stepId` identify logical work. `runInstanceId` and
+`stepInstanceId` identify one attempt. A step always belongs to a run, and an
+attempt ID cannot be supplied without its logical ID.
+
+<table aria-label="Workflow identity fields table">
+  <thead>
+    <tr>
+      <th>Field</th>
+      <th>Meaning</th>
+      <th>Constraint</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>runId</td>
+      <td>Logical run</td>
+      <td>Required for every run and step event</td>
+    </tr>
+    <tr>
+      <td>runInstanceId</td>
+      <td>Run attempt</td>
+      <td>Optional; requires runId</td>
+    </tr>
+    <tr>
+      <td>stepId</td>
+      <td>Logical step</td>
+      <td>Optional only when the source lacks stable step identity</td>
+    </tr>
+    <tr>
+      <td>stepInstanceId</td>
+      <td>Step attempt</td>
+      <td>Optional; requires stepId and runId</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="events"></span>
+
+## Run and step events
+
+Run and identified step lifecycles start once and end once. A run cannot
+complete while it has active identified child runs or steps. Terminal and retry
+events cancel announcements owned by the ended or replaced attempt.
+
+<TypeTable
+  type={{
+    run: {
+      type: (
+        <>
+          run.started &#124; completed &#124; interrupted &#124; failed &#124; retrying
+        </>
+      ),
+      required: true,
+      description: (
+        <>
+          Tracks top&#45;level or delegated work. Parent fields are accepted only
+          when the source reports them explicitly.
+        </>
+      ),
+    },
+    step: {
+      type: (
+        <>
+          step.started &#124; progress &#124; completed &#124; interrupted &#124; failed
+          &#124; retrying
+        </>
+      ),
+      required: true,
+      description: (
+        <>
+          Tracks work within a run. Identified steps may be nested and
+          concurrent.
+        </>
+      ),
+    },
+    "nextRunInstanceId / nextStepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Replacement attempt identity on retry. Late events from the replaced
+          attempt are stale.
+        </>
+      ),
+    },
+    "parentRunId / parentRunInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit parent run and attempt identity.</>,
+    },
+    "parentStepId / parentStepInstanceId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit parent step and attempt identity.</>,
+    },
+    "parentToolId / parentResponseId": {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Explicit tool delegation or response ownership.</>,
+    },
+  }}
+/>
+
+<span id="context"></span>
+
+## WorkflowContext
+
+Responses, tools, interactions, and approvals can carry workflow context. This
+connects existing lifecycle events to the run or step that owns them without
+turning those entities into steps.
+
+{/* prettier-ignore */}
+```typescript
+runtime.dispatch({
+  type: "tool.started",
+  toolId: "search",
+  toolInstanceId: "search-2",
+  runId: "report",
+  runInstanceId: "report-1",
+  stepId: "sources",
+  stepInstanceId: "sources-2",
+  label: "Search sources",
+});
+```
+
+<span id="partial-identity"></span>
+
+## Partial identity
+
+When a framework exposes only a step name, omit `stepId`. Core emits a
+`partial-identity` diagnostic but does not create a step snapshot, announcement,
+or run summary count from that evidence. It never converts labels, array
+positions, or timing into identity.
+
+## Related
+
+- [/api/core/events](/api/core/events)
+- [/api/core/policy](/api/core/policy)
+- [/docs/lifecycle/workflows](/docs/lifecycle/workflows)

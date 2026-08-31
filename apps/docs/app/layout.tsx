@@ -20,6 +20,7 @@ const bodyFont = Manrope({
 
 const monoFont = IBM_Plex_Mono({
   variable: "--font-mono",
+  preload: false,
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -31,6 +32,7 @@ const homeSansFont = Geist({
 
 const homeMonoFont = JetBrains_Mono({
   variable: "--font-home-mono",
+  preload: false,
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });

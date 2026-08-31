@@ -5,7 +5,6 @@ import { siGithub, siNpm, type SimpleIcon } from "simple-icons";
 
 const repositoryUrl = "https://github.com/bhaveshchow20/generative-a11y";
 const npmUrl = "https://www.npmjs.com/org/generative-a11y";
-const packages = ["core", "dom", "react", "ag-ui", "ai-sdk", "assistant-ui"];
 
 type ProjectStats = {
   stars: number | null;
@@ -49,45 +48,24 @@ export function ProjectStats({ className = "" }: { className?: string }) {
     const controller = new AbortController();
 
     async function loadStats() {
-      const githubRequest = fetch(
-        "https://api.github.com/repos/bhaveshchow20/generative-a11y",
-        { signal: controller.signal },
-      )
-        .then(async (response) => {
-          if (!response.ok) throw new Error("GitHub stats unavailable");
-          return (await response.json()) as { stargazers_count?: number };
-        })
-        .then((data) => data.stargazers_count);
-
-      const npmRequest = Promise.all(
-        packages.map(async (packageName) => {
-          const response = await fetch(
-            `https://api.npmjs.org/downloads/point/last-month/%40generative-a11y%2F${packageName}`,
-            { signal: controller.signal },
-          );
-          if (!response.ok) throw new Error("npm stats unavailable");
-          const data = (await response.json()) as { downloads?: number };
-          if (typeof data.downloads !== "number") {
-            throw new Error("npm stats response omitted downloads");
-          }
-          return data.downloads;
-        }),
-      ).then((counts) => counts.reduce((total, count) => total + count, 0));
-
-      const [github, npm] = await Promise.allSettled([githubRequest, npmRequest]);
+      const response = await fetch("/project-stats.json", {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("Project stats unavailable");
+      const nextStats = (await response.json()) as ProjectStats;
 
       if (!controller.signal.aborted) {
         setStats({
-          stars:
-            github.status === "fulfilled" && github.value !== undefined
-              ? github.value
+          stars: typeof nextStats.stars === "number" ? nextStats.stars : null,
+          monthlyDownloads:
+            typeof nextStats.monthlyDownloads === "number"
+              ? nextStats.monthlyDownloads
               : null,
-          monthlyDownloads: npm.status === "fulfilled" ? npm.value : null,
         });
       }
     }
 
-    void loadStats();
+    void loadStats().catch(() => undefined);
     return () => controller.abort();
   }, []);
 

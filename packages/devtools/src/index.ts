@@ -29,6 +29,30 @@ export interface DevtoolsRecord {
   readonly toolInstanceId?: string;
   readonly interactionId?: string;
   readonly approvalId?: string;
+  /** Stable logical run identity retained as content-free correlation data. */
+  readonly runId?: string;
+  /** Stable run attempt identity retained as correlation data. */
+  readonly runInstanceId?: string;
+  /** Replacement run attempt identity on retry evidence. */
+  readonly nextRunInstanceId?: string;
+  /** Explicit logical parent run identity. */
+  readonly parentRunId?: string;
+  /** Explicit parent run attempt identity. */
+  readonly parentRunInstanceId?: string;
+  /** Stable logical step identity retained as content-free correlation data. */
+  readonly stepId?: string;
+  /** Stable step attempt identity retained as correlation data. */
+  readonly stepInstanceId?: string;
+  /** Replacement step attempt identity on retry evidence. */
+  readonly nextStepInstanceId?: string;
+  /** Explicit logical parent step identity. */
+  readonly parentStepId?: string;
+  /** Explicit parent step attempt identity. */
+  readonly parentStepInstanceId?: string;
+  /** Explicit tool that delegated to a child run. */
+  readonly parentToolId?: string;
+  /** Explicit response that owns a child run. */
+  readonly parentResponseId?: string;
   readonly progress?: number;
   readonly outcome?: string;
   readonly count?: number;
@@ -50,11 +74,24 @@ export interface DevtoolsRuntimeSource {
   readonly adapter: string;
   readonly evidence: readonly string[];
   readonly fidelity: Readonly<
-    Omit<AdapterFidelity, "optionalEvents"> & {
-      readonly optionalEvents?: readonly NonNullable<
-        AdapterFidelity["optionalEvents"]
-      >[number][];
-    }
+    Pick<AdapterFidelity, "interruption" | "retries" | "connection"> &
+      Partial<
+        Pick<
+          AdapterFidelity,
+          | "runs"
+          | "steps"
+          | "hierarchy"
+          | "tools"
+          | "interactions"
+          | "replay"
+          | "reconnection"
+          | "customEvents"
+        >
+      > & {
+        readonly optionalEvents?: readonly NonNullable<
+          AdapterFidelity["optionalEvents"]
+        >[number][];
+      }
   >;
 }
 
@@ -71,6 +108,14 @@ export interface DeliveryRecordInput {
     readonly responseId?: string;
     readonly toolId?: string;
     readonly interactionId?: string;
+    /** Stable logical run identity copied from the delivered intent. */
+    readonly runId?: string;
+    /** Stable run attempt identity copied from the delivered intent. */
+    readonly runInstanceId?: string;
+    /** Stable logical step identity copied from the delivered intent. */
+    readonly stepId?: string;
+    /** Stable step attempt identity copied from the delivered intent. */
+    readonly stepInstanceId?: string;
     readonly error?: { readonly name: string; readonly message?: string };
   };
 }
@@ -140,6 +185,44 @@ function asRecord(
       kind: event.kind,
       sourceType: event.event.type,
       ...(event.event.eventId ? { sourceEventId: event.event.eventId } : {}),
+      ...("runId" in event.event && event.event.runId
+        ? { runId: event.event.runId }
+        : {}),
+      ...("runInstanceId" in event.event && event.event.runInstanceId
+        ? { runInstanceId: event.event.runInstanceId }
+        : {}),
+      ...("nextRunInstanceId" in event.event && event.event.nextRunInstanceId
+        ? { nextRunInstanceId: event.event.nextRunInstanceId }
+        : {}),
+      ...("parentRunId" in event.event && event.event.parentRunId
+        ? { parentRunId: event.event.parentRunId }
+        : {}),
+      ...("parentRunInstanceId" in event.event &&
+      event.event.parentRunInstanceId
+        ? { parentRunInstanceId: event.event.parentRunInstanceId }
+        : {}),
+      ...("stepId" in event.event && event.event.stepId
+        ? { stepId: event.event.stepId }
+        : {}),
+      ...("stepInstanceId" in event.event && event.event.stepInstanceId
+        ? { stepInstanceId: event.event.stepInstanceId }
+        : {}),
+      ...("nextStepInstanceId" in event.event && event.event.nextStepInstanceId
+        ? { nextStepInstanceId: event.event.nextStepInstanceId }
+        : {}),
+      ...("parentStepId" in event.event && event.event.parentStepId
+        ? { parentStepId: event.event.parentStepId }
+        : {}),
+      ...("parentStepInstanceId" in event.event &&
+      event.event.parentStepInstanceId
+        ? { parentStepInstanceId: event.event.parentStepInstanceId }
+        : {}),
+      ...("parentToolId" in event.event && event.event.parentToolId
+        ? { parentToolId: event.event.parentToolId }
+        : {}),
+      ...("parentResponseId" in event.event && event.event.parentResponseId
+        ? { parentResponseId: event.event.parentResponseId }
+        : {}),
       ...("responseId" in event.event
         ? { responseId: event.event.responseId }
         : {}),
@@ -198,6 +281,14 @@ function asRecord(
     ...(event.decision.interactionId
       ? { interactionId: event.decision.interactionId }
       : {}),
+    ...(event.decision.runId ? { runId: event.decision.runId } : {}),
+    ...(event.decision.runInstanceId
+      ? { runInstanceId: event.decision.runInstanceId }
+      : {}),
+    ...(event.decision.stepId ? { stepId: event.decision.stepId } : {}),
+    ...(event.decision.stepInstanceId
+      ? { stepInstanceId: event.decision.stepInstanceId }
+      : {}),
     ...(event.decision.scheduledAt !== undefined
       ? { scheduledAt: event.decision.scheduledAt }
       : {}),
@@ -239,6 +330,29 @@ function copyRuntimeSource(
     throw new TypeError("source fidelity must be an object");
   const lifecycleFidelity = new Set(["exact", "action-wrapper", "unavailable"]);
   const connectionFidelity = new Set([...lifecycleFidelity, "inferred"]);
+  const workflowFidelity = new Set(["exact", "partial", "unavailable"]);
+  for (const field of [
+    "runs",
+    "steps",
+    "hierarchy",
+    "tools",
+    "interactions",
+    "replay",
+    "reconnection",
+  ] as const) {
+    if (fidelity[field] !== undefined && !workflowFidelity.has(fidelity[field]))
+      throw new TypeError(
+        `source ${field} fidelity contains an unsupported value`,
+      );
+  }
+  if (
+    fidelity.customEvents !== undefined &&
+    fidelity.customEvents !== "explicit-mapping" &&
+    fidelity.customEvents !== "unsupported"
+  )
+    throw new TypeError(
+      "source custom event fidelity contains an unsupported value",
+    );
   if (!lifecycleFidelity.has(fidelity.interruption))
     throw new TypeError(
       "source interruption fidelity contains an unsupported value",
@@ -266,6 +380,14 @@ function copyRuntimeSource(
     adapter: source.adapter.trim(),
     evidence: Object.freeze(source.evidence.map((item) => item.trim())),
     fidelity: Object.freeze({
+      ...(fidelity.runs ? { runs: fidelity.runs } : {}),
+      ...(fidelity.steps ? { steps: fidelity.steps } : {}),
+      ...(fidelity.hierarchy ? { hierarchy: fidelity.hierarchy } : {}),
+      ...(fidelity.tools ? { tools: fidelity.tools } : {}),
+      ...(fidelity.interactions ? { interactions: fidelity.interactions } : {}),
+      ...(fidelity.replay ? { replay: fidelity.replay } : {}),
+      ...(fidelity.reconnection ? { reconnection: fidelity.reconnection } : {}),
+      ...(fidelity.customEvents ? { customEvents: fidelity.customEvents } : {}),
       interruption: fidelity.interruption,
       retries: fidelity.retries,
       connection: fidelity.connection,
@@ -297,6 +419,10 @@ function asDeliveryRecord(
     ...(result.responseId ? { responseId: result.responseId } : {}),
     ...(result.toolId ? { toolId: result.toolId } : {}),
     ...(result.interactionId ? { interactionId: result.interactionId } : {}),
+    ...(result.runId ? { runId: result.runId } : {}),
+    ...(result.runInstanceId ? { runInstanceId: result.runInstanceId } : {}),
+    ...(result.stepId ? { stepId: result.stepId } : {}),
+    ...(result.stepInstanceId ? { stepInstanceId: result.stepInstanceId } : {}),
     ...(result.error?.name ? { errorName: result.error.name } : {}),
   });
 }
@@ -311,6 +437,7 @@ function copyRuntimeSnapshot(
       ...source.policy,
       text: Object.freeze({ ...source.policy.text }),
       tools: Object.freeze({ ...source.policy.tools }),
+      workflows: Object.freeze({ ...source.policy.workflows }),
     }),
     pending: Object.freeze({
       announcements: Object.freeze(
@@ -326,6 +453,20 @@ function copyRuntimeSnapshot(
     tools: Object.freeze(
       source.tools.map((item) => Object.freeze({ ...item })),
     ),
+    ...(source.runs
+      ? {
+          runs: Object.freeze(
+            source.runs.map((item) => Object.freeze({ ...item })),
+          ),
+        }
+      : {}),
+    ...(source.steps
+      ? {
+          steps: Object.freeze(
+            source.steps.map((item) => Object.freeze({ ...item })),
+          ),
+        }
+      : {}),
     pendingCount: source.pendingCount,
   });
 }

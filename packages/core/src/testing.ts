@@ -73,6 +73,17 @@ const EVENT_TYPES = new Set<GenerativeA11yEvent["type"]>([
   "interaction.resolved",
   "approval.requested",
   "approval.resolved",
+  "run.started",
+  "run.completed",
+  "run.interrupted",
+  "run.failed",
+  "run.retrying",
+  "step.started",
+  "step.progress",
+  "step.completed",
+  "step.interrupted",
+  "step.failed",
+  "step.retrying",
   "connection.lost",
   "connection.restored",
   "citation.available",
@@ -93,6 +104,9 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
     type?: unknown;
     responseId?: unknown;
     toolId?: unknown;
+    runId?: unknown;
+    stepId?: unknown;
+    label?: unknown;
   };
   if (
     typeof candidate.type !== "string" ||
@@ -109,6 +123,17 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
     typeof candidate.toolId !== "string"
   )
     throw new TypeError("Replay fixture tool event requires toolId");
+  if (
+    (candidate.type.startsWith("run.") || candidate.type.startsWith("step.")) &&
+    typeof candidate.runId !== "string"
+  )
+    throw new TypeError("Replay fixture workflow event requires runId");
+  if (candidate.stepId !== undefined && typeof candidate.stepId !== "string")
+    throw new TypeError("Replay fixture stepId must be a string");
+  if (candidate.stepId !== undefined && typeof candidate.runId !== "string")
+    throw new TypeError("Replay fixture step context requires runId");
+  if (candidate.type.startsWith("step.") && typeof candidate.label !== "string")
+    throw new TypeError("Replay fixture step event requires label");
 }
 
 function validateFixture(fixture: ReplayFixtureV1): void {

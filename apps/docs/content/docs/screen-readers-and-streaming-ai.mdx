@@ -77,6 +77,12 @@ export const searchableText = [
 
 ## A visual stream and an audible stream need different pacing
 
+Token-by-token streaming is difficult for screen readers because each visual
+update can become a separate accessibility-tree change. Partial words, repeated
+accumulated text, and a long queue of low-value changes make the audible stream
+hard to follow. A better pattern keeps the visible transcript current while
+announcing only confirmed, meaningful phrases and lifecycle boundaries.
+
 A sighted reader can ignore the cursor and scan completed text at their own
 speed. A screen&#45;reader user may receive every live&#45;region mutation in
 sequence. Token&#45;by&#45;token changes can split words, repeat phrases, and
@@ -85,6 +91,11 @@ keep the announcement channel busy after the useful information has arrived.
 The visible response should still update normally. The accessible announcement
 stream is a separate representation of the same confirmed lifecycle, optimized
 for useful listening rather than visual immediacy.
+
+[WAI-ARIA defines live-region semantics](https://www.w3.org/TR/wai-aria/), but
+those semantics are hints to user agents; they do not segment generative text or
+model response, retry, and tool lifecycles. That policy belongs in application
+logic or an accessibility runtime.
 
 <span id="naive&#45;example"></span>
 
@@ -191,6 +202,12 @@ by software outside the library.
 
 ## Related
 
-- [/docs/aria-live-and-generative-ai](/docs/aria-live-and-generative-ai)
-- [/docs/integrations/ai-sdk](/docs/integrations/ai-sdk)
-- [/docs/lifecycle/streaming](/docs/lifecycle/streaming)
+- [ARIA live regions for generative AI](/docs/aria-live-and-generative-ai)
+- [Vercel AI SDK accessibility integration](/docs/integrations/ai-sdk)
+- [Streaming lifecycle and segmentation](/docs/lifecycle/streaming)
+
+## Sources and evidence
+
+- [WAI-ARIA 1.2 live-region roles and properties](https://www.w3.org/TR/wai-aria/)
+- [WCAG 2.2: Understanding Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+- [Manual assistive-technology test plan](/docs/testing)

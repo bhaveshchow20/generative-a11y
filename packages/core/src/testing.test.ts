@@ -135,4 +135,100 @@ describe("core testing utilities", () => {
     ).toThrow("non-decreasing");
     expect(target.diagnosticTranscript()).toEqual([]);
   });
+
+  it("records and replays hierarchical attempts with stable relationships", () => {
+    const target = createAnnouncementRecorder({
+      policy: {
+        workflows: { runs: "silent", steps: "silent" },
+      },
+    });
+    const fixture = createReplayFixture([
+      {
+        at: 0,
+        event: {
+          type: "run.started",
+          runId: "run",
+          runInstanceId: "run-1",
+        },
+      },
+      {
+        at: 1,
+        event: {
+          type: "step.started",
+          runId: "run",
+          runInstanceId: "run-1",
+          stepId: "child",
+          stepInstanceId: "child-1",
+          label: "Child",
+        },
+      },
+      {
+        at: 2,
+        event: {
+          type: "step.retrying",
+          runId: "run",
+          runInstanceId: "run-1",
+          stepId: "child",
+          stepInstanceId: "child-1",
+          nextStepInstanceId: "child-2",
+          label: "Child",
+        },
+      },
+      {
+        at: 3,
+        event: {
+          type: "step.completed",
+          runId: "run",
+          runInstanceId: "run-1",
+          stepId: "child",
+          stepInstanceId: "child-2",
+          label: "Child",
+        },
+      },
+      {
+        at: 4,
+        event: { type: "run.completed", runId: "run", runInstanceId: "run-1" },
+      },
+    ]);
+
+    replayEvents(target.runtime, target.clock, fixture);
+
+    expect(target.runtime.getDiagnosticSnapshot()).toMatchObject({
+      runs: [{ runId: "run", instanceId: "run-1", status: "completed" }],
+      steps: [
+        {
+          runId: "run",
+          stepId: "child",
+          instanceId: "child-2",
+          status: "completed",
+        },
+      ],
+    });
+  });
+
+  it("rejects hierarchy fixtures without run identity", () => {
+    expect(() =>
+      createReplayFixture([
+        {
+          at: 0,
+          event: { type: "step.started", label: "Missing run" } as never,
+        },
+      ]),
+    ).toThrow("requires runId");
+  });
+
+  it("rejects step fixtures without the label required by runtime dispatch", () => {
+    expect(() =>
+      createReplayFixture([
+        {
+          at: 0,
+          event: {
+            type: "step.started",
+            runId: "run",
+            stepId: "draft",
+          } as never,
+        },
+      ]),
+    ).toThrow("requires label");
+  });
 });

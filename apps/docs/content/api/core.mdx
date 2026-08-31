@@ -1,8 +1,8 @@
 ---
 title: "@generative-a11y/core"
 description:
-  "Core events, announcement rules, streaming text, scheduling, diagnostics,
-  test clocks, and recorders."
+  "Core events, workflow lifecycle, announcement rules, scheduling,
+  diagnostics, test clocks, and recorders."
 publicPath: "/api/core"
 section: "Core"
 keywords: ["core", "exports", "runtime", "events", "scheduler"]
@@ -45,10 +45,13 @@ export const searchableText = [
   "createGenerativeA11y, GenerativeA11yRuntime",
   "/api/core/create-generative-a11y",
   "Events",
-  "GenerativeA11yEvent and lifecycle types",
+  "GenerativeA11yEvent and event family types",
   "/api/core/events",
+  "Workflows",
+  "WorkflowContext, run and step lifecycle types",
+  "/api/core/workflows",
   "Policy",
-  "presets, resolvePolicy, PolicyOverrides",
+  "presets, resolvePolicy, PolicyOverrides, WorkflowPolicy",
   "/api/core/policy",
   "Scheduler",
   "createAnnouncementScheduler and scheduler types",
@@ -119,12 +122,17 @@ Use the narrowest public export for the behavior you own.
     </tr>
     <tr>
       <td>Events</td>
-      <td>GenerativeA11yEvent and lifecycle types</td>
+      <td>GenerativeA11yEvent and event family types</td>
       <td>/api/core/events</td>
     </tr>
     <tr>
+      <td>Workflows</td>
+      <td>WorkflowContext, run and step lifecycle types</td>
+      <td>/api/core/workflows</td>
+    </tr>
+    <tr>
       <td>Policy</td>
-      <td>presets, resolvePolicy, PolicyOverrides</td>
+      <td>presets, resolvePolicy, PolicyOverrides, WorkflowPolicy</td>
       <td>/api/core/policy</td>
     </tr>
     <tr>

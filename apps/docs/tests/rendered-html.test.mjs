@@ -119,6 +119,22 @@ test("exposes canonical metadata and machine-readable project data", async () =>
   assert.doesNotMatch(html, /<meta name="robots" content="noindex"/i);
 });
 
+test("adds defensive response headers without blocking indexing", async () => {
+  const response = await render();
+
+  assert.equal(
+    response.headers.get("strict-transport-security"),
+    "max-age=31536000; includeSubDomains; preload",
+  );
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(
+    response.headers.get("referrer-policy"),
+    "strict-origin-when-cross-origin",
+  );
+  assert.match(response.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/i);
+});
+
 test("serves crawler and AI discovery resources", async () => {
   const robots = await render("/robots.txt");
   assert.equal(robots.status, 200);
@@ -152,6 +168,42 @@ test("serves crawler and AI discovery resources", async () => {
   assert.match(llmsText, /^# generative-a11y/m);
   assert.match(llmsText, /Vercel AI SDK accessibility/i);
   assert.match(llmsText, /https:\/\/generativea11y\.com\/api/i);
+  assert.match(llmsText, /https:\/\/generativea11y\.com\/llms-full\.txt/i);
+
+  const llmsFull = await render("/llms-full.txt");
+  assert.equal(llmsFull.status, 200);
+  assert.match(llmsFull.headers.get("content-type") ?? "", /^text\/plain\b/i);
+  const llmsFullText = await llmsFull.text();
+  assert.match(llmsFullText, /^# generative-a11y full documentation/m);
+  assert.match(llmsFullText, /## Accessible streaming AI for screen readers/i);
+  assert.match(llmsFullText, /## createGenerativeA11y/i);
+});
+
+test("documentation pages expose article and breadcrumb structured data", async () => {
+  const response = await render("/docs/screen-readers-and-streaming-ai");
+  const html = await response.text();
+
+  assert.match(html, /<script type="application\/ld\+json">/i);
+  assert.match(html, /"@type":"TechArticle"/i);
+  assert.match(html, /"@type":"BreadcrumbList"/i);
+  assert.match(html, /"@type":"Person"/i);
+  assert.match(html, /"name":"Bhavesh Chowdhury"/i);
+  assert.match(html, /Maintained by[\s\S]*Bhavesh Chowdhury/i);
+});
+
+test("legacy documentation routes redirect permanently", async () => {
+  const response = await render("/docs/packages/core");
+
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get("location"), "/api/core");
+});
+
+test("missing versioned assets are not cached", async () => {
+  const missingResponse = await render(
+    "/_next/static/missing-seo-regression.css",
+  );
+  assert.equal(missingResponse.status, 404);
+  assert.equal(missingResponse.headers.get("cache-control"), "no-store");
 });
 
 test("server-renders the dedicated API reference and symbol pages", async () => {
@@ -159,6 +211,7 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
     ["/api", /API reference/i],
     ["/api/core", /@generative-a11y\/core/i],
     ["/api/core/create-generative-a11y", /dispatch\(event\)/i],
+    ["/api/core/workflows", /WorkflowContext/i],
     ["/api/dom/create-dom-announcer", /DOMAnnouncerOptions/i],
     ["/api/react/hooks", /useGenerativeA11yRuntime/i],
     ["/api/ai-sdk/use-chat-accessibility", /useChatAccessibility/i],

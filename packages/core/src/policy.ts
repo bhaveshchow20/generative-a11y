@@ -14,6 +14,13 @@ const balanced: AnnouncementPolicy = {
     announceCompletion: true,
     announceFailure: true,
   },
+  workflows: {
+    runs: "terminal",
+    steps: "long-running",
+    announceStepAfterMs: 2_000,
+    announceProgress: false,
+    announceNestedSteps: false,
+  },
   announceResponseStarted: false,
   announceResponseCompleted: true,
   announceInterruption: true,
@@ -37,6 +44,7 @@ const mutablePresets: Record<PresetName, AnnouncementPolicy> = {
       announceStart: false,
       announceCompletion: false,
     },
+    workflows: { ...balanced.workflows, steps: "silent" },
     announceResponseCompleted: false,
     announceRetry: false,
     announceConnections: false,
@@ -46,6 +54,13 @@ const mutablePresets: Record<PresetName, AnnouncementPolicy> = {
     ...balanced,
     text: { strategy: "sentence", minimumCharacters: 1, maximumDelayMs: 1_000 },
     tools: { ...balanced.tools, announceProgress: true },
+    workflows: {
+      runs: "all",
+      steps: "all",
+      announceStepAfterMs: 0,
+      announceProgress: true,
+      announceNestedSteps: true,
+    },
     announceResponseStarted: true,
     announceCitations: true,
     minimumGapMs: 50,
@@ -60,6 +75,11 @@ const mutablePresets: Record<PresetName, AnnouncementPolicy> = {
       announceCompletion: false,
       announceFailure: false,
     },
+    workflows: {
+      ...balanced.workflows,
+      runs: "silent",
+      steps: "silent",
+    },
     announceResponseCompleted: false,
     announceInterruption: false,
     announceRetry: false,
@@ -72,6 +92,7 @@ const mutablePresets: Record<PresetName, AnnouncementPolicy> = {
 function freezePolicy(policy: AnnouncementPolicy): ReadonlyAnnouncementPolicy {
   Object.freeze(policy.text);
   Object.freeze(policy.tools);
+  Object.freeze(policy.workflows);
   return Object.freeze(policy);
 }
 
@@ -84,10 +105,11 @@ export const presets: Readonly<Record<PresetName, ReadonlyAnnouncementPolicy>> =
   });
 
 export type PolicyOverrides = Partial<
-  Omit<AnnouncementPolicy, "text" | "tools">
+  Omit<AnnouncementPolicy, "text" | "tools" | "workflows">
 > & {
   text?: Partial<AnnouncementPolicy["text"]>;
   tools?: Partial<AnnouncementPolicy["tools"]>;
+  workflows?: Partial<AnnouncementPolicy["workflows"]>;
 };
 
 export function resolvePolicy(
@@ -100,11 +122,13 @@ export function resolvePolicy(
     ...overrides,
     text: { ...base.text, ...overrides.text },
     tools: { ...base.tools, ...overrides.tools },
+    workflows: { ...base.workflows, ...overrides.workflows },
   };
   const finiteNonNegative: Array<[string, number]> = [
     ["text.minimumCharacters", policy.text.minimumCharacters],
     ["text.maximumDelayMs", policy.text.maximumDelayMs],
     ["tools.announceStartAfterMs", policy.tools.announceStartAfterMs],
+    ["workflows.announceStepAfterMs", policy.workflows.announceStepAfterMs],
     ["minimumGapMs", policy.minimumGapMs],
     ["dedupeWindowMs", policy.dedupeWindowMs],
   ];
@@ -131,5 +155,13 @@ export function resolvePolicy(
   ) {
     throw new RangeError("maxActiveEntities must be a positive integer");
   }
+  if (!new Set(["silent", "terminal", "all"]).has(policy.workflows.runs))
+    throw new TypeError("workflows.runs contains an unsupported mode");
+  if (!new Set(["silent", "long-running", "all"]).has(policy.workflows.steps))
+    throw new TypeError("workflows.steps contains an unsupported mode");
+  if (typeof policy.workflows.announceProgress !== "boolean")
+    throw new TypeError("workflows.announceProgress must be a boolean");
+  if (typeof policy.workflows.announceNestedSteps !== "boolean")
+    throw new TypeError("workflows.announceNestedSteps must be a boolean");
   return freezePolicy(policy);
 }

@@ -84,4 +84,35 @@ describe("Fumadocs content", () => {
       expect(content).toContain(`<a href="${path}">${path}</a>`);
     }
   });
+
+  it("links every package family from the API index", async () => {
+    const content = await readFile(
+      new URL("../content/api/index.mdx", import.meta.url),
+      "utf8",
+    );
+
+    for (const path of [
+      "/api/core",
+      "/api/dom",
+      "/api/react",
+      "/api/ai-sdk",
+      "/api/assistant-ui",
+      "/api/ag-ui",
+      "/api/devtools",
+      "/api/core/testing",
+    ]) {
+      expect(content).toContain(`href="${path}"`);
+    }
+  });
+
+  it("loads public project statistics through one cacheable same-origin request", async () => {
+    const component = await readFile(
+      new URL("../components/project-stats.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(component).toContain('fetch("/project-stats.json"');
+    expect(component).not.toContain("api.github.com");
+    expect(component).not.toContain("api.npmjs.org");
+  });
 });
