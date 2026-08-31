@@ -49,6 +49,9 @@ function correlation(record: DevtoolsRecord) {
   if (record.interactionId)
     return `${prefix}interaction:${record.interactionId}`;
   if (record.approvalId) return `${prefix}approval:${record.approvalId}`;
+  if (record.stepId)
+    return `${prefix}step:${record.runId ?? "unknown"}:${record.stepId}`;
+  if (record.runId) return `${prefix}run:${record.runId}`;
   if (record.announcementId)
     return `${prefix}announcement:${record.announcementId}`;
   return `${prefix}record:${record.captureSequence}`;
@@ -147,6 +150,10 @@ function Detail({
   const source =
     snapshot.runtimeSources[record.runtimeSourceId ?? record.runtimeId];
   const runtime = snapshot.runtimeSnapshots[record.runtimeId];
+  const run = runtime?.runs?.find((item) => item.runId === record.runId);
+  const step = runtime?.steps?.find(
+    (item) => item.runId === record.runId && item.stepId === record.stepId,
+  );
   const deliveries = related.filter((item) => item.kind === "dom-delivery");
   return (
     <aside className="ga-trace-detail" data-testid="trace-detail">
@@ -164,6 +171,49 @@ function Detail({
         </p>
       </section>
       <CausalChain records={related} />
+      {record.runId ? (
+        <section className="ga-detail-section">
+          <h4>Workflow hierarchy</h4>
+          <dl className="ga-key-values">
+            <div>
+              <dt>Run</dt>
+              <dd>{record.runId}</dd>
+            </div>
+            <div>
+              <dt>Run attempt</dt>
+              <dd>
+                {record.runInstanceId ?? run?.instanceId ?? "Not supplied"}
+              </dd>
+            </div>
+            <div>
+              <dt>Parent run</dt>
+              <dd>{record.parentRunId ?? run?.parentRunId ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Run state</dt>
+              <dd>{run?.status ?? "Not retained"}</dd>
+            </div>
+            <div>
+              <dt>Step</dt>
+              <dd>{record.stepId ?? "Partial identity"}</dd>
+            </div>
+            <div>
+              <dt>Step attempt</dt>
+              <dd>
+                {record.stepInstanceId ?? step?.instanceId ?? "Not supplied"}
+              </dd>
+            </div>
+            <div>
+              <dt>Parent step</dt>
+              <dd>{record.parentStepId ?? step?.parentStepId ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Step state</dt>
+              <dd>{step?.status ?? "Not retained"}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
       <section className="ga-detail-section">
         <h4>Source evidence</h4>
         {source ? (
@@ -171,6 +221,22 @@ function Detail({
             <div>
               <dt>Adapter</dt>
               <dd>{source.adapter}</dd>
+            </div>
+            <div>
+              <dt>Runs</dt>
+              <dd>{source.fidelity.runs}</dd>
+            </div>
+            <div>
+              <dt>Steps</dt>
+              <dd>{source.fidelity.steps}</dd>
+            </div>
+            <div>
+              <dt>Hierarchy</dt>
+              <dd>{source.fidelity.hierarchy}</dd>
+            </div>
+            <div>
+              <dt>Replay</dt>
+              <dd>{source.fidelity.replay}</dd>
             </div>
             <div>
               <dt>Interruption</dt>
@@ -338,6 +404,10 @@ export function DevtoolsInspector({
           record.toolId,
           record.interactionId,
           record.approvalId,
+          record.runId,
+          record.runInstanceId,
+          record.stepId,
+          record.stepInstanceId,
         ]
           .filter(Boolean)
           .join(" ")

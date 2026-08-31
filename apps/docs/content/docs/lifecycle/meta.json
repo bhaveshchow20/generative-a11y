@@ -1,4 +1,11 @@
 {
   "title": "Lifecycle",
-  "pages": ["streaming", "tools", "stop-retry", "interactions", "identity"]
+  "pages": [
+    "streaming",
+    "tools",
+    "workflows",
+    "stop-retry",
+    "interactions",
+    "identity"
+  ]
 }

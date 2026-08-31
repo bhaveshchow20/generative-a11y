@@ -1,0 +1,88 @@
+---
+title: "Represent hierarchical agent workflows"
+description:
+  "Model runs, nested and concurrent steps, retries, tools, and interactions
+  without turning internal agent traffic into announcement noise."
+publicPath: "/docs/lifecycle/workflows"
+section: "Lifecycle"
+keywords: ["runs", "steps", "hierarchy", "concurrency", "retry"]
+related:
+  ["/docs/lifecycle/identity", "/docs/testing/replay", "/docs/devtools"]
+order: 8
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/lifecycle/workflows",
+  section: "Lifecycle",
+  related: [
+    "/docs/lifecycle/identity",
+    "/docs/testing/replay",
+    "/docs/devtools",
+  ],
+  order: 8,
+};
+
+export const searchableText = [
+  "Represent hierarchical agent workflows",
+  "Model runs, nested and concurrent steps, retries, tools, and interactions without turning internal agent traffic into announcement noise.",
+  "runs steps hierarchy concurrency retry",
+  "Preserve explicit hierarchy",
+  "runId and stepId are logical identities. Instance IDs identify attempts. Parent IDs preserve documented nesting. Responses, tools, and interactions may carry workflow context.",
+  "Keep the default quiet",
+  "Balanced policy announces terminal run summaries, long-running identified steps, assertive failures, and interaction requests. Nested steps and progress remain quiet by default.",
+  "Retry one scope",
+  "A retry replaces one attempt, cancels its descendants, ignores late old-attempt events, and preserves concurrent siblings.",
+  "Partial evidence",
+  "Omit stepId when a framework exposes only a display name. Labels never become identity.",
+].join("\n");
+
+## Preserve explicit hierarchy
+
+`runId` and `stepId` identify logical work. `runInstanceId` and
+`stepInstanceId` identify attempts. Parent run and step IDs preserve nesting
+only when the source exposes it. Responses, tools, approvals, and interactions
+can carry the same workflow context without becoming steps themselves.
+
+```ts
+runtime.dispatch({
+  type: "step.started",
+  runId: "report",
+  runInstanceId: "run-1",
+  stepId: "sources",
+  stepInstanceId: "sources-2",
+  parentStepId: "research",
+  label: "Collect sources",
+});
+```
+
+Concurrent siblings keep separate IDs. Completing or failing one does not
+complete or cancel another. A successful parent completion is rejected while a
+known child remains active.
+
+## Keep routine workflow traffic quiet
+
+The balanced policy announces terminal run summaries and identified steps only
+after they become long-running. Nested steps and progress remain quiet by
+default. Step failures use the configured error channel, while approval and
+input requests retain their existing priority.
+
+Use `policy.workflows` to choose run boundary verbosity, silent, long-running,
+or all step boundaries, the long-running threshold, progress announcements,
+and whether nested steps may speak.
+
+## Replace attempts without leaking stale work
+
+`step.retrying` and `run.retrying` create explicit attempt boundaries. The
+runtime cancels announcements owned by the replaced attempt and its descendants
+while preserving siblings. Events carrying an older instance ID are diagnosed
+as stale and do not produce output.
+
+When a source exposes only a step name, omit `stepId`. The runtime records
+partial diagnostic evidence but never treats display text, array position, or
+timing as identity.
+
+## Related
+
+- [/docs/lifecycle/identity](/docs/lifecycle/identity)
+- [/docs/testing/replay](/docs/testing/replay)
+- [/docs/devtools](/docs/devtools)

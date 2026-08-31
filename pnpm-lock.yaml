@@ -262,6 +262,12 @@ importers:
         specifier: 4.125.0
         version: 4.125.0
 
+  examples/hierarchical-workflow:
+    dependencies:
+      '@generative-a11y/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
   packages/ag-ui:
     dependencies:
       '@ag-ui/client':

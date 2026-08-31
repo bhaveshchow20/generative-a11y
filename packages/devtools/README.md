@@ -75,15 +75,20 @@ Pass `source` when attaching a runtime driven by an adapter. This is an
 explicit, serializable declaration from the integration, not framework detection
 by devtools. It lets an inspector show the adapter name, documented public
 evidence and declared fidelity without filling gaps in the lifecycle trace.
-`interruption` and `retries` accept `exact`, `action-wrapper`, or `unavailable`.
-`connection` accepts those values plus `inferred`, because some integrations can
-only derive connection state from another documented public signal. The store
-freezes a copy of this metadata and includes it in its redacted export. Each
-captured record references an opaque `runtimeSourceId`. Source revisions remain
-immutable and exportable for as long as a retained record references them, even
-after a runtime detaches or the same runtime ID is reattached with different
-metadata. Unreferenced revisions are removed with ring-buffer eviction so
-repeated attachment cannot create unbounded source history.
+Workflow fidelity distinguishes runs, steps, hierarchy, tools, interactions,
+replay, reconnection, and unsupported custom events as exact, partial, or
+unavailable where applicable. The inspector also shows content-free run and step
+parentage, attempt boundaries, active or terminal state, and associated entity
+IDs from the core diagnostic snapshot. `interruption` and `retries` accept
+`exact`, `action-wrapper`, or `unavailable`. `connection` accepts those values
+plus `inferred`, because some integrations can only derive connection state from
+another documented public signal. The store freezes a copy of this metadata and
+includes it in its redacted export. Each captured record references an opaque
+`runtimeSourceId`. Source revisions remain immutable and exportable for as long
+as a retained record references them, even after a runtime detaches or the same
+runtime ID is reattached with different metadata. Unreferenced revisions are
+removed with ring-buffer eviction so repeated attachment cannot create unbounded
+source history.
 
 Use an adapter package's exported metadata where it fits the integration. For
 custom adapters, provide only public signals that justify normalized events. Do

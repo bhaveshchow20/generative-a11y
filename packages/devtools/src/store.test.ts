@@ -157,6 +157,10 @@ describe("devtools store", () => {
         error: { name: "NotAllowedError", message: "Private browser failure" },
         method: "live-region",
         responseId: "response-1",
+        runId: "run-1",
+        runInstanceId: "run-attempt-1",
+        stepId: "step-1",
+        stepInstanceId: "step-attempt-1",
         sourceType: "response.completed",
         status: "mutated",
       },
@@ -170,6 +174,10 @@ describe("devtools store", () => {
       errorName: "NotAllowedError",
       kind: "dom-delivery",
       runtimeId: "primary",
+      runId: "run-1",
+      runInstanceId: "run-attempt-1",
+      stepId: "step-1",
+      stepInstanceId: "step-attempt-1",
     });
     expect(JSON.stringify(store.exportTrace())).not.toContain(
       "Private browser failure",
@@ -492,6 +500,66 @@ describe("devtools store", () => {
       responseId: "response-1",
       responseInstanceId: "attempt-1",
     });
+  });
+
+  it("projects workflow hierarchy and attempt boundaries as safe metadata", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+    store.attachRuntime({ id: "workflow", runtime });
+
+    runtime.dispatch({ type: "run.started", runId: "parent" });
+    runtime.dispatch({
+      type: "run.started",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      parentRunId: "parent",
+      parentToolId: "delegate",
+      parentResponseId: "message",
+    });
+    runtime.dispatch({
+      type: "step.started",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      label: "Private label",
+    });
+    runtime.dispatch({
+      type: "step.retrying",
+      runId: "child",
+      runInstanceId: "child-attempt-1",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      nextStepInstanceId: "search-attempt-2",
+      attempt: 2,
+      label: "Private label",
+    });
+
+    const records = store.getSnapshot().records;
+    expect(
+      records.find((record) => record.sourceType === "run.started"),
+    ).toMatchObject({ runId: "parent" });
+    expect(
+      records.find(
+        (record) =>
+          record.sourceType === "run.started" && record.runId === "child",
+      ),
+    ).toMatchObject({
+      runInstanceId: "child-attempt-1",
+      parentRunId: "parent",
+      parentToolId: "delegate",
+      parentResponseId: "message",
+    });
+    expect(
+      records.find((record) => record.sourceType === "step.retrying"),
+    ).toMatchObject({
+      runId: "child",
+      stepId: "search",
+      stepInstanceId: "search-attempt-1",
+      nextStepInstanceId: "search-attempt-2",
+      attempt: 2,
+    });
+    expect(JSON.stringify(store.exportTrace())).not.toContain("Private label");
   });
 
   it("keeps snapshot identity stable until captured state changes", () => {

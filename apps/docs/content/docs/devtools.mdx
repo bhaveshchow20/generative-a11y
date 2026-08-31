@@ -55,6 +55,7 @@ export const searchableText = [
   "captured-evidence",
   "Captured evidence and redaction",
   "The store retains event categories, outcomes, timing, stable IDs, queue and entity snapshots, declared adapter evidence, and browser delivery metadata. It excludes assistant text, labels, errors, tool data, stacks, DOM content, deduplication keys, and timer handles.",
+  "Workflow records include redacted run and step identity, parent relationships, attempt boundaries, active or terminal state, and associated response, tool, or interaction IDs when the adapter supplied them.",
   "Pass adapter metadata through source only when a documented integration can support it. Devtools does not detect a framework or invent events that the framework did not report.",
   "delivery-correlation",
   "Correlate runtime decisions with DOM delivery",
@@ -164,6 +165,10 @@ Close the overlay, detach the borrowed runtime, then dispose the store.
 </Step>
 
 </Steps>
+
+Workflow records expose content-free run and step identity, parent
+relationships, attempts, active or terminal state, and associated entity IDs
+when the adapter supplies them. The inspector does not infer missing hierarchy.
 
 <span id="captured&#45;evidence"></span>
 

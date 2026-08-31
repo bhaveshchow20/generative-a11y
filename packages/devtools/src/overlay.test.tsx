@@ -166,6 +166,42 @@ test("correlates source and decision records when no event id was supplied", () 
   mounted.dispose();
 });
 
+test("renders workflow identity, hierarchy, attempt, and terminal state", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({ type: "run.started", runId: "parent" });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "child",
+    runInstanceId: "attempt-1",
+    parentRunId: "parent",
+  });
+  runtime.dispatch({
+    type: "step.started",
+    runId: "child",
+    runInstanceId: "attempt-1",
+    stepId: "search",
+    stepInstanceId: "step-attempt-1",
+    label: "Search",
+  });
+  store.refreshSnapshots();
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>("button");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("Workflow hierarchy");
+  expect(detail?.textContent).toContain("child");
+  expect(detail?.textContent).toContain("attempt-1");
+  expect(detail?.textContent).toContain("search");
+  expect(detail?.textContent).toContain("active");
+  mounted.dispose();
+});
+
 test("cancels feedback cleanup when the workspace unmounts", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");
