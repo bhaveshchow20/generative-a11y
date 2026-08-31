@@ -39,22 +39,58 @@ const title = (record: DevtoolsRecord) =>
     : record.kind === "dom-delivery"
       ? `${record.deliveryStatus ?? "Delivery"} via ${record.deliveryMethod ?? "browser"}`
       : (record.reason ?? record.disposition ?? "Runtime decision");
-function correlation(record: DevtoolsRecord) {
+function correlationKeys(record: DevtoolsRecord): readonly string[] {
   const prefix = `${record.runtimeId}:`;
-  if (record.sourceEventId) return `${prefix}event:${record.sourceEventId}`;
-  if (record.responseId)
-    return `${prefix}response:${record.responseId}:${record.sourceType ?? "unknown"}`;
-  if (record.toolId)
-    return `${prefix}tool:${record.toolId}:${record.sourceType ?? "unknown"}`;
+  const keys = new Set<string>();
+  if (record.sourceEventId) keys.add(`${prefix}event:${record.sourceEventId}`);
+  if (record.responseId) keys.add(`${prefix}response:${record.responseId}`);
+  if (record.toolId) keys.add(`${prefix}tool:${record.toolId}`);
   if (record.interactionId)
-    return `${prefix}interaction:${record.interactionId}`;
-  if (record.approvalId) return `${prefix}approval:${record.approvalId}`;
-  if (record.stepId)
-    return `${prefix}step:${record.runId ?? "unknown"}:${record.stepId}`;
-  if (record.runId) return `${prefix}run:${record.runId}`;
+    keys.add(`${prefix}interaction:${record.interactionId}`);
+  if (record.approvalId) keys.add(`${prefix}approval:${record.approvalId}`);
   if (record.announcementId)
-    return `${prefix}announcement:${record.announcementId}`;
-  return `${prefix}record:${record.captureSequence}`;
+    keys.add(`${prefix}announcement:${record.announcementId}`);
+  if (record.runId)
+    keys.add(
+      `${prefix}run:${record.runId}:${record.runInstanceId ?? "unidentified"}`,
+    );
+  if (record.parentRunId)
+    keys.add(
+      `${prefix}run:${record.parentRunId}:${record.parentRunInstanceId ?? "unidentified"}`,
+    );
+  if (record.stepId)
+    keys.add(
+      `${prefix}step:${record.runId ?? "unknown"}:${record.runInstanceId ?? "unidentified"}:${record.stepId}:${record.stepInstanceId ?? "unidentified"}`,
+    );
+  if (record.parentStepId)
+    keys.add(
+      `${prefix}step:${record.runId ?? "unknown"}:${record.runInstanceId ?? "unidentified"}:${record.parentStepId}:${record.parentStepInstanceId ?? "unidentified"}`,
+    );
+  if (record.parentToolId) keys.add(`${prefix}tool:${record.parentToolId}`);
+  if (record.parentResponseId)
+    keys.add(`${prefix}response:${record.parentResponseId}`);
+  if (keys.size === 0) keys.add(`${prefix}record:${record.captureSequence}`);
+  return [...keys];
+}
+function relatedRecords(
+  records: readonly DevtoolsRecord[],
+  selected: DevtoolsRecord,
+): readonly DevtoolsRecord[] {
+  const related = new Set<DevtoolsRecord>();
+  const keys = new Set(correlationKeys(selected));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const record of records) {
+      if (related.has(record)) continue;
+      const recordKeys = correlationKeys(record);
+      if (!recordKeys.some((value) => keys.has(value))) continue;
+      related.add(record);
+      for (const value of recordKeys) keys.add(value);
+      changed = true;
+    }
+  }
+  return [...related];
 }
 function explain(record: DevtoolsRecord) {
   if (record.kind === "event-observed")
@@ -150,9 +186,17 @@ function Detail({
   const source =
     snapshot.runtimeSources[record.runtimeSourceId ?? record.runtimeId];
   const runtime = snapshot.runtimeSnapshots[record.runtimeId];
-  const run = runtime?.runs?.find((item) => item.runId === record.runId);
+  const run = runtime?.runs?.find(
+    (item) =>
+      item.runId === record.runId &&
+      (!record.runInstanceId || item.instanceId === record.runInstanceId),
+  );
   const step = runtime?.steps?.find(
-    (item) => item.runId === record.runId && item.stepId === record.stepId,
+    (item) =>
+      item.runId === record.runId &&
+      item.stepId === record.stepId &&
+      (!record.runInstanceId || item.runInstanceId === record.runInstanceId) &&
+      (!record.stepInstanceId || item.instanceId === record.stepInstanceId),
   );
   const deliveries = related.filter((item) => item.kind === "dom-delivery");
   return (
@@ -224,19 +268,19 @@ function Detail({
             </div>
             <div>
               <dt>Runs</dt>
-              <dd>{source.fidelity.runs}</dd>
+              <dd>{source.fidelity.runs ?? "Not declared"}</dd>
             </div>
             <div>
               <dt>Steps</dt>
-              <dd>{source.fidelity.steps}</dd>
+              <dd>{source.fidelity.steps ?? "Not declared"}</dd>
             </div>
             <div>
               <dt>Hierarchy</dt>
-              <dd>{source.fidelity.hierarchy}</dd>
+              <dd>{source.fidelity.hierarchy ?? "Not declared"}</dd>
             </div>
             <div>
               <dt>Replay</dt>
-              <dd>{source.fidelity.replay}</dd>
+              <dd>{source.fidelity.replay ?? "Not declared"}</dd>
             </div>
             <div>
               <dt>Interruption</dt>
@@ -418,11 +462,7 @@ export function DevtoolsInspector({
     .reverse();
   const selected =
     visible.find((record) => key(record) === selectedKey) ?? visible[0];
-  const related = selected
-    ? snapshot.records.filter(
-        (record) => correlation(record) === correlation(selected),
-      )
-    : [];
+  const related = selected ? relatedRecords(snapshot.records, selected) : [];
   React.useEffect(
     () => () => {
       if (feedbackTimer.current !== undefined)

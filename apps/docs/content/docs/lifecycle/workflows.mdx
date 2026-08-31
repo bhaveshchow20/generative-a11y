@@ -64,7 +64,9 @@ known child remains active.
 The balanced policy announces terminal run summaries and identified steps only
 after they become long-running. Nested steps and progress remain quiet by
 default. Step failures use the configured error channel, while approval and
-input requests retain their existing priority.
+input requests retain their existing priority. When a completed response
+boundary was already announced and a run has no identified step summary, its
+generic completion is silent instead of repeating the same boundary.
 
 Use `policy.workflows` to choose run boundary verbosity, silent, long-running,
 or all step boundaries, the long-running threshold, progress announcements,
@@ -77,9 +79,10 @@ runtime cancels announcements owned by the replaced attempt and its descendants
 while preserving siblings. Events carrying an older instance ID are diagnosed
 as stale and do not produce output.
 
-When a source exposes only a step name, omit `stepId`. The runtime records
-partial diagnostic evidence but never treats display text, array position, or
-timing as identity.
+When a source exposes only a step name, omit `stepId`. The runtime emits an
+ephemeral `partial-identity` diagnostic, but cannot create a step snapshot,
+announcement, or run count from that evidence. It never treats display text,
+array position, or timing as identity.
 
 ## Related
 

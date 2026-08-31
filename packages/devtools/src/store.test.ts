@@ -402,6 +402,35 @@ describe("devtools store", () => {
     expect(store.getSnapshot().runtimeIds).toEqual([]);
   });
 
+  it("accepts legacy source fidelity without workflow evidence fields", () => {
+    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const store = createDevtoolsStore();
+    store.attachRuntime({
+      id: "primary",
+      runtime,
+      source: {
+        adapter: "legacy-adapter",
+        evidence: ["LegacyAdapter.subscribe"],
+        fidelity: {
+          interruption: "exact",
+          retries: "unavailable",
+          connection: "unavailable",
+        },
+      },
+    });
+
+    expect(store.getSnapshot().runtimeSources).toEqual({
+      primary: expect.objectContaining({
+        adapter: "legacy-adapter",
+        fidelity: {
+          interruption: "exact",
+          retries: "unavailable",
+          connection: "unavailable",
+        },
+      }),
+    });
+  });
+
   it("rejects unsupported fidelity declarations and non-public evidence", () => {
     const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
     const store = createDevtoolsStore();

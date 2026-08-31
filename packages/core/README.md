@@ -74,10 +74,13 @@ runtime.dispatch({
 
 The balanced policy announces terminal run summaries and only identified,
 long-running top-level steps. Nested steps and progress are quiet by default. A
-step event without `stepId` is retained only as partial diagnostic evidence; the
-runtime never uses display labels as identity. A failed child preserves sibling
-work, while retry replacement cancels only the replaced attempt and its
-descendants. Known active children block a successful parent completion.
+generic empty run completion is silent when its completed response boundary was
+already announced. A step event without `stepId` produces only an ephemeral
+partial-identity diagnostic: it cannot create a step snapshot, announcement, or
+run count. The runtime never uses display labels as identity. A failed child
+preserves sibling work, while retry replacement cancels only the replaced
+attempt and its descendants. Known active children block a successful parent
+completion.
 
 ## Runtime contract
 

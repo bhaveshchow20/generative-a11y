@@ -37,6 +37,8 @@ export interface DevtoolsRecord {
   readonly nextRunInstanceId?: string;
   /** Explicit logical parent run identity. */
   readonly parentRunId?: string;
+  /** Explicit parent run attempt identity. */
+  readonly parentRunInstanceId?: string;
   /** Stable logical step identity retained as content-free correlation data. */
   readonly stepId?: string;
   /** Stable step attempt identity retained as correlation data. */
@@ -45,6 +47,8 @@ export interface DevtoolsRecord {
   readonly nextStepInstanceId?: string;
   /** Explicit logical parent step identity. */
   readonly parentStepId?: string;
+  /** Explicit parent step attempt identity. */
+  readonly parentStepInstanceId?: string;
   /** Explicit tool that delegated to a child run. */
   readonly parentToolId?: string;
   /** Explicit response that owns a child run. */
@@ -70,11 +74,24 @@ export interface DevtoolsRuntimeSource {
   readonly adapter: string;
   readonly evidence: readonly string[];
   readonly fidelity: Readonly<
-    Omit<AdapterFidelity, "optionalEvents"> & {
-      readonly optionalEvents?: readonly NonNullable<
-        AdapterFidelity["optionalEvents"]
-      >[number][];
-    }
+    Pick<AdapterFidelity, "interruption" | "retries" | "connection"> &
+      Partial<
+        Pick<
+          AdapterFidelity,
+          | "runs"
+          | "steps"
+          | "hierarchy"
+          | "tools"
+          | "interactions"
+          | "replay"
+          | "reconnection"
+          | "customEvents"
+        >
+      > & {
+        readonly optionalEvents?: readonly NonNullable<
+          AdapterFidelity["optionalEvents"]
+        >[number][];
+      }
   >;
 }
 
@@ -178,6 +195,10 @@ function asRecord(
       ...("parentRunId" in event.event && event.event.parentRunId
         ? { parentRunId: event.event.parentRunId }
         : {}),
+      ...("parentRunInstanceId" in event.event &&
+      event.event.parentRunInstanceId
+        ? { parentRunInstanceId: event.event.parentRunInstanceId }
+        : {}),
       ...("stepId" in event.event && event.event.stepId
         ? { stepId: event.event.stepId }
         : {}),
@@ -189,6 +210,10 @@ function asRecord(
         : {}),
       ...("parentStepId" in event.event && event.event.parentStepId
         ? { parentStepId: event.event.parentStepId }
+        : {}),
+      ...("parentStepInstanceId" in event.event &&
+      event.event.parentStepInstanceId
+        ? { parentStepInstanceId: event.event.parentStepInstanceId }
         : {}),
       ...("parentToolId" in event.event && event.event.parentToolId
         ? { parentToolId: event.event.parentToolId }
@@ -313,12 +338,13 @@ function copyRuntimeSource(
     "replay",
     "reconnection",
   ] as const) {
-    if (!workflowFidelity.has(fidelity[field]))
+    if (fidelity[field] !== undefined && !workflowFidelity.has(fidelity[field]))
       throw new TypeError(
         `source ${field} fidelity contains an unsupported value`,
       );
   }
   if (
+    fidelity.customEvents !== undefined &&
     fidelity.customEvents !== "explicit-mapping" &&
     fidelity.customEvents !== "unsupported"
   )
@@ -352,14 +378,14 @@ function copyRuntimeSource(
     adapter: source.adapter.trim(),
     evidence: Object.freeze(source.evidence.map((item) => item.trim())),
     fidelity: Object.freeze({
-      runs: fidelity.runs,
-      steps: fidelity.steps,
-      hierarchy: fidelity.hierarchy,
-      tools: fidelity.tools,
-      interactions: fidelity.interactions,
-      replay: fidelity.replay,
-      reconnection: fidelity.reconnection,
-      customEvents: fidelity.customEvents,
+      ...(fidelity.runs ? { runs: fidelity.runs } : {}),
+      ...(fidelity.steps ? { steps: fidelity.steps } : {}),
+      ...(fidelity.hierarchy ? { hierarchy: fidelity.hierarchy } : {}),
+      ...(fidelity.tools ? { tools: fidelity.tools } : {}),
+      ...(fidelity.interactions ? { interactions: fidelity.interactions } : {}),
+      ...(fidelity.replay ? { replay: fidelity.replay } : {}),
+      ...(fidelity.reconnection ? { reconnection: fidelity.reconnection } : {}),
+      ...(fidelity.customEvents ? { customEvents: fidelity.customEvents } : {}),
       interruption: fidelity.interruption,
       retries: fidelity.retries,
       connection: fidelity.connection,

@@ -226,7 +226,9 @@ callbacks retain their run ownership when the protocol exposes it.
 
 Step callbacks expose `stepName` but no stable step ID. The adapter keeps that
 value as a label and omits `stepId`, so step and hierarchy fidelity are partial;
-same&#45;name concurrent steps cannot be correlated exactly.
+same&#45;name concurrent steps cannot be correlated exactly. Core reports these
+callbacks only as ephemeral partial&#45;identity diagnostics; they do not create
+step snapshots, announcements, or run summary counts.
 
 <span id="screen&#45;reader&#45;behavior"></span>
 
