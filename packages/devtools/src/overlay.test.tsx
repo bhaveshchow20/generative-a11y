@@ -305,6 +305,37 @@ test("does not display a newer attempt snapshot for an older record", () => {
   mounted.dispose();
 });
 
+test("does not infer an attempt snapshot for a record without attempt identity", () => {
+  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "workflow", runtime });
+  runtime.dispatch({ type: "run.started", runId: "run" });
+  runtime.dispatch({
+    type: "run.started",
+    runId: "run",
+    runInstanceId: "attempt-2",
+  });
+  store.refreshSnapshots();
+
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const unidentifiedStart = [
+    ...root.querySelectorAll<HTMLElement>(".ga-trace-row"),
+  ]
+    .filter((row) => row.textContent?.includes("run.started"))
+    .at(-1);
+  if (!unidentifiedStart) throw new Error("unidentified run start missing");
+  fireEvent.click(unidentifiedStart);
+
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("Run attemptNot supplied");
+  expect(detail?.textContent).toContain("Run stateNot retained");
+  mounted.dispose();
+});
+
 test("cancels feedback cleanup when the workspace unmounts", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");

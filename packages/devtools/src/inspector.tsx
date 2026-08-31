@@ -192,18 +192,23 @@ function Detail({
   const source =
     snapshot.runtimeSources[record.runtimeSourceId ?? record.runtimeId];
   const runtime = snapshot.runtimeSnapshots[record.runtimeId];
-  const run = runtime?.runs?.find(
-    (item) =>
-      item.runId === record.runId &&
-      (!record.runInstanceId || item.instanceId === record.runInstanceId),
-  );
-  const step = runtime?.steps?.find(
-    (item) =>
-      item.runId === record.runId &&
-      item.stepId === record.stepId &&
-      (!record.runInstanceId || item.runInstanceId === record.runInstanceId) &&
-      (!record.stepInstanceId || item.instanceId === record.stepInstanceId),
-  );
+  const run = record.runInstanceId
+    ? runtime?.runs?.find(
+        (item) =>
+          item.runId === record.runId &&
+          item.instanceId === record.runInstanceId,
+      )
+    : undefined;
+  const step =
+    record.runInstanceId && record.stepInstanceId
+      ? runtime?.steps?.find(
+          (item) =>
+            item.runId === record.runId &&
+            item.stepId === record.stepId &&
+            item.runInstanceId === record.runInstanceId &&
+            item.instanceId === record.stepInstanceId,
+        )
+      : undefined;
   const deliveries = related.filter((item) => item.kind === "dom-delivery");
   return (
     <aside className="ga-trace-detail" data-testid="trace-detail">
