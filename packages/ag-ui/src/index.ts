@@ -256,6 +256,37 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
     },
     onRunFinishedEvent(params) {
       const run = runs.get(params.event.runId);
+      if (params.outcome === "interrupt") {
+        for (const [id, response] of responses) {
+          if (response.terminal) continue;
+          response.terminal = true;
+          dispatch({
+            type: "response.interrupted",
+            responseId: responseId(scopeId, id),
+            ...(response.runId ? { runId: response.runId } : {}),
+          });
+        }
+        for (const interrupt of params.interrupts) {
+          if (
+            !admit(interactions, interrupt.id) ||
+            interactions.has(interrupt.id)
+          )
+            continue;
+          const ownerRunId = contextualRunId(
+            params.event.runId,
+            interrupt.subagentRunId,
+          );
+          interactions.set(interrupt.id, ownerRunId ?? null);
+          dispatch({
+            type: "interaction.requested",
+            interactionId: interactionId(scopeId, interrupt.id),
+            kind: "input",
+            label: "Input is needed",
+            urgent: true,
+            ...(ownerRunId ? { runId: ownerRunId } : {}),
+          });
+        }
+      }
       if (run && !run.terminal) {
         run.terminal = true;
         dispatch({
@@ -264,36 +295,6 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
               ? "run.interrupted"
               : "run.completed",
           runId: runId(scopeId, params.event.runId),
-        });
-      }
-      if (params.outcome !== "interrupt") return;
-      for (const [id, response] of responses) {
-        if (response.terminal) continue;
-        response.terminal = true;
-        dispatch({
-          type: "response.interrupted",
-          responseId: responseId(scopeId, id),
-          ...(response.runId ? { runId: response.runId } : {}),
-        });
-      }
-      for (const interrupt of params.interrupts) {
-        if (
-          !admit(interactions, interrupt.id) ||
-          interactions.has(interrupt.id)
-        )
-          continue;
-        const ownerRunId = contextualRunId(
-          params.event.runId,
-          interrupt.subagentRunId,
-        );
-        interactions.set(interrupt.id, ownerRunId ?? null);
-        dispatch({
-          type: "interaction.requested",
-          interactionId: interactionId(scopeId, interrupt.id),
-          kind: "input",
-          label: "Input is needed",
-          urgent: true,
-          ...(ownerRunId ? { runId: ownerRunId } : {}),
         });
       }
     },

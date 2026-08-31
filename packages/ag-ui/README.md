@@ -33,9 +33,11 @@ const binding = bindAgent({ runtime, scopeId: "support", agent });
 
 AG-UI 0.0.59 exposes stable run and subagent-run IDs. Step events expose only
 `stepName`, so the adapter deliberately omits `stepId`; names never become
-identity and concurrent same-name steps cannot be correlated exactly. The
-protocol's top-level `parentRunId` describes run lineage and is not treated as
-delegation hierarchy. Custom events and arbitrary state deltas are ignored.
+identity and concurrent same-name steps cannot be correlated exactly. Core
+records these callbacks as partial-identity diagnostic evidence, but does not
+create step snapshots or announcements from them. The protocol's top-level
+`parentRunId` describes run lineage and is not treated as delegation hierarchy.
+Custom events and arbitrary state deltas are ignored.
 
 The root entry is SSR-safe. In-memory entity tracking suppresses duplicate
 callbacks while a binding remains active, but replay and reconnection fidelity

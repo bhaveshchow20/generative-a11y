@@ -1,6 +1,7 @@
-import type {
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
+import {
+  createAnnouncementRecorder,
+  type GenerativeA11yEvent,
+  type GenerativeA11yRuntime,
 } from "@generative-a11y/core";
 import { describe, expect, it } from "vitest";
 import { AGENT_ADAPTER_METADATA, bindAgent } from "./index.js";
@@ -61,6 +62,95 @@ describe("AG-UI binding", () => {
       reconnection: "partial",
       customEvents: "unsupported",
     });
+  });
+  it("surfaces name-only steps as diagnostic evidence without inventing identity", () => {
+    const recorder = createAnnouncementRecorder();
+    const agent = agentFor();
+    bindAgent({
+      runtime: recorder.runtime,
+      scopeId: "agent",
+      agent: agent as never,
+    });
+    const input = { runId: "root" };
+
+    agent.emit("onRunStartedEvent", {
+      input,
+      event: { type: "RUN_STARTED", threadId: "thread", runId: "root" },
+    });
+    agent.emit("onStepStartedEvent", {
+      input,
+      event: { type: "STEP_STARTED", stepName: "Search sources" },
+    });
+    agent.emit("onStepFinishedEvent", {
+      input,
+      event: { type: "STEP_FINISHED", stepName: "Search sources" },
+    });
+
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .filter(({ sourceType }) => sourceType?.startsWith("step.")),
+    ).toEqual([
+      expect.objectContaining({
+        sourceType: "step.started",
+        reason: "partial-identity",
+        runId: "agent:run:root",
+      }),
+      expect.objectContaining({
+        sourceType: "step.completed",
+        reason: "partial-identity",
+        runId: "agent:run:root",
+      }),
+    ]);
+    expect(recorder.runtime.getDiagnosticSnapshot().steps).toEqual([]);
+    expect(recorder.transcript()).toEqual([]);
+  });
+  it("announces an interrupt request before terminating its owning run", () => {
+    const recorder = createAnnouncementRecorder();
+    const agent = agentFor();
+    bindAgent({
+      runtime: recorder.runtime,
+      scopeId: "agent",
+      agent: agent as never,
+    });
+    const input = { runId: "root" };
+
+    agent.emit("onRunStartedEvent", {
+      input,
+      event: { type: "RUN_STARTED", threadId: "thread", runId: "root" },
+    });
+    agent.emit("onTextMessageStartEvent", {
+      input,
+      event: {
+        type: "TEXT_MESSAGE_START",
+        messageId: "answer",
+        role: "assistant",
+      },
+    });
+    agent.emit("onRunFinishedEvent", {
+      input,
+      event: { type: "RUN_FINISHED", threadId: "thread", runId: "root" },
+      outcome: "interrupt",
+      interrupts: [{ id: "need-input" }],
+    });
+    recorder.clock.runUntilIdle();
+
+    expect(recorder.transcript().map(({ text }) => text)).toContain(
+      "Input is needed",
+    );
+    expect(
+      recorder
+        .diagnosticTranscript()
+        .filter(({ sourceType }) =>
+          ["response.interrupted", "interaction.requested"].includes(
+            sourceType ?? "",
+          ),
+        ),
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reason: "terminal-run" }),
+      ]),
+    );
   });
   it("maps public text lifecycle callbacks and does not duplicate or accept late content", () => {
     const { events, runtime } = recorder();
