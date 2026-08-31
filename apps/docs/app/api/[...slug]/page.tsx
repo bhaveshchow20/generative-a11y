@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DocumentationPage } from "../../../components/docs/docs-page";
-import { createPageMetadata } from "../../../lib/seo";
+import { createDocMetadata } from "../../../lib/seo";
 import { apiSource } from "../../../lib/source";
 
 export function generateStaticParams() {
@@ -20,7 +20,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const page = apiSource.getPage(slug);
   if (!page) return {};
-  return createPageMetadata({
+  return createDocMetadata({
     path: page.url,
     title: page.data.title,
     description: page.data.description ?? "",
@@ -39,6 +39,7 @@ export default async function APIReferencePage({
     <DocumentationPage
       body={page.data.body}
       description={page.data.description}
+      path={page.url}
       title={page.data.title}
       toc={page.data.toc}
     />

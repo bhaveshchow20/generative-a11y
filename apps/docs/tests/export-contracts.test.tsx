@@ -17,11 +17,12 @@ describe("docs application export contracts", () => {
     const page = DocumentationPage({
       body: () => <p>Body</p>,
       description: "Description",
+      path: "/docs/example",
       title: "Title",
       toc: [],
     });
 
-    expect(page.props.toc).toEqual([]);
+    expect(page.props.children).toHaveLength(2);
   });
 
   it("renders the shared product logo as a named home link", () => {

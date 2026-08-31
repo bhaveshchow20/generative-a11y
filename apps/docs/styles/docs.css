@@ -79,6 +79,18 @@
   --fd-docs-row-2: minmax(0, 48rem);
 }
 
+.docs-maintainer {
+  color: var(--color-fd-muted-foreground);
+  font-size: 0.875rem;
+  margin: -0.5rem 0 1.5rem;
+}
+
+.docs-maintainer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 /* Vinext does not currently expand Fumadocs' layout custom variant. Keep the
    native grid variables explicit until its Tailwind pipeline supports it. */
 @media (max-width: 767px) {

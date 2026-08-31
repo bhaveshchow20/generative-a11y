@@ -79,6 +79,12 @@ export const searchableText = [
 
 ## AI interfaces change after the user acts
 
+An accessibility runtime is the behavior layer between confirmed AI lifecycle
+events and browser delivery. It decides which asynchronous changes deserve an
+announcement, groups noisy updates into useful units, prioritizes states that
+need attention, and cancels obsolete work without replacing the application’s
+visible interface or taking focus from the user.
+
 A conventional form usually has a short, predictable transition: submit,
 validate, and show a result. An AI interface can stream a response for many
 seconds, start tools, pause for approval, reconnect, retry, and finish long
@@ -88,6 +94,11 @@ Semantic HTML, keyboard access, visible status, and sensible focus remain
 required. They do not by themselves decide which asynchronous changes deserve an
 announcement, how repeated changes should be grouped, or when lower&#45;priority
 updates should wait.
+
+This complements, rather than replaces, the requirement in
+[WCAG 2.2 status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+that important changes be programmatically determinable without receiving
+focus. The application still owns the semantic HTML and interaction design.
 
 <span id="failure&#45;modes"></span>
 
@@ -165,6 +176,12 @@ application uses that framework's documented public lifecycle surface.
 
 ## Related
 
-- [/docs/architecture](/docs/architecture)
-- [/docs/screen-readers-and-streaming-ai](/docs/screen-readers-and-streaming-ai)
-- [/docs/integrations](/docs/integrations)
+- [Accessibility runtime architecture](/docs/architecture)
+- [Screen readers and streaming AI](/docs/screen-readers-and-streaming-ai)
+- [Choose a framework integration](/docs/integrations)
+
+## Sources and evidence
+
+- [WAI-ARIA 1.2 live-region roles and properties](https://www.w3.org/TR/wai-aria/)
+- [WCAG 2.2: Understanding Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+- [generative-a11y testing boundaries](/docs/testing)

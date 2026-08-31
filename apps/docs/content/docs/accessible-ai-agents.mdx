@@ -153,6 +153,13 @@ evidence.
 
 ## Prioritize decisions and failures without stealing focus
 
+An AI agent approval request should be announced as a confirmed request for
+input, while the approval control remains part of the host application’s normal
+keyboard and focus model. Routine progress can stay polite; required decisions
+and safe failure labels can receive higher priority. The event stream must keep
+each update attached to a stable response, tool, or approval identity so stale
+work can be cancelled after retries and interruptions.
+
 Approval requests and failures can use higher announcement priority than routine
 progress, but ordinary agent lifecycle updates do not move focus. If an approval
 control needs focus, the host application must make that separate interaction
@@ -173,6 +180,12 @@ adapter to infer them from rendered UI.
 
 ## Related
 
-- [/docs/lifecycle/tools](/docs/lifecycle/tools)
-- [/docs/lifecycle/interactions](/docs/lifecycle/interactions)
-- [/docs/integrations](/docs/integrations)
+- [Tool lifecycle events](/docs/lifecycle/tools)
+- [Accessible interactions and approvals](/docs/lifecycle/interactions)
+- [Choose a framework integration](/docs/integrations)
+
+## Sources and evidence
+
+- [WCAG 2.2: Understanding Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+- [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/)
+- [generative-a11y architecture and evidence boundaries](/docs/architecture)

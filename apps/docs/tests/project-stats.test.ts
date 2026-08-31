@@ -1,7 +1,13 @@
 import { readdir, readFile } from "node:fs/promises";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-describe("project download stats", () => {
+import { GET } from "../app/project-stats.json/route";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("project stats endpoint", () => {
   it("includes every published workspace package", async () => {
     const packagesDirectory = new URL("../../../packages/", import.meta.url);
     const packageDirectories = await readdir(packagesDirectory, {
@@ -26,16 +32,57 @@ describe("project download stats", () => {
       .filter((name): name is string => name !== undefined)
       .sort();
 
-    const component = await readFile(
-      new URL("../components/project-stats.tsx", import.meta.url),
+    const route = await readFile(
+      new URL("../app/project-stats.json/route.ts", import.meta.url),
       "utf8",
     );
-    const configuredPackages = component
+    const configuredPackages = route
       .match(/const packages = \[([^\]]+)\]/u)?.[1]
       .match(/"([^"]+)"/gu)
       ?.map((name) => name.slice(1, -1))
       .sort();
 
     expect(configuredPackages).toEqual(expectedPackages);
+  });
+
+  it("preserves GitHub stars when an npm request rejects", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = new URL(input instanceof Request ? input.url : input);
+        if (url.hostname === "api.github.com") {
+          return Response.json({ stargazers_count: 12 });
+        }
+        if (url.pathname.endsWith("%2Fdom")) throw new Error("npm unavailable");
+        return Response.json({ downloads: 10 });
+      }),
+    );
+
+    const response = await GET();
+
+    await expect(response.json()).resolves.toEqual({
+      stars: 12,
+      monthlyDownloads: null,
+    });
+  });
+
+  it("preserves npm downloads when the GitHub request rejects", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = new URL(input instanceof Request ? input.url : input);
+        if (url.hostname === "api.github.com") {
+          throw new Error("GitHub unavailable");
+        }
+        return Response.json({ downloads: 10 });
+      }),
+    );
+
+    const response = await GET();
+
+    await expect(response.json()).resolves.toEqual({
+      stars: null,
+      monthlyDownloads: 70,
+    });
   });
 });

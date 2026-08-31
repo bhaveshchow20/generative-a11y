@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,8 @@ import {
 import {
   absoluteUrl,
   REPOSITORY_URL,
+  PROJECT_AUTHOR_NAME,
+  PROJECT_AUTHOR_URL,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
@@ -57,9 +59,16 @@ describe("site metadata contracts", () => {
       expect.arrayContaining([
         expect.objectContaining({
           url: "https://generativea11y.com/og.png",
+          type: "image/png",
         }),
       ]),
     );
+    expect(metadata.twitter?.images).toEqual([
+      {
+        url: "https://generativea11y.com/og.png",
+        alt: "generative-a11y: accessible AI infrastructure",
+      },
+    ]);
 
     const page = {
       path: "/docs/devtools",
@@ -67,9 +76,83 @@ describe("site metadata contracts", () => {
       description: "Inspect accessibility events without exposing private data.",
     };
     expect(createDocMetadata(page).description).toBe(page.description);
+    expect(createDocMetadata(page).openGraph).toEqual(
+      expect.objectContaining({ type: "article" }),
+    );
     expect(createHomeJsonLd()).toEqual(
       expect.objectContaining({ "@context": "https://schema.org" }),
     );
+  });
+
+  it("keeps long search titles within the recommended display length", () => {
+    const title = "Why generative AI needs an accessibility runtime";
+    const metadata = createPageMetadata({
+      path: "/docs/why-generative-a11y",
+      title,
+      description:
+        "Learn why streaming responses and agent lifecycle changes require accessibility behavior beyond ordinary chat patterns.",
+    });
+
+    expect(metadata.title).toEqual({ absolute: title });
+  });
+
+  it("links the project and documentation to a truthful author entity", () => {
+    expect(PROJECT_AUTHOR_NAME).toBe("Bhavesh Chowdhury");
+    expect(PROJECT_AUTHOR_URL).toBe("https://github.com/bhaveshchow20");
+
+    const homeGraph = createHomeJsonLd()["@graph"] as Array<
+      Record<string, unknown>
+    >;
+    const person = homeGraph.find((entry) => entry["@type"] === "Person");
+    const software = homeGraph.find(
+      (entry) => entry["@type"] === "SoftwareSourceCode",
+    );
+    const image = homeGraph.find((entry) => entry["@type"] === "ImageObject");
+
+    expect(person).toEqual(
+      expect.objectContaining({
+        name: PROJECT_AUTHOR_NAME,
+        url: PROJECT_AUTHOR_URL,
+      }),
+    );
+    expect(software?.creator).toEqual({ "@id": `${SITE_URL}/#author` });
+    expect(software?.sameAs).toEqual([
+      REPOSITORY_URL,
+      "https://www.npmjs.com/org/generative-a11y",
+    ]);
+    expect(image).toEqual(
+      expect.objectContaining({
+        contentUrl: "https://generativea11y.com/og.png",
+      }),
+    );
+
+    const articleGraph = createArticleJsonLd({
+      path: "/docs/getting-started",
+      title: "Getting started",
+      description:
+        "Install generative-a11y and connect its accessibility runtime to an existing AI interface.",
+    })["@graph"] as Array<Record<string, unknown>>;
+    const article = articleGraph.find(
+      (entry) => entry["@type"] === "TechArticle",
+    );
+    expect(article?.author).toEqual({ "@id": `${SITE_URL}/#author` });
+
+    const apiGraph = createArticleJsonLd({
+      path: "/api/core",
+      title: "@generative-a11y/core",
+      description: "Core API reference.",
+    })["@graph"] as Array<Record<string, unknown>>;
+    expect(
+      apiGraph.find((entry) => entry["@id"] === `${SITE_URL}/api/core#webpage`),
+    ).toEqual(expect.objectContaining({ "@type": "WebPage" }));
+  });
+
+  it("keeps the social preview within the hero-image size budget", () => {
+    const socialImage = statSync(
+      new URL(`../public${SOCIAL_IMAGE_PATH}`, import.meta.url),
+    );
+
+    expect(socialImage.size).toBeLessThanOrEqual(200_000);
   });
 
   it("matches structured breadcrumbs to the visible Docs and API hierarchy", () => {
