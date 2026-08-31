@@ -49,11 +49,11 @@ describe("project stats endpoint", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
-        if (url.includes("api.github.com")) {
+        const url = new URL(input instanceof Request ? input.url : input);
+        if (url.hostname === "api.github.com") {
           return Response.json({ stargazers_count: 12 });
         }
-        if (url.includes("%2Fdom")) throw new Error("npm unavailable");
+        if (url.pathname.endsWith("%2Fdom")) throw new Error("npm unavailable");
         return Response.json({ downloads: 10 });
       }),
     );
@@ -70,8 +70,8 @@ describe("project stats endpoint", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
-        if (url.includes("api.github.com")) {
+        const url = new URL(input instanceof Request ? input.url : input);
+        if (url.hostname === "api.github.com") {
           throw new Error("GitHub unavailable");
         }
         return Response.json({ downloads: 10 });
