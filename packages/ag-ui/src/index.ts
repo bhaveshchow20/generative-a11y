@@ -50,6 +50,20 @@ export interface AgentBinding {
 type Response = { terminal: boolean; runId?: string };
 type Tool = { terminal: boolean; runId?: string };
 type Run = { terminal: boolean };
+type RunOwnedEventType =
+  | "response.started"
+  | "response.text.delta"
+  | "response.completed"
+  | "response.interrupted"
+  | "response.failed"
+  | "tool.started"
+  | "tool.completed"
+  | "interaction.requested"
+  | "interaction.resolved";
+type UnownedRunEvent = Extract<
+  GenerativeA11yEvent,
+  { type: RunOwnedEventType; runId?: undefined }
+>;
 const responseId = (scopeId: string, id: string) => `${scopeId}:message:${id}`;
 const toolId = (scopeId: string, id: string) => `${scopeId}:tool:${id}`;
 const runId = (scopeId: string, id: string) => `${scopeId}:run:${id}`;
@@ -82,6 +96,10 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
       // A host delivery failure must not interrupt the agent subscription.
     }
   };
+  const dispatchInRun = (event: UnownedRunEvent, ownerRunId?: string) => {
+    if (ownerRunId) dispatch({ ...event, runId: ownerRunId });
+    else dispatch(event);
+  };
   const admit = <T>(map: Map<string, T> | Set<string>, id: string) => {
     if (map.has(id)) return true;
     if (map.size >= maxTrackedEntities) {
@@ -104,14 +122,16 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
           continue;
         resolvedInteractions.add(resume.interruptId);
         const ownerRunId = interactions.get(resume.interruptId);
-        dispatch({
-          type: "interaction.resolved",
-          interactionId: interactionId(scopeId, resume.interruptId),
-          kind: "input",
-          outcome: resume.status === "resolved" ? "submitted" : "cancelled",
-          label: "Input is needed",
-          ...(ownerRunId ? { runId: ownerRunId } : {}),
-        });
+        dispatchInRun(
+          {
+            type: "interaction.resolved",
+            interactionId: interactionId(scopeId, resume.interruptId),
+            kind: "input",
+            outcome: resume.status === "resolved" ? "submitted" : "cancelled",
+            label: "Input is needed",
+          },
+          ownerRunId ?? undefined,
+        );
       }
     },
     onRunStartedEvent({ event }) {
@@ -180,31 +200,37 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         terminal: false,
         ...(ownerRunId ? { runId: ownerRunId } : {}),
       });
-      dispatch({
-        type: "response.started",
-        responseId: responseId(scopeId, event.messageId),
-        ...(ownerRunId ? { runId: ownerRunId } : {}),
-      });
+      dispatchInRun(
+        {
+          type: "response.started",
+          responseId: responseId(scopeId, event.messageId),
+        },
+        ownerRunId,
+      );
     },
     onTextMessageContentEvent({ event }) {
       const response = responses.get(event.messageId);
       if (!response || response.terminal || !event.delta) return;
-      dispatch({
-        type: "response.text.delta",
-        responseId: responseId(scopeId, event.messageId),
-        delta: event.delta,
-        ...(response.runId ? { runId: response.runId } : {}),
-      });
+      dispatchInRun(
+        {
+          type: "response.text.delta",
+          responseId: responseId(scopeId, event.messageId),
+          delta: event.delta,
+        },
+        response.runId,
+      );
     },
     onTextMessageEndEvent({ event }) {
       const response = responses.get(event.messageId);
       if (!response || response.terminal) return;
       response.terminal = true;
-      dispatch({
-        type: "response.completed",
-        responseId: responseId(scopeId, event.messageId),
-        ...(response.runId ? { runId: response.runId } : {}),
-      });
+      dispatchInRun(
+        {
+          type: "response.completed",
+          responseId: responseId(scopeId, event.messageId),
+        },
+        response.runId,
+      );
     },
     onToolCallStartEvent({ event, input }) {
       if (
@@ -219,33 +245,39 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         terminal: false,
         ...(ownerRunId ? { runId: ownerRunId } : {}),
       });
-      dispatch({
-        type: "tool.started",
-        toolId: toolId(scopeId, event.toolCallId),
-        label: "A tool",
-        ...(ownerRunId ? { runId: ownerRunId } : {}),
-      });
+      dispatchInRun(
+        {
+          type: "tool.started",
+          toolId: toolId(scopeId, event.toolCallId),
+          label: "A tool",
+        },
+        ownerRunId,
+      );
     },
     onToolCallResultEvent({ event }) {
       const tool = tools.get(event.toolCallId);
       if (!tool || tool.terminal) return;
       tool.terminal = true;
-      dispatch({
-        type: "tool.completed",
-        toolId: toolId(scopeId, event.toolCallId),
-        label: "A tool",
-        ...(tool.runId ? { runId: tool.runId } : {}),
-      });
+      dispatchInRun(
+        {
+          type: "tool.completed",
+          toolId: toolId(scopeId, event.toolCallId),
+          label: "A tool",
+        },
+        tool.runId,
+      );
     },
     onRunErrorEvent() {
       for (const [id, response] of responses) {
         if (response.terminal) continue;
         response.terminal = true;
-        dispatch({
-          type: "response.failed",
-          responseId: responseId(scopeId, id),
-          ...(response.runId ? { runId: response.runId } : {}),
-        });
+        dispatchInRun(
+          {
+            type: "response.failed",
+            responseId: responseId(scopeId, id),
+          },
+          response.runId,
+        );
       }
       for (const tool of tools.values()) tool.terminal = true;
       for (const [id, run] of [...runs].reverse()) {
@@ -260,11 +292,13 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         for (const [id, response] of responses) {
           if (response.terminal) continue;
           response.terminal = true;
-          dispatch({
-            type: "response.interrupted",
-            responseId: responseId(scopeId, id),
-            ...(response.runId ? { runId: response.runId } : {}),
-          });
+          dispatchInRun(
+            {
+              type: "response.interrupted",
+              responseId: responseId(scopeId, id),
+            },
+            response.runId,
+          );
         }
         for (const interrupt of params.interrupts) {
           if (
@@ -277,14 +311,16 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
             interrupt.subagentRunId,
           );
           interactions.set(interrupt.id, ownerRunId ?? null);
-          dispatch({
-            type: "interaction.requested",
-            interactionId: interactionId(scopeId, interrupt.id),
-            kind: "input",
-            label: "Input is needed",
-            urgent: true,
-            ...(ownerRunId ? { runId: ownerRunId } : {}),
-          });
+          dispatchInRun(
+            {
+              type: "interaction.requested",
+              interactionId: interactionId(scopeId, interrupt.id),
+              kind: "input",
+              label: "Input is needed",
+              urgent: true,
+            },
+            ownerRunId,
+          );
         }
       }
       if (run && !run.terminal) {
