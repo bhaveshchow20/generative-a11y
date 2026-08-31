@@ -198,13 +198,12 @@ test("legacy documentation routes redirect permanently", async () => {
   assert.equal(response.headers.get("location"), "/api/core");
 });
 
-test("versioned assets receive durable cache headers", async () => {
-  const response = await render("/_next/static/example.js");
-
-  assert.equal(
-    response.headers.get("cache-control"),
-    "public, max-age=31536000, immutable",
+test("missing versioned assets are not cached", async () => {
+  const missingResponse = await render(
+    "/_next/static/missing-seo-regression.css",
   );
+  assert.equal(missingResponse.status, 404);
+  assert.equal(missingResponse.headers.get("cache-control"), "no-store");
 });
 
 test("server-renders the dedicated API reference and symbol pages", async () => {

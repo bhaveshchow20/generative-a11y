@@ -39,8 +39,8 @@ async function npmDownloads(): Promise<number | null> {
 
 export async function GET() {
   const [stars, monthlyDownloads] = await Promise.all([
-    githubStars(),
-    npmDownloads(),
+    githubStars().catch(() => null),
+    npmDownloads().catch(() => null),
   ]);
 
   return Response.json(

@@ -27,7 +27,11 @@ interface DocumentationPageInput {
   readonly keywords?: readonly string[];
 }
 
-/** Builds canonical search and social metadata for one public route. */
+/**
+ * Builds canonical search and social metadata for one public route.
+ * `absoluteTitle` bypasses the site-wide title template; titles that would
+ * exceed 60 characters with that template use the same behavior automatically.
+ */
 export function createPageMetadata({
   path,
   title,

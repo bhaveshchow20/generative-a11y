@@ -123,11 +123,10 @@ function appAxe(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.route("https://api.github.com/**", async (route) => {
-    await route.fulfill({ json: { stargazers_count: 1 } });
-  });
-  await page.route("https://api.npmjs.org/**", async (route) => {
-    await route.fulfill({ json: { downloads: 544 } });
+  await page.route("**/project-stats.json", async (route) => {
+    await route.fulfill({
+      json: { stars: 1, monthlyDownloads: 3_808 },
+    });
   });
 });
 
@@ -1078,8 +1077,9 @@ test("hero pointer displacement stops when reduced motion is enabled", async ({
 });
 
 test("missing npm download data stays unavailable", async ({ page }) => {
-  await page.route("https://api.npmjs.org/**", async (route) => {
-    await route.fulfill({ json: {} });
+  await page.unroute("**/project-stats.json");
+  await page.route("**/project-stats.json", async (route) => {
+    await route.fulfill({ json: { stars: 1, monthlyDownloads: null } });
   });
   await page.goto("/");
 
