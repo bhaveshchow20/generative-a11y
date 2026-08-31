@@ -57,4 +57,15 @@ describe("announcement policy", () => {
       }),
     ).toThrow(TypeError);
   });
+
+  it.each(["announceProgress", "announceNestedSteps"] as const)(
+    "rejects a non-boolean workflows.%s override",
+    (field) => {
+      expect(() =>
+        resolvePolicy("balanced", {
+          workflows: { [field]: "false" } as never,
+        }),
+      ).toThrow(TypeError);
+    },
+  );
 });

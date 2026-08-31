@@ -107,7 +107,7 @@ function eventContext(event: GenerativeA11yEvent) {
     sourceType: event.type,
     ...(event.eventId ? { sourceEventId: event.eventId } : {}),
     ...(event.locale ? { locale: event.locale } : {}),
-    ...("runId" in event ? { runId: event.runId } : {}),
+    ...("runId" in event && event.runId ? { runId: event.runId } : {}),
     ...("runInstanceId" in event && event.runInstanceId
       ? { runInstanceId: event.runInstanceId }
       : {}),
@@ -270,7 +270,7 @@ export function createGenerativeA11y(
       ...(event.eventId ? { sourceEventId: event.eventId } : {}),
       ...("responseId" in event ? { responseId: event.responseId } : {}),
       ...("toolId" in event ? { toolId: event.toolId } : {}),
-      ...("runId" in event ? { runId: event.runId } : {}),
+      ...("runId" in event && event.runId ? { runId: event.runId } : {}),
       ...("runInstanceId" in event && event.runInstanceId
         ? { runInstanceId: event.runInstanceId }
         : {}),
@@ -421,6 +421,17 @@ export function createGenerativeA11y(
   }
 
   function validateWorkflowContext(event: GenerativeA11yEvent): boolean {
+    if (
+      ("runInstanceId" in event &&
+        event.runInstanceId !== undefined &&
+        (!("runId" in event) || !event.runId)) ||
+      ("stepInstanceId" in event &&
+        event.stepInstanceId !== undefined &&
+        (!("stepId" in event) || !event.stepId))
+    ) {
+      diagnose(event, "invalid-event");
+      return false;
+    }
     if (event.type.startsWith("run.") || event.type.startsWith("step."))
       return true;
     if (!("runId" in event) || !event.runId) {
@@ -540,13 +551,6 @@ export function createGenerativeA11y(
       const [, stepId] = JSON.parse(key) as [string, string];
       state.status = "interrupted";
       cancelStepScope(state, stepId);
-    }
-    for (const [candidateRunId] of [...cancelledRuns]) {
-      for (const [key] of steps) {
-        const [stepRunId, stepId] = JSON.parse(key) as [string, string];
-        if (stepRunId === candidateRunId)
-          cancelStepDescendants(candidateRunId, stepId);
-      }
     }
     for (const [responseId, state] of responses) {
       if (!state.runId || !cancelledRuns.has(state.runId)) continue;

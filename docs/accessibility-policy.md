@@ -32,8 +32,8 @@ terminal-only or all boundaries; `steps` selects silent, long-running or all
 identified boundaries; `announceStepAfterMs` sets the long-running threshold;
 and progress/nested-step switches remain off in the balanced preset. Anonymous
 step evidence stays silent because a label is not identity. Assertive delivery
-is reserved for explicit step/run failures and urgent interactions; routine
-concurrent updates remain polite and coalesced.
+is reserved for explicit response, step, and run failures plus urgent
+interactions; routine concurrent updates remain polite and coalesced.
 
 ## DOM requirements for Phase 2
 

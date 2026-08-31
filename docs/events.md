@@ -8,14 +8,14 @@ attempt can be rejected even when the logical response ID is reused.
 
 ## Run and step hierarchy
 
-| Event                               | Meaning                                                                              |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `run.started`                       | Starts one stable run identity and optional attempt, with explicit parent lineage.   |
-| `run.completed/interrupted/failed`  | Terminates only the addressed run attempt.                                           |
-| `run.retrying`                      | Replaces one run attempt and cancels its queued descendants.                         |
-| `step.started/progress`             | Starts or updates an identified step within a run.                                   |
-| `step.completed/interrupted/failed` | Terminates only the addressed step; a child failure does not terminate sibling work. |
-| `step.retrying`                     | Replaces one step attempt so late output from the earlier attempt can be rejected.   |
+| Event                               | Meaning                                                                                                                                                                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run.started`                       | Starts one stable run identity and optional attempt, with explicit parent lineage. Reusing an active ID with a different attempt replaces it, cancels queued output, interrupts descendant steps, and fails associated tools. |
+| `run.completed/interrupted/failed`  | Terminates only the addressed run attempt.                                                                                                                                                                                    |
+| `run.retrying`                      | Replaces one run attempt and cancels its queued descendants.                                                                                                                                                                  |
+| `step.started/progress`             | Starts or updates an identified step within a run.                                                                                                                                                                            |
+| `step.completed/interrupted/failed` | Terminates only the addressed step; a child failure does not terminate sibling work.                                                                                                                                          |
+| `step.retrying`                     | Replaces one step attempt so late output from the earlier attempt can be rejected.                                                                                                                                            |
 
 Run IDs and step IDs are stable logical identities. Optional `runInstanceId` and
 `stepInstanceId` values identify attempts. `parentRunId` and `parentStepId`

@@ -1745,9 +1745,9 @@ describe("generative accessibility runtime", () => {
     });
     recorder.clock.runUntilIdle();
 
-    expect(recorder.transcript().map(({ text }) => text)).not.toEqual(
-      expect.arrayContaining(["Direct tool.", "Stale queued sentence."]),
-    );
+    const texts = recorder.transcript().map(({ text }) => text);
+    expect(texts).not.toContain("Direct tool.");
+    expect(texts).not.toContain("Stale queued sentence.");
     expect(recorder.clock.pendingCount()).toBe(0);
   });
 
@@ -1865,5 +1865,32 @@ describe("generative accessibility runtime", () => {
     expect(recorder.diagnosticTranscript().at(-1)?.reason).toBe(
       "invalid-event",
     );
+  });
+
+  it("rejects attempt identities without their logical owners", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "response",
+      runInstanceId: "run-attempt",
+    } as never);
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      sourceType: "response.started",
+      reason: "invalid-event",
+    });
+
+    recorder.runtime.dispatch({ type: "run.started", runId: "run" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "tool",
+      label: "Tool",
+      runId: "run",
+      stepInstanceId: "step-attempt",
+    } as never);
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      sourceType: "tool.started",
+      reason: "invalid-event",
+      runId: "run",
+    });
   });
 });

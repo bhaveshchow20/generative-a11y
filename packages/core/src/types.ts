@@ -10,16 +10,27 @@ interface EventMetadata {
 }
 
 /** Explicit workflow ownership supplied by a source integration. */
-export interface WorkflowContext {
-  /** Stable logical run identity. */
-  runId?: string;
-  /** Stable identity for one attempt of the logical run. */
-  runInstanceId?: string;
-  /** Stable logical step identity. Omit when the source exposes only a label. */
-  stepId?: string;
-  /** Stable identity for one attempt of the logical step. */
-  stepInstanceId?: string;
-}
+export type WorkflowContext =
+  | {
+      runId?: undefined;
+      runInstanceId?: never;
+      stepId?: never;
+      stepInstanceId?: never;
+    }
+  | ({
+      /** Stable logical run identity. */
+      runId: string;
+      /** Stable identity for one attempt of the logical run. */
+      runInstanceId?: string;
+    } & (
+      | { stepId?: undefined; stepInstanceId?: never }
+      | {
+          /** Stable logical step identity. */
+          stepId: string;
+          /** Stable identity for one attempt of the logical step. */
+          stepInstanceId?: string;
+        }
+    ));
 
 type ContextualEventMetadata = EventMetadata & WorkflowContext;
 

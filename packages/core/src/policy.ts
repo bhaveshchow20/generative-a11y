@@ -159,5 +159,9 @@ export function resolvePolicy(
     throw new TypeError("workflows.runs contains an unsupported mode");
   if (!new Set(["silent", "long-running", "all"]).has(policy.workflows.steps))
     throw new TypeError("workflows.steps contains an unsupported mode");
+  if (typeof policy.workflows.announceProgress !== "boolean")
+    throw new TypeError("workflows.announceProgress must be a boolean");
+  if (typeof policy.workflows.announceNestedSteps !== "boolean")
+    throw new TypeError("workflows.announceNestedSteps must be a boolean");
   return freezePolicy(policy);
 }
