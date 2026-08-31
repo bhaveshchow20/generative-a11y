@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use generative-a11y, cite the software using this metadata."
+title: "generative-a11y"
+type: software
+authors:
+  - family-names: "Chowdhury"
+    given-names: "Bhavesh"
+repository-code: "https://github.com/bhaveshchow20/generative-a11y"
+url: "https://generativea11y.com"
+license: MIT
+keywords:
+  - accessibility
+  - generative AI
+  - screen reader
+  - streaming AI
+  - assistive technology

@@ -68,10 +68,22 @@ export const searchableText = [
 
 ## Live regions expose changes without moving focus
 
+An ARIA live region marks dynamic content so user agents can present changes to
+assistive technology while keyboard focus stays where the user placed it. The
+`polite` and `assertive` values communicate urgency, while `aria-atomic` and
+`aria-relevant` describe which portion of a change is relevant. These semantics
+support delivery; they do not decide whether every generated token is useful.
+
 An ARIA live region lets a browser expose text changes to assistive technology
 while keyboard focus stays where the user placed it. Polite updates generally
 wait for a suitable pause; assertive updates are reserved for information that
 warrants interruption.
+
+The normative behavior and supported values come from
+[WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/). WCAG’s
+[status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+also emphasizes informing users about important changes without unnecessarily
+moving focus or interrupting their work.
 
 A live region is a delivery mechanism, not an announcement policy. It does not
 know whether a token is meaningful, whether a repeated update is obsolete, or
@@ -127,6 +139,12 @@ a connection being lost, or work ending in failure.
 
 ## Related
 
-- [/docs/screen-readers-and-streaming-ai](/docs/screen-readers-and-streaming-ai)
-- [/api/dom/create-dom-announcer](/api/dom/create-dom-announcer)
-- [/docs/testing](/docs/testing)
+- [Screen readers and streaming AI](/docs/screen-readers-and-streaming-ai)
+- [createDOMAnnouncer API reference](/api/dom/create-dom-announcer)
+- [Testing integrations with real assistive technology](/docs/testing)
+
+## Sources and evidence
+
+- [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/)
+- [WCAG 2.2: Understanding Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+- [ARIA live-region implementation guidance](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions)

@@ -2,6 +2,8 @@ import { getSourceManifest } from "../../lib/source-manifest";
 import {
   absoluteUrl,
   NPM_SCOPE_URL,
+  PROJECT_AUTHOR_NAME,
+  PROJECT_AUTHOR_URL,
   REPOSITORY_URL,
   SITE_DESCRIPTION,
 } from "../../lib/site";
@@ -44,9 +46,20 @@ export async function GET() {
 
 generative-a11y is an open-source TypeScript accessibility runtime for streaming AI responses and agent lifecycle events. It converts documented application and framework state into paced announcement intents and browser live-region updates. It does not replace semantic HTML, keyboard support, focus design, or testing with real assistive technology.
 
+## Key facts
+
+- Author and maintainer: [${PROJECT_AUTHOR_NAME}](${PROJECT_AUTHOR_URL})
+- License: MIT
+- Maturity: pre-1.0; package stability is documented per package
+- Evidence boundary: deterministic runtime and DOM tests do not prove what assistive technology spoke
+
 ## Documentation
 
 ${links}
+
+## Complete documentation corpus
+
+- [Full documentation as plain text](${absoluteUrl("/llms-full.txt")}): Server-rendered guides and API reference content in one machine-readable document.
 
 ## Supported integrations
 
