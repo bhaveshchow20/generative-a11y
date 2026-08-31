@@ -18,10 +18,7 @@ export function HomeHero() {
       <div className="home-hero-copy">
         <h1 id="home-hero-title">Accessible AI, without rebuilding your interface.</h1>
         <p className="home-hero-lede">
-          generative-a11y is an open-source TypeScript accessibility runtime for
-          streaming AI and agent interfaces. It turns confirmed lifecycle events
-          into paced screen-reader announcements while preserving your existing UI
-          and user-controlled focus.
+          Framework-independent accessibility for the AI interface you already have.
         </p>
         <nav className="home-hero-actions" aria-label="Get started">
           <Link className="home-button home-button-primary" href="/docs/getting-started">
