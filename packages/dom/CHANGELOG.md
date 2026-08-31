@@ -1,5 +1,16 @@
 # @generative-a11y/dom
 
+## 0.2.1
+
+### Patch Changes
+
+- beaa7c7: Preserve workflow correlation through DOM delivery, keep redacted run
+  and step snapshots, and expose hierarchy, attempts, and terminal state in the
+  optional trace inspector.
+- Updated dependencies [ca06bfa]
+- Updated dependencies [0512916]
+  - @generative-a11y/core@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
