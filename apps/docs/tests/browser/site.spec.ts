@@ -340,7 +340,7 @@ test("homepage dropdowns open and update their content", async ({ page }) => {
   await expect(packageList).toBeVisible();
   await packageList
     .getByRole("option", { name: "@generative-a11y/assistant-ui" })
-    .click();
+    .press("Enter");
   await expect(
     page.getByRole("group", { name: "Install a package" }),
   ).toHaveAttribute(
@@ -352,7 +352,7 @@ test("homepage dropdowns open and update their content", async ({ page }) => {
   const scenarioList = page.getByRole("listbox", { name: "Scenario" });
   await expect(scenarioList).toBeVisible();
   await expect(scenarioList.locator("..")).toHaveClass(/install-package-menu/);
-  await scenarioList.getByRole("option", { name: "Approval" }).click();
+  await scenarioList.getByRole("option", { name: "Approval" }).press("Enter");
   await expect(
     page.getByRole("region", { name: "Interactive runtime trace" }),
   ).toContainText("Approval");
