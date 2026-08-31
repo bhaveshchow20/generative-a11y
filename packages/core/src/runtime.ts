@@ -11,6 +11,8 @@ import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
   DiagnosticResponseSnapshot,
+  DiagnosticRunSnapshot,
+  DiagnosticStepSnapshot,
   DiagnosticToolSnapshot,
   GenerativeA11yEvent,
   PresetName,
@@ -29,6 +31,10 @@ interface ResponseState {
   locale?: string;
   flushTimer?: ClockTimer;
   flushDueAt?: number;
+  runId?: string;
+  runInstanceId?: string;
+  stepId?: string;
+  stepInstanceId?: string;
 }
 
 interface ToolState {
@@ -36,10 +42,39 @@ interface ToolState {
   locale?: string;
   status: "active" | "completed" | "failed";
   lastProgressBucket: number;
+  runId?: string;
+  runInstanceId?: string;
+  stepId?: string;
+  stepInstanceId?: string;
+}
+
+interface RunState {
+  instanceId?: string;
+  status: "active" | "completed" | "interrupted" | "failed";
+  parentRunId?: string;
+  parentRunInstanceId?: string;
+  parentToolId?: string;
+  parentResponseId?: string;
+  completedSteps: number;
+  failedSteps: number;
+}
+
+interface StepState {
+  runId: string;
+  runInstanceId?: string;
+  instanceId?: string;
+  parentStepId?: string;
+  parentStepInstanceId?: string;
+  status: "active" | "completed" | "interrupted" | "failed";
+  label: string;
+  startedAt: number;
+  lastProgressBucket: number;
 }
 
 type ResponseEvent = Extract<GenerativeA11yEvent, { responseId: string }>;
 type ToolEvent = Extract<GenerativeA11yEvent, { toolId: string }>;
+type RunEvent = Extract<GenerativeA11yEvent, { type: `run.${string}` }>;
+type StepEvent = Extract<GenerativeA11yEvent, { type: `step.${string}` }>;
 
 export interface GenerativeA11yOptions {
   preset?: PresetName;
@@ -72,6 +107,14 @@ function eventContext(event: GenerativeA11yEvent) {
     sourceType: event.type,
     ...(event.eventId ? { sourceEventId: event.eventId } : {}),
     ...(event.locale ? { locale: event.locale } : {}),
+    ...("runId" in event && event.runId ? { runId: event.runId } : {}),
+    ...("runInstanceId" in event && event.runInstanceId
+      ? { runInstanceId: event.runInstanceId }
+      : {}),
+    ...("stepId" in event && event.stepId ? { stepId: event.stepId } : {}),
+    ...("stepInstanceId" in event && event.stepInstanceId
+      ? { stepInstanceId: event.stepInstanceId }
+      : {}),
   };
 }
 
@@ -86,6 +129,8 @@ export function createGenerativeA11y(
   const policy = resolvePolicy(options.preset, options.policy);
   const responses = new Map<string, ResponseState>();
   const tools = new Map<string, ToolState>();
+  const runs = new Map<string, RunState>();
+  const steps = new Map<string, StepState>();
   const announcementListeners = new Map<number, AnnouncementListener>();
   if (options.onAnnouncement)
     announcementListeners.set(0, options.onAnnouncement);
@@ -225,6 +270,14 @@ export function createGenerativeA11y(
       ...(event.eventId ? { sourceEventId: event.eventId } : {}),
       ...("responseId" in event ? { responseId: event.responseId } : {}),
       ...("toolId" in event ? { toolId: event.toolId } : {}),
+      ...("runId" in event && event.runId ? { runId: event.runId } : {}),
+      ...("runInstanceId" in event && event.runInstanceId
+        ? { runInstanceId: event.runInstanceId }
+        : {}),
+      ...("stepId" in event && event.stepId ? { stepId: event.stepId } : {}),
+      ...("stepInstanceId" in event && event.stepInstanceId
+        ? { stepInstanceId: event.stepInstanceId }
+        : {}),
     });
   }
 
@@ -249,6 +302,10 @@ export function createGenerativeA11y(
       responseId?: string;
       toolId?: string;
       interactionId?: string;
+      runId?: string;
+      runInstanceId?: string;
+      stepId?: string;
+      stepInstanceId?: string;
       locale?: string;
       capacityPriority?: AnnouncementCapacityPriority;
     } = {},
@@ -282,6 +339,233 @@ export function createGenerativeA11y(
 
   function toolLifecycleScope(toolId: string): string {
     return `tool-lifecycle:${toolId}`;
+  }
+
+  function workflowScope(parts: readonly (string | undefined)[]): string {
+    return `workflow:${JSON.stringify(parts)}`;
+  }
+
+  function runLifecycleScope(runId: string, instanceId?: string): string {
+    return workflowScope(["run", runId, instanceId]);
+  }
+
+  function stepKey(runId: string, stepId: string): string {
+    return JSON.stringify([runId, stepId]);
+  }
+
+  function stepLifecycleScope(
+    runId: string,
+    stepId: string,
+    instanceId?: string,
+  ): string {
+    return workflowScope(["step", runId, stepId, instanceId]);
+  }
+
+  function instancesMatch(
+    current: string | undefined,
+    received: string | undefined,
+  ): boolean {
+    return (
+      (current === undefined && received === undefined) || current === received
+    );
+  }
+
+  function activeRun(
+    event: { runId: string; runInstanceId?: string },
+    diagnosticEvent?: GenerativeA11yEvent,
+  ): RunState | undefined {
+    const source = diagnosticEvent ?? (event as GenerativeA11yEvent);
+    const state = runs.get(event.runId);
+    if (!state) {
+      diagnose(source, "unknown-run");
+      return undefined;
+    }
+    if (state.status !== "active") {
+      diagnose(source, "terminal-run");
+      return undefined;
+    }
+    if (!instancesMatch(state.instanceId, event.runInstanceId)) {
+      diagnose(source, "stale-run");
+      return undefined;
+    }
+    return state;
+  }
+
+  function activeStep(
+    event: {
+      runId: string;
+      stepId?: string;
+      stepInstanceId?: string;
+    },
+    diagnosticEvent?: GenerativeA11yEvent,
+  ): StepState | undefined {
+    const source = diagnosticEvent ?? (event as GenerativeA11yEvent);
+    if (!event.stepId) {
+      diagnose(source, "partial-identity");
+      return undefined;
+    }
+    const state = steps.get(stepKey(event.runId, event.stepId));
+    if (!state) {
+      diagnose(source, "unknown-step");
+      return undefined;
+    }
+    if (state.status !== "active") {
+      diagnose(source, "terminal-step");
+      return undefined;
+    }
+    if (!instancesMatch(state.instanceId, event.stepInstanceId)) {
+      diagnose(source, "stale-step");
+      return undefined;
+    }
+    return state;
+  }
+
+  function validateWorkflowContext(event: GenerativeA11yEvent): boolean {
+    if (
+      ("runInstanceId" in event &&
+        event.runInstanceId !== undefined &&
+        (!("runId" in event) || !event.runId)) ||
+      ("stepInstanceId" in event &&
+        event.stepInstanceId !== undefined &&
+        (!("stepId" in event) || !event.stepId))
+    ) {
+      diagnose(event, "invalid-event");
+      return false;
+    }
+    if (event.type.startsWith("run.") || event.type.startsWith("step."))
+      return true;
+    if (!("runId" in event) || !event.runId) {
+      if ("stepId" in event && event.stepId) {
+        diagnose(event, "invalid-event");
+        return false;
+      }
+      return true;
+    }
+    const runContext = {
+      runId: event.runId,
+      ...("runInstanceId" in event && event.runInstanceId
+        ? { runInstanceId: event.runInstanceId }
+        : {}),
+    };
+    if (!activeRun(runContext, event)) return false;
+    if ("stepId" in event && event.stepId) {
+      const stepContext = {
+        runId: event.runId,
+        stepId: event.stepId,
+        ...(event.stepInstanceId
+          ? { stepInstanceId: event.stepInstanceId }
+          : {}),
+      };
+      if (!activeStep(stepContext, event)) return false;
+    }
+    return true;
+  }
+
+  function cancelStepScope(state: StepState, stepId: string): void {
+    scheduler.cancelScope(
+      stepLifecycleScope(state.runId, stepId, state.instanceId),
+    );
+    scheduler.cancelScope(
+      workflowScope(["step-progress", state.runId, stepId, state.instanceId]),
+    );
+  }
+
+  function cancelStepDescendants(
+    runId: string,
+    rootStepId: string,
+    includeRootAssociations = true,
+  ): void {
+    const cancelled = new Set<string>(
+      includeRootAssociations ? [rootStepId] : [],
+    );
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [key, state] of steps) {
+        if (
+          state.runId !== runId ||
+          state.status !== "active" ||
+          !state.parentStepId ||
+          !cancelled.has(state.parentStepId)
+        )
+          continue;
+        const [, stepId] = JSON.parse(key) as [string, string];
+        if (!cancelled.has(stepId)) {
+          cancelled.add(stepId);
+          state.status = "interrupted";
+          cancelStepScope(state, stepId);
+          changed = true;
+        }
+      }
+    }
+    for (const [responseId, state] of responses) {
+      if (
+        state.runId !== runId ||
+        !state.stepId ||
+        !cancelled.has(state.stepId)
+      )
+        continue;
+      clearFlushTimer(state);
+      scheduler.cancelScope(responseScope(responseId, state.epoch));
+      scheduler.cancelScope(responseLifecycleScope(responseId));
+      if (state.status === "active") state.status = "interrupted";
+    }
+    for (const [toolId, state] of tools) {
+      if (
+        state.runId !== runId ||
+        !state.stepId ||
+        !cancelled.has(state.stepId)
+      )
+        continue;
+      scheduler.cancelScope(`tool-start:${toolId}`);
+      scheduler.cancelScope(`tool-progress:${toolId}`);
+      scheduler.cancelScope(toolLifecycleScope(toolId));
+      if (state.status === "active") state.status = "failed";
+    }
+  }
+
+  function cancelRunDescendants(runId: string): void {
+    const cancelledRuns = new Set([runId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [candidateId, state] of runs) {
+        if (
+          state.status === "active" &&
+          state.parentRunId &&
+          cancelledRuns.has(state.parentRunId) &&
+          !cancelledRuns.has(candidateId)
+        ) {
+          cancelledRuns.add(candidateId);
+          state.status = "interrupted";
+          scheduler.cancelScope(
+            runLifecycleScope(candidateId, state.instanceId),
+          );
+          changed = true;
+        }
+      }
+    }
+    for (const [key, state] of steps) {
+      if (!cancelledRuns.has(state.runId) || state.status !== "active")
+        continue;
+      const [, stepId] = JSON.parse(key) as [string, string];
+      state.status = "interrupted";
+      cancelStepScope(state, stepId);
+    }
+    for (const [responseId, state] of responses) {
+      if (!state.runId || !cancelledRuns.has(state.runId)) continue;
+      clearFlushTimer(state);
+      scheduler.cancelScope(responseScope(responseId, state.epoch));
+      scheduler.cancelScope(responseLifecycleScope(responseId));
+      if (state.status === "active") state.status = "interrupted";
+    }
+    for (const [toolId, state] of tools) {
+      if (!state.runId || !cancelledRuns.has(state.runId)) continue;
+      scheduler.cancelScope(`tool-start:${toolId}`);
+      scheduler.cancelScope(`tool-progress:${toolId}`);
+      scheduler.cancelScope(toolLifecycleScope(toolId));
+      if (state.status === "active") state.status = "failed";
+    }
   }
 
   function retainTerminalState<T extends { status: string }>(
@@ -372,7 +656,9 @@ export function createGenerativeA11y(
     return (
       [...responses.values()].filter(({ status }) => status === "active")
         .length +
-      [...tools.values()].filter(({ status }) => status === "active").length
+      [...tools.values()].filter(({ status }) => status === "active").length +
+      [...runs.values()].filter(({ status }) => status === "active").length +
+      [...steps.values()].filter(({ status }) => status === "active").length
     );
   }
 
@@ -402,6 +688,12 @@ export function createGenerativeA11y(
           ? { instanceId: event.responseInstanceId }
           : {}),
         ...(event.locale ? { locale: event.locale } : {}),
+        ...(event.runId ? { runId: event.runId } : {}),
+        ...(event.runInstanceId ? { runInstanceId: event.runInstanceId } : {}),
+        ...(event.stepId ? { stepId: event.stepId } : {}),
+        ...(event.stepInstanceId
+          ? { stepInstanceId: event.stepInstanceId }
+          : {}),
       });
       if (policy.announceResponseStarted) {
         announce(event, "Assistant is responding.", "polite", {
@@ -561,6 +853,12 @@ export function createGenerativeA11y(
         lastProgressBucket: -1,
         ...(event.toolInstanceId ? { instanceId: event.toolInstanceId } : {}),
         ...(event.locale ? { locale: event.locale } : {}),
+        ...(event.runId ? { runId: event.runId } : {}),
+        ...(event.runInstanceId ? { runInstanceId: event.runInstanceId } : {}),
+        ...(event.stepId ? { stepId: event.stepId } : {}),
+        ...(event.stepInstanceId
+          ? { stepInstanceId: event.stepInstanceId }
+          : {}),
       });
       if (policy.tools.announceStart) {
         announce(event, ensureTerminalPunctuation(event.label), "polite", {
@@ -671,10 +969,432 @@ export function createGenerativeA11y(
     retainTerminalState(tools, event.toolId, state);
   }
 
+  function runSummary(state: RunState): string {
+    const parts: string[] = [];
+    if (state.completedSteps > 0)
+      parts.push(
+        `${state.completedSteps} ${state.completedSteps === 1 ? "step" : "steps"} completed`,
+      );
+    if (state.failedSteps > 0)
+      parts.push(
+        `${state.failedSteps} ${state.failedSteps === 1 ? "step" : "steps"} failed`,
+      );
+    return parts.length === 0
+      ? "Run complete."
+      : `Run complete. ${parts.join(", ")}.`;
+  }
+
+  function dispatchRun(event: RunEvent): void {
+    if (typeof event.runId !== "string" || !event.runId.trim())
+      return diagnose(event, "invalid-event");
+    if (event.type === "run.started") {
+      if (event.parentRunId) {
+        const parent = runs.get(event.parentRunId);
+        if (
+          !parent ||
+          parent.status !== "active" ||
+          !instancesMatch(parent.instanceId, event.parentRunInstanceId)
+        )
+          return diagnose(event, "unknown-parent");
+      }
+      const previous = runs.get(event.runId);
+      if (
+        previous?.status === "active" &&
+        previous.instanceId === event.runInstanceId
+      )
+        return diagnose(event, "duplicate");
+      if (
+        previous?.status !== "active" &&
+        activeEntityCount() >= policy.maxActiveEntities
+      )
+        return diagnose(event, "invalid-event");
+      if (previous) {
+        cancelRunDescendants(event.runId);
+        scheduler.cancelScope(
+          runLifecycleScope(event.runId, previous.instanceId),
+        );
+      }
+      const state: RunState = {
+        status: "active",
+        completedSteps: 0,
+        failedSteps: 0,
+        ...(event.runInstanceId ? { instanceId: event.runInstanceId } : {}),
+        ...(event.parentRunId ? { parentRunId: event.parentRunId } : {}),
+        ...(event.parentRunInstanceId
+          ? { parentRunInstanceId: event.parentRunInstanceId }
+          : {}),
+        ...(event.parentToolId ? { parentToolId: event.parentToolId } : {}),
+        ...(event.parentResponseId
+          ? { parentResponseId: event.parentResponseId }
+          : {}),
+      };
+      runs.set(event.runId, state);
+      if (policy.workflows.runs === "all") {
+        announce(
+          event,
+          ensureTerminalPunctuation(`${event.label ?? "Run"} started`),
+          "polite",
+          {
+            runId: event.runId,
+            ...(event.runInstanceId
+              ? { runInstanceId: event.runInstanceId }
+              : {}),
+            scope: runLifecycleScope(event.runId, event.runInstanceId),
+            capacityPriority: "status",
+          },
+        );
+      } else diagnose(event, "policy-silent");
+      return;
+    }
+
+    const state = activeRun(event);
+    if (!state) return;
+    if (event.type === "run.retrying") {
+      cancelRunDescendants(event.runId);
+      scheduler.cancelScope(runLifecycleScope(event.runId, state.instanceId));
+      if (event.nextRunInstanceId) state.instanceId = event.nextRunInstanceId;
+      else delete state.instanceId;
+      state.completedSteps = 0;
+      state.failedSteps = 0;
+      if (policy.announceRetry && policy.workflows.runs !== "silent") {
+        announce(
+          event,
+          event.attempt
+            ? `Retrying run. Attempt ${event.attempt}.`
+            : "Retrying run.",
+          "polite",
+          {
+            runId: event.runId,
+            ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+            scope: runLifecycleScope(event.runId, state.instanceId),
+            capacityPriority: "status",
+          },
+        );
+      } else diagnose(event, "policy-silent");
+      return;
+    }
+
+    const hasOpenChildren =
+      [...steps.values()].some(
+        (step) => step.runId === event.runId && step.status === "active",
+      ) ||
+      [...runs.values()].some(
+        (run) => run.parentRunId === event.runId && run.status === "active",
+      );
+    if (event.type === "run.completed" && hasOpenChildren)
+      return diagnose(event, "open-children");
+
+    scheduler.cancelScope(runLifecycleScope(event.runId, state.instanceId));
+    if (event.type !== "run.completed") cancelRunDescendants(event.runId);
+    state.status =
+      event.type === "run.completed"
+        ? "completed"
+        : event.type === "run.interrupted"
+          ? "interrupted"
+          : "failed";
+    const repeatsResponseBoundary =
+      event.type === "run.completed" &&
+      event.announcement === undefined &&
+      policy.workflows.runs === "terminal" &&
+      policy.announceResponseCompleted &&
+      state.completedSteps === 0 &&
+      state.failedSteps === 0 &&
+      [...responses.values()].some(
+        (response) =>
+          response.runId === event.runId && response.status === "completed",
+      );
+    if (policy.workflows.runs === "silent" || repeatsResponseBoundary) {
+      diagnose(event, "policy-silent");
+    } else if (event.type === "run.completed") {
+      announce(event, event.announcement ?? runSummary(state), "polite", {
+        runId: event.runId,
+        ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+        scope: runLifecycleScope(event.runId, state.instanceId),
+        capacityPriority: "status",
+      });
+    } else if (event.type === "run.interrupted") {
+      announce(event, event.announcement ?? "Run stopped.", "polite", {
+        runId: event.runId,
+        ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+        scope: runLifecycleScope(event.runId, state.instanceId),
+        capacityPriority: "status",
+      });
+    } else {
+      announce(
+        event,
+        event.announcement ?? "Run failed.",
+        policy.errorChannel,
+        {
+          runId: event.runId,
+          ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+          scope: runLifecycleScope(event.runId, state.instanceId),
+          capacityPriority: "content",
+        },
+      );
+    }
+    if (!disposed) retainTerminalState(runs, event.runId, state);
+  }
+
+  function shouldAnnounceStep(state: StepState): boolean {
+    if (policy.workflows.steps === "silent") return false;
+    if (state.parentStepId && !policy.workflows.announceNestedSteps)
+      return false;
+    return true;
+  }
+
+  function dispatchStep(event: StepEvent): void {
+    if (typeof event.runId !== "string" || !event.runId.trim())
+      return diagnose(event, "invalid-event");
+    const run = activeRun(event);
+    if (!run) return;
+    if (!event.stepId) return diagnose(event, "partial-identity");
+    const key = stepKey(event.runId, event.stepId);
+
+    if (event.type === "step.started") {
+      if (!event.stepId.trim() || !event.label.trim())
+        return diagnose(event, "invalid-event");
+      if (event.parentStepId) {
+        const parent = steps.get(stepKey(event.runId, event.parentStepId));
+        if (
+          !parent ||
+          parent.status !== "active" ||
+          !instancesMatch(parent.instanceId, event.parentStepInstanceId)
+        )
+          return diagnose(event, "unknown-parent");
+      }
+      const previous = steps.get(key);
+      if (
+        previous?.status !== "active" &&
+        activeEntityCount() >= policy.maxActiveEntities
+      )
+        return diagnose(event, "invalid-event");
+      if (previous) {
+        cancelStepScope(previous, event.stepId);
+        cancelStepDescendants(event.runId, event.stepId);
+      }
+      const state: StepState = {
+        runId: event.runId,
+        ...(event.runInstanceId ? { runInstanceId: event.runInstanceId } : {}),
+        ...(event.stepInstanceId ? { instanceId: event.stepInstanceId } : {}),
+        ...(event.parentStepId ? { parentStepId: event.parentStepId } : {}),
+        ...(event.parentStepInstanceId
+          ? { parentStepInstanceId: event.parentStepInstanceId }
+          : {}),
+        status: "active",
+        label: event.label,
+        startedAt: clock.now(),
+        lastProgressBucket: -1,
+      };
+      steps.set(key, state);
+      if (shouldAnnounceStep(state)) {
+        const delayMs =
+          policy.workflows.steps === "long-running"
+            ? policy.workflows.announceStepAfterMs
+            : 0;
+        announce(
+          event,
+          ensureTerminalPunctuation(`${event.label} started`),
+          "polite",
+          {
+            runId: event.runId,
+            ...(event.runInstanceId
+              ? { runInstanceId: event.runInstanceId }
+              : {}),
+            stepId: event.stepId,
+            ...(event.stepInstanceId
+              ? { stepInstanceId: event.stepInstanceId }
+              : {}),
+            delayMs,
+            scope: stepLifecycleScope(
+              event.runId,
+              event.stepId,
+              event.stepInstanceId,
+            ),
+            coalesceKey: workflowScope([
+              "step-start",
+              event.runId,
+              event.stepId,
+              event.stepInstanceId,
+            ]),
+            capacityPriority: "status",
+          },
+        );
+      } else diagnose(event, "policy-silent");
+      return;
+    }
+
+    const state = activeStep(event);
+    if (!state) return;
+    if (event.type === "step.progress") {
+      if (!policy.workflows.announceProgress || !shouldAnnounceStep(state))
+        return diagnose(event, "policy-silent");
+      if (
+        event.progress !== undefined &&
+        (!Number.isFinite(event.progress) ||
+          event.progress < 0 ||
+          event.progress > 1)
+      )
+        return diagnose(event, "invalid-event");
+      if (event.progress !== undefined) {
+        const bucket = Math.floor(event.progress * 4);
+        if (bucket <= state.lastProgressBucket)
+          return diagnose(event, "progress-threshold");
+        state.lastProgressBucket = bucket;
+      }
+      announce(
+        event,
+        event.message ??
+          (event.progress === undefined
+            ? `${event.label} in progress.`
+            : `${event.label} ${Math.round(event.progress * 100)} percent.`),
+        "polite",
+        {
+          runId: event.runId,
+          ...(event.runInstanceId
+            ? { runInstanceId: event.runInstanceId }
+            : {}),
+          stepId: event.stepId,
+          ...(event.stepInstanceId
+            ? { stepInstanceId: event.stepInstanceId }
+            : {}),
+          scope: workflowScope([
+            "step-progress",
+            event.runId,
+            event.stepId,
+            event.stepInstanceId,
+          ]),
+          coalesceKey: workflowScope([
+            "step-progress",
+            event.runId,
+            event.stepId,
+            event.stepInstanceId,
+          ]),
+          capacityPriority: "status",
+        },
+      );
+      return;
+    }
+
+    if (
+      event.type === "step.completed" &&
+      [...steps.values()].some(
+        (candidate) =>
+          candidate.runId === event.runId &&
+          candidate.parentStepId === event.stepId &&
+          candidate.status === "active",
+      )
+    )
+      return diagnose(event, "open-children");
+
+    cancelStepScope(state, event.stepId);
+    if (event.type === "step.retrying") {
+      cancelStepDescendants(event.runId, event.stepId);
+      if (event.nextStepInstanceId) state.instanceId = event.nextStepInstanceId;
+      else delete state.instanceId;
+      state.startedAt = clock.now();
+      state.lastProgressBucket = -1;
+      if (shouldAnnounceStep(state)) {
+        announce(
+          event,
+          event.attempt
+            ? `Retrying ${event.label}. Attempt ${event.attempt}.`
+            : `Retrying ${event.label}.`,
+          "polite",
+          {
+            runId: event.runId,
+            ...(event.runInstanceId
+              ? { runInstanceId: event.runInstanceId }
+              : {}),
+            stepId: event.stepId,
+            ...(state.instanceId ? { stepInstanceId: state.instanceId } : {}),
+            scope: stepLifecycleScope(
+              event.runId,
+              event.stepId,
+              state.instanceId,
+            ),
+            capacityPriority: "status",
+          },
+        );
+      } else diagnose(event, "policy-silent");
+      return;
+    }
+
+    if (event.type !== "step.completed")
+      cancelStepDescendants(event.runId, event.stepId);
+    state.status =
+      event.type === "step.completed"
+        ? "completed"
+        : event.type === "step.interrupted"
+          ? "interrupted"
+          : "failed";
+    if (event.type === "step.completed") run.completedSteps += 1;
+    if (event.type === "step.failed") run.failedSteps += 1;
+    const duration = clock.now() - state.startedAt;
+    const announceTerminal =
+      shouldAnnounceStep(state) &&
+      (event.type === "step.failed" ||
+        policy.workflows.steps === "all" ||
+        duration >= policy.workflows.announceStepAfterMs);
+    if (!announceTerminal) {
+      diagnose(event, "policy-silent");
+    } else if (event.type === "step.completed") {
+      announce(event, `${event.label} complete.`, "polite", {
+        runId: event.runId,
+        ...(event.runInstanceId ? { runInstanceId: event.runInstanceId } : {}),
+        stepId: event.stepId,
+        ...(event.stepInstanceId
+          ? { stepInstanceId: event.stepInstanceId }
+          : {}),
+        scope: stepLifecycleScope(
+          event.runId,
+          event.stepId,
+          event.stepInstanceId,
+        ),
+        capacityPriority: "status",
+      });
+    } else if (event.type === "step.interrupted") {
+      announce(
+        event,
+        event.announcement ?? `${event.label} stopped.`,
+        "polite",
+        {
+          runId: event.runId,
+          stepId: event.stepId,
+          scope: stepLifecycleScope(
+            event.runId,
+            event.stepId,
+            state.instanceId,
+          ),
+          capacityPriority: "status",
+        },
+      );
+    } else {
+      announce(
+        event,
+        event.announcement ?? `${event.label} failed.`,
+        policy.errorChannel,
+        {
+          runId: event.runId,
+          stepId: event.stepId,
+          scope: stepLifecycleScope(
+            event.runId,
+            event.stepId,
+            state.instanceId,
+          ),
+          capacityPriority: "content",
+        },
+      );
+    }
+    if (!disposed) retainTerminalState(steps, key, state);
+  }
+
   function dispatchOther(
     event: Exclude<
       GenerativeA11yEvent,
-      { responseId: string } | { toolId: string }
+      | { responseId: string }
+      | { toolId: string }
+      | { type: `run.${string}` }
+      | { type: `step.${string}` }
     >,
   ): void {
     if (event.type === "interaction.requested") {
@@ -748,9 +1468,12 @@ export function createGenerativeA11y(
   }
 
   function dispatchOne(event: GenerativeA11yEvent): void {
-    if ("responseId" in event) dispatchResponse(event);
+    if (!validateWorkflowContext(event)) return;
+    if (event.type.startsWith("run.")) dispatchRun(event as RunEvent);
+    else if (event.type.startsWith("step.")) dispatchStep(event as StepEvent);
+    else if ("responseId" in event) dispatchResponse(event);
     else if ("toolId" in event) dispatchTool(event);
-    else dispatchOther(event);
+    else dispatchOther(event as Parameters<typeof dispatchOther>[0]);
   }
 
   return {
@@ -873,6 +1596,49 @@ export function createGenerativeA11y(
           }),
         )
         .sort((left, right) => left.toolId.localeCompare(right.toolId));
+      const runsSnapshot = [...runs.entries()]
+        .map(([runId, state]): DiagnosticRunSnapshot =>
+          Object.freeze({
+            runId,
+            ...(state.instanceId ? { instanceId: state.instanceId } : {}),
+            ...(state.parentRunId ? { parentRunId: state.parentRunId } : {}),
+            ...(state.parentRunInstanceId
+              ? { parentRunInstanceId: state.parentRunInstanceId }
+              : {}),
+            ...(state.parentToolId ? { parentToolId: state.parentToolId } : {}),
+            ...(state.parentResponseId
+              ? { parentResponseId: state.parentResponseId }
+              : {}),
+            status: state.status,
+            completedSteps: state.completedSteps,
+            failedSteps: state.failedSteps,
+          }),
+        )
+        .sort((left, right) => left.runId.localeCompare(right.runId));
+      const stepsSnapshot = [...steps.entries()]
+        .map(([key, state]): DiagnosticStepSnapshot => {
+          const [, stepId] = JSON.parse(key) as [string, string];
+          return Object.freeze({
+            runId: state.runId,
+            ...(state.runInstanceId
+              ? { runInstanceId: state.runInstanceId }
+              : {}),
+            stepId,
+            ...(state.instanceId ? { instanceId: state.instanceId } : {}),
+            ...(state.parentStepId ? { parentStepId: state.parentStepId } : {}),
+            ...(state.parentStepInstanceId
+              ? { parentStepInstanceId: state.parentStepInstanceId }
+              : {}),
+            status: state.status,
+            startedAt: state.startedAt,
+            lastProgressBucket: state.lastProgressBucket,
+          });
+        })
+        .sort(
+          (left, right) =>
+            left.runId.localeCompare(right.runId) ||
+            left.stepId.localeCompare(right.stepId),
+        );
       const flushes = [...responses.entries()]
         .flatMap(([responseId, state]) =>
           state.flushDueAt === undefined
@@ -901,6 +1667,8 @@ export function createGenerativeA11y(
         }),
         responses: Object.freeze(responsesSnapshot),
         tools: Object.freeze(toolsSnapshot),
+        runs: Object.freeze(runsSnapshot),
+        steps: Object.freeze(stepsSnapshot),
         pendingCount: announcements.length + flushes.length,
       });
     },
@@ -914,6 +1682,8 @@ export function createGenerativeA11y(
       scheduler.dispose();
       responses.clear();
       tools.clear();
+      runs.clear();
+      steps.clear();
       if (announcementEmissionDepth > 0)
         clearListenersAfterDeliveryDiagnostic = true;
       else clearListeners();

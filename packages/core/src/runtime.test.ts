@@ -1470,4 +1470,427 @@ describe("generative accessibility runtime", () => {
       "disposed",
     );
   });
+
+  it("tracks nested and concurrent workflow entities without announcing internal churn", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      label: "Research run",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "collect",
+      stepInstanceId: "collect-1",
+      label: "Collect sources",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "analyze-a",
+      stepInstanceId: "a-1",
+      parentStepId: "collect",
+      parentStepInstanceId: "collect-1",
+      label: "Analyze source A",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "analyze-b",
+      stepInstanceId: "b-1",
+      parentStepId: "collect",
+      parentStepInstanceId: "collect-1",
+      label: "Analyze source B",
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot().runs).toEqual([
+      expect.objectContaining({
+        runId: "run-1",
+        instanceId: "attempt-1",
+        status: "active",
+      }),
+    ]);
+    expect(recorder.runtime.getDiagnosticSnapshot().steps).toEqual([
+      expect.objectContaining({ stepId: "analyze-a", parentStepId: "collect" }),
+      expect.objectContaining({ stepId: "analyze-b", parentStepId: "collect" }),
+      expect.objectContaining({ stepId: "collect" }),
+    ]);
+    expect(
+      recorder.runtime.getDiagnosticSnapshot().steps?.at(-1),
+    ).not.toHaveProperty("parentStepId");
+    recorder.clock.advanceBy(0);
+    expect(recorder.transcript()).toEqual([]);
+  });
+
+  it("announces only long-running top-level steps and summarizes a completed run", () => {
+    const recorder = createAnnouncementRecorder({
+      policy: { workflows: { announceStepAfterMs: 100 } },
+    });
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      stepId: "fast",
+      label: "Fast step",
+    });
+    recorder.clock.advanceBy(50);
+    recorder.runtime.dispatch({
+      type: "step.completed",
+      runId: "run-1",
+      stepId: "fast",
+      label: "Fast step",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      stepId: "slow",
+      label: "Slow step",
+    });
+    recorder.clock.advanceBy(100);
+    recorder.runtime.dispatch({
+      type: "step.completed",
+      runId: "run-1",
+      stepId: "slow",
+      label: "Slow step",
+    });
+    recorder.runtime.dispatch({ type: "run.completed", runId: "run-1" });
+    recorder.clock.runUntilIdle();
+
+    expect(spoken(recorder)).toEqual([
+      { channel: "polite", text: "Slow step started." },
+      { channel: "polite", text: "Slow step complete." },
+      { channel: "polite", text: "Run complete. 2 steps completed." },
+    ]);
+  });
+
+  it("does not repeat a completed response boundary as an empty run summary", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "response-1",
+      runId: "run-1",
+    });
+    recorder.runtime.dispatch({
+      type: "response.completed",
+      responseId: "response-1",
+      runId: "run-1",
+    });
+    recorder.runtime.dispatch({ type: "run.completed", runId: "run-1" });
+    recorder.clock.runUntilIdle();
+
+    expect(spoken(recorder)).toEqual([
+      { channel: "polite", text: "Response complete." },
+    ]);
+    expect(recorder.diagnosticTranscript()).toContainEqual(
+      expect.objectContaining({
+        sourceType: "run.completed",
+        reason: "policy-silent",
+      }),
+    );
+  });
+
+  it("keeps concurrent siblings active when one step fails", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    for (const stepId of ["one", "two"]) {
+      recorder.runtime.dispatch({
+        type: "step.started",
+        runId: "run-1",
+        stepId,
+        label: `Step ${stepId}`,
+      });
+    }
+    recorder.runtime.dispatch({
+      type: "step.failed",
+      runId: "run-1",
+      stepId: "one",
+      label: "Step one",
+      announcement: "Step one could not finish.",
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot().steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ stepId: "one", status: "failed" }),
+        expect.objectContaining({ stepId: "two", status: "active" }),
+      ]),
+    );
+    recorder.clock.runUntilIdle();
+    expect(spoken(recorder)).toContainEqual({
+      channel: "assertive",
+      text: "Step one could not finish.",
+    });
+  });
+
+  it("rejects stale child events after a step retry", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "run-attempt",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "run-attempt",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Draft",
+    });
+    recorder.runtime.dispatch({
+      type: "step.retrying",
+      runId: "run-1",
+      runInstanceId: "run-attempt",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      nextStepInstanceId: "draft-2",
+      attempt: 2,
+      label: "Draft",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "late-tool",
+      toolInstanceId: "tool-1",
+      runId: "run-1",
+      runInstanceId: "run-attempt",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Late tool",
+    });
+
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "stale-step",
+      toolId: "late-tool",
+      runId: "run-1",
+      stepId: "draft",
+    });
+  });
+
+  it("refuses successful run completion while identified child work remains open", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      stepId: "open",
+      label: "Open step",
+    });
+    recorder.runtime.dispatch({ type: "run.completed", runId: "run-1" });
+
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "open-children",
+      runId: "run-1",
+    });
+    expect(recorder.runtime.getDiagnosticSnapshot().runs?.[0]?.status).toBe(
+      "active",
+    );
+  });
+
+  it("observes anonymous step evidence without manufacturing identity", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      label: "Protocol step name",
+    });
+
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "partial-identity",
+      runId: "run-1",
+    });
+    expect(recorder.runtime.getDiagnosticSnapshot().steps).toEqual([]);
+  });
+
+  it("cancels direct and nested child output when a run attempt is replaced", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "direct-tool",
+      toolInstanceId: "tool-1",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      label: "Direct tool",
+    });
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "direct-response",
+      responseInstanceId: "response-1",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+    });
+    recorder.runtime.dispatch({
+      type: "response.text.delta",
+      responseId: "direct-response",
+      responseInstanceId: "response-1",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      delta: "Stale queued sentence.",
+    });
+    recorder.runtime.dispatch({
+      type: "run.retrying",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      nextRunInstanceId: "attempt-2",
+    });
+    recorder.clock.runUntilIdle();
+
+    const texts = recorder.transcript().map(({ text }) => text);
+    expect(texts).not.toContain("Direct tool.");
+    expect(texts).not.toContain("Stale queued sentence.");
+    expect(recorder.clock.pendingCount()).toBe(0);
+  });
+
+  it("isolates descendants when a new run.started replaces an active attempt", () => {
+    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Draft",
+    });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "old-tool",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Old tool",
+    });
+    recorder.runtime.dispatch({
+      type: "run.started",
+      runId: "run-1",
+      runInstanceId: "attempt-2",
+    });
+
+    expect(recorder.runtime.getDiagnosticSnapshot()).toMatchObject({
+      runs: [{ runId: "run-1", instanceId: "attempt-2", status: "active" }],
+      steps: [
+        {
+          runId: "run-1",
+          stepId: "draft",
+          instanceId: "draft-1",
+          status: "interrupted",
+        },
+      ],
+      tools: [{ toolId: "old-tool", status: "failed" }],
+    });
+
+    recorder.runtime.dispatch({
+      type: "step.completed",
+      runId: "run-1",
+      runInstanceId: "attempt-1",
+      stepId: "draft",
+      stepInstanceId: "draft-1",
+      label: "Draft",
+    });
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "stale-run",
+      runId: "run-1",
+      stepId: "draft",
+    });
+
+    recorder.runtime.dispatch({
+      type: "run.completed",
+      runId: "run-1",
+      runInstanceId: "attempt-2",
+    });
+    expect(recorder.runtime.getDiagnosticSnapshot().runs?.[0]).toMatchObject({
+      instanceId: "attempt-2",
+      status: "completed",
+    });
+  });
+
+  it("does not complete a parent step while an identified nested step is active", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      stepId: "parent",
+      label: "Parent",
+    });
+    recorder.runtime.dispatch({
+      type: "step.started",
+      runId: "run-1",
+      stepId: "child",
+      parentStepId: "parent",
+      label: "Child",
+    });
+    recorder.runtime.dispatch({
+      type: "step.completed",
+      runId: "run-1",
+      stepId: "parent",
+      label: "Parent",
+    });
+
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      reason: "open-children",
+      runId: "run-1",
+      stepId: "parent",
+    });
+    expect(
+      recorder.runtime
+        .getDiagnosticSnapshot()
+        .steps?.find(({ stepId }) => stepId === "parent")?.status,
+    ).toBe("active");
+  });
+
+  it("diagnoses malformed workflow identities without throwing", () => {
+    const recorder = createAnnouncementRecorder();
+    expect(() =>
+      recorder.runtime.dispatch({
+        type: "run.started",
+        runId: 42,
+      } as never),
+    ).not.toThrow();
+    expect(recorder.diagnosticTranscript().at(-1)?.reason).toBe(
+      "invalid-event",
+    );
+  });
+
+  it("rejects attempt identities without their logical owners", () => {
+    const recorder = createAnnouncementRecorder();
+    recorder.runtime.dispatch({
+      type: "response.started",
+      responseId: "response",
+      runInstanceId: "run-attempt",
+    } as never);
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      sourceType: "response.started",
+      reason: "invalid-event",
+    });
+
+    recorder.runtime.dispatch({ type: "run.started", runId: "run" });
+    recorder.runtime.dispatch({
+      type: "tool.started",
+      toolId: "tool",
+      label: "Tool",
+      runId: "run",
+      stepInstanceId: "step-attempt",
+    } as never);
+    expect(recorder.diagnosticTranscript().at(-1)).toMatchObject({
+      sourceType: "tool.started",
+      reason: "invalid-event",
+      runId: "run",
+    });
+  });
 });
