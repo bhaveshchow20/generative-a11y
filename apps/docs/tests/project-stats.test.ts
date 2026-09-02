@@ -46,11 +46,14 @@ describe("project stats endpoint", () => {
   });
 
   it("preserves GitHub stars when an npm request rejects", async () => {
+    let githubRequest: Request | undefined;
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (input: string | URL | Request) => {
-        const url = new URL(input instanceof Request ? input.url : input);
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const request = new Request(input, init);
+        const url = new URL(request.url);
         if (url.hostname === "api.github.com") {
+          githubRequest = request;
           return Response.json({ stargazers_count: 12 });
         }
         if (url.pathname.endsWith("%2Fdom")) throw new Error("npm unavailable");
@@ -64,6 +67,12 @@ describe("project stats endpoint", () => {
       stars: 12,
       monthlyDownloads: null,
     });
+    expect(githubRequest?.headers.get("user-agent")).toBe(
+      "generative-a11y.com",
+    );
+    expect(githubRequest?.headers.get("x-github-api-version")).toBe(
+      "2022-11-28",
+    );
   });
 
   it("preserves npm downloads when the GitHub request rejects", async () => {

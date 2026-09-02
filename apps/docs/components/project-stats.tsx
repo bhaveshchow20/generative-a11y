@@ -35,8 +35,8 @@ function BrandIcon({ icon }: { icon: SimpleIcon }) {
 
 /**
  * Shows GitHub stars and the combined monthly npm downloads for published
- * packages. Until each live request succeeds, the link describes the honest
- * action available instead of presenting a bundled count as current data.
+ * packages. Counts stay empty until their live requests succeed so stale or
+ * unavailable data is never presented as current.
  */
 export function ProjectStats({ className = "" }: { className?: string }) {
   const [stats, setStats] = useState<ProjectStats>({
@@ -81,7 +81,7 @@ export function ProjectStats({ className = "" }: { className?: string }) {
         <BrandIcon icon={siGithub} />
         <span>GitHub</span>
         <span className="project-stat-value" aria-hidden="true">
-          {stats.stars === null ? "View on GitHub" : <><span className="project-stat-icon">★</span>{formatCount(stats.stars)}</>}
+          {stats.stars === null ? null : <><span className="project-stat-icon">★</span>{formatCount(stats.stars)}</>}
         </span>
       </a>
       <a

@@ -1095,3 +1095,27 @@ test("missing npm download data stays unavailable", async ({ page }) => {
     }),
   ).toBeVisible();
 });
+
+test("missing GitHub star data stays empty and secondary calls to action are absent", async ({
+  page,
+}) => {
+  await page.unroute("**/project-stats.json");
+  await page.route("**/project-stats.json", async (route) => {
+    await route.fulfill({ json: { stars: null, monthlyDownloads: 3_808 } });
+  });
+  await page.goto("/");
+
+  const openSourceSection = page.locator(".home-open-source");
+  const github = openSourceSection.getByRole("link", {
+    name: "View generative-a11y on GitHub",
+    exact: true,
+  });
+  await expect(github).toBeVisible();
+  await expect(github.locator(".project-stat-value")).toBeEmpty();
+  await expect(
+    openSourceSection.getByRole("link", { name: "Open the docs" }),
+  ).toHaveCount(0);
+  await expect(
+    openSourceSection.getByRole("link", { name: "View on GitHub" }),
+  ).toHaveCount(0);
+});

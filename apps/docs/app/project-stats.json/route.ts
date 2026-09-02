@@ -11,7 +11,13 @@ const packages = [
 async function githubStars(): Promise<number | null> {
   const response = await fetch(
     "https://api.github.com/repos/bhaveshchow20/generative-a11y",
-    { headers: { accept: "application/vnd.github+json" } },
+    {
+      headers: {
+        accept: "application/vnd.github+json",
+        "user-agent": "generative-a11y.com",
+        "x-github-api-version": "2022-11-28",
+      },
+    },
   );
   if (!response.ok) return null;
   const data = (await response.json()) as { stargazers_count?: unknown };
