@@ -57,7 +57,7 @@
   "devDependencies": {
     "@ag-ui/client": "0.0.59",
     "@ag-ui/core": "0.0.59",
-    "@ai-sdk/react": "4.0.80",
+    "@ai-sdk/react": "4.0.87",
     "@assistant-ui/core": "0.3.15",
     "@assistant-ui/react": "0.15.16",
     "@axe-core/playwright": "4.13.0",
