@@ -79,7 +79,7 @@
     "@typescript-eslint/eslint-plugin": "8.67.0",
     "@typescript-eslint/parser": "8.67.0",
     "@vitest/coverage-v8": "4.1.11",
-    "ai": "7.0.77",
+    "ai": "7.0.84",
     "eslint": "10.9.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "jsdom": "30.0.1",

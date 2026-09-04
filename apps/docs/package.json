@@ -27,7 +27,7 @@
     "@generative-a11y/core": "workspace:*",
     "@generative-a11y/dom": "workspace:*",
     "@generative-a11y/react": "workspace:*",
-    "ai": "7.0.77",
+    "ai": "7.0.84",
     "fumadocs-core": "16.15.4",
     "fumadocs-mdx": "15.4.0",
     "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.4",
