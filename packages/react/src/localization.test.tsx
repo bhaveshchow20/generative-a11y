@@ -51,7 +51,7 @@ it("forwards construction catalogs through StrictMode without dispatch during SS
   const view = render(tree);
   const input = view.getByRole("textbox");
   input.focus();
-  act(() => clock.advanceBy(1000));
+  await act(() => clock.advanceBy(1000));
   expect(delivered).toEqual(["Réponse terminée."]);
   expect(
     document.querySelector('[aria-live="polite"]')?.getAttribute("lang"),
@@ -108,7 +108,7 @@ it("preserves a borrowed runtime catalog across keyed provider replacement", asy
   await act(async () => {
     await Promise.resolve();
   });
-  act(() => {
+  await act(() => {
     runtime.dispatch({ type: "response.started", responseId: "one" });
     runtime.dispatch({ type: "response.completed", responseId: "one" });
     clock.runUntilIdle();
@@ -163,13 +163,13 @@ it("uses a new catalog only when an owned provider is explicitly replaced", asyn
       <Complete />
     </GenerativeA11yProvider>,
   );
-  act(() => clock.runUntilIdle());
+  await act(() => clock.runUntilIdle());
   view.rerender(
     <GenerativeA11yProvider key="one" {...props} announcementCatalog={second}>
       <Complete />
     </GenerativeA11yProvider>,
   );
-  act(() => clock.runUntilIdle());
+  await act(() => clock.runUntilIdle());
   expect(delivered).toEqual(["First catalog."]);
   view.rerender(
     <GenerativeA11yProvider key="two" {...props} announcementCatalog={second}>
@@ -179,7 +179,7 @@ it("uses a new catalog only when an owned provider is explicitly replaced", asyn
   await act(async () => {
     await Promise.resolve();
   });
-  act(() => clock.runUntilIdle());
+  await act(() => clock.runUntilIdle());
   expect(delivered).toEqual(["First catalog.", "Second catalog."]);
   view.unmount();
   await act(async () => {
