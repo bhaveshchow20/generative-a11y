@@ -21,3 +21,6 @@ diagnostics/devtools. Replay V1 is unchanged but requires the same catalog and
 configuration for reproduction. Exhaustive diagnostic-reason switches must
 handle `catalog-format-error`. This adds no translation engine or AT support
 claim.
+
+Default retry messages preserve an explicitly supplied attempt value of zero
+instead of treating it as missing.

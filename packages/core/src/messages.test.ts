@@ -597,3 +597,47 @@ it("does not format stale attempts or lose retry lifecycle after formatter failu
   r.runtime.dispose();
   expect(r.clock.pendingCount()).toBe(0);
 });
+
+it.each([undefined, 0, 2])(
+  "preserves an explicitly supplied retry attempt %s across English lifecycle notices",
+  (attempt) => {
+    const r = createAnnouncementRecorder({ preset: "verbose" });
+    const parameters = attempt === undefined ? {} : { attempt };
+    r.runtime.dispatch({ type: "response.started", responseId: "response" });
+    r.runtime.dispatch({
+      type: "response.retrying",
+      responseId: "response",
+      ...parameters,
+    });
+    r.clock.runUntilIdle();
+    r.runtime.dispatch({ type: "run.started", runId: "run" });
+    r.runtime.dispatch({ type: "run.retrying", runId: "run", ...parameters });
+    r.clock.runUntilIdle();
+    r.runtime.dispatch({
+      type: "step.started",
+      runId: "run",
+      stepId: "step",
+      label: "Research",
+    });
+    r.runtime.dispatch({
+      type: "step.retrying",
+      runId: "run",
+      stepId: "step",
+      label: "Research",
+      ...parameters,
+    });
+    r.clock.runUntilIdle();
+    const suffix = attempt === undefined ? "" : ` Attempt ${attempt}.`;
+    expect(
+      r
+        .transcript()
+        .filter((item) => item.sourceType.endsWith(".retrying"))
+        .map((item) => item.text),
+    ).toEqual([
+      `Retrying response.${suffix}`,
+      `Retrying run.${suffix}`,
+      `Retrying Research.${suffix}`,
+    ]);
+    r.runtime.dispose();
+  },
+);

@@ -68,7 +68,9 @@ export const englishAnnouncementCatalog: AnnouncementCatalog = Object.freeze({
     "response.interrupted": "Response stopped.",
     "response.failed": "Response failed.",
     "response.retrying": ({ attempt }) =>
-      attempt ? `Retrying response. Attempt ${attempt}.` : "Retrying response.",
+      attempt !== undefined
+        ? `Retrying response. Attempt ${attempt}.`
+        : "Retrying response.",
     "tool.started": ({ label }) => punctuate(label),
     "tool.progress": progress,
     "tool.completed": ({ label }) => `${label} complete.`,
@@ -91,14 +93,18 @@ export const englishAnnouncementCatalog: AnnouncementCatalog = Object.freeze({
     "run.interrupted": "Run stopped.",
     "run.failed": "Run failed.",
     "run.retrying": ({ attempt }) =>
-      attempt ? `Retrying run. Attempt ${attempt}.` : "Retrying run.",
+      attempt !== undefined
+        ? `Retrying run. Attempt ${attempt}.`
+        : "Retrying run.",
     "step.started": ({ label }) => punctuate(`${label} started`),
     "step.progress": progress,
     "step.completed": ({ label }) => `${label} complete.`,
     "step.interrupted": ({ label }) => `${label} stopped.`,
     "step.failed": ({ label }) => `${label} failed.`,
     "step.retrying": ({ label, attempt }) =>
-      attempt ? `Retrying ${label}. Attempt ${attempt}.` : `Retrying ${label}.`,
+      attempt !== undefined
+        ? `Retrying ${label}. Attempt ${attempt}.`
+        : `Retrying ${label}.`,
     "interaction.resolved": ({ kind, outcome }) => `${kind} ${outcome}.`,
     "approval.resolved": ({ outcome }) => `Approval ${outcome}.`,
     "connection.lost": "Connection lost. Reconnecting.",
