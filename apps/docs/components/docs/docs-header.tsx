@@ -9,9 +9,9 @@ export function DocumentationHeader({
   description?: ReactNode;
 }) {
   return (
-    <header className="docs-page-header">
+    <div className="docs-page-header">
       <DocsTitle>{title}</DocsTitle>
       {description && <DocsDescription>{description}</DocsDescription>}
-    </header>
+    </div>
   );
 }

@@ -186,7 +186,7 @@ test("documentation route families use native Fumadocs title typography", async 
     );
     expect(size, path).toBeGreaterThanOrEqual(24);
     expect(size, path).toBeLessThanOrEqual(36);
-    const header = page.locator("article header.docs-page-header");
+    const header = page.locator("article .docs-page-header");
     await expect(header.locator("h1")).toHaveCount(1);
     await expect(header.locator("p")).not.toBeEmpty();
     await expect(header).toHaveCSS("border-bottom-width", "1px");
