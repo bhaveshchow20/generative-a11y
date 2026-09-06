@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createAnnouncementRecorder } from "./recorder.js";
+import { createRecorder } from "./recorder.js";
 import { resolvePolicy } from "./policy.js";
-import { createGenerativeA11y } from "./runtime.js";
+import { createRuntime } from "./runtime.js";
 import { ManualClock } from "./clock.js";
-import type { GenerativeA11yEvent, PresetName } from "./types.js";
+import type { RuntimeEvent, PresetName } from "./types.js";
 
 function setup(preset: PresetName = "verbose") {
-  return createAnnouncementRecorder({
+  return createRecorder({
     preset,
     policy: {
       attention: { enabled: true },
@@ -25,7 +25,7 @@ describe("attention policy", () => {
     "does not discard fresh %s content after inter-unit quiet whitespace",
     (strategy) => {
       for (const beforeQuiet of [false, true]) {
-        const recorder = createAnnouncementRecorder({
+        const recorder = createRecorder({
           policy: {
             attention: { enabled: true },
             text: { strategy, minimumCharacters: 1, maximumDelayMs: 100 },
@@ -103,7 +103,7 @@ describe("attention policy", () => {
     const manual = new ManualClock();
     const callbacks: Array<() => void> = [];
     const announcements: string[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       policy: {
         attention: { enabled: true },
         text: { minimumCharacters: 1, maximumDelayMs: 100 },
@@ -142,7 +142,7 @@ describe("attention policy", () => {
         resolvePolicy("balanced", { attention: attention as never }),
       ).toThrow();
     }
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: {
         attention: { enabled: true, quietWhen: ["reading-history", "away"] },
       },
@@ -236,7 +236,7 @@ describe("attention policy", () => {
   });
 
   it("drops long quiet text and resumes complete paragraph units", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: {
         attention: { enabled: true },
         text: { strategy: "paragraph", minimumCharacters: 1 },
@@ -458,7 +458,7 @@ describe("attention policy", () => {
 
   it("preserves failures, interactions, connection and terminal workflow notices", () => {
     const recorder = setup();
-    const events: GenerativeA11yEvent[] = [
+    const events: RuntimeEvent[] = [
       { type: "run.started", runId: "run" },
       { type: "step.started", runId: "run", stepId: "s", label: "Step" },
       { type: "tool.started", toolId: "t", label: "Tool" },
@@ -508,8 +508,8 @@ describe("attention policy", () => {
   it.each(["minimal", "balanced", "verbose", "completion-only"] as const)(
     "preserves default-off behavior in %s",
     (preset) => {
-      const left = createAnnouncementRecorder({ preset });
-      const right = createAnnouncementRecorder({ preset });
+      const left = createRecorder({ preset });
+      const right = createRecorder({ preset });
       left.runtime.dispatch({ type: "attention.changed", mode: "background" });
       left.runtime.dispatch({ type: "attention.override", mode: "quiet" });
       for (const recorder of [left, right]) {

@@ -1,4 +1,4 @@
-import { createGenerativeA11y } from "@generative-a11y/core";
+import { createRuntime } from "@generative-a11y/core";
 import { describe, expect, it, vi } from "vitest";
 import * as dom from "./index.js";
 import type { AttentionSnapshot, AttentionStore } from "./attention.js";
@@ -38,12 +38,12 @@ function store() {
   };
 }
 
-describe("bindAttentionToRuntime", () => {
+describe("bindAttention", () => {
   it("forwards initial and changed modes, deduplicates, and releases borrowed resources", () => {
-    const runtime = createGenerativeA11y({});
+    const runtime = createRuntime({});
     const dispatch = vi.spyOn(runtime, "dispatch");
     const source = store();
-    const binding = dom.bindAttentionToRuntime({
+    const binding = dom.bindAttention({
       runtime,
       attentionStore: source.value,
     });
@@ -63,7 +63,7 @@ describe("bindAttentionToRuntime", () => {
     expect(dispatch).toHaveBeenCalledTimes(3);
     expect(source.listeners.size).toBe(0);
     expect(source.value.dispose).not.toHaveBeenCalled();
-    const replacement = dom.bindAttentionToRuntime({
+    const replacement = dom.bindAttention({
       runtime,
       attentionStore: source.value,
     });
@@ -71,27 +71,27 @@ describe("bindAttentionToRuntime", () => {
     runtime.dispose();
   });
   it("rejects competing and reentrant construction before reading a store", () => {
-    const runtime = createGenerativeA11y({});
+    const runtime = createRuntime({});
     const source = store();
     const read = source.value.getSnapshot;
     source.value.getSnapshot = () => {
       expect(() =>
-        dom.bindAttentionToRuntime({ runtime, attentionStore: source.value }),
+        dom.bindAttention({ runtime, attentionStore: source.value }),
       ).toThrow(/already/);
       return read();
     };
-    const binding = dom.bindAttentionToRuntime({
+    const binding = dom.bindAttention({
       runtime,
       attentionStore: source.value,
     });
     expect(() =>
-      dom.bindAttentionToRuntime({ runtime, attentionStore: source.value }),
+      dom.bindAttention({ runtime, attentionStore: source.value }),
     ).toThrow(/already/);
     binding.dispose();
     runtime.dispose();
   });
   it("rolls back failed reads and leaves retained callbacks inert after subscription failure", () => {
-    const runtime = createGenerativeA11y({});
+    const runtime = createRuntime({});
     const source = store();
     const dispatch = vi.spyOn(runtime, "dispatch");
     let retained = () => {};
@@ -100,7 +100,7 @@ describe("bindAttentionToRuntime", () => {
       throw new Error("subscribe failed");
     };
     expect(() =>
-      dom.bindAttentionToRuntime({ runtime, attentionStore: source.value }),
+      dom.bindAttention({ runtime, attentionStore: source.value }),
     ).toThrow("subscribe failed");
     dispatch.mockClear();
     retained();
@@ -110,18 +110,18 @@ describe("bindAttentionToRuntime", () => {
       throw new Error("read failed");
     };
     expect(() =>
-      dom.bindAttentionToRuntime({ runtime, attentionStore: source.value }),
+      dom.bindAttention({ runtime, attentionStore: source.value }),
     ).toThrow("read failed");
     runtime.dispose();
   });
   it("still resets and releases its claim when unsubscribe throws", () => {
-    const runtime = createGenerativeA11y({});
+    const runtime = createRuntime({});
     const source = store();
     source.value.subscribe = () => () => {
       throw new Error("cleanup failed");
     };
     const dispatch = vi.spyOn(runtime, "dispatch");
-    const binding = dom.bindAttentionToRuntime({
+    const binding = dom.bindAttention({
       runtime,
       attentionStore: source.value,
     });
@@ -130,18 +130,16 @@ describe("bindAttentionToRuntime", () => {
       type: "attention.changed",
       mode: "unknown",
     });
-    dom
-      .bindAttentionToRuntime({ runtime, attentionStore: source.value })
-      .dispose();
+    dom.bindAttention({ runtime, attentionStore: source.value }).dispose();
     runtime.dispose();
   });
 });
 
 it("does not forward a read result after reentrant disposal and holds its claim through reset", () => {
-  const runtime = createGenerativeA11y({});
+  const runtime = createRuntime({});
   const source = store();
   const dispatch = vi.spyOn(runtime, "dispatch");
-  const binding = dom.bindAttentionToRuntime({
+  const binding = dom.bindAttention({
     runtime,
     attentionStore: source.value,
   });
@@ -162,13 +160,11 @@ it("does not forward a read result after reentrant disposal and holds its claim 
     return () => {
       binding.dispose();
       expect(() =>
-        dom.bindAttentionToRuntime({ runtime, attentionStore: source.value }),
+        dom.bindAttention({ runtime, attentionStore: source.value }),
       ).toThrow(/already/);
       unsubscribe();
     };
   };
-  dom
-    .bindAttentionToRuntime({ runtime, attentionStore: source.value })
-    .dispose();
+  dom.bindAttention({ runtime, attentionStore: source.value }).dispose();
   runtime.dispose();
 });

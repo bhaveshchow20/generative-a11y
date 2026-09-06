@@ -1,15 +1,15 @@
 import {
-  normalizeAdapterAnnouncementCopy,
-  type AdapterAnnouncementCopy,
-} from "@generative-a11y/core";
+  normalizeAdapterCopy,
+  type AdapterCopy,
+} from "@generative-a11y/core/messages";
 import type {
   AdapterFidelity,
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
+  RuntimeEvent,
+  Runtime,
 } from "@generative-a11y/core";
 import type { AbstractAgent, AgentSubscriber } from "@ag-ui/client";
 
-export interface AgentAdapterMetadata {
+export interface AdapterInfo {
   readonly name: "ag-ui";
   readonly fidelity: Readonly<Omit<AdapterFidelity, "optionalEvents">> & {
     readonly optionalEvents: readonly NonNullable<
@@ -21,7 +21,7 @@ export interface AgentAdapterMetadata {
 }
 
 /** Frozen public-evidence declaration for AG-UI protocol subscriptions. */
-export const AGENT_ADAPTER_METADATA: AgentAdapterMetadata = Object.freeze({
+export const adapterInfo: AdapterInfo = Object.freeze({
   name: "ag-ui",
   fidelity: Object.freeze({
     runs: "exact",
@@ -44,8 +44,8 @@ export const AGENT_ADAPTER_METADATA: AgentAdapterMetadata = Object.freeze({
 export type AgentSource = Pick<AbstractAgent, "subscribe">;
 export interface BindAgentOptions {
   /** Host-owned localized copy, captured and validated at construction. */
-  readonly copy?: AdapterAnnouncementCopy;
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly copy?: AdapterCopy;
+  readonly runtime: Pick<Runtime, "dispatch">;
   readonly scopeId: string;
   readonly agent: AgentSource;
   readonly maxTrackedEntities?: number;
@@ -67,7 +67,7 @@ type RunOwnedEventType =
   | "interaction.requested"
   | "interaction.resolved";
 type UnownedRunEvent = Extract<
-  GenerativeA11yEvent,
+  RuntimeEvent,
   { type: RunOwnedEventType; runId?: undefined }
 >;
 const responseId = (scopeId: string, id: string) => `${scopeId}:message:${id}`;
@@ -87,9 +87,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
   if (!Number.isSafeInteger(maxTrackedEntities) || maxTrackedEntities <= 0)
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
   const copy =
-    options.copy === undefined
-      ? undefined
-      : normalizeAdapterAnnouncementCopy(options.copy);
+    options.copy === undefined ? undefined : normalizeAdapterCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const responses = new Map<string, Response>();
   const tools = new Map<string, Tool>();
@@ -98,7 +96,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
   const resolvedInteractions = new Set<string>();
   let disposed = false;
   let saturated = false;
-  const dispatch = (event: GenerativeA11yEvent) => {
+  const dispatch = (event: RuntimeEvent) => {
     if (disposed || saturated) return;
     try {
       options.runtime.dispatch(

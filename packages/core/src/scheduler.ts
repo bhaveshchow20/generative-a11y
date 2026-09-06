@@ -6,7 +6,7 @@ import type {
   AnnouncementPurpose,
   DiagnosticPendingAnnouncement,
   DiagnosticReason,
-  GenerativeA11yEvent,
+  RuntimeEvent,
 } from "./types.js";
 
 export type AnnouncementCapacityPriority = "status" | "content";
@@ -16,7 +16,7 @@ export interface ScheduleAnnouncement {
   purpose?: AnnouncementPurpose;
   channel: AnnouncementChannel;
   text: string;
-  sourceType: GenerativeA11yEvent["type"];
+  sourceType: RuntimeEvent["type"];
   sourceEventId?: string;
   responseId?: string;
   toolId?: string;
@@ -40,7 +40,7 @@ interface ScheduledItem extends ScheduleAnnouncement {
   sequence: number;
 }
 
-export interface AnnouncementSchedulerOptions {
+export interface SchedulerOptions {
   clock: Clock;
   minimumGapMs: number;
   dedupeWindowMs: number;
@@ -50,7 +50,7 @@ export interface AnnouncementSchedulerOptions {
   onDiagnostic?: (diagnostic: AnnouncementDiagnostic) => void;
 }
 
-export interface AnnouncementScheduler {
+export interface Scheduler {
   schedule(candidate: ScheduleAnnouncement): string | undefined;
   cancelScope(scope: string): void;
   /** Cancel only queued candidates of these purposes; already delivered output cannot be retracted. */
@@ -63,9 +63,7 @@ export interface AnnouncementScheduler {
   getDiagnosticSnapshot(): readonly DiagnosticPendingAnnouncement[];
 }
 
-export function createAnnouncementScheduler(
-  options: AnnouncementSchedulerOptions,
-): AnnouncementScheduler {
+export function createScheduler(options: SchedulerOptions): Scheduler {
   for (const [name, value] of [
     ["minimumGapMs", options.minimumGapMs],
     ["dedupeWindowMs", options.dedupeWindowMs],

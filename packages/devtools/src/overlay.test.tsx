@@ -3,10 +3,10 @@
 import { fireEvent, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
 
-import { createDevtoolsStore } from "./index.js";
-import { mountDevtoolsOverlay } from "./overlay.js";
+import { createStore } from "./index.js";
+import { mountOverlay } from "./overlay.js";
 
 class TestResizeObserver {
   observe(): void {}
@@ -31,14 +31,14 @@ afterEach(() => {
 });
 
 test("explains attention state without claiming observed reading", () => {
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
-  const store = createDevtoolsStore();
+  const store = createStore();
   store.attachRuntime({ id: "attention", runtime });
   runtime.dispatch({ type: "attention.changed", mode: "background" });
   store.refreshSnapshots();
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -58,8 +58,8 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
   launcher.textContent = "Host action";
   document.body.append(launcher);
   launcher.focus();
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
   });
 
@@ -94,11 +94,11 @@ test("mounts explicitly in an isolated shadow root without stealing focus or cre
 
 test("renders a causal trace explorer and confirms local workspace actions", async () => {
   const clock = new ManualClock();
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     clock,
     onAnnouncement: () => undefined,
   });
-  const store = createDevtoolsStore();
+  const store = createStore();
   store.attachRuntime({ id: "support", runtime });
   runtime.dispatch({ type: "response.started", responseId: "reply-1" });
   runtime.dispatch({ type: "response.completed", responseId: "reply-1" });
@@ -114,7 +114,7 @@ test("renders a causal trace explorer and confirms local workspace actions", asy
       status: "mutated",
     },
   });
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>("button");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -158,8 +158,8 @@ test("renders a causal trace explorer and confirms local workspace actions", asy
 });
 
 test("correlates source and decision records when no event id was supplied", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "support", runtime });
   runtime.dispatch({ type: "response.started", responseId: "reply-1" });
   const announcementId = store
@@ -177,7 +177,7 @@ test("correlates source and decision records when no event id was supplied", () 
       status: "mutated",
     },
   });
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -190,8 +190,8 @@ test("correlates source and decision records when no event id was supplied", () 
 });
 
 test("renders workflow identity, hierarchy, attempt, and terminal state", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "workflow", runtime });
   runtime.dispatch({ type: "run.started", runId: "parent" });
   runtime.dispatch({
@@ -210,7 +210,7 @@ test("renders workflow identity, hierarchy, attempt, and terminal state", () => 
   });
   store.refreshSnapshots();
 
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>("button");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -226,8 +226,8 @@ test("renders workflow identity, hierarchy, attempt, and terminal state", () => 
 });
 
 test("joins run, step, and tool evidence into a hierarchical causal chain", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "workflow", runtime });
   runtime.dispatch({ type: "run.started", runId: "run" });
   runtime.dispatch({
@@ -244,7 +244,7 @@ test("joins run, step, and tool evidence into a hierarchical causal chain", () =
     label: "Browser",
   });
 
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -258,8 +258,8 @@ test("joins run, step, and tool evidence into a hierarchical causal chain", () =
 });
 
 test("links a retry record to its replacement run attempt", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "workflow", runtime });
   runtime.dispatch({
     type: "run.started",
@@ -278,7 +278,7 @@ test("links a retry record to its replacement run attempt", () => {
     runInstanceId: "attempt-2",
   });
 
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -296,8 +296,8 @@ test("links a retry record to its replacement run attempt", () => {
 });
 
 test("does not display a newer attempt snapshot for an older record", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "workflow", runtime });
   runtime.dispatch({
     type: "run.started",
@@ -311,7 +311,7 @@ test("does not display a newer attempt snapshot for an older record", () => {
   });
   store.refreshSnapshots();
 
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -329,8 +329,8 @@ test("does not display a newer attempt snapshot for an older record", () => {
 });
 
 test("does not infer an attempt snapshot for a record without attempt identity", () => {
-  const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-  const store = createDevtoolsStore();
+  const runtime = createRuntime({ onAnnouncement: () => undefined });
+  const store = createStore();
   store.attachRuntime({ id: "workflow", runtime });
   runtime.dispatch({ type: "run.started", runId: "run" });
   runtime.dispatch({
@@ -340,7 +340,7 @@ test("does not infer an attempt snapshot for a record without attempt identity",
   });
   store.refreshSnapshots();
 
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
   if (!root || !launcher) throw new Error("workspace launcher missing");
@@ -362,8 +362,8 @@ test("does not infer an attempt snapshot for a record without attempt identity",
 test("cancels feedback cleanup when the workspace unmounts", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
   });
   const root = mounted.host.shadowRoot;
@@ -394,8 +394,8 @@ test("cancels feedback cleanup when the workspace unmounts", async () => {
 test("unmounts feedback when the launcher collapses the workspace", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
   });
   const root = mounted.host.shadowRoot;
@@ -434,8 +434,8 @@ test("confirms copy only after the clipboard operation completes", async () => {
   const pendingCopy = new Promise<void>((_resolve, reject) => {
     rejectCopy = reject;
   });
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
     copyText: () => pendingCopy,
   });
@@ -470,8 +470,8 @@ test("ignores completion from an older copy request", async () => {
     .fn()
     .mockReturnValueOnce(first)
     .mockReturnValueOnce(second);
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
     copyText,
   });
@@ -496,8 +496,8 @@ test("ignores completion from an older copy request", async () => {
 });
 
 test("keeps the trace surface intentionally spacious instead of compressing it into a dashboard", () => {
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
   });
   const styles = mounted.host.shadowRoot?.querySelector("style")?.textContent;
@@ -516,18 +516,18 @@ test("keeps the trace surface intentionally spacious instead of compressing it i
 
 test("provides a searchable, inspectable workbench with runtime actions", async () => {
   const clock = new ManualClock();
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     clock,
     onAnnouncement: () => undefined,
   });
-  const store = createDevtoolsStore();
+  const store = createStore();
   store.attachRuntime({ id: "support", runtime });
   runtime.dispatch({ type: "response.started", responseId: "reply-1" });
   runtime.dispatch({
     type: "connection.lost",
     label: "Private connection label",
   });
-  const mounted = mountDevtoolsOverlay({ store, document });
+  const mounted = mountOverlay({ store, document });
   const root = mounted.host.shadowRoot;
   const launcher = root?.querySelector<HTMLButtonElement>("button");
   if (!root || !launcher) throw new Error("inspector launcher missing");
@@ -571,8 +571,8 @@ test("provides a searchable, inspectable workbench with runtime actions", async 
 test("cancels copy-status cleanup when the workbench closes", async () => {
   const clearTimeout = vi.spyOn(window, "clearTimeout");
   const setTimeout = vi.spyOn(window, "setTimeout");
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
     copyText: () => Promise.resolve(),
   });
@@ -608,8 +608,8 @@ test("disposing an open workspace restores host focus", async () => {
   const hostAction = document.createElement("button");
   document.body.append(hostAction);
   hostAction.focus();
-  const mounted = mountDevtoolsOverlay({
-    store: createDevtoolsStore(),
+  const mounted = mountOverlay({
+    store: createStore(),
     document,
   });
   const launcher =

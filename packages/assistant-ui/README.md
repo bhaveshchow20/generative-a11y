@@ -1,11 +1,11 @@
 # @generative-a11y/assistant-ui
 
-`bindThreadRuntime()` observes only the documented public `ThreadRuntime`
-`getState()` and `subscribe()` methods from `@assistant-ui/core@0.3.x`. It
-silently baselines existing history and translates later assistant text and
-documented terminal statuses, tool result state, approvals, and sources into a
-borrowed generative-a11y runtime. It does not render UI, access the DOM, or call
-host runtime actions.
+`bindThread()` observes only the documented public `ThreadRuntime` `getState()`
+and `subscribe()` methods from `@assistant-ui/core@0.3.x`. It silently baselines
+existing history and translates later assistant text and documented terminal
+statuses, tool result state, approvals, and sources into a borrowed
+generative-a11y runtime. It does not render UI, access the DOM, or call host
+runtime actions.
 
 ## Install
 
@@ -19,9 +19,9 @@ The host owns both the core `runtime` and assistant-ui `thread`; this binding
 only translates documented public thread state.
 
 ```ts
-import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+import { bindThread } from "@generative-a11y/assistant-ui";
 
-const binding = bindThreadRuntime({ runtime, scopeId: "support", thread });
+const binding = bindThread({ runtime, scopeId: "support", thread });
 // Later: binding.dispose(); // unsubscribes only
 ```
 
@@ -61,19 +61,20 @@ spoken.
 
 ## Host-owned localized copy
 
-The binding/observer accepts optional `copy: AdapterAnnouncementCopy` from
-`@generative-a11y/core`. Supply a complete object with `locale`, `toolLabel`,
-`approvalRequested`, `approvalResolved` (approved/rejected/cancelled),
-`inputRequested`, and `inputResolved` (submitted/cancelled). It is validated and
-copied at construction; each adapter uses only copy for events it already
-observes. Copy-bearing events carry its locale; response text is never assigned
-a language from this option. No lifecycle fidelity changes.
+The binding/observer accepts optional `copy: AdapterCopy` from
+`@generative-a11y/core/messages`. Supply a complete object with `locale`,
+`toolLabel`, `approvalRequested`, `approvalResolved`
+(approved/rejected/cancelled), `inputRequested`, and `inputResolved`
+(submitted/cancelled). It is validated and copied at construction; each adapter
+uses only copy for events it already observes. Copy-bearing events carry its
+locale; response text is never assigned a language from this option. No
+lifecycle fidelity changes.
 
-Pair this with core's `announcementCatalog` for generated notices. Reuse your
-existing i18n system; no translation engine is added. Copy strings are nonempty
-and at most 4,096 UTF-16 code units; locale is a valid language tag of at
-most 128. Invalid configuration throws before subscribing. Omitted copy
-preserves existing generic English labels.
+Pair this with core's `messages` for generated notices. Reuse your existing i18n
+system; no translation engine is added. Copy strings are nonempty and at most
+4,096 UTF-16 code units; locale is a valid language tag of at most 128. Invalid
+configuration throws before subscribing. Omitted copy preserves existing generic
+English labels.
 
 See the
 [complete localization guide](https://generativea11y.com/docs/localized-announcements)
