@@ -718,10 +718,10 @@ describe("generative accessibility runtime", () => {
         .transcript()
         .filter(({ responseId }) => responseId === "r1")
         .map(({ locale }) => locale),
-    ).toEqual(["en", "fr", "fr"]);
+    ).toEqual(["en", "fr", "en"]);
     expect(
       recorder.transcript().find(({ toolId }) => toolId === "t1")?.locale,
-    ).toBe("de");
+    ).toBe("en");
   });
 
   it("does not let stale tool events overwrite the active locale", () => {

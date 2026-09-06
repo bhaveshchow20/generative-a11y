@@ -2,6 +2,7 @@
 
 import {
   ManualClock,
+  englishAnnouncementCatalog,
   createGenerativeA11y,
 } from "../../packages/core/dist/index.js";
 import {
@@ -126,11 +127,25 @@ function selectDeliveryMode(mode, notifier = "native") {
     notifier === "native" ? mode : `${mode} / ${notifier}`;
 }
 
-function createRuntime(attentionEnabled = false) {
+function createRuntime(attentionEnabled = false, syntheticCatalog = false) {
   clock = new ManualClock();
   runtime = createGenerativeA11y({
     clock,
     preset: "verbose",
+    ...(syntheticCatalog
+      ? {
+          announcementCatalog: {
+            id: "synthetic-ar-v1",
+            locale: "ar",
+            messages: Object.fromEntries(
+              Object.keys(englishAnnouncementCatalog.messages).map((key) => [
+                key,
+                "إشعار تجريبي.",
+              ]),
+            ),
+          },
+        }
+      : {}),
     policy: {
       attention: {
         enabled: attentionEnabled,
@@ -371,7 +386,7 @@ function updateFocus() {
   elements.currentFocus.textContent = focusName(document.activeElement);
 }
 
-function reset({ attention = false } = {}) {
+function reset({ attention = false, syntheticCatalog = false } = {}) {
   attentionBinding?.dispose();
   attentionStore?.dispose();
   attentionBinding = undefined;
@@ -387,7 +402,7 @@ function reset({ attention = false } = {}) {
   capturedFocus = undefined;
   nextIdentity = 1;
   selectDeliveryMode("auto");
-  createRuntime(attention);
+  createRuntime(attention, syntheticCatalog);
   updateClock();
   updateFocus();
 }

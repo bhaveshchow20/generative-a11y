@@ -865,3 +865,130 @@ describe("AI SDK observer", () => {
     ]);
   });
 });
+
+const frenchCopy = () => ({
+  locale: "fr",
+  toolLabel: "Un outil",
+  approvalRequested: "Autorisation requise.",
+  approvalResolved: {
+    approved: "Autorisation accordée.",
+    rejected: "Autorisation refusée.",
+    cancelled: "Autorisation annulée.",
+  },
+  inputRequested: "Saisie requise.",
+  inputResolved: { submitted: "Saisie reçue.", cancelled: "Saisie annulée." },
+});
+
+it("copies localized adapter messages without assigning response language", () => {
+  const { events, runtime } = createRuntime();
+  const copy = frenchCopy();
+  const observer = createObserver({ runtime, scopeId: "fr", copy });
+  copy.toolLabel = "mutated";
+  observer.observe({ messages: [], status: "ready", error: undefined });
+  const observe = (parts: unknown[]) =>
+    observer.observe({
+      messages: [assistantMessage("m", parts)],
+      status: "streaming",
+      error: undefined,
+    });
+  observe([text("Hello. "), tool("t", "input-available")]);
+  observe([
+    text("Hello. "),
+    tool("t", "output-available"),
+    tool("a", "approval-requested", { id: "a" }),
+  ]);
+  observe([
+    text("Hello. "),
+    tool("t", "output-available"),
+    tool("a", "approval-responded", { id: "a", approved: true }),
+  ]);
+  expect(events).toContainEqual({
+    type: "tool.started",
+    toolId: "fr:tool:t",
+    label: "Un outil",
+    locale: "fr",
+  });
+  expect(events).toContainEqual({
+    type: "approval.requested",
+    approvalId: "fr:approval:a",
+    label: "Autorisation requise.",
+    locale: "fr",
+  });
+  expect(events).toContainEqual({
+    type: "approval.resolved",
+    approvalId: "fr:approval:a",
+    outcome: "approved",
+    label: "Autorisation accordée.",
+    locale: "fr",
+  });
+  expect(
+    events
+      .filter((e) => e.type === "response.text.delta")
+      .every((e) => e.locale === undefined),
+  ).toBe(true);
+  observer.dispose();
+});
+it("forwards copied hook messages and lets the host tool label win", () => {
+  const { events, runtime } = createRuntime();
+  const { result, unmount } = renderHook(() =>
+    useChatAccessibility({
+      runtime,
+      scopeId: "hook",
+      copy: frenchCopy(),
+      getToolLabel: () => "Recherche",
+    }),
+  );
+  result.current.observer.observe({
+    messages: [],
+    status: "ready",
+    error: undefined,
+  });
+  result.current.observer.observe({
+    messages: [assistantMessage("m", [tool("t", "input-available")])],
+    status: "streaming",
+    error: undefined,
+  });
+  expect(events).toContainEqual({
+    type: "tool.started",
+    toolId: "hook:tool:t",
+    label: "Recherche",
+    locale: "fr",
+  });
+  unmount();
+});
+
+it("releases a replaced hook observer while preserving the new localized binding", async () => {
+  const { events, runtime } = createRuntime();
+  const copy = frenchCopy();
+  const { result, rerender, unmount } = renderHook(
+    ({ scopeId }) => useChatAccessibility({ runtime, scopeId, copy }),
+    { initialProps: { scopeId: "first" } },
+  );
+  const old = result.current.observer;
+  old.observe({ messages: [], status: "ready", error: undefined });
+  rerender({ scopeId: "second" });
+  await Promise.resolve();
+  old.observe({
+    messages: [assistantMessage("stale", [tool("old", "input-available")])],
+    status: "streaming",
+    error: undefined,
+  });
+  expect(events).toEqual([]);
+  result.current.observer.observe({
+    messages: [],
+    status: "ready",
+    error: undefined,
+  });
+  result.current.observer.observe({
+    messages: [assistantMessage("new", [tool("t", "input-available")])],
+    status: "streaming",
+    error: undefined,
+  });
+  expect(events).toContainEqual({
+    type: "tool.started",
+    toolId: "second:tool:t",
+    label: "Un outil",
+    locale: "fr",
+  });
+  unmount();
+});

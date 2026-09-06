@@ -1,3 +1,11 @@
+import {
+  englishAnnouncementCatalog,
+  normalizeAnnouncementCatalog,
+  formatAnnouncement,
+  type AnnouncementCatalog,
+  type AnnouncementMessageId,
+  type AnnouncementMessageParameters,
+} from "./messages.js";
 import type { Clock, ClockTimer } from "./clock.js";
 import { systemClock } from "./clock.js";
 import {
@@ -39,6 +47,7 @@ interface ResponseState {
   buffer: string;
   ready: string[];
   fullText: string;
+  completionParts?: { text: string; locale?: string }[];
   locale?: string;
   flushTimer?: ClockTimer;
   flushDueAt?: number;
@@ -89,6 +98,7 @@ type RunEvent = Extract<GenerativeA11yEvent, { type: `run.${string}` }>;
 type StepEvent = Extract<GenerativeA11yEvent, { type: `step.${string}` }>;
 
 export interface GenerativeA11yOptions {
+  announcementCatalog?: AnnouncementCatalog;
   preset?: PresetName;
   policy?: PolicyOverrides;
   clock?: Clock;
@@ -130,10 +140,6 @@ function eventContext(event: GenerativeA11yEvent) {
   };
 }
 
-function ensureTerminalPunctuation(label: string): string {
-  return /[.!?。！？…]\s*$/u.test(label) ? label : `${label}.`;
-}
-
 // Quiet mode retains only enough trailing context to discard a crossing unit,
 // never an accumulating response or a transcript to replay later.
 const MAX_SUPPRESSED_BOUNDARY_CHARACTERS = 256;
@@ -141,7 +147,15 @@ const MAX_SUPPRESSED_BOUNDARY_CHARACTERS = 256;
 export function createGenerativeA11y(
   options: GenerativeA11yOptions,
 ): GenerativeA11yRuntime {
+  let catalog: AnnouncementCatalog | undefined = normalizeAnnouncementCatalog(
+    options.announcementCatalog ?? englishAnnouncementCatalog,
+  );
+  const catalogMetadata = Object.freeze({
+    catalogId: catalog.id,
+    locale: catalog.locale,
+  });
   const clock = options.clock ?? systemClock;
+  const onDeliveryError = options.onDeliveryError;
   const policy = resolvePolicy(options.preset, options.policy);
   let attention: AttentionState | undefined = policy.attention?.enabled
     ? resolveAttentionState(policy.attention, "unknown", "auto")
@@ -183,7 +197,7 @@ export function createGenerativeA11y(
     announcement: AnnouncementIntent,
   ): void {
     try {
-      options.onDeliveryError?.(error, announcement);
+      onDeliveryError?.(error, announcement);
     } catch {
       // Delivery error observers cannot alter output fan-out.
     }
@@ -309,9 +323,23 @@ export function createGenerativeA11y(
     });
   }
 
+  function message<K extends AnnouncementMessageId>(
+    id: K,
+    parameters: AnnouncementMessageParameters[K],
+  ): () => { text: string; locale: string } {
+    return () => {
+      const selectedCatalog = catalog;
+      if (!selectedCatalog) return { text: "Status updated.", locale: "en" };
+      return {
+        text: formatAnnouncement(selectedCatalog, id, parameters),
+        locale: selectedCatalog.locale,
+      };
+    };
+  }
+
   function announce(
     event: GenerativeA11yEvent,
-    text: string,
+    text: string | (() => { text: string; locale: string }),
     channel: "polite" | "assertive" = "polite",
     extra: {
       purpose?: AnnouncementPurpose;
@@ -344,7 +372,20 @@ export function createGenerativeA11y(
       diagnose(event, "attention-quiet");
       return;
     }
-    const normalized = normalizeAnnouncementText(text);
+    if (disposed) return;
+    let formatted: { text: string; locale: string } | undefined;
+    if (typeof text === "function") {
+      try {
+        formatted = text();
+      } catch {
+        diagnose(event, "catalog-format-error");
+        formatted = { text: "Status updated.", locale: "en" };
+      }
+    }
+    if (disposed) return;
+    const normalized = normalizeAnnouncementText(
+      formatted ? formatted.text : (text as string),
+    );
     if (!normalized) {
       diagnose(event, "empty-text");
       return;
@@ -355,6 +396,7 @@ export function createGenerativeA11y(
       channel,
       purpose,
       ...extra,
+      ...(formatted ? { locale: formatted.locale } : {}),
     });
   }
 
@@ -642,8 +684,34 @@ export function createGenerativeA11y(
       responseId: event.responseId,
       scope: responseScope(event.responseId, state.epoch),
       capacityPriority: "content",
-      ...(state.locale ? { locale: state.locale } : {}),
+      locale: state.locale ?? "",
     });
+  }
+
+  function updateResponseLocale(
+    event: ResponseEvent,
+    state: ResponseState,
+  ): void {
+    if (!event.locale || event.locale === state.locale) return;
+    // Preserve the language of buffered text when host content changes language.
+    if (policy.text.strategy === "completion") {
+      if (state.fullText) {
+        const parts = (state.completionParts ??= []);
+        if (parts.length >= policy.maxQueueSize) {
+          parts.shift();
+          diagnose(event, "queue-capacity");
+        }
+        parts.push({
+          text: state.fullText,
+          ...(state.locale ? { locale: state.locale } : {}),
+        });
+        state.fullText = "";
+      }
+    } else {
+      clearFlushTimer(state);
+      flushReady(event, state, true);
+    }
+    state.locale = event.locale;
   }
 
   function scheduleMaximumDelay(
@@ -741,7 +809,7 @@ export function createGenerativeA11y(
           : {}),
       });
       if (policy.announceResponseStarted) {
-        announce(event, "Assistant is responding.", "polite", {
+        announce(event, message("response.started", {}), "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
           capacityPriority: "status",
@@ -757,7 +825,8 @@ export function createGenerativeA11y(
     if (!state) return;
 
     if (event.type === "response.text.delta") {
-      if (event.locale) state.locale = event.locale;
+      updateResponseLocale(event, state);
+      if (disposed) return;
       if (!event.delta) return;
       if (policy.text.strategy === "silent") {
         diagnose(event, "policy-silent");
@@ -767,6 +836,7 @@ export function createGenerativeA11y(
         if (attention?.effective === "quiet" || state.completionSuppressed) {
           state.completionSuppressed = true;
           state.fullText = "";
+          state.completionParts = [];
           diagnose(event, "attention-quiet");
         } else state.fullText += event.delta;
         return;
@@ -808,26 +878,36 @@ export function createGenerativeA11y(
     }
 
     clearFlushTimer(state);
-    if (event.locale) state.locale = event.locale;
+    updateResponseLocale(event, state);
+    if (disposed) return;
     const scope = responseScope(event.responseId, state.epoch);
 
     if (event.type === "response.completed") {
       if (policy.text.strategy === "completion") {
         if (state.completionSuppressed) diagnose(event, "attention-quiet");
-        else
-          announce(event, state.fullText, "polite", {
-            purpose: "response-text",
-            responseId: event.responseId,
-            scope,
-            capacityPriority: "content",
-            ...(state.locale ? { locale: state.locale } : {}),
-          });
+        else {
+          for (const part of [
+            ...(state.completionParts ?? []),
+            {
+              text: state.fullText,
+              ...(state.locale ? { locale: state.locale } : {}),
+            },
+          ]) {
+            announce(event, part.text, "polite", {
+              purpose: "response-text",
+              responseId: event.responseId,
+              scope,
+              capacityPriority: "content",
+              locale: part.locale ?? "",
+            });
+          }
+        }
       } else if (policy.text.strategy !== "silent") {
         flushReady(event, state, true);
       }
       state.status = "completed";
       if (policy.announceResponseCompleted) {
-        announce(event, "Response complete.", "polite", {
+        announce(event, message("response.completed", {}), "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
           capacityPriority: "status",
@@ -839,6 +919,7 @@ export function createGenerativeA11y(
       state.buffer = "";
       state.ready.length = 0;
       state.fullText = "";
+      state.completionParts = [];
       if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
       return;
@@ -852,7 +933,7 @@ export function createGenerativeA11y(
     if (event.type === "response.interrupted") {
       state.status = "interrupted";
       if (policy.announceInterruption) {
-        announce(event, "Response stopped.", "polite", {
+        announce(event, message("response.interrupted", {}), "polite", {
           responseId: event.responseId,
           scope: responseLifecycleScope(event.responseId),
           capacityPriority: "status",
@@ -862,13 +943,14 @@ export function createGenerativeA11y(
         diagnose(event, "policy-silent");
       }
       state.fullText = "";
+      state.completionParts = [];
       if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else if (event.type === "response.failed") {
       state.status = "failed";
       announce(
         event,
-        event.announcement ?? "Response failed.",
+        event.announcement ?? message("response.failed", {}),
         policy.errorChannel,
         {
           responseId: event.responseId,
@@ -878,6 +960,7 @@ export function createGenerativeA11y(
         },
       );
       state.fullText = "";
+      state.completionParts = [];
       if (disposed) return;
       retainTerminalState(responses, event.responseId, state);
     } else {
@@ -890,12 +973,13 @@ export function createGenerativeA11y(
         delete state.instanceId;
       }
       state.fullText = "";
+      state.completionParts = [];
       if (policy.announceRetry) {
         announce(
           event,
-          event.attempt
-            ? `Retrying response. Attempt ${event.attempt}.`
-            : "Retrying response.",
+          message("response.retrying", {
+            ...(event.attempt !== undefined ? { attempt: event.attempt } : {}),
+          }),
           "polite",
           {
             responseId: event.responseId,
@@ -938,14 +1022,19 @@ export function createGenerativeA11y(
           : {}),
       });
       if (policy.tools.announceStart) {
-        announce(event, ensureTerminalPunctuation(event.label), "polite", {
-          toolId: event.toolId,
-          delayMs: policy.tools.announceStartAfterMs,
-          scope: startScope,
-          coalesceKey: startScope,
-          capacityPriority: "status",
-          ...(event.locale ? { locale: event.locale } : {}),
-        });
+        announce(
+          event,
+          message("tool.started", { label: event.label }),
+          "polite",
+          {
+            toolId: event.toolId,
+            delayMs: policy.tools.announceStartAfterMs,
+            scope: startScope,
+            coalesceKey: startScope,
+            capacityPriority: "status",
+            ...(event.locale ? { locale: event.locale } : {}),
+          },
+        );
       } else {
         diagnose(event, "policy-silent");
       }
@@ -996,9 +1085,12 @@ export function createGenerativeA11y(
       }
       const progressText =
         event.message ??
-        (event.progress === undefined
-          ? `${event.label} in progress.`
-          : `${event.label} ${Math.round(event.progress * 100)} percent.`);
+        message("tool.progress", {
+          label: event.label,
+          ...(event.progress !== undefined
+            ? { percent: Math.round(event.progress * 100) }
+            : {}),
+        });
       announce(event, progressText, "polite", {
         toolId: event.toolId,
         delayMs: policy.minimumGapMs,
@@ -1014,12 +1106,17 @@ export function createGenerativeA11y(
     scheduler.cancelScope(progressScope);
     scheduler.cancelScope(toolLifecycleScope(event.toolId));
     if (event.type === "tool.completed" && policy.tools.announceCompletion) {
-      announce(event, event.summary ?? `${event.label} complete.`, "polite", {
-        toolId: event.toolId,
-        scope: toolLifecycleScope(event.toolId),
-        capacityPriority: "status",
-        ...(state.locale ? { locale: state.locale } : {}),
-      });
+      announce(
+        event,
+        event.summary ?? message("tool.completed", { label: event.label }),
+        "polite",
+        {
+          toolId: event.toolId,
+          scope: toolLifecycleScope(event.toolId),
+          capacityPriority: "status",
+          ...(state.locale ? { locale: state.locale } : {}),
+        },
+      );
     } else if (
       event.type === "tool.completed" &&
       !policy.tools.announceCompletion
@@ -1029,7 +1126,7 @@ export function createGenerativeA11y(
     if (event.type === "tool.failed" && policy.tools.announceFailure) {
       announce(
         event,
-        event.announcement ?? `${event.label} failed.`,
+        event.announcement ?? message("tool.failed", { label: event.label }),
         "polite",
         {
           toolId: event.toolId,
@@ -1044,21 +1141,6 @@ export function createGenerativeA11y(
     if (disposed) return;
     state.status = event.type === "tool.completed" ? "completed" : "failed";
     retainTerminalState(tools, event.toolId, state);
-  }
-
-  function runSummary(state: RunState): string {
-    const parts: string[] = [];
-    if (state.completedSteps > 0)
-      parts.push(
-        `${state.completedSteps} ${state.completedSteps === 1 ? "step" : "steps"} completed`,
-      );
-    if (state.failedSteps > 0)
-      parts.push(
-        `${state.failedSteps} ${state.failedSteps === 1 ? "step" : "steps"} failed`,
-      );
-    return parts.length === 0
-      ? "Run complete."
-      : `Run complete. ${parts.join(", ")}.`;
   }
 
   function dispatchRun(event: RunEvent): void {
@@ -1109,7 +1191,9 @@ export function createGenerativeA11y(
       if (policy.workflows.runs === "all") {
         announce(
           event,
-          ensureTerminalPunctuation(`${event.label ?? "Run"} started`),
+          message("run.started", {
+            ...(event.label !== undefined ? { label: event.label } : {}),
+          }),
           "polite",
           {
             runId: event.runId,
@@ -1136,9 +1220,9 @@ export function createGenerativeA11y(
       if (policy.announceRetry && policy.workflows.runs !== "silent") {
         announce(
           event,
-          event.attempt
-            ? `Retrying run. Attempt ${event.attempt}.`
-            : "Retrying run.",
+          message("run.retrying", {
+            ...(event.attempt !== undefined ? { attempt: event.attempt } : {}),
+          }),
           "polite",
           {
             runId: event.runId,
@@ -1183,23 +1267,37 @@ export function createGenerativeA11y(
     if (policy.workflows.runs === "silent" || repeatsResponseBoundary) {
       diagnose(event, "policy-silent");
     } else if (event.type === "run.completed") {
-      announce(event, event.announcement ?? runSummary(state), "polite", {
-        runId: event.runId,
-        ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
-        scope: runLifecycleScope(event.runId, state.instanceId),
-        capacityPriority: "status",
-      });
+      announce(
+        event,
+        event.announcement ??
+          message("run.completed", {
+            completedSteps: state.completedSteps,
+            failedSteps: state.failedSteps,
+          }),
+        "polite",
+        {
+          runId: event.runId,
+          ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+          scope: runLifecycleScope(event.runId, state.instanceId),
+          capacityPriority: "status",
+        },
+      );
     } else if (event.type === "run.interrupted") {
-      announce(event, event.announcement ?? "Run stopped.", "polite", {
-        runId: event.runId,
-        ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
-        scope: runLifecycleScope(event.runId, state.instanceId),
-        capacityPriority: "status",
-      });
+      announce(
+        event,
+        event.announcement ?? message("run.interrupted", {}),
+        "polite",
+        {
+          runId: event.runId,
+          ...(state.instanceId ? { runInstanceId: state.instanceId } : {}),
+          scope: runLifecycleScope(event.runId, state.instanceId),
+          capacityPriority: "status",
+        },
+      );
     } else {
       announce(
         event,
-        event.announcement ?? "Run failed.",
+        event.announcement ?? message("run.failed", {}),
         policy.errorChannel,
         {
           runId: event.runId,
@@ -1270,7 +1368,7 @@ export function createGenerativeA11y(
             : 0;
         announce(
           event,
-          ensureTerminalPunctuation(`${event.label} started`),
+          message("step.started", { label: event.label }),
           "polite",
           {
             runId: event.runId,
@@ -1321,9 +1419,12 @@ export function createGenerativeA11y(
       announce(
         event,
         event.message ??
-          (event.progress === undefined
-            ? `${event.label} in progress.`
-            : `${event.label} ${Math.round(event.progress * 100)} percent.`),
+          message("step.progress", {
+            label: event.label,
+            ...(event.progress !== undefined
+              ? { percent: Math.round(event.progress * 100) }
+              : {}),
+          }),
         "polite",
         {
           runId: event.runId,
@@ -1373,9 +1474,10 @@ export function createGenerativeA11y(
       if (shouldAnnounceStep(state)) {
         announce(
           event,
-          event.attempt
-            ? `Retrying ${event.label}. Attempt ${event.attempt}.`
-            : `Retrying ${event.label}.`,
+          message("step.retrying", {
+            label: event.label,
+            ...(event.attempt !== undefined ? { attempt: event.attempt } : {}),
+          }),
           "polite",
           {
             runId: event.runId,
@@ -1415,24 +1517,32 @@ export function createGenerativeA11y(
     if (!announceTerminal) {
       diagnose(event, "policy-silent");
     } else if (event.type === "step.completed") {
-      announce(event, `${event.label} complete.`, "polite", {
-        runId: event.runId,
-        ...(event.runInstanceId ? { runInstanceId: event.runInstanceId } : {}),
-        stepId: event.stepId,
-        ...(event.stepInstanceId
-          ? { stepInstanceId: event.stepInstanceId }
-          : {}),
-        scope: stepLifecycleScope(
-          event.runId,
-          event.stepId,
-          event.stepInstanceId,
-        ),
-        capacityPriority: "status",
-      });
+      announce(
+        event,
+        message("step.completed", { label: event.label }),
+        "polite",
+        {
+          runId: event.runId,
+          ...(event.runInstanceId
+            ? { runInstanceId: event.runInstanceId }
+            : {}),
+          stepId: event.stepId,
+          ...(event.stepInstanceId
+            ? { stepInstanceId: event.stepInstanceId }
+            : {}),
+          scope: stepLifecycleScope(
+            event.runId,
+            event.stepId,
+            event.stepInstanceId,
+          ),
+          capacityPriority: "status",
+        },
+      );
     } else if (event.type === "step.interrupted") {
       announce(
         event,
-        event.announcement ?? `${event.label} stopped.`,
+        event.announcement ??
+          message("step.interrupted", { label: event.label }),
         "polite",
         {
           runId: event.runId,
@@ -1448,7 +1558,7 @@ export function createGenerativeA11y(
     } else {
       announce(
         event,
-        event.announcement ?? `${event.label} failed.`,
+        event.announcement ?? message("step.failed", { label: event.label }),
         policy.errorChannel,
         {
           runId: event.runId,
@@ -1487,7 +1597,11 @@ export function createGenerativeA11y(
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
       announce(
         event,
-        event.label ?? `${event.kind} ${event.outcome}.`,
+        event.label ??
+          message("interaction.resolved", {
+            kind: event.kind,
+            outcome: event.outcome,
+          }),
         "polite",
         {
           interactionId: event.interactionId,
@@ -1506,27 +1620,34 @@ export function createGenerativeA11y(
     }
     if (event.type === "approval.resolved") {
       if (!policy.announceInteractions) return diagnose(event, "policy-silent");
-      announce(event, event.label ?? `Approval ${event.outcome}.`, "polite", {
-        interactionId: event.approvalId,
-        capacityPriority: "content",
-      });
+      announce(
+        event,
+        event.label ?? message("approval.resolved", { outcome: event.outcome }),
+        "polite",
+        {
+          interactionId: event.approvalId,
+          capacityPriority: "content",
+        },
+      );
       return;
     }
     if (event.type === "connection.lost") {
       if (!policy.announceConnections) return diagnose(event, "policy-silent");
-      announce(
-        event,
-        event.label ?? "Connection lost. Reconnecting.",
-        "polite",
-        { capacityPriority: "status" },
-      );
+      announce(event, event.label ?? message("connection.lost", {}), "polite", {
+        capacityPriority: "status",
+      });
       return;
     }
     if (event.type === "connection.restored") {
       if (!policy.announceConnections) return diagnose(event, "policy-silent");
-      announce(event, event.label ?? "Connection restored.", "polite", {
-        capacityPriority: "status",
-      });
+      announce(
+        event,
+        event.label ?? message("connection.restored", {}),
+        "polite",
+        {
+          capacityPriority: "status",
+        },
+      );
       return;
     }
     if (!policy.announceCitations) return diagnose(event, "policy-silent");
@@ -1536,7 +1657,7 @@ export function createGenerativeA11y(
     }
     announce(
       event,
-      `${event.count} ${event.count === 1 ? "source" : "sources"} available.`,
+      message("citation.available", { count: event.count }),
       "polite",
       {
         dedupeKey: `citation-count:${event.count}`,
@@ -1583,8 +1704,10 @@ export function createGenerativeA11y(
             -MAX_SUPPRESSED_BOUNDARY_CHARACTERS,
           );
           state.ready.length = 0;
-          if (state.fullText) state.completionSuppressed = true;
+          if (state.fullText || state.completionParts?.length)
+            state.completionSuppressed = true;
           state.fullText = "";
+          state.completionParts = [];
         }
         scheduler.cancelPurposes(
           ["response-text", "routine-status"],
@@ -1785,6 +1908,7 @@ export function createGenerativeA11y(
       const announcements = scheduler.getDiagnosticSnapshot();
       return Object.freeze({
         schemaVersion: 1 as const,
+        announcementCatalog: catalogMetadata,
         at: clock.now(),
         policy,
         ...(attention ? { attention } : {}),
@@ -1802,6 +1926,7 @@ export function createGenerativeA11y(
     dispose() {
       if (disposed) return;
       disposed = true;
+      catalog = undefined;
       dispatchQueue.length = 0;
       dispatchOverflowQueue.length = 0;
       dispatchOverflowAggregateCount = 0;

@@ -1,3 +1,7 @@
+import {
+  normalizeAdapterAnnouncementCopy,
+  type AdapterAnnouncementCopy,
+} from "@generative-a11y/core";
 import type {
   AdapterFidelity,
   GenerativeA11yEvent,
@@ -39,6 +43,8 @@ export const AGENT_ADAPTER_METADATA: AgentAdapterMetadata = Object.freeze({
 
 export type AgentSource = Pick<AbstractAgent, "subscribe">;
 export interface BindAgentOptions {
+  /** Host-owned localized copy, captured and validated at construction. */
+  readonly copy?: AdapterAnnouncementCopy;
   readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
   readonly scopeId: string;
   readonly agent: AgentSource;
@@ -80,6 +86,10 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
   const maxTrackedEntities = options.maxTrackedEntities ?? 1_000;
   if (!Number.isSafeInteger(maxTrackedEntities) || maxTrackedEntities <= 0)
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
+  const copy =
+    options.copy === undefined
+      ? undefined
+      : normalizeAdapterAnnouncementCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const responses = new Map<string, Response>();
   const tools = new Map<string, Tool>();
@@ -91,7 +101,13 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
   const dispatch = (event: GenerativeA11yEvent) => {
     if (disposed || saturated) return;
     try {
-      options.runtime.dispatch(event);
+      options.runtime.dispatch(
+        copy &&
+          (event.type.startsWith("tool.") ||
+            event.type.startsWith("interaction."))
+          ? { ...event, locale: copy.locale }
+          : event,
+      );
     } catch {
       // A host delivery failure must not interrupt the agent subscription.
     }
@@ -128,7 +144,10 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
             interactionId: interactionId(scopeId, resume.interruptId),
             kind: "input",
             outcome: resume.status === "resolved" ? "submitted" : "cancelled",
-            label: "Input is needed",
+            label:
+              copy?.inputResolved[
+                resume.status === "resolved" ? "submitted" : "cancelled"
+              ] ?? "Input is needed",
           },
           ownerRunId ?? undefined,
         );
@@ -249,7 +268,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         {
           type: "tool.started",
           toolId: toolId(scopeId, event.toolCallId),
-          label: "A tool",
+          label: copy?.toolLabel ?? "A tool",
         },
         ownerRunId,
       );
@@ -262,7 +281,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
         {
           type: "tool.completed",
           toolId: toolId(scopeId, event.toolCallId),
-          label: "A tool",
+          label: copy?.toolLabel ?? "A tool",
         },
         tool.runId,
       );
@@ -286,7 +305,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
           dispatch({
             type: "tool.failed",
             toolId: toolId(scopeId, id),
-            label: "A tool",
+            label: copy?.toolLabel ?? "A tool",
           });
         }
       }
@@ -326,7 +345,7 @@ export function bindAgent(options: BindAgentOptions): AgentBinding {
               type: "interaction.requested",
               interactionId: interactionId(scopeId, interrupt.id),
               kind: "input",
-              label: "Input is needed",
+              label: copy?.inputRequested ?? "Input is needed",
               urgent: true,
             },
             ownerRunId,

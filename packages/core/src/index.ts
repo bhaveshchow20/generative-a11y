@@ -59,3 +59,13 @@ export type {
   WorkflowContext,
   WorkflowPolicy,
 } from "./types.js";
+
+export {
+  englishAnnouncementCatalog,
+  normalizeAdapterAnnouncementCopy,
+  type AnnouncementCatalog,
+  type AnnouncementMessageParameters,
+  type AnnouncementMessageId,
+  type AnnouncementMessages,
+  type AdapterAnnouncementCopy,
+} from "./messages.js";

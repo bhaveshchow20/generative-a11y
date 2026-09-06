@@ -243,9 +243,11 @@ export function createAnnouncementScheduler(
       item.interactionId ??
       item.scope ??
       "global";
-    const dedupeKey =
+    const dedupeKey = JSON.stringify([
+      item.locale ?? null,
       item.dedupeKey ??
-      `${item.sourceType}:${entityKey}:${item.channel}:${item.text}`;
+        `${item.sourceType}:${entityKey}:${item.channel}:${item.text}`,
+    ]);
     pruneDedupe(clock.now());
     const duplicateAt = deliveredDedupe.get(dedupeKey);
     if (

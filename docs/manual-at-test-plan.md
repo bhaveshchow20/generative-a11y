@@ -205,3 +205,14 @@ The JSON shape is:
 
 Repeat the row for all four required combinations, both delivery paths, and all
 six scenarios. This abbreviated shape is documentation, not passing evidence.
+
+## Catalog language scenarios
+
+Use the lifecycle lab's “Stream with French notices” scenario: compare the
+English visible answer and response-text intents with French completion copy.
+Record actual voice switching and comprehension with a fluent reviewer, using
+both live-region and supported progressive delivery. Then configure a throwing
+formatter and verify the short English fallback's actual presentation. Repeat
+with a host-reviewed non-Latin/RTL catalog. Keep DOM language assertions
+separate from speech observations; illustrative translations are not reviewed
+support.

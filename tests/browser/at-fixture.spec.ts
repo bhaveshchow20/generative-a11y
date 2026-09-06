@@ -370,7 +370,10 @@ declare global {
   interface Window {
     __fixtureInjected?: boolean;
     generativeA11yATFixture: {
-      reset(options?: { attention?: boolean }): void;
+      reset(options?: {
+        attention?: boolean;
+        syntheticCatalog?: boolean;
+      }): void;
       dispatch(event: GenerativeA11yEvent): void;
       drain(): void;
       captureAndEnterInteraction(): void;
@@ -382,4 +385,44 @@ declare global {
       };
     };
   }
+}
+
+for (const mode of ["live-mode", "auto-mode", "throwing-notifier"]) {
+  test(`synthetic RTL catalog preserves language and focus through ${mode}`, async ({
+    page,
+  }) => {
+    await page.evaluate((deliveryMode) => {
+      const fixture = window.generativeA11yATFixture;
+      fixture.reset({ syntheticCatalog: true, attention: true });
+      fixture.actions[deliveryMode]!();
+      fixture.actions["clear-ledgers"]!();
+      document.getElementById("composer")!.focus();
+      fixture.dispatch({ type: "attention.override", mode: "quiet" });
+      fixture.dispatch({
+        type: "response.started",
+        responseId: "rtl",
+        locale: "en",
+      });
+      fixture.dispatch({
+        type: "response.text.delta",
+        responseId: "rtl",
+        locale: "en",
+        delta: "Suppressed English text. ",
+      });
+      fixture.dispatch({ type: "response.completed", responseId: "rtl" });
+      fixture.drain();
+    }, mode);
+    await expect(
+      page.locator('#announcement-ledger [data-text="إشعار تجريبي."]'),
+    ).toHaveCount(1);
+    await expect(page.locator("#announcement-ledger")).not.toContainText(
+      "Suppressed English text.",
+    );
+    await expect(page.locator("#fixture-live-polite")).toHaveAttribute(
+      "lang",
+      "ar",
+    );
+    await expect(page.locator("#composer")).toBeFocused();
+    await page.evaluate(() => window.generativeA11yATFixture.reset());
+  });
 }

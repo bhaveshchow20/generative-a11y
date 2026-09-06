@@ -351,3 +351,12 @@ overrides. Both inputs are borrowed and remain usable after cleanup. A second
 binding for the same runtime throws, including bindings created by React.
 `AttentionRuntimeBindingOptions` describes the two required inputs. Construction
 rolls back on store failures; unsubscribe failures cannot prevent the reset.
+
+## Localized announcements
+
+Core resolves the actual announcement language before delivery. Catalog notices
+may use a different locale from response text. DOM applies that locale before
+either delivery path; its API and ownership remain unchanged.
+
+See the
+[localization guide](https://generativea11y.com/docs/localized-announcements).

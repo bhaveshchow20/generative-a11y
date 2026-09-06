@@ -1,0 +1,92 @@
+---
+title: "Localized announcements"
+description: "Connect your existing translations to runtime notices while keeping answer language, host UI, and lifecycle evidence independent."
+publicPath: "/docs/localized-announcements"
+section: "Concepts"
+keywords: ["localization", "i18n", "language", "catalog", "announcementCatalog", "AdapterAnnouncementCopy"]
+related: ["/api/core/create-generative-a11y", "/api/core/events", "/docs/testing/replay"]
+order: 8
+---
+
+export const sourceMetadata = { publicPath: "/docs/localized-announcements", section: "Concepts", related: ["/api/core/create-generative-a11y", "/api/core/events", "/docs/testing/replay"], order: 8 };
+export const searchableText = "Localized announcements. announcementCatalog englishAnnouncementCatalog AnnouncementCatalog AnnouncementMessages AnnouncementMessageParameters AnnouncementMessageId AdapterAnnouncementCopy normalizeAdapterAnnouncementCopy. Reuse host i18n translations and pluralization. Separate response locale from notice language. Complete typed catalog, synchronous formatters, safe English fallback, construction ownership, replay requires matching configuration. No translation engine or language detection.";
+
+## Use your existing translations
+
+`generative-a11y` decides when an announcement is eligible and sends it to the browser. Your application owns translated copy. A catalog contains strings or synchronous functions that call your existing translation system; there is no ICU parser, translation service, or additional i18n dependency.
+
+[Try “Stream with French notices” in the lifecycle lab](/examples/lifecycle-lab). The visible answer remains English. Its response-text intents use `en`, while completion uses the French catalog's `fr`. The example is illustrative copy, not a reviewed translation pack or proof of screen-reader pronunciation.
+
+```ts
+import {
+  createGenerativeA11y,
+  englishAnnouncementCatalog,
+  type AnnouncementCatalog,
+} from "@generative-a11y/core";
+
+// English customization can reuse the English defaults.
+const catalog = {
+  ...englishAnnouncementCatalog,
+  id: "my-app.en.v1",
+  messages: {
+    ...englishAnnouncementCatalog.messages,
+    "response.completed": "Your answer is ready.",
+  },
+} satisfies AnnouncementCatalog;
+
+const runtime = createGenerativeA11y({ announcementCatalog: catalog });
+// Connect runtime to your existing DOM delivery or React provider.
+// The owner calls runtime.dispose() at its terminal ownership boundary.
+```
+
+For another language, supply **all 25 keys**. Do not spread English defaults into a catalog tagged French. A formatter receives only typed labels/counts/outcomes; it can call your existing `t()` function and use your application's pluralization. It never receives response content, backend errors, or framework objects.
+
+The complete [French example catalog and adapter copy](https://github.com/bhaveshchow20/generative-a11y/blob/main/apps/docs/lib/french-announcements.ts) shows every required key, including retries, workflows and plural counts. Copy that file into your application as `announcements.ts`, then replace its illustrative strings with your reviewed translations. `Intl.PluralRules` and `Intl.NumberFormat` in that example are standard language APIs, not a library-owned formatting engine.
+
+## Language and ownership
+
+`announcementCatalog.locale` identifies runtime-generated sentences. Event `locale` continues to identify host content: response text, explicit `announcement`, `summary`, `message`, and request/resolution labels. An English answer can coexist with French UI notices. Labels interpolated into a catalog sentence must be supplied in that sentence's language; this API does not represent language changes inside a single utterance.
+
+Built-in English notices now explicitly carry `en`; previously a response locale could incorrectly tag English boilerplate as another language. This is an intentional metadata correction. Channels, timing, quiet mode and lifecycle semantics do not change.
+
+Catalog configuration is validated and copied at construction. All keys are required, the ID and locale are limited to 128 UTF-16 code units, and strings/results to 4,096. Use a non-sensitive versioned ID. Formatters must be pure and synchronous. Invalid, empty, overlong or throwing results produce `catalog-format-error` and a short English fallback tagged `en`, without exposing arguments or exception text. A formatter cannot mute a notice or alter urgency. Quiet/policy-suppressed messages never invoke it.
+
+React's `GenerativeA11yProvider` accepts `announcementCatalog` through its existing options. For a supplied `runtime`, configure the catalog on that runtime; the provider borrows it and does not reconfigure it. Mount the provider with a stable catalog. Change language at an intentional runtime/provider replacement boundary; do not replace an active runtime on every render.
+
+## Existing framework adapters
+
+Pass `copy` to `createObserver`, `bindThreadRuntime`, `bindAgent`, or `useChatAccessibility`. This optional `AdapterAnnouncementCopy` contains `locale`, `toolLabel`, `approvalRequested`, `approvalResolved` (approved/rejected/cancelled), `inputRequested`, and `inputResolved` (submitted/cancelled). Each adapter uses only the fields for events it already recognizes.
+
+```ts
+import { createObserver } from "@generative-a11y/ai-sdk";
+import { createGenerativeA11y } from "@generative-a11y/core";
+import { frenchCatalog, frenchAdapterCopy } from "./announcements";
+
+const runtime = createGenerativeA11y({ announcementCatalog: frenchCatalog });
+const observer = createObserver({
+  runtime,
+  scopeId: "conversation-1",
+  copy: frenchAdapterCopy,
+  getToolLabel: () => "Recherche", // optional host label wins over toolLabel
+});
+// Feed documented public snapshots and terminal callbacks, as in the AI SDK guide.
+// Cleanup: observer.dispose(), then runtime.dispose() when owned here.
+```
+
+The copy is validated, copied and frozen before subscribing. `normalizeAdapterAnnouncementCopy(copy)` is also exported from core for custom adapter authors; it returns that validated immutable copy and throws `TypeError` for invalid configuration. It performs no translation.
+
+Adapter copy applies its locale only to copy-bearing tool/interaction events, never to generated response text. AI SDK `getToolLabel` must return text in the configured copy language. The React hook captures copy with its observer; a new runtime/scope or keyed component creates a new observer. Its current callback may still supply a changing tool label. Defaults stay unchanged when copy is omitted, including generic labels that avoid exposing backend tool names.
+
+This customization adds no lifecycle inference and makes no new assistant-ui approval-fidelity claim. Use the existing integration guides for provider order, terminal callbacks and documented framework state:
+
+- [AI SDK](/docs/integrations/ai-sdk)
+- [assistant-ui](/docs/integrations/assistant-ui)
+- [AG-UI](/docs/integrations/ag-ui)
+
+## Test the integration
+
+With `ManualClock`, dispatch an English response start/delta/completion into a runtime using your French catalog, then advance the clock. Assert English text and French completion intents separately, including their locale fields. A zero minimum gap still schedules delivery; dispatch alone does not drain timers. Provider-owned live regions mount under `document.body`, outside the returned render container.
+
+Replay V1 remains unchanged. Reproduction requires the same catalog implementation/version, adapter copy, policy, clock ordering and relevant Intl environment. Fixtures contain normalized events and may contain host content; they do not serialize callback code. Devtools shows only catalog ID/locale and the format-error reason, never the catalog, arguments or exceptions.
+
+Browser tests verify literal DOM insertion, language metadata before delivery, focus and cleanup. They cannot establish speech, voice switching, pronunciation or comprehension. [WCAG language identification](https://www.w3.org/TR/WCAG22/#language-of-parts) does not require translating every application or make a catalog proof of conformance. Record real browser/AT observations separately.

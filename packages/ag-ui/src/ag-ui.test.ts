@@ -624,3 +624,65 @@ describe("AG-UI binding", () => {
     ]);
   });
 });
+
+const frenchCopy = () => ({
+  locale: "fr",
+  toolLabel: "Un outil",
+  approvalRequested: "Autorisation requise.",
+  approvalResolved: {
+    approved: "Autorisation accordée.",
+    rejected: "Autorisation refusée.",
+    cancelled: "Autorisation annulée.",
+  },
+  inputRequested: "Saisie requise.",
+  inputResolved: { submitted: "Saisie reçue.", cancelled: "Saisie annulée." },
+});
+
+it("uses host copy for tools and resolved input without changing lifecycle evidence", () => {
+  const { events, runtime } = recorder();
+  const agent = agentFor();
+  const copy = frenchCopy();
+  const binding = bindAgent({
+    runtime,
+    scopeId: "fr",
+    agent: agent as never,
+    copy,
+  });
+  copy.toolLabel = "mutated";
+  agent.emit("onToolCallStartEvent", {
+    event: { type: "TOOL_CALL_START", toolCallId: "t", toolCallName: "secret" },
+  });
+  agent.emit("onRunStartedEvent", {
+    event: { type: "RUN_STARTED", runId: "r", threadId: "thread" },
+  });
+  agent.emit("onRunFinishedEvent", {
+    event: { type: "RUN_FINISHED", runId: "r", threadId: "thread" },
+    outcome: "interrupt",
+    interrupts: [{ id: "i" }],
+  });
+  agent.emit("onRunInitialized", {
+    event: {},
+    input: { resume: [{ interruptId: "i", status: "resolved" }] },
+  });
+  expect(events).toContainEqual({
+    type: "tool.started",
+    toolId: "fr:tool:t",
+    label: "Un outil",
+    locale: "fr",
+  });
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      type: "interaction.requested",
+      label: "Saisie requise.",
+      locale: "fr",
+    }),
+  );
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      type: "interaction.resolved",
+      label: "Saisie reçue.",
+      locale: "fr",
+    }),
+  );
+  binding.dispose();
+});

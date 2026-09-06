@@ -192,3 +192,11 @@ remains under your control.
 ## Opt-in attention forwarding
 
 `GenerativeA11yProvider` accepts `attentionPolicy?: boolean` (default `false`). This forwards browser observations to the runtime; independently enable `policy.attention.enabled` for filtering. `useGenerativeA11yAttentionControl` exposes observed, override, and effective state plus `setOverride`. [See the complete attention guide](/docs/attention-aware-announcements).
+
+
+## Localized announcements
+
+See [catalogs and adapter copy](/docs/localized-announcements) for the typed
+`announcementCatalog` and `copy` options, language ownership, validation,
+construction lifetime, and replay requirements. Existing lifecycle evidence
+and timing remain unchanged.

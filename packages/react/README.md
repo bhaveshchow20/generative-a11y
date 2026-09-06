@@ -241,3 +241,13 @@ returns a stable frozen
 rendering always uses that inert default, with current runtime state read after
 hydration. The bridge dispatches only after commit and releases its subscription
 before owned stores and runtime; borrowed resources are not disposed.
+
+## Localized announcements
+
+The provider accepts `announcementCatalog` at construction. Supplied runtimes
+must already have their catalog configured; provider options never reconfigure a
+borrowed runtime. Replacement is explicit; no language hot-swapping or
+persistence is added.
+
+See the
+[localization guide](https://generativea11y.com/docs/localized-announcements).

@@ -1,3 +1,7 @@
+import {
+  normalizeAdapterAnnouncementCopy,
+  type AdapterAnnouncementCopy,
+} from "@generative-a11y/core";
 import type {
   AdapterFidelity,
   GenerativeA11yEvent,
@@ -40,6 +44,8 @@ export const THREAD_ADAPTER_METADATA: ThreadAdapterMetadata = Object.freeze({
 
 export type ThreadRuntimeSource = Pick<ThreadRuntime, "getState" | "subscribe">;
 export interface BindThreadRuntimeOptions {
+  /** Host-owned localized copy, captured and validated at construction. */
+  readonly copy?: AdapterAnnouncementCopy;
   readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
   readonly scopeId: string;
   readonly thread: ThreadRuntimeSource;
@@ -144,6 +150,10 @@ export function bindThreadRuntime(
   const maxTrackedEntities = options.maxTrackedEntities ?? 1_000;
   if (!Number.isSafeInteger(maxTrackedEntities) || maxTrackedEntities <= 0)
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
+  const copy =
+    options.copy === undefined
+      ? undefined
+      : normalizeAdapterAnnouncementCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const records = new Map<string, Record>();
   const tools = new Map<string, Tool>();
@@ -155,7 +165,13 @@ export function bindThreadRuntime(
   const dispatch = (event: GenerativeA11yEvent) => {
     if (!disposed && !saturated) {
       try {
-        options.runtime.dispatch(event);
+        options.runtime.dispatch(
+          copy &&
+            (event.type.startsWith("tool.") ||
+              event.type.startsWith("approval."))
+            ? { ...event, locale: copy.locale }
+            : event,
+        );
       } catch {
         /* host delivery is isolated */
       }
@@ -203,7 +219,7 @@ export function bindThreadRuntime(
               dispatch({
                 type: "tool.started",
                 toolId: `${scopeId}:tool:${nextTool.id}`,
-                label: "A tool",
+                label: copy?.toolLabel ?? "A tool",
               });
           }
           if (!historical && nextTool.hasResult && !observed.terminal) {
@@ -213,12 +229,12 @@ export function bindThreadRuntime(
                 ? {
                     type: "tool.failed",
                     toolId: `${scopeId}:tool:${nextTool.id}`,
-                    label: "A tool",
+                    label: copy?.toolLabel ?? "A tool",
                   }
                 : {
                     type: "tool.completed",
                     toolId: `${scopeId}:tool:${nextTool.id}`,
-                    label: "A tool",
+                    label: copy?.toolLabel ?? "A tool",
                   },
             );
           }
@@ -240,7 +256,7 @@ export function bindThreadRuntime(
                 dispatch({
                   type: "approval.requested",
                   approvalId: `${scopeId}:approval:${nextTool.approval.id}`,
-                  label: "A tool",
+                  label: copy?.approvalRequested ?? "A tool",
                 });
               }
             } else if (
@@ -254,7 +270,10 @@ export function bindThreadRuntime(
                 type: "approval.resolved",
                 approvalId: `${scopeId}:approval:${nextTool.approval.id}`,
                 outcome: nextTool.approval.approved ? "approved" : "rejected",
-                label: "A tool",
+                label:
+                  copy?.approvalResolved[
+                    nextTool.approval.approved ? "approved" : "rejected"
+                  ] ?? "A tool",
               });
             }
           }
