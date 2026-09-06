@@ -388,9 +388,9 @@ test("interactive cues use subtle hairlines without outlining content cards", as
 
   await page.goto("/docs/getting-started");
   const search = page.locator("[data-search-full]");
-  const nextPage = page.locator(
-    'article a[href="/docs/integrations/ai-sdk"]',
-  );
+  const nextPage = page.locator("article").getByRole("link", {
+    name: /^Complete React lifecycle Connect an existing React interface/,
+  });
   for (const control of [search, nextPage]) {
     await expect(control).toHaveCSS("border-top-width", "1px");
     expect(

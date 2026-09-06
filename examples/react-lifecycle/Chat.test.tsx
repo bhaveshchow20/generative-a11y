@@ -81,23 +81,23 @@ it("delivers a complete response, long-running tool and urgent decision without 
   composer.focus();
   expect(fixture.announcements).toHaveLength(0);
   expect(fixture.container.querySelector("[aria-live]")).toBeNull();
-  act(() => fixture.clock.advanceBy(0));
+  await act(() => fixture.clock.advanceBy(0));
   expect(
     document.body.querySelector('[aria-live="polite"]')?.textContent,
   ).not.toBe("");
-  act(() => fixture.delta("Your itinerary is ready."));
+  await act(() => fixture.delta("Your itinerary is ready."));
   await act(async () => fixture.reply.resolve());
-  act(() => fixture.clock.advanceBy(20));
-  act(() => fixture.progress(0.5));
-  act(() => fixture.clock.advanceBy(0));
+  await act(() => fixture.clock.advanceBy(20));
+  await act(() => fixture.progress(0.5));
+  await act(() => fixture.clock.advanceBy(0));
   await act(async () => fixture.tool.resolve());
-  act(() => fixture.clock.runUntilIdle());
+  await act(() => fixture.clock.runUntilIdle());
   expect(document.activeElement).toBe(composer);
   expect(
     document.body.querySelector('[aria-live="assertive"]')?.textContent,
   ).toContain("Use this draft?");
   fireEvent.click(screen.getByRole("button", { name: "Use draft" }));
-  act(() => fixture.clock.runUntilIdle());
+  await act(() => fixture.clock.runUntilIdle());
   const text = fixture.announcements.map((notice) => notice.text).join("\n");
   expect(text).toContain("Your itinerary is ready.");
   expect(text).toContain("Prepare draft complete.");
@@ -128,7 +128,7 @@ it.each(["response", "tool"])(
         new Error("private backend URL"),
       ),
     );
-    act(() => fixture.clock.runUntilIdle());
+    await act(() => fixture.clock.runUntilIdle());
     expect(
       screen.getByText("Could not prepare the draft. Try again."),
     ).toBeTruthy();
@@ -152,10 +152,10 @@ it.each(["response", "tool"])(
 it("rejects the explicit interaction and ignores late text after response completion", async () => {
   const fixture = setup();
   await act(async () => fixture.reply.resolve());
-  act(() => fixture.delta("Late private text"));
+  await act(() => fixture.delta("Late private text"));
   await act(async () => fixture.tool.resolve());
   fireEvent.click(screen.getByRole("button", { name: "Discard draft" }));
-  act(() => fixture.clock.runUntilIdle());
+  await act(() => fixture.clock.runUntilIdle());
   expect(screen.getByText("Draft discarded.")).toBeTruthy();
   expect(
     fixture.announcements.map((notice) => notice.text).join(" "),
@@ -187,7 +187,7 @@ it("uses fresh identities on a second request and ignores completed tool callbac
   const fixture = setup();
   await act(async () => fixture.reply.resolve());
   await act(async () => fixture.tool.resolve());
-  act(() => fixture.clock.runUntilIdle());
+  await act(() => fixture.clock.runUntilIdle());
   const first = fixture.announcements.find(
     (notice) => notice.sourceType === "response.completed",
   );
@@ -197,12 +197,12 @@ it("uses fresh identities on a second request and ignores completed tool callbac
   expect(first).toBeDefined();
   expect(firstTool).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Use draft" }));
-  act(() => fixture.progress(1));
+  await act(() => fixture.progress(1));
   expect(screen.getByText("Draft selected.")).toBeTruthy();
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Send" })),
   );
-  act(() => fixture.clock.runUntilIdle());
+  await act(() => fixture.clock.runUntilIdle());
   const responses = fixture.announcements.filter(
     (notice) => notice.sourceType === "response.completed",
   );
