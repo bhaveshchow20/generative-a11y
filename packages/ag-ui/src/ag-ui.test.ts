@@ -51,6 +51,85 @@ function recorder() {
 }
 
 describe("AG-UI binding", () => {
+  it("continues observed run, response, and tool lifecycles during quiet mode", () => {
+    const recorder = createAnnouncementRecorder({
+      preset: "verbose",
+      policy: { attention: { enabled: true }, minimumGapMs: 0 },
+    });
+    const agent = agentFor();
+    const binding = bindAgent({
+      runtime: recorder.runtime,
+      scopeId: "quiet-agent",
+      agent: agent as never,
+    });
+    recorder.runtime.dispatch({ type: "attention.override", mode: "quiet" });
+    const input = { runId: "run" };
+    agent.emit("onRunStartedEvent", {
+      input,
+      event: { type: "RUN_STARTED", threadId: "thread", runId: "run" },
+    });
+    agent.emit("onTextMessageStartEvent", {
+      input,
+      event: {
+        type: "TEXT_MESSAGE_START",
+        messageId: "response",
+        role: "assistant",
+      },
+    });
+    agent.emit("onTextMessageContentEvent", {
+      input,
+      event: {
+        type: "TEXT_MESSAGE_CONTENT",
+        messageId: "response",
+        delta: "Quiet response remains host-owned. ",
+      },
+    });
+    agent.emit("onToolCallStartEvent", {
+      input,
+      event: {
+        type: "TOOL_CALL_START",
+        toolCallId: "tool",
+        toolCallName: "search",
+      },
+    });
+    agent.emit("onToolCallResultEvent", {
+      input,
+      event: {
+        type: "TOOL_CALL_RESULT",
+        toolCallId: "tool",
+        content: "private tool output",
+      },
+    });
+    agent.emit("onTextMessageEndEvent", {
+      input,
+      event: { type: "TEXT_MESSAGE_END", messageId: "response" },
+    });
+    agent.emit("onRunFinishedEvent", {
+      input,
+      event: { type: "RUN_FINISHED", threadId: "thread", runId: "run" },
+      outcome: "success",
+    });
+    recorder.clock.runUntilIdle();
+    const snapshot = recorder.runtime.getDiagnosticSnapshot();
+    expect(snapshot.responses[0]?.status).toBe("completed");
+    expect(snapshot.tools[0]?.status).toBe("completed");
+    expect(snapshot.runs?.[0]?.status).toBe("completed");
+    expect(recorder.transcript().map((entry) => entry.sourceType)).toEqual([
+      "tool.completed",
+      "response.completed",
+      "run.completed",
+    ]);
+    recorder.runtime.dispatch({ type: "attention.override", mode: "normal" });
+    recorder.clock.runUntilIdle();
+    expect(recorder.transcript()).toHaveLength(3);
+    expect(JSON.stringify(recorder.transcript())).not.toContain(
+      "private tool output",
+    );
+    binding.dispose();
+    recorder.runtime.dispose();
+    expect(recorder.clock.pendingCount()).toBe(0);
+  });
+
   it("declares exact run support and partial name-only step support", () => {
     expect(AGENT_ADAPTER_METADATA.fidelity).toMatchObject({
       runs: "exact",

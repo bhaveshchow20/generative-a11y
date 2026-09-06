@@ -3,6 +3,7 @@ import type {
   AnnouncementChannel,
   AnnouncementDiagnostic,
   AnnouncementIntent,
+  AnnouncementPurpose,
   DiagnosticPendingAnnouncement,
   DiagnosticReason,
   GenerativeA11yEvent,
@@ -11,6 +12,8 @@ import type {
 export type AnnouncementCapacityPriority = "status" | "content";
 
 export interface ScheduleAnnouncement {
+  /** Defaults to notice; independent of channel and source event. */
+  purpose?: AnnouncementPurpose;
   channel: AnnouncementChannel;
   text: string;
   sourceType: GenerativeA11yEvent["type"];
@@ -50,6 +53,11 @@ export interface AnnouncementSchedulerOptions {
 export interface AnnouncementScheduler {
   schedule(candidate: ScheduleAnnouncement): string | undefined;
   cancelScope(scope: string): void;
+  /** Cancel only queued candidates of these purposes; already delivered output cannot be retracted. */
+  cancelPurposes(
+    purposes: readonly AnnouncementPurpose[],
+    reason?: DiagnosticReason,
+  ): void;
   dispose(): void;
   pendingCount(): number;
   getDiagnosticSnapshot(): readonly DiagnosticPendingAnnouncement[];
@@ -344,6 +352,17 @@ export function createAnnouncementScheduler(
         if (item?.scope === scope) {
           queue.splice(index, 1);
           diagnostic("cancelled", "scope-cancelled", item);
+        }
+      }
+      scheduleTimer();
+      drainDiagnostics();
+    },
+    cancelPurposes(purposes, reason = "scope-cancelled") {
+      for (let index = queue.length - 1; index >= 0; index -= 1) {
+        const item = queue[index];
+        if (item && purposes.includes(item.purpose ?? "notice")) {
+          queue.splice(index, 1);
+          diagnostic("cancelled", reason, item);
         }
       }
       scheduleTimer();

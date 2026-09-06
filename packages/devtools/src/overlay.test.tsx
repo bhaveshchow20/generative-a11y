@@ -30,6 +30,29 @@ afterEach(() => {
   scrollIntoView.mockClear();
 });
 
+test("explains attention state without claiming observed reading", () => {
+  const runtime = createGenerativeA11y({
+    policy: { attention: { enabled: true } },
+  });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "attention", runtime });
+  runtime.dispatch({ type: "attention.changed", mode: "background" });
+  store.refreshSnapshots();
+  const mounted = mountDevtoolsOverlay({ store, document });
+  const root = mounted.host.shadowRoot;
+  const launcher = root?.querySelector<HTMLButtonElement>(".ga-launcher");
+  if (!root || !launcher) throw new Error("workspace launcher missing");
+  fireEvent.click(launcher);
+  const detail = root.querySelector('[data-testid="trace-detail"]');
+  expect(detail?.textContent).toContain("Effective announcements");
+  expect(detail?.textContent).toContain("quiet");
+  expect(detail?.textContent).toContain("background");
+  expect(detail?.textContent).toContain("auto");
+  mounted.dispose();
+  store.dispose();
+  runtime.dispose();
+});
+
 test("mounts explicitly in an isolated shadow root without stealing focus or creating a live region", () => {
   const launcher = document.createElement("button");
   launcher.textContent = "Host action";

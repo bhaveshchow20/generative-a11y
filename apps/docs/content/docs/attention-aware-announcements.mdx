@@ -1,0 +1,170 @@
+---
+title: "Attention-aware announcements"
+description: "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls to an existing React interface."
+publicPath: "/docs/attention-aware-announcements"
+section: "Concepts"
+keywords: ["attention", "quiet", "override", "reading-history", "useGenerativeA11yAttentionControl", "bindAttentionToRuntime"]
+related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"]
+order: 7
+---
+
+export const sourceMetadata = {
+  publicPath: "/docs/attention-aware-announcements",
+  section: "Concepts",
+  related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"],
+  order: 7,
+};
+
+export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useGenerativeA11yAttentionControl bindAttentionToRuntime. Provider ownership and body-level live regions. ManualClock zero gap scheduled.";
+
+## Opt in at both layers
+
+Core attention filtering is disabled by default. Set `policy.attention.enabled: true` to enable it. Its default `quietWhen` is `["background"]`; add `"reading-history"` or `"away"` only when appropriate for your host interface.
+
+The React provider's separate `attentionPolicy` prop opts into forwarding browser observations to the runtime. It does not enable core filtering by itself. A runtime supplied through `runtime` must already have its policy configured; provider policy props do not reconfigure a borrowed runtime.
+
+The provider renders no visible controls. The example below adds host-owned buttons using `useGenerativeA11yAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
+
+## Understand what quiet suppresses
+
+Quiet suppresses all response text, including full text announcements, and routine response/tool/run/step starts and tool/step progress. It preserves terminal, failure, interaction, connection, citation, and retry notices only when the underlying policy already enables them. It does not turn on categories disabled by the base policy.
+
+There is no backlog on return. Text observed while quiet is discarded for announcements while your host keeps rendering it normally. Sentence and paragraph strategies discard the unit crossing the attention boundary and resume at a fresh unit. A response that lost text during quiet mode is not replayed in full by the completion strategy. This is more than a reduction in detail: users can miss response content in announcements and must be able to read the host's retained response.
+
+Browser attention is a heuristic. The observer checks actual intersection of your registered newest response, along with available focus and visibility evidence. Intersection is not proof of a screen reader's virtual cursor location or reading position. Missing evidence remains unknown. Ordinary streaming, attention changes, and routine statuses never move focus.
+
+## Run the React example
+
+[Open the interactive example](/examples/lifecycle-lab#attention-lab-title). Choose Quiet, advance a text step, then choose Normal and advance through the next sentence. Keep Quiet active for tool completion and approval to inspect preserved notices. Auto follows the real browser observations; the example does not fake visibility or speech.
+
+Install `@generative-a11y/core`, `@generative-a11y/react`, `react`, and `react-dom`. DOM is a transitive dependency; install `@generative-a11y/dom` directly when importing its bridge or store APIs. Paste this client component into your React app. Its stable response, attempt, tool-run, and interaction IDs correlate every event. Each button action supplies confirmed host events; connect your own public framework state in production.
+
+The example deliberately uses `ManualClock`: each action drains scheduled work deterministically. A zero minimum gap still schedules delivery, so dispatch alone is not a flush. Production applications normally use the default system clock.
+
+```tsx
+"use client";
+
+import { ManualClock, type AnnouncementIntent, type AttentionOverride, type GenerativeA11yEvent } from "@generative-a11y/core";
+import {
+  GenerativeA11yProvider,
+  useGenerativeA11yAttentionControl,
+  useGenerativeA11yBindings,
+  useGenerativeA11yRuntime,
+} from "@generative-a11y/react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+
+
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+export function AttentionLab() {
+  const [clock] = useState(() => new ManualClock());
+  return (
+    <GenerativeA11yProvider
+      clock={clock}
+      preset="verbose"
+      attentionPolicy
+      policy={{
+        attention: { enabled: true, quietWhen: ["background", "reading-history", "away"] },
+        text: { minimumCharacters: 1, maximumDelayMs: 0 },
+        tools: { announceStartAfterMs: 0 },
+        minimumGapMs: 0,
+      }}
+      dom={{ mode: "live-region" }}
+    >
+      <AttentionHost clock={clock} />
+    </GenerativeA11yProvider>
+  );
+}
+
+function AttentionHost({ clock }: { clock: ManualClock }) {
+  const interactive = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
+  const runtime = useGenerativeA11yRuntime();
+  const bindings = useGenerativeA11yBindings();
+  const { state, setOverride } = useGenerativeA11yAttentionControl();
+  const [step, setStep] = useState(0);
+  const [text, setText] = useState("");
+  const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
+  useEffect(() => runtime.subscribeAnnouncements((intent) => {
+    setAnnouncements((current) => [...current, intent].slice(-20));
+  }), [runtime]);
+
+  function changeOverride(mode: AttentionOverride) {
+    setOverride(mode);
+    clock.advanceBy(0);
+  }
+
+  function next() {
+    const event = attentionScenario[step];
+    if (!event) return;
+    if (event.type === "response.text.delta") setText((current) => current + event.delta);
+    runtime.dispatch(event);
+    // Zero gap is still scheduled. Explicitly drain this host-controlled clock.
+    clock.runUntilIdle();
+    setStep(step + 1);
+  }
+
+  const event = attentionScenario[step];
+  return (
+    <section className="lab" aria-labelledby="attention-lab-title">
+      <h2 id="attention-lab-title">Attention and your announcement controls</h2>
+      <p>Choose Quiet before a text step, then Normal before a fresh sentence. The visible response always keeps its text. Auto follows browser observations.</p>
+      <div className="lab-controls" role="group" aria-label="Announcement mode">
+        {(["auto", "normal", "quiet"] as const).map((mode) => (
+          <button key={mode} type="button" disabled={!interactive} aria-pressed={state.override === mode} onClick={() => changeOverride(mode)}>{mode === "auto" ? "Auto" : mode === "normal" ? "Normal" : "Quiet"}</button>
+        ))}
+      </div>
+      <p data-testid="attention-state">Observed: {state.observed}; override: {state.override}; effective: {state.effective}</p>
+      <div className="lab-grid">
+        <section className="host-surface" aria-label="Attention example host interface">
+          <div {...bindings.conversationProps} tabIndex={0} aria-label="Conversation history" role="region">
+            <p>Earlier message: prepare a report and ask before publishing.</p>
+            <article {...bindings.newestResponseProps} aria-label="Newest response"><p>{text || "The response will appear here."}</p></article>
+          </div>
+          <label htmlFor="attention-composer">Your message</label>
+          <textarea id="attention-composer" {...bindings.composerProps} />
+          <p>Next event: <code>{event?.type ?? "Scenario complete"}</code></p>
+          <button type="button" disabled={!interactive || !event} onClick={next}>
+            {event?.type === "interaction.resolved" ? "Approve publishing" : "Advance scenario"}
+          </button>
+          <p>Step {step} of {attentionScenario.length}. The host owns every visible control. The runtime never moves focus for ordinary events. The advance control is disabled when the scenario completes.</p>
+        </section>
+        <section className="a11y-surface" aria-label="Attention runtime intents">
+          <h3>Runtime intents</h3>
+          <ol className="announcement-list">{announcements.map((intent) => <li key={intent.id}><div><b>{intent.sourceType}</b><p>{intent.text}</p></div></li>)}</ol>
+          <p>This trace is not a speech transcript. Verify actual announcements with assistive technology.</p>
+        </section>
+      </div>
+    </section>
+  );
+}
+
+
+const response = { responseId: "attention-report", responseInstanceId: "attempt-1" };
+const tool = { toolId: "prepare-report", toolInstanceId: "tool-run-1", label: "Prepare report" };
+
+/** Host-controlled steps: each action reports a confirmed lifecycle event. */
+const attentionScenario: readonly GenerativeA11yEvent[] = [
+  { type: "response.started", ...response },
+  { type: "response.text.delta", ...response, delta: "The report is ready. " },
+  { type: "response.text.delta", ...response, delta: "This sentence crosses " },
+  { type: "response.text.delta", ...response, delta: "the attention change. " },
+  { type: "response.text.delta", ...response, delta: "Here is a fresh sentence. " },
+  { type: "tool.started", ...tool },
+  { type: "tool.completed", ...tool },
+  { type: "interaction.requested", interactionId: "publish-report", kind: "approval", label: "Publish the report?" },
+  { type: "interaction.resolved", interactionId: "publish-report", kind: "approval", outcome: "approved", label: "Publishing approved" },
+  { type: "response.completed", ...response },
+];
+```
+
+## Ownership and delivery
+
+The provider owns and disposes its internally created runtime, DOM delivery, and stores when unmounted. The announcement subscription above returns its unsubscribe callback. There are no application timers or remote requests to cancel in this stepped example. An externally supplied runtime or store is borrowed: its creator must dispose it after consumers detach.
+
+Provider live regions are placed at body level, outside nested conversation semantics. Keep your existing visible response and composer, and attach the public ref bindings shown above. Do not add another live region around the transcript: the provider handles delivery.
+
+Without React, use `bindAttentionToRuntime({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
+
+Deterministic runtime tests and browser DOM checks establish filtering, cleanup, and focus behavior in those environments. They do not prove actual assistive-technology output. Manually test supported browser and screen-reader combinations, including quiet/resume, background return, history navigation, tool failure, approval, and explicit overrides.

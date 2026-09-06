@@ -49,9 +49,18 @@ DOM receives an already prepared intent and attempts delivery; it does not
 reschedule, rewrite, deduplicate, or infer events. A `DOMDeliveryResult` records
 a DOM/API action, not confirmed speech.
 
-Attention snapshots and stored preferences are inputs a host or future React
-binding may use when constructing core policy. They do not mutate an active
-runtime by themselves.
+Attention stores remain observation-only. An explicit DOM bridge or React
+`attentionPolicy` opt-in forwards observations as core control events. Core's
+optional attention policy determines whether these observations select quiet
+mode; explicit user overrides take precedence. Scheduling changes without
+replacing the runtime. Stored preset preferences still apply at construction or
+replacement boundaries.
+
+Candidates carry purpose independently of channel and source type. Quiet mode
+cancels response text and routine starts/progress while retaining policy-enabled
+notices. Suppression retains bounded boundary context, never a catch-up
+transcript. Core/testing replays control inputs and devtools projects redacted
+observations, overrides and decisions.
 
 ## SSR and module evaluation
 
@@ -74,6 +83,11 @@ browser evidence.
 - Attention and preference stores own their listeners and observers. Their
   creator must dispose them; cleanup is idempotent and stale callbacks cannot
   resume delivery or state updates.
+- Attention bridges borrow stores and runtimes. Cleanup unsubscribes and clears
+  only observed attention. One bridge may control a runtime; React releases that
+  claim synchronously on effect cleanup so keyed replacements can reuse a
+  borrowed runtime, while owned-resource disposal remains deferred for Strict
+  Mode.
 - React providers will own only objects they create. Externally supplied
   runtimes remain externally owned, including across unmount and Strict Mode
   remounts.

@@ -1,5 +1,9 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import type {
+  AttentionState,
+  GenerativeA11yEvent,
+} from "@generative-a11y/core";
 
 const fixturePath = "/examples/at-fixture/";
 
@@ -228,15 +232,154 @@ test("shows normalized events and DOM delivery results without speech claims", a
   ).toBeVisible();
 });
 
+for (const deliveryMode of [
+  "live-mode",
+  "auto-fallback",
+  "auto-mode",
+] as const) {
+  test(`attention follows real intersection without moving focus (${deliveryMode})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1000, height: 300 });
+    await page.bringToFront();
+    await page.evaluate((mode) => {
+      window.generativeA11yATFixture.reset({ attention: true });
+      window.generativeA11yATFixture.actions[mode]?.();
+      document
+        .querySelector<HTMLTextAreaElement>("#composer")
+        ?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }, deliveryMode);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.generativeA11yATFixture.snapshot().attention?.effective,
+        ),
+      )
+      .toBe("quiet");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.generativeA11yATFixture.snapshot().attention?.observed,
+        ),
+      )
+      .toBe("reading-history");
+    await page.evaluate(() => {
+      const fixture = window.generativeA11yATFixture;
+      fixture.dispatch({
+        type: "response.started",
+        responseId: "attention-response",
+      });
+      fixture.dispatch({
+        type: "response.text.delta",
+        responseId: "attention-response",
+        delta: "Suppressed complete sentence. ",
+      });
+      fixture.dispatch({
+        type: "interaction.requested",
+        interactionId: "attention-approval",
+        kind: "approval",
+        label: "Approval remains available.",
+        urgent: true,
+      });
+      fixture.drain();
+    });
+    await expect(
+      page.locator(
+        "#delivery-ledger [data-text='Approval remains available.']",
+      ),
+    ).toHaveCount(1);
+    if (deliveryMode !== "auto-mode") {
+      await expect(page.locator("#fixture-live-assertive")).toHaveText(
+        "Approval remains available.",
+      );
+    }
+    await expect(page.locator("#fixture-live-polite")).toHaveText("");
+    await expect(page.locator("#composer")).toBeFocused();
+    await page.locator("#response-copy").scrollIntoViewIfNeeded();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.generativeA11yATFixture.snapshot().attention?.effective,
+        ),
+      )
+      .toBe("normal");
+    await page.evaluate(() => {
+      const fixture = window.generativeA11yATFixture;
+      fixture.dispatch({
+        type: "response.text.delta",
+        responseId: "attention-response",
+        delta: "Fresh complete sentence. ",
+      });
+      fixture.dispatch({
+        type: "response.completed",
+        responseId: "attention-response",
+      });
+      fixture.dispatch({
+        type: "interaction.resolved",
+        interactionId: "attention-approval",
+        kind: "approval",
+        outcome: "approved",
+      });
+      fixture.drain();
+    });
+    await expect(
+      page.locator(
+        "#announcement-ledger [data-text='Fresh complete sentence.']",
+      ),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(
+        "#announcement-ledger [data-text='Suppressed complete sentence.']",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator("#announcement-ledger [data-text='Response complete.']"),
+    ).toHaveCount(1);
+    await expect(page.locator("#composer")).toBeFocused();
+  });
+}
+
+test("explicit override wins over simulated background evidence and cancels queued text", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const fixture = window.generativeA11yATFixture;
+    fixture.reset({ attention: true });
+    fixture.dispatch({ type: "attention.override", mode: "normal" });
+    fixture.dispatch({ type: "attention.changed", mode: "background" });
+    fixture.dispatch({ type: "response.started", responseId: "pending" });
+    fixture.dispatch({
+      type: "response.text.delta",
+      responseId: "pending",
+      delta: "Queued text. ",
+    });
+    fixture.dispatch({ type: "response.completed", responseId: "pending" });
+    fixture.dispatch({ type: "attention.override", mode: "quiet" });
+    fixture.drain();
+  });
+  await expect(
+    page.locator("#announcement-ledger [data-text='Queued text.']"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator("#announcement-ledger [data-text='Response complete.']"),
+  ).toHaveCount(1);
+});
+
 declare global {
   interface Window {
     __fixtureInjected?: boolean;
     generativeA11yATFixture: {
-      reset(): void;
+      reset(options?: { attention?: boolean }): void;
+      dispatch(event: GenerativeA11yEvent): void;
+      drain(): void;
       captureAndEnterInteraction(): void;
       restoreCapturedFocus(): void;
       actions: Readonly<Record<string, () => void>>;
-      snapshot(): { events: Array<{ type: string }> };
+      snapshot(): {
+        events: Array<{ type: string }>;
+        attention?: AttentionState;
+      };
     };
   }
 }

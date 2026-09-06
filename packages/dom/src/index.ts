@@ -1,3 +1,9 @@
+export {
+  bindAttentionToRuntime,
+  type AttentionRuntimeBinding,
+  type AttentionRuntimeBindingOptions,
+} from "./attention-binding.js";
+
 import type {
   AnnouncementIntent,
   GenerativeA11yRuntime,

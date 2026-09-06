@@ -83,7 +83,44 @@ borrowed and remains host-owned after unmount.
 
 ## Policy boundary
 
-Core does not inspect browser globals. A host or React binding may translate an
-attention snapshot into explicit core configuration or events at a defined
-lifecycle boundary. That translation must remain conservative and testable; the
-DOM store itself does not change announcement cadence or suppress output.
+Core does not inspect browser globals. `bindAttentionToRuntime()` forwards the
+store's initial and changed mode as serializable `attention.changed` events. The
+bridge borrows both objects, rejects competing bridges for one runtime, and
+clears observed attention to unknown on disposal. It never clears a user
+override or disposes a borrowed object. The store stays observation-only.
+
+Core's optional `policy.attention` is disabled by default. Enabling it uses
+`quietWhen: ["background"]` unless the host supplies another list. `away` and
+`reading-history` require explicit opt-in; `unknown` and `foreground` are never
+automatic quiet triggers. `attention.override` selects `auto`, `normal`, or
+`quiet`, independently of later observations. Controls are runtime-wide and
+reject entity attribution, including partial attempt IDs.
+
+Quiet mode discards response text and routine starts/progress. It preserves
+base-policy-enabled terminal, failure, interaction, connection, citation, and
+retry notices with their original channels. It cannot enable a notice disabled
+by the selected preset and is not a global mute switch.
+
+Pending routine candidates and response flush timers are cancelled. Lifecycle
+tracking continues and the host's response stays available for review. No
+transcript is deferred for automatic catch-up. At most 256 UTF-16 code units of
+boundary context are retained while discarding text; a sentence or paragraph
+crossing the quiet interval is discarded. Completion-strategy responses that
+lost text during quiet mode do not replay their full text after resumption.
+Retry starts a fresh attempt. Minimal and completion-only disable the short
+completion notice too, so a suppressed response can finish silently.
+
+React's `attentionPolicy` prop explicitly enables forwarding, separately from
+core `policy.attention.enabled`. Existing attention refs/hooks stay observation-
+only by default. `useGenerativeA11yAttentionControl()` returns current
+`{ observed, override, effective }` state and `setOverride()` for a host-owned
+control. No visual control is rendered by the library. Provider options are
+captured at mount; keyed replacement safely releases and reacquires the bridge.
+
+`getDiagnosticSnapshot().attention` is cached and frozen when enabled.
+`attention-updated` records transitions; `attention-quiet` explains discarded
+output. Both controls work with core/testing recording and replay. Replay must
+use matching policy and clock ordering. Devtools exposes redacted state and
+reason codes, not reading behavior or AT output. See the
+[core API](../packages/core/README.md#attention-aware-announcements) and
+[React integration](../packages/react/README.md).

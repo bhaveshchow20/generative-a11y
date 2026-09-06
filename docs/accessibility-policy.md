@@ -63,7 +63,11 @@ that assistive technology produced speech. See
 
 Document visibility, window focus, DOM focus and target intersection are
 conservative inputs; none reveals a screen-reader virtual cursor or user intent.
-The DOM attention store does not change policy itself. See the exact
+The DOM attention store does not change policy itself. An explicit bridge can
+forward observations to core's opt-in attention policy. Quiet mode drops routine
+text/start/progress output without a backlog; policy-enabled terminal and
+interaction notices remain eligible. User overrides win over observations.
+Unknown evidence never implies quiet mode. See the exact
 [attention model](attention-model.md).
 
 Ordinary response, tool, completion and non-actionable error updates never move

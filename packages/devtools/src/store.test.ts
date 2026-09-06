@@ -15,6 +15,46 @@ const workflowFidelity = {
 } as const;
 
 describe("devtools store", () => {
+  it("exports content-free attention controls and a frozen current state", () => {
+    const runtime = createGenerativeA11y({
+      policy: { attention: { enabled: true } },
+    });
+    const store = createDevtoolsStore();
+    store.attachRuntime({ id: "r", runtime });
+    runtime.dispatch({ type: "attention.changed", mode: "background" });
+    runtime.dispatch({ type: "attention.override", mode: "normal" });
+    runtime.dispatch({
+      type: "attention.changed",
+      mode: "private-invalid-value",
+    } as never);
+    const trace = store.exportTrace();
+    expect(trace.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceType: "attention.changed",
+          attentionMode: "background",
+        }),
+        expect.objectContaining({
+          sourceType: "attention.override",
+          attentionOverride: "normal",
+        }),
+        expect.objectContaining({ reason: "attention-updated" }),
+      ]),
+    );
+    expect(trace.runtimeSnapshots.r?.attention).toEqual({
+      observed: "background",
+      override: "normal",
+      effective: "normal",
+    });
+    expect(Object.isFrozen(trace.runtimeSnapshots.r?.attention)).toBe(true);
+    expect(
+      Object.isFrozen(trace.runtimeSnapshots.r?.policy.attention?.quietWhen),
+    ).toBe(true);
+    expect(JSON.stringify(trace)).not.toContain("private-invalid-value");
+    store.dispose();
+    runtime.dispose();
+  });
+
   it("captures bounded redacted records from independent runtimes without changing them", () => {
     const clock = new ManualClock();
     const runtime = createGenerativeA11y({

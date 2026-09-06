@@ -1,5 +1,11 @@
 import type { Clock, ClockTimer } from "./clock.js";
 import { systemClock } from "./clock.js";
+import {
+  hasAttentionScope,
+  isAttentionMode,
+  isAttentionOverride,
+  resolveAttentionState,
+} from "./attention.js";
 import { resolvePolicy, type PolicyOverrides } from "./policy.js";
 import {
   createAnnouncementScheduler,
@@ -10,6 +16,8 @@ import { normalizeAnnouncementText, segmentText } from "./segmenter.js";
 import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
+  AnnouncementPurpose,
+  AttentionState,
   DiagnosticResponseSnapshot,
   DiagnosticRunSnapshot,
   DiagnosticStepSnapshot,
@@ -22,6 +30,9 @@ import type {
 } from "./types.js";
 
 interface ResponseState {
+  /** Only a bounded boundary-detection suffix survives suppressed text. */
+  discarding?: boolean;
+  completionSuppressed?: boolean;
   epoch: number;
   instanceId?: string;
   status: "active" | "completed" | "interrupted" | "failed";
@@ -31,6 +42,7 @@ interface ResponseState {
   locale?: string;
   flushTimer?: ClockTimer;
   flushDueAt?: number;
+  flushGeneration?: number;
   runId?: string;
   runInstanceId?: string;
   stepId?: string;
@@ -122,11 +134,18 @@ function ensureTerminalPunctuation(label: string): string {
   return /[.!?。！？…]\s*$/u.test(label) ? label : `${label}.`;
 }
 
+// Quiet mode retains only enough trailing context to discard a crossing unit,
+// never an accumulating response or a transcript to replay later.
+const MAX_SUPPRESSED_BOUNDARY_CHARACTERS = 256;
+
 export function createGenerativeA11y(
   options: GenerativeA11yOptions,
 ): GenerativeA11yRuntime {
   const clock = options.clock ?? systemClock;
   const policy = resolvePolicy(options.preset, options.policy);
+  let attention: AttentionState | undefined = policy.attention?.enabled
+    ? resolveAttentionState(policy.attention, "unknown", "auto")
+    : undefined;
   const responses = new Map<string, ResponseState>();
   const tools = new Map<string, ToolState>();
   const runs = new Map<string, RunState>();
@@ -295,6 +314,7 @@ export function createGenerativeA11y(
     text: string,
     channel: "polite" | "assertive" = "polite",
     extra: {
+      purpose?: AnnouncementPurpose;
       delayMs?: number;
       scope?: string;
       coalesceKey?: string;
@@ -310,6 +330,20 @@ export function createGenerativeA11y(
       capacityPriority?: AnnouncementCapacityPriority;
     } = {},
   ): void {
+    const purpose =
+      extra.purpose ??
+      (event.type === "response.started" ||
+      event.type === "tool.started" ||
+      event.type === "tool.progress" ||
+      event.type === "run.started" ||
+      event.type === "step.started" ||
+      event.type === "step.progress"
+        ? "routine-status"
+        : "notice");
+    if (attention?.effective === "quiet" && purpose !== "notice") {
+      diagnose(event, "attention-quiet");
+      return;
+    }
     const normalized = normalizeAnnouncementText(text);
     if (!normalized) {
       diagnose(event, "empty-text");
@@ -319,11 +353,13 @@ export function createGenerativeA11y(
       ...eventContext(event),
       text: normalized,
       channel,
+      purpose,
       ...extra,
     });
   }
 
   function clearFlushTimer(state: ResponseState): void {
+    state.flushGeneration = (state.flushGeneration ?? 0) + 1;
     if (state.flushTimer !== undefined) clock.clearTimeout(state.flushTimer);
     state.flushTimer = undefined;
     delete state.flushDueAt;
@@ -593,7 +629,7 @@ export function createGenerativeA11y(
     state: ResponseState,
     force = false,
   ): void {
-    if (force && state.buffer) {
+    if (force && state.buffer && !state.discarding) {
       state.ready.push(state.buffer);
       state.buffer = "";
     }
@@ -602,6 +638,7 @@ export function createGenerativeA11y(
     if (!force && text.length < policy.text.minimumCharacters) return;
     state.ready.length = 0;
     announce(event, text, "polite", {
+      purpose: "response-text",
       responseId: event.responseId,
       scope: responseScope(event.responseId, state.epoch),
       capacityPriority: "content",
@@ -613,11 +650,19 @@ export function createGenerativeA11y(
     event: ResponseEvent,
     state: ResponseState,
   ): void {
+    if (attention?.effective === "quiet" || state.discarding) return;
     if (state.flushTimer !== undefined) return;
     if (policy.text.maximumDelayMs <= 0) return;
     const epoch = state.epoch;
+    const generation = state.flushGeneration;
     state.flushDueAt = clock.now() + policy.text.maximumDelayMs;
     state.flushTimer = clock.setTimeout(() => {
+      if (
+        state.flushGeneration !== generation ||
+        state.discarding ||
+        attention?.effective === "quiet"
+      )
+        return;
       state.flushTimer = undefined;
       delete state.flushDueAt;
       const current = responses.get(event.responseId);
@@ -714,12 +759,18 @@ export function createGenerativeA11y(
     if (event.type === "response.text.delta") {
       if (event.locale) state.locale = event.locale;
       if (!event.delta) return;
-      if (policy.text.strategy === "completion") state.fullText += event.delta;
       if (policy.text.strategy === "silent") {
         diagnose(event, "policy-silent");
         return;
       }
-      if (policy.text.strategy === "completion") return;
+      if (policy.text.strategy === "completion") {
+        if (attention?.effective === "quiet" || state.completionSuppressed) {
+          state.completionSuppressed = true;
+          state.fullText = "";
+          diagnose(event, "attention-quiet");
+        } else state.fullText += event.delta;
+        return;
+      }
       state.buffer += event.delta;
       const result = segmentText(
         state.buffer,
@@ -727,6 +778,27 @@ export function createGenerativeA11y(
         event.locale ?? state.locale,
       );
       state.buffer = result.remainder;
+      if (attention?.effective === "quiet") {
+        state.discarding =
+          state.buffer.trim().length > 0 ||
+          (state.discarding === true && result.complete.length === 0);
+        state.buffer = state.buffer.slice(-MAX_SUPPRESSED_BOUNDARY_CHARACTERS);
+        diagnose(event, "attention-quiet");
+        return;
+      }
+      if (state.discarding) {
+        if (result.complete.length === 0) {
+          state.buffer = state.buffer.slice(
+            -MAX_SUPPRESSED_BOUNDARY_CHARACTERS,
+          );
+          diagnose(event, "attention-quiet");
+          return;
+        }
+        result.complete.shift();
+        state.discarding = false;
+        diagnose(event, "attention-quiet");
+        if (disposed) return;
+      }
       state.ready.push(...result.complete);
       flushReady(event, state);
       if (state.buffer || state.ready.length)
@@ -741,12 +813,15 @@ export function createGenerativeA11y(
 
     if (event.type === "response.completed") {
       if (policy.text.strategy === "completion") {
-        announce(event, state.fullText, "polite", {
-          responseId: event.responseId,
-          scope,
-          capacityPriority: "content",
-          ...(state.locale ? { locale: state.locale } : {}),
-        });
+        if (state.completionSuppressed) diagnose(event, "attention-quiet");
+        else
+          announce(event, state.fullText, "polite", {
+            purpose: "response-text",
+            responseId: event.responseId,
+            scope,
+            capacityPriority: "content",
+            ...(state.locale ? { locale: state.locale } : {}),
+          });
       } else if (policy.text.strategy !== "silent") {
         flushReady(event, state, true);
       }
@@ -807,6 +882,8 @@ export function createGenerativeA11y(
       retainTerminalState(responses, event.responseId, state);
     } else {
       state.epoch = nextResponseEpoch++;
+      state.discarding = false;
+      state.completionSuppressed = false;
       if (event.nextResponseInstanceId) {
         state.instanceId = event.nextResponseInstanceId;
       } else {
@@ -1395,6 +1472,7 @@ export function createGenerativeA11y(
       | { toolId: string }
       | { type: `run.${string}` }
       | { type: `step.${string}` }
+      | { type: `attention.${string}` }
     >,
   ): void {
     if (event.type === "interaction.requested") {
@@ -1468,6 +1546,54 @@ export function createGenerativeA11y(
   }
 
   function dispatchOne(event: GenerativeA11yEvent): void {
+    if (
+      event.type === "attention.changed" ||
+      event.type === "attention.override"
+    ) {
+      if (
+        (event.type === "attention.changed"
+          ? !isAttentionMode(event.mode)
+          : !isAttentionOverride(event.mode)) ||
+        hasAttentionScope(event)
+      ) {
+        return diagnose(event, "invalid-event");
+      }
+      if (!attention || !policy.attention)
+        return diagnose(event, "policy-silent");
+      const next = resolveAttentionState(
+        policy.attention,
+        event.type === "attention.changed" ? event.mode : attention.observed,
+        event.type === "attention.override" ? event.mode : attention.override,
+      );
+      if (
+        next.observed === attention.observed &&
+        next.override === attention.override
+      )
+        return;
+      const enteringQuiet =
+        next.effective === "quiet" && attention.effective !== "quiet";
+      attention = next;
+      if (enteringQuiet) {
+        for (const state of responses.values()) {
+          if (state.status !== "active") continue;
+          clearFlushTimer(state);
+          state.discarding =
+            state.discarding === true || state.buffer.trim().length > 0;
+          state.buffer = state.buffer.slice(
+            -MAX_SUPPRESSED_BOUNDARY_CHARACTERS,
+          );
+          state.ready.length = 0;
+          if (state.fullText) state.completionSuppressed = true;
+          state.fullText = "";
+        }
+        scheduler.cancelPurposes(
+          ["response-text", "routine-status"],
+          "attention-quiet",
+        );
+      }
+      if (!disposed) diagnose(event, "attention-updated");
+      return;
+    }
     if (!validateWorkflowContext(event)) return;
     if (event.type.startsWith("run.")) dispatchRun(event as RunEvent);
     else if (event.type.startsWith("step.")) dispatchStep(event as StepEvent);
@@ -1661,6 +1787,7 @@ export function createGenerativeA11y(
         schemaVersion: 1 as const,
         at: clock.now(),
         policy,
+        ...(attention ? { attention } : {}),
         pending: Object.freeze({
           announcements,
           flushes: Object.freeze(flushes),

@@ -820,13 +820,15 @@ test("lifecycle lab uses the available documentation width", async ({ page }) =>
   await page.goto("/examples/lifecycle-lab");
 
   const pageShell = page.locator("#nd-page");
-  const labGrid = page.locator(".lab-grid");
-  await expect(labGrid).toBeVisible();
-
   const pageBox = await pageShell.boundingBox();
-  const labBox = await labGrid.boundingBox();
   expect(pageBox?.width).toBeGreaterThan(1_100);
-  expect(labBox?.width).toBeGreaterThan(1_000);
+  const labGrids = page.locator(".lab-grid");
+  await expect(labGrids).toHaveCount(2);
+  for (const labGrid of await labGrids.all()) {
+    await expect(labGrid).toBeVisible();
+    const labBox = await labGrid.boundingBox();
+    expect(labBox?.width).toBeGreaterThan(1_000);
+  }
 });
 
 test("framework showcase runs both installed framework runtimes and production adapters", async ({

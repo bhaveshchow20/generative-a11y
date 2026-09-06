@@ -101,6 +101,24 @@ language.
 5. Where practical, repeat capture/restoration inside an open shadow root and
    record the closed-shadow limitation separately.
 
+### Attention-aware controls
+
+1. Start a response and choose quiet mode. Record speech already in progress
+   separately from cancellation of undelivered library output.
+2. Navigate earlier content with AT reading commands. Compare this with actual
+   scrolling/intersection evidence; do not assume the two track each other.
+3. Trigger an approval and completion notice while quiet. Record actual
+   presentation and verify the host still exposes the response content.
+4. Resume normal mode. Check that the deterministic ledger does not replay old
+   text, and independently record what AT presents, including prior speech.
+5. Exercise automatic mode, native tab visibility, explicit normal override and
+   return to automatic. Record browser/AT settings and differences.
+6. Repeat with completion-only: suppressed text is not replayed for that
+   attempt, and the base preset also disables the completion notice.
+
+These scenarios require manual observations before any AT usability/support
+claim. Automated DOM/intersection tests are separate structural evidence.
+
 ## Result record
 
 For each matrix row, store:

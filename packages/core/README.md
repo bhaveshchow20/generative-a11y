@@ -253,6 +253,79 @@ diagnostic records, policy types, adapter fidelity metadata, scheduler types,
 and clock types. Events are serializable where practical; callbacks and clock
 handles are intentionally runtime-only.
 
+## Attention-aware announcements
+
+Attention control is opt-in and keeps the current runtime and lifecycle state.
+It changes announcement decisions, not generation, focus, or the host UI.
+
+```ts
+const runtime = createGenerativeA11y({
+  preset: "balanced",
+  policy: {
+    attention: {
+      enabled: true,
+      quietWhen: ["background", "reading-history"],
+    },
+  },
+});
+
+runtime.dispatch({ type: "attention.changed", mode: "background" });
+runtime.dispatch({ type: "attention.override", mode: "normal" });
+// Return to observed evidence without replacing the runtime:
+runtime.dispatch({ type: "attention.override", mode: "auto" });
+runtime.dispose();
+```
+
+`AttentionPolicy` is optional in caller-authored policies. Resolved defaults are
+`enabled: false` and `quietWhen: ["background"]`. The trigger list accepts
+`background`, `reading-history`, and `away`; it is copied and frozen. Unknown or
+foreground evidence always uses normal policy under automatic control.
+
+`AttentionMode` adds `foreground` and `unknown` to those observation values.
+`AttentionOverride` is `auto`, `normal`, or `quiet`; explicit normal/quiet
+overrides win over later observations. Control events are runtime-wide: entity
+IDs and attempt IDs are invalid. Disabled control events leave state unchanged
+and produce `policy-silent` diagnostics. Browser evidence is supplied by
+`@generative-a11y/dom` or the host; core never reads the browser.
+
+Quiet mode drops response text and routine response/tool/run/step start and
+progress announcements, including queued candidates and owned text flush timers.
+Base-policy-enabled completion, interruption, failure, interaction, connection,
+citation, and retry notices retain their channels. It never enables a notice
+that the base preset disables and is **not a global mute switch**.
+
+Suppressed text is not replayed when normal mode resumes. A bounded trailing
+suffix (at most 256 UTF-16 code units) is retained only to discard a sentence or
+paragraph crossing the quiet interval. A maximum-delay or terminal flush never
+announces that orphaned suffix. Completion-strategy responses that lost text
+during quiet mode do not later replay their full text for that attempt; retry
+starts a fresh attempt. In `minimal` and `completion-only`, the completion
+notice is disabled too, so such a response may produce no announcement. The
+host's accessible conversation remains the place to review its content.
+
+`getDiagnosticSnapshot().attention` is an optional cached, frozen
+`AttentionState` with `observed`, `override`, and `effective` (`normal` or
+`quiet`). It is present when enabled. `attention-updated` records an accepted
+state change without announcing the control; `attention-quiet` explains dropped
+output. Repeated identical controls preserve state identity. Observations do not
+establish what a person or a screen-reader virtual cursor is reading.
+
+Both controls work with `recordRuntime`, `createReplayFixture`, and
+`replayEvents`. Existing V1 fixtures remain valid; older core readers reject the
+new event types. Attention fixtures require core **0.4.0 or newer**; 0.3.x
+readers cannot read them. Replay advances the clock **before** dispatching each
+entry, including equal-timestamp entries: a timer already due can deliver first.
+Record with the same clock ordering when comparing transcripts. The fixture
+records inputs, not policy; replay with matching policy for matching decisions.
+
+For direct scheduler users, `ScheduleAnnouncement.purpose` accepts
+`AnnouncementPurpose`: `response-text`, `routine-status`, or `notice` (default).
+`cancelPurposes(purposes, reason?)` cancels only queued candidates with matching
+purpose; its default reason is `scope-cancelled`. Runtime attention transitions
+use `attention-quiet`. Purpose is distinct from priority and source type: one
+`response.completed` event may produce both full text and a short notice. These
+APIs cannot retract output already delivered to assistive technology.
+
 ## Documentation
 
 - [Core API reference](https://generativea11y.com/api/core)

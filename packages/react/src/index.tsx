@@ -1,10 +1,14 @@
 import {
   createGenerativeA11y,
+  type AttentionState,
+  type AttentionOverride,
   type GenerativeA11yOptions,
   type GenerativeA11yRuntime,
 } from "@generative-a11y/core";
 import {
   connectRuntimeToDOM,
+  bindAttentionToRuntime,
+  type AttentionRuntimeBinding,
   createAttentionStore,
   createPreferenceStore,
   defaultPreferences,
@@ -50,6 +54,8 @@ export interface GenerativeA11yProviderProps extends GenerativeA11yOptions {
   readonly dom?: false | GenerativeA11yDOMOptions;
   readonly attention?: false | AttentionStoreOptions;
   readonly attentionStore?: AttentionStore;
+  /** Opt into forwarding observations; configure runtime policy.attention separately. */
+  readonly attentionPolicy?: boolean;
   readonly preferences?: PreferenceStoreOptions;
   readonly preferenceStore?: PreferenceStore;
 }
@@ -58,6 +64,11 @@ export interface GenerativeA11yContextValue {
   readonly runtime: GenerativeA11yRuntime;
   readonly attentionStore: AttentionStore;
   readonly preferenceStore: PreferenceStore;
+}
+
+export interface GenerativeA11yAttentionControlResult {
+  readonly state: AttentionState;
+  readonly setOverride: (mode: AttentionOverride) => void;
 }
 
 export interface GenerativeA11yPreferencesResult {
@@ -91,6 +102,13 @@ const UNKNOWN_ATTENTION: AttentionSnapshot = Object.freeze({
   newestResponse: "unknown",
   mode: "unknown",
 });
+
+const DEFAULT_ATTENTION_STATE: AttentionState = Object.freeze({
+  observed: "unknown",
+  override: "auto",
+  effective: "normal",
+});
+const getDefaultAttentionState = (): AttentionState => DEFAULT_ATTENTION_STATE;
 
 const visuallyHiddenStyle: CSSProperties = Object.freeze({
   position: "absolute",
@@ -501,6 +519,7 @@ interface ProviderResources {
   readonly ownsRuntime: boolean;
   readonly runtime: GenerativeA11yRuntime;
   readonly dom: false | GenerativeA11yDOMOptions;
+  readonly attentionPolicy: boolean;
   readonly ownsAttention: boolean;
   readonly attentionStore: AttentionStore;
   readonly ownsPreferences: boolean;
@@ -513,6 +532,7 @@ export function GenerativeA11yProvider({
   dom,
   attention,
   attentionStore: suppliedAttentionStore,
+  attentionPolicy = false,
   preferences,
   preferenceStore: suppliedPreferenceStore,
   ...runtimeOptions
@@ -569,6 +589,7 @@ export function GenerativeA11yProvider({
       ownsRuntime: suppliedRuntime === undefined,
       runtime,
       dom: dom ?? {},
+      attentionPolicy,
       ownsAttention:
         suppliedAttentionStore === undefined && attention !== false,
       attentionStore,
@@ -595,6 +616,9 @@ export function GenerativeA11yProvider({
   const politeRegion = useRef<HTMLElement | null>(null);
   const assertiveRegion = useRef<HTMLElement | null>(null);
   const binding = useRef<DOMRuntimeBinding | undefined>(undefined);
+  const attentionBinding = useRef<AttentionRuntimeBinding | undefined>(
+    undefined,
+  );
   const committedDocument = useRef<Document | undefined>(undefined);
   const reconcileBinding = useCallback(() => {
     disposeSafely(binding.current);
@@ -656,11 +680,18 @@ export function GenerativeA11yProvider({
         (resources.attentionStore as ManagedAttentionStore).start(
           committedDocument.current,
         );
+      if (resources.attentionPolicy && !attentionBinding.current)
+        attentionBinding.current = bindAttentionToRuntime({
+          runtime: resources.runtime,
+          attentionStore: resources.attentionStore,
+        });
       if (resources.ownsPreferences)
         (resources.preferenceStore as ManagedPreferenceStore).start(
           committedDocument.current,
         );
     } catch (error) {
+      disposeSafely(attentionBinding.current);
+      attentionBinding.current = undefined;
       disposeSafely(binding.current);
       binding.current = undefined;
       if (resources.ownsAttention) disposeSafely(resources.attentionStore);
@@ -669,6 +700,11 @@ export function GenerativeA11yProvider({
       throw error;
     }
     return () => {
+      // Release the exclusive runtime claim before a keyed successor mounts.
+      // StrictMode setup recreates the bridge while owned stores stay alive.
+      const previousAttentionBinding = attentionBinding.current;
+      attentionBinding.current = undefined;
+      disposeSafely(previousAttentionBinding);
       const cleanupEpoch = ++lifecycleEpoch.current;
       queueMicrotask(() => {
         if (lifecycleEpoch.current !== cleanupEpoch) return;
@@ -686,6 +722,8 @@ export function GenerativeA11yProvider({
     const cleanupEpoch = lifetimeEpoch.current;
     setTimeout(() => {
       if (lifetimeEpoch.current !== cleanupEpoch) return;
+      disposeSafely(attentionBinding.current);
+      attentionBinding.current = undefined;
       if (resources.ownsAttention) disposeSafely(resources.attentionStore);
       if (resources.ownsPreferences) disposeSafely(resources.preferenceStore);
       if (resources.ownsRuntime) disposeSafely(resources.runtime);
@@ -754,6 +792,29 @@ export function useGenerativeA11yAttention(): AttentionSnapshot {
     [attentionStore],
   );
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+export function useGenerativeA11yAttentionControl(): GenerativeA11yAttentionControlResult {
+  const { runtime } = useGenerativeA11y();
+  const subscribe = useCallback(
+    (listener: () => void) => runtime.subscribeDiagnostics(listener),
+    [runtime],
+  );
+  const getSnapshot = useCallback(
+    () => runtime.getDiagnosticSnapshot().attention ?? DEFAULT_ATTENTION_STATE,
+    [runtime],
+  );
+  const state = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getDefaultAttentionState,
+  );
+  const setOverride = useCallback(
+    (mode: AttentionOverride) =>
+      runtime.dispatch({ type: "attention.override", mode }),
+    [runtime],
+  );
+  return useMemo(() => ({ state, setOverride }), [state, setOverride]);
 }
 
 export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult {
