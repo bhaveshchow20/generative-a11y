@@ -125,10 +125,10 @@ function AttentionHost({ clock }: { clock: ManualClock }) {
           <label htmlFor="attention-composer">Your message</label>
           <textarea id="attention-composer" {...bindings.composerProps} />
           <p>Next event: <code>{event?.type ?? "Scenario complete"}</code></p>
-          <button type="button" disabled={!interactive} onClick={next} aria-disabled={!event}>
+          <button type="button" disabled={!interactive || !event} onClick={next}>
             {event?.type === "interaction.resolved" ? "Approve publishing" : "Advance scenario"}
           </button>
-          <p>Step {step} of {attentionScenario.length}. The host owns every visible control. Advancing ordinary events never moves focus.</p>
+          <p>Step {step} of {attentionScenario.length}. The host owns every visible control. The runtime never moves focus for ordinary events. The advance control is disabled when the scenario completes.</p>
         </section>
         <section className="a11y-surface" aria-label="Attention runtime intents">
           <h3>Runtime intents</h3>

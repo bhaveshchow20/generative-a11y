@@ -23,8 +23,10 @@ test("host quiet controls preserve visible text, approval, and ordinary focus", 
   await expect(approve).toBeFocused();
   await approve.press("Enter");
   await expect(trace).toContainText("interaction.resolved");
-  await advance.press("Enter");
   await expect(advance).toBeFocused();
+  await advance.press("Enter");
+  await expect(advance).toBeDisabled();
+  await expect(lab).toContainText("Scenario complete");
   await expect(trace).toContainText("response.completed");
   await lab.getByRole("button", { name: "Normal", exact: true }).click();
   await expect(lab.getByTestId("attention-state")).toContainText("effective: normal");
