@@ -24,6 +24,7 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Attention policy attentionPolicy useGenerativeA11yAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
   "React hooks",
   "React hooks for the runtime, attention, preferences, and refs for existing app elements.",
   "React",
@@ -220,3 +221,9 @@ Each property contains a React ref for an existing part of your interface.
     </tr>
   </tbody>
 </table>
+
+## useGenerativeA11yAttentionControl
+
+Returns `{ state: { observed, override, effective }, setOverride }`. Call `setOverride("quiet")`, `setOverride("normal")`, or `setOverride("auto")` from controls owned by your host app. The provider adds no visible controls. With attention filtering disabled, effective mode remains normal.
+
+Set the provider's `attentionPolicy` prop to bridge browser observations and independently configure core `policy.attention.enabled`. [Copy a complete provider and ref-binding example](/docs/attention-aware-announcements).

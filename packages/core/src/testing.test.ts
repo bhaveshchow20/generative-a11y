@@ -9,6 +9,69 @@ import {
 } from "./testing.js";
 
 describe("core testing utilities", () => {
+  it("records and replays attention observations and user overrides", () => {
+    const source = createAnnouncementRecorder({
+      policy: { attention: { enabled: true }, minimumGapMs: 0 },
+    });
+    const recording = recordRuntime({
+      runtime: source.runtime,
+      clock: source.clock,
+    });
+    const events = [
+      { type: "response.started", responseId: "r" },
+      { type: "attention.changed", mode: "background" },
+      {
+        type: "response.text.delta",
+        responseId: "r",
+        delta: "Quiet sentence. ",
+      },
+      { type: "attention.override", mode: "normal" },
+      {
+        type: "response.text.delta",
+        responseId: "r",
+        delta: "Fresh sentence is announced. ",
+      },
+      { type: "response.completed", responseId: "r" },
+    ] as const;
+    for (const event of events) {
+      source.clock.advanceBy(1);
+      recording.runtime.dispatch(event);
+    }
+    source.clock.runUntilIdle();
+    const target = createAnnouncementRecorder({
+      policy: { attention: { enabled: true }, minimumGapMs: 0 },
+    });
+    replayEvents(
+      target.runtime,
+      target.clock,
+      JSON.parse(JSON.stringify(recording.fixture())),
+    );
+    target.clock.runUntilIdle();
+    expect(target.transcript()).toEqual(source.transcript());
+    expect(target.diagnosticTranscript()).toEqual(
+      source.diagnosticTranscript(),
+    );
+    expect(target.runtime.getDiagnosticSnapshot().attention).toEqual(
+      source.runtime.getDiagnosticSnapshot().attention,
+    );
+    source.runtime.dispose();
+    target.runtime.dispose();
+  });
+
+  it("rejects malformed or workflow-scoped attention controls", () => {
+    for (const event of [
+      { type: "attention.changed", mode: "reading" },
+      { type: "attention.override", mode: "foreground" },
+      { type: "attention.changed" },
+      { type: "attention.override", mode: "quiet", runId: "r" },
+      { type: "attention.override", mode: "quiet", runInstanceId: "attempt" },
+    ]) {
+      expect(() =>
+        createReplayFixture([{ at: 0, event: event as never }]),
+      ).toThrow(/attention/);
+    }
+  });
+
   it("matches only the requested top-level semantic fields", () => {
     expect(
       matchesPartial(

@@ -335,3 +335,19 @@ preference returns that preset without granular policy overrides.
   prepares paced announcement intents.
 - [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
   connects core and DOM delivery to React applications.
+
+### Attention policy binding
+
+`bindAttentionToRuntime({ runtime, attentionStore })` forwards the store's
+initial mode and subsequent mode changes as `attention.changed` events. It is
+opt-in: creating an attention store alone remains observational. Configure the
+runtime with `policy: { attention: { enabled: true } }` to apply those
+observations to announcement policy. Native observations are evidence about
+visibility and focus, not proof of assistive-technology activity.
+
+The returned `AttentionRuntimeBinding` has an idempotent `dispose()` method. It
+unsubscribes and resets the observed mode to `unknown`, preserving explicit user
+overrides. Both inputs are borrowed and remain usable after cleanup. A second
+binding for the same runtime throws, including bindings created by React.
+`AttentionRuntimeBindingOptions` describes the two required inputs. Construction
+rolls back on store failures; unsubscribe failures cannot prevent the reset.

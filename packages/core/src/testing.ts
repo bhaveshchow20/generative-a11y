@@ -6,6 +6,11 @@ import type {
   GenerativeA11yRuntime,
   ManualClock,
 } from "./index.js";
+import {
+  hasAttentionScope,
+  isAttentionMode,
+  isAttentionOverride,
+} from "./attention.js";
 
 export interface RecordedEvent {
   readonly at: number;
@@ -59,6 +64,8 @@ export interface GenerativeA11yExpect {
 }
 
 const EVENT_TYPES = new Set<GenerativeA11yEvent["type"]>([
+  "attention.changed",
+  "attention.override",
   "response.started",
   "response.text.delta",
   "response.completed",
@@ -107,12 +114,28 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
     runId?: unknown;
     stepId?: unknown;
     label?: unknown;
+    mode?: unknown;
   };
   if (
     typeof candidate.type !== "string" ||
     !EVENT_TYPES.has(candidate.type as GenerativeA11yEvent["type"])
   )
     throw new TypeError("Replay fixture event has an unsupported type");
+  if (
+    candidate.type === "attention.changed" ||
+    candidate.type === "attention.override"
+  ) {
+    if (
+      (candidate.type === "attention.changed"
+        ? !isAttentionMode(candidate.mode)
+        : !isAttentionOverride(candidate.mode)) ||
+      hasAttentionScope(candidate)
+    ) {
+      throw new TypeError(
+        "Replay fixture attention event requires a valid mode and no workflow scope",
+      );
+    }
+  }
   if (
     candidate.type.startsWith("response.") &&
     typeof candidate.responseId !== "string"

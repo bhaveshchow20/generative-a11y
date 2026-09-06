@@ -5,6 +5,7 @@ import type {
 } from "./types.js";
 
 const balanced: AnnouncementPolicy = {
+  attention: { enabled: false, quietWhen: ["background"] },
   text: { strategy: "sentence", minimumCharacters: 24, maximumDelayMs: 2_500 },
   tools: {
     announceStart: true,
@@ -90,6 +91,10 @@ const mutablePresets: Record<PresetName, AnnouncementPolicy> = {
 };
 
 function freezePolicy(policy: AnnouncementPolicy): ReadonlyAnnouncementPolicy {
+  if (policy.attention) {
+    Object.freeze(policy.attention.quietWhen);
+    Object.freeze(policy.attention);
+  }
   Object.freeze(policy.text);
   Object.freeze(policy.tools);
   Object.freeze(policy.workflows);
@@ -105,8 +110,9 @@ export const presets: Readonly<Record<PresetName, ReadonlyAnnouncementPolicy>> =
   });
 
 export type PolicyOverrides = Partial<
-  Omit<AnnouncementPolicy, "text" | "tools" | "workflows">
+  Omit<AnnouncementPolicy, "text" | "tools" | "workflows" | "attention">
 > & {
+  attention?: Partial<NonNullable<AnnouncementPolicy["attention"]>>;
   text?: Partial<AnnouncementPolicy["text"]>;
   tools?: Partial<AnnouncementPolicy["tools"]>;
   workflows?: Partial<AnnouncementPolicy["workflows"]>;
@@ -117,9 +123,31 @@ export function resolvePolicy(
   overrides: PolicyOverrides = {},
 ): ReadonlyAnnouncementPolicy {
   const base = presets[preset];
+  const attention = {
+    enabled: false,
+    quietWhen: ["background"] as NonNullable<
+      AnnouncementPolicy["attention"]
+    >["quietWhen"],
+    ...base.attention,
+    ...overrides.attention,
+  };
+  if (typeof attention.enabled !== "boolean")
+    throw new TypeError("attention.enabled must be a boolean");
+  if (
+    !Array.isArray(attention.quietWhen) ||
+    [...attention.quietWhen].some(
+      (mode) =>
+        mode !== "background" && mode !== "reading-history" && mode !== "away",
+    )
+  ) {
+    throw new TypeError(
+      "attention.quietWhen must contain background, reading-history, or away",
+    );
+  }
   const policy: AnnouncementPolicy = {
     ...base,
     ...overrides,
+    attention: { ...attention, quietWhen: [...new Set(attention.quietWhen)] },
     text: { ...base.text, ...overrides.text },
     tools: { ...base.tools, ...overrides.tools },
     workflows: { ...base.workflows, ...overrides.workflows },

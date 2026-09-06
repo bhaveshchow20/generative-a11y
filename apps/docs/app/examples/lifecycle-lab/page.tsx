@@ -7,6 +7,7 @@ import {
   DocsTitle,
 } from "fumadocs-ui/page";
 
+import { AttentionLab } from "../../../components/attention-lab";
 import { LifecycleLab } from "../../../components/lifecycle-lab";
 import { FrameworkShowcaseLoader } from "../../../components/framework-showcase-loader";
 import { JsonLd } from "../../../components/json-ld";
@@ -66,6 +67,8 @@ export default function LifecycleLabPage() {
             {" · "}
             <Link href="/api/core">Read the core API</Link>
             {" · "}
+            <Link href="/docs/attention-aware-announcements">Configure attention controls</Link>
+            {" · "}
             <a href="https://github.com/bhaveshchow20/generative-a11y/tree/main/apps/docs">
               View source on GitHub
             </a>
@@ -73,6 +76,7 @@ export default function LifecycleLabPage() {
         </DocsBody>
         <div className="examples-content">
           <LifecycleLab />
+          <AttentionLab />
           <FrameworkShowcaseLoader />
         </div>
       </DocsPage>

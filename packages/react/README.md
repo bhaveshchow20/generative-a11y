@@ -218,3 +218,26 @@ preference types continue to come from their owning packages.
   owns lifecycle policy and scheduling.
 - [`@generative-a11y/ai-sdk`](https://www.npmjs.com/package/@generative-a11y/ai-sdk)
   translates Vercel AI SDK chat state.
+
+### Attention-aware announcement controls
+
+`GenerativeA11yProvider` observes attention by default. Set `attentionPolicy` to
+opt into forwarding those observations to its runtime, and configure
+`policy={{ attention: { enabled: true } }}` to enable the core policy. These are
+separate choices. With a borrowed `runtime`, configure that runtime directly;
+provider policy props do not reconfigure borrowed resources. Like the other
+provider resource options, `attentionPolicy` is captured on mount; use a keyed
+remount to change it. Only one attention bridge can own a runtime at a time.
+
+`useGenerativeA11yAttentionControl()` returns
+`GenerativeA11yAttentionControlResult`: `{ state, setOverride }`. `state`
+contains `observed`, `override`, and `effective`;
+`setOverride("auto" | "normal" | "quiet")` changes the explicit user preference.
+Call it from an event handler or effect. An explicit override takes precedence
+over observations. The hook requires a provider and follows the runtime even
+when observation forwarding is disabled. When the runtime policy is disabled, it
+returns a stable frozen
+`{ observed: "unknown", override: "auto", effective: "normal" }` default. Server
+rendering always uses that inert default, with current runtime state read after
+hydration. The bridge dispatches only after commit and releases its subscription
+before owned stores and runtime; borrowed resources are not disposed.

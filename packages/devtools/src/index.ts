@@ -1,5 +1,7 @@
 import type {
   AdapterFidelity,
+  AttentionMode,
+  AttentionOverride,
   GenerativeA11yRuntime,
   RuntimeDiagnosticEventV1,
   RuntimeDiagnosticSnapshotV1,
@@ -9,6 +11,8 @@ export type DevtoolsRecordKind =
   RuntimeDiagnosticEventV1["kind"] | "dom-delivery";
 
 export interface DevtoolsRecord {
+  readonly attentionMode?: AttentionMode;
+  readonly attentionOverride?: AttentionOverride;
   readonly runtimeId: string;
   /** Opaque key for the immutable adapter evidence captured with this record. */
   readonly runtimeSourceId?: string;
@@ -184,6 +188,20 @@ function asRecord(
       at: event.at,
       kind: event.kind,
       sourceType: event.event.type,
+      ...(event.event.type === "attention.changed" &&
+      [
+        "foreground",
+        "background",
+        "reading-history",
+        "away",
+        "unknown",
+      ].includes(event.event.mode)
+        ? { attentionMode: event.event.mode }
+        : {}),
+      ...(event.event.type === "attention.override" &&
+      ["auto", "normal", "quiet"].includes(event.event.mode)
+        ? { attentionOverride: event.event.mode }
+        : {}),
       ...(event.event.eventId ? { sourceEventId: event.event.eventId } : {}),
       ...("runId" in event.event && event.event.runId
         ? { runId: event.event.runId }
@@ -438,7 +456,24 @@ function copyRuntimeSnapshot(
       text: Object.freeze({ ...source.policy.text }),
       tools: Object.freeze({ ...source.policy.tools }),
       workflows: Object.freeze({ ...source.policy.workflows }),
+      ...(source.policy.attention
+        ? {
+            attention: Object.freeze({
+              ...source.policy.attention,
+              quietWhen: Object.freeze([...source.policy.attention.quietWhen]),
+            }),
+          }
+        : {}),
     }),
+    ...(source.attention
+      ? {
+          attention: Object.freeze({
+            observed: source.attention.observed,
+            override: source.attention.override,
+            effective: source.attention.effective,
+          }),
+        }
+      : {}),
     pending: Object.freeze({
       announcements: Object.freeze(
         source.pending.announcements.map((item) => Object.freeze({ ...item })),

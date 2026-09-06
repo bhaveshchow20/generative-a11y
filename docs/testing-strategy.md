@@ -81,9 +81,13 @@ core/DOM fixture covers:
 - deterministic response/tool lifecycle, cancellation, retry, and stale events;
 - rendered landmark/live-region semantics and axe scans.
 
-Visibility, Intersection Observer, preference storage, React, and adapter
-contracts remain covered by deterministic jsdom or package tests rather than
-this browser fixture. Do not describe those paths as browser-tested.
+The attention fixture covers native Intersection Observer transitions from
+actual scrolling in Chromium, Firefox, and WebKit, explicit overrides, preserved
+notices, and focus invariance. Background visibility inputs in these automated
+scenarios are explicitly simulated, not native tab-visibility coverage. The docs
+example adds a React browser path for host-owned attention controls and
+lifecycle notices. Preference storage and general adapter contracts remain
+covered by deterministic jsdom/package tests.
 
 Run Chromium, Firefox, and WebKit in CI. Keep a smaller Chromium smoke shard for
 pull-request latency only if the full matrix remains a required merge or nightly
@@ -120,8 +124,17 @@ exports/declarations are inspected. Static gates include formatting, ESLint,
 strict TypeScript, unit coverage, builds, publint, and package smoke tests.
 
 Browser binaries and axe add CI cost and should be cached by exact lockfile/tool
-version. Browser artifacts include traces and screenshots only on failure. The
-publish workflow requires the completed
-[manual AT matrix](manual-at-test-plan.md) for an unchanged release candidate.
-Automated browser checks are also required, but cannot replace that external
-evidence.
+version. Browser artifacts include traces and screenshots only on failure.
+Package publication does not require completed manual AT evidence. Dated
+[manual AT results](manual-at-test-plan.md) are required for browser/AT support
+claims. Automated browser checks cannot replace that evidence.
+
+## Attention invariants
+
+Test disabled-policy equivalence for every preset, override precedence, unknown
+evidence, trigger validation, purpose-based cancellation, mid-unit suppression,
+completion-text suppression, retry resets, stale callbacks, cleanup and
+reentrancy. No timer may flush a suffix that began during quiet mode. Control
+events use existing advance-clock-before-dispatch replay ordering, so due timers
+can fire before an equal-timestamp control. Devtools must omit invalid mode
+payloads and never retain response content or DOM targets.

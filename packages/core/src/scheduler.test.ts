@@ -20,6 +20,42 @@ function setup(maxQueueSize = 10) {
 }
 
 describe("announcement scheduler", () => {
+  it("cancels only selected candidate purposes and clears their timers", () => {
+    const { scheduler, clock, announcements, diagnostics } = setup();
+    scheduler.schedule({
+      channel: "polite",
+      text: "Full text",
+      sourceType: "response.completed",
+      purpose: "response-text",
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Complete",
+      sourceType: "response.completed",
+    });
+    scheduler.schedule({
+      channel: "polite",
+      text: "Starting",
+      sourceType: "tool.started",
+      purpose: "routine-status",
+      delayMs: 1000,
+    });
+    scheduler.cancelPurposes(
+      ["response-text", "routine-status"],
+      "attention-quiet",
+    );
+    expect(scheduler.pendingCount()).toBe(1);
+    clock.runUntilIdle();
+    expect(announcements.map((item) => item.text)).toEqual(["Complete"]);
+    expect(
+      diagnostics.filter((item) => item.reason === "attention-quiet"),
+    ).toHaveLength(2);
+    expect(clock.pendingCount()).toBe(0);
+    scheduler.dispose();
+    scheduler.cancelPurposes(["notice"]);
+    expect(clock.pendingCount()).toBe(0);
+  });
+
   it("delivers due assertive work before polite work", () => {
     const { scheduler, clock, announcements } = setup();
     scheduler.schedule({

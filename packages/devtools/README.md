@@ -139,6 +139,22 @@ const overlay = mountDevtoolsOverlay({ store });
 overlay.dispose();
 ```
 
+## Attention decisions
+
+When core attention control is enabled, runtime snapshots include the observed
+mode, explicit user override, and effective normal/quiet state. The inspector
+shows these values under policy and scheduling. `attention-updated` explains
+control transitions; `attention-quiet` explains discarded routine output without
+an announcement backlog.
+
+`DevtoolsRecord.attentionMode` and `attentionOverride` preserve only recognized
+enum values from control events. Invalid mode payloads are omitted. Exports
+contain no DOM targets or reading history; the observation named
+`reading-history` means only the latest registered response is outside the
+intersection while the document is visible and focused. It does not track a
+screen-reader virtual cursor or prove what someone read. Existing trace schema 1
+consumers can ignore the optional fields.
+
 ## Documentation
 
 - [Devtools guide](https://generativea11y.com/docs/devtools)

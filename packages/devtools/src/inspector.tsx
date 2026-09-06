@@ -100,7 +100,9 @@ function relatedRecords(
 }
 function explain(record: DevtoolsRecord) {
   if (record.kind === "event-observed")
-    return "The adapter supplied this normalized public lifecycle signal.";
+    return record.sourceType?.startsWith("attention.")
+      ? "The host supplied an attention observation or explicit user override. Browser evidence does not establish what someone is reading."
+      : "The adapter supplied this normalized public lifecycle signal.";
   if (record.kind === "dom-delivery")
     return record.deliveryStatus === "unavailable"
       ? "The DOM driver was unavailable, so no browser delivery action was observed."
@@ -115,6 +117,10 @@ function explain(record: DevtoolsRecord) {
         duplicate: "The runtime suppressed a recently delivered duplicate.",
         "policy-silent":
           "The active policy intentionally made this event silent.",
+        "attention-quiet":
+          "Quiet mode discarded routine output without retaining an announcement backlog.",
+        "attention-updated":
+          "The runtime updated its attention observation or user override without announcing the control event.",
         "queue-capacity": "The bounded queue rejected or displaced this work.",
         "scope-cancelled":
           "The lifecycle scope ended before this queued work delivered.",
@@ -318,6 +324,22 @@ function Detail({
         <h4>Policy and scheduling</h4>
         {runtime ? (
           <dl className="ga-key-values">
+            {runtime.attention && (
+              <>
+                <div>
+                  <dt>Effective announcements</dt>
+                  <dd>{runtime.attention.effective}</dd>
+                </div>
+                <div>
+                  <dt>Observed attention</dt>
+                  <dd>{runtime.attention.observed}</dd>
+                </div>
+                <div>
+                  <dt>User override</dt>
+                  <dd>{runtime.attention.override}</dd>
+                </div>
+              </>
+            )}
             <div>
               <dt>Queue</dt>
               <dd>{runtime.pendingCount} pending</dd>

@@ -19,6 +19,7 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Attention policy attentionPolicy useGenerativeA11yAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
   "Policy and presets",
   "Settings for streaming text, tools, workflow runs and steps, announcement channels, timing, and queue limits.",
   "Core",
@@ -291,3 +292,11 @@ output.
 ## Related
 
 - [/api/core/workflows](/api/core/workflows)
+
+## Attention policy
+
+`attention?: AttentionPolicy` is optional and disabled by default. Set `{ enabled: true }` to quiet response text and routine starts/progress when observed attention is background. `quietWhen` accepts `background`, `reading-history`, and `away`; its default is `["background"]`.
+
+`attention.changed` carries an `AttentionMode`; `attention.override` carries `auto`, `normal`, or `quiet`. Explicit overrides take precedence over observations. Optional `snapshot.attention` is a cached, frozen `AttentionState` containing `observed`, `override`, and `effective`. Core exports `AttentionMode`, `AttentionOverride`, `AttentionPolicy`, and `AttentionState`.
+
+Quiet retains only base-policy-enabled terminal, failure, interaction, connection, citation, and retry notices. Suppressed response text has no backlog; crossing sentence/paragraph units are discarded, and completion strategy cannot replay a response touched by quiet. [Read the attention guide](/docs/attention-aware-announcements).

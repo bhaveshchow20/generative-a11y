@@ -6,6 +6,8 @@ import {
 } from "../../packages/core/dist/index.js";
 import {
   captureFocus,
+  bindAttentionToRuntime,
+  createAttentionStore,
   createDOMAnnouncer,
   focusElement,
   restoreFocus,
@@ -42,6 +44,8 @@ let clock;
 let runtime;
 let announcer;
 let capturedFocus;
+let attentionStore;
+let attentionBinding;
 let nextIdentity = 1;
 
 function id(prefix) {
@@ -122,12 +126,16 @@ function selectDeliveryMode(mode, notifier = "native") {
     notifier === "native" ? mode : `${mode} / ${notifier}`;
 }
 
-function createRuntime() {
+function createRuntime(attentionEnabled = false) {
   clock = new ManualClock();
   runtime = createGenerativeA11y({
     clock,
     preset: "verbose",
     policy: {
+      attention: {
+        enabled: attentionEnabled,
+        quietWhen: ["background", "reading-history"],
+      },
       minimumGapMs: 20,
       dedupeWindowMs: 0,
       text: { minimumCharacters: 1, maximumDelayMs: 500 },
@@ -143,6 +151,18 @@ function createRuntime() {
       recordDelivery(result, intent);
     },
   });
+  runtime.subscribeDiagnosticEvents((entry) => {
+    if (entry.kind === "event-observed") recordEvent(entry.event);
+  });
+  if (attentionEnabled) {
+    attentionStore = createAttentionStore({ document });
+    attentionStore.registerComposer(elements.composer);
+    attentionStore.registerConversation(
+      document.querySelector("#conversation"),
+    );
+    attentionStore.registerNewestResponse(elements.responseCopy);
+    attentionBinding = bindAttentionToRuntime({ runtime, attentionStore });
+  }
 }
 
 function updateClock() {
@@ -160,8 +180,7 @@ function drain() {
 }
 
 function dispatch(event) {
-  recordEvent(event);
-  runtime.dispatch(event);
+  return runtime.dispatch(event);
 }
 
 function announcePolite(text = "Routine status available.", locale) {
@@ -352,7 +371,11 @@ function updateFocus() {
   elements.currentFocus.textContent = focusName(document.activeElement);
 }
 
-function reset() {
+function reset({ attention = false } = {}) {
+  attentionBinding?.dispose();
+  attentionStore?.dispose();
+  attentionBinding = undefined;
+  attentionStore = undefined;
   runtime?.dispose();
   announcer?.dispose();
   clearNotifierOverrides();
@@ -364,7 +387,7 @@ function reset() {
   capturedFocus = undefined;
   nextIdentity = 1;
   selectDeliveryMode("auto");
-  createRuntime();
+  createRuntime(attention);
   updateClock();
   updateFocus();
 }
@@ -411,9 +434,16 @@ document.addEventListener("focusout", () => queueMicrotask(updateFocus));
 
 window.generativeA11yATFixture = Object.freeze({
   reset,
+  dispatch,
+  drain,
   captureAndEnterInteraction,
   restoreCapturedFocus,
-  snapshot: () => clone({ ...ledgers, clock: clock.now() }),
+  snapshot: () =>
+    clone({
+      ...ledgers,
+      clock: clock.now(),
+      attention: runtime.getDiagnosticSnapshot().attention,
+    }),
   actions: Object.freeze({ ...actions }),
 });
 

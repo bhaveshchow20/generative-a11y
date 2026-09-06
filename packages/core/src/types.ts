@@ -1,6 +1,22 @@
 export type AnnouncementChannel = "polite" | "assertive";
 export type TextStrategy = "silent" | "sentence" | "paragraph" | "completion";
 export type PresetName = "minimal" | "balanced" | "verbose" | "completion-only";
+/** Conservative evidence labels, never proof of reading or user intent. */
+export type AttentionMode =
+  "foreground" | "background" | "reading-history" | "away" | "unknown";
+/** Explicit host/user choice takes precedence over observed evidence. */
+export type AttentionOverride = "auto" | "normal" | "quiet";
+export interface AttentionState {
+  readonly observed: AttentionMode;
+  readonly override: AttentionOverride;
+  readonly effective: "normal" | "quiet";
+}
+export interface AttentionPolicy {
+  enabled: boolean;
+  quietWhen: readonly Exclude<AttentionMode, "foreground" | "unknown">[];
+}
+/** Candidate purpose is independent of its source event and delivery channel. */
+export type AnnouncementPurpose = "response-text" | "routine-status" | "notice";
 export type InteractionKind =
   "approval" | "confirmation" | "input" | (string & {});
 
@@ -35,6 +51,8 @@ export type WorkflowContext =
 type ContextualEventMetadata = EventMetadata & WorkflowContext;
 
 export type GenerativeA11yEvent =
+  | (EventMetadata & { type: "attention.changed"; mode: AttentionMode })
+  | (EventMetadata & { type: "attention.override"; mode: AttentionOverride })
   | (ContextualEventMetadata & {
       type: "response.started";
       responseId: string;
@@ -266,6 +284,8 @@ export type DiagnosticReason =
   | "coalesced"
   | "duplicate"
   | "policy-silent"
+  | "attention-quiet"
+  | "attention-updated"
   | "unknown-response"
   | "terminal-response"
   | "stale-response"
@@ -404,6 +424,8 @@ export interface RuntimeDiagnosticSnapshotV1 {
   schemaVersion: 1;
   at: number;
   policy: ReadonlyAnnouncementPolicy;
+  /** Cached immutable state, present only when attention policy is enabled. */
+  attention?: AttentionState;
   pending: {
     announcements: readonly DiagnosticPendingAnnouncement[];
     flushes: readonly { responseId: string; epoch: number; dueAt: number }[];
@@ -463,6 +485,8 @@ export interface WorkflowPolicy {
 }
 
 export interface AnnouncementPolicy {
+  /** Optional for compatibility with existing caller-authored policies. */
+  attention?: AttentionPolicy;
   text: TextPolicy;
   tools: ToolPolicy;
   workflows: WorkflowPolicy;
@@ -481,7 +505,8 @@ export interface AnnouncementPolicy {
 }
 
 export type ReadonlyAnnouncementPolicy = Readonly<
-  Omit<AnnouncementPolicy, "text" | "tools" | "workflows"> & {
+  Omit<AnnouncementPolicy, "text" | "tools" | "workflows" | "attention"> & {
+    attention?: Readonly<AttentionPolicy>;
     text: Readonly<TextPolicy>;
     tools: Readonly<ToolPolicy>;
     workflows: Readonly<WorkflowPolicy>;

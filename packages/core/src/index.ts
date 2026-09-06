@@ -30,6 +30,11 @@ export {
   type SegmentationResult,
 } from "./segmenter.js";
 export type {
+  AttentionMode,
+  AttentionOverride,
+  AttentionPolicy,
+  AttentionState,
+  AnnouncementPurpose,
   AdapterFidelity,
   AnnouncementChannel,
   AnnouncementDiagnostic,

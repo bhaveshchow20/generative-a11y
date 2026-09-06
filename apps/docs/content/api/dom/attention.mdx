@@ -24,6 +24,7 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Attention policy attentionPolicy useGenerativeA11yAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
   "createAttentionStore",
   "A store that uses page visibility, window focus, the focused area, and response visibility to estimate where the user is working.",
   "DOM",
@@ -200,3 +201,9 @@ AttentionStore never guesses.
     </tr>
   </tbody>
 </table>
+
+## bindAttentionToRuntime
+
+`bindAttentionToRuntime({ runtime, attentionStore })` explicitly forwards initial and changed observations to the core runtime. Both inputs are borrowed. `dispose()` unsubscribes and sends `attention.changed` with mode `unknown`, without disposing either input. Competing bindings for one runtime throw. Core filtering still requires `policy.attention.enabled`.
+
+Actual newest-response intersection contributes browser evidence; this cannot identify a screen reader virtual cursor. [Read the attention guide](/docs/attention-aware-announcements).
