@@ -16,7 +16,15 @@ export const packageScenarios = [
     id: "core",
     packageName: "@generative-a11y/core",
     specifier: "@generative-a11y/core",
-    expectedExport: "createGenerativeA11y",
+    expectedExport: "createRuntime",
+    fixtures: [],
+    internalPackages: [],
+  },
+  {
+    id: "core-messages",
+    packageName: "@generative-a11y/core",
+    specifier: "@generative-a11y/core/messages",
+    expectedExport: "normalizeAdapterCopy",
     fixtures: [],
     internalPackages: [],
   },
@@ -32,7 +40,7 @@ export const packageScenarios = [
     id: "dom",
     packageName: "@generative-a11y/dom",
     specifier: "@generative-a11y/dom",
-    expectedExport: "createDOMAnnouncer",
+    expectedExport: "createAnnouncer",
     fixtures: [],
     internalPackages: ["@generative-a11y/core"],
   },
@@ -40,7 +48,7 @@ export const packageScenarios = [
     id: "devtools",
     packageName: "@generative-a11y/devtools",
     specifier: "@generative-a11y/devtools",
-    expectedExport: "createDevtoolsStore",
+    expectedExport: "createStore",
     fixtures: [],
     internalPackages: ["@generative-a11y/core"],
   },
@@ -48,7 +56,7 @@ export const packageScenarios = [
     id: "devtools-overlay",
     packageName: "@generative-a11y/devtools",
     specifier: "@generative-a11y/devtools/overlay",
-    expectedExport: "mountDevtoolsOverlay",
+    expectedExport: "mountOverlay",
     fixtures: [],
     internalPackages: ["@generative-a11y/core"],
   },
@@ -56,7 +64,7 @@ export const packageScenarios = [
     id: "react",
     packageName: "@generative-a11y/react",
     specifier: "@generative-a11y/react",
-    expectedExport: "GenerativeA11yProvider",
+    expectedExport: "A11yProvider",
     fixtures: ["react", "react-dom", "@types/react", "@types/react-dom"],
     internalPackages: ["@generative-a11y/core", "@generative-a11y/dom"],
   },
@@ -64,7 +72,7 @@ export const packageScenarios = [
     id: "ai-sdk",
     packageName: "@generative-a11y/ai-sdk",
     specifier: "@generative-a11y/ai-sdk",
-    expectedExport: "createObserver",
+    expectedExport: "createChatObserver",
     fixtures: ["ai", "@types/node"],
     internalPackages: ["@generative-a11y/core"],
   },
@@ -80,7 +88,7 @@ export const packageScenarios = [
     id: "assistant-ui",
     packageName: "@generative-a11y/assistant-ui",
     specifier: "@generative-a11y/assistant-ui",
-    expectedExport: "bindThreadRuntime",
+    expectedExport: "bindThread",
     fixtures: ["@assistant-ui/core", "@types/react"],
     internalPackages: ["@generative-a11y/core"],
   },
@@ -117,29 +125,31 @@ export const typescriptConsumerModes = [
 
 export function createTypeScriptConsumerSource(scenario) {
   if (scenario.id === "core")
-    return `import {createGenerativeA11y, englishAnnouncementCatalog, normalizeAdapterAnnouncementCopy, type AnnouncementCatalog, type AnnouncementMessages, type AnnouncementMessageParameters, type AnnouncementMessageId, type AdapterAnnouncementCopy} from "@generative-a11y/core";
-const messages: AnnouncementMessages = {...englishAnnouncementCatalog.messages, "citation.available": ({count}) => String(count)};
-const catalog: AnnouncementCatalog = {id:"consumer-en-v1",locale:"en",messages};
-const key: AnnouncementMessageId = "citation.available";
-const parameters: AnnouncementMessageParameters[typeof key] = {count:2};
-const copy: AdapterAnnouncementCopy = {locale:"en",toolLabel:"Tool",approvalRequested:"Approval needed",approvalResolved:{approved:"Approved",rejected:"Rejected",cancelled:"Cancelled"},inputRequested:"Input needed",inputResolved:{submitted:"Submitted",cancelled:"Cancelled"}};
-normalizeAdapterAnnouncementCopy(copy);
-createGenerativeA11y({announcementCatalog:catalog}).dispose();
+    return `import {createRuntime} from "@generative-a11y/core";
+import {en, normalizeAdapterCopy, type Messages, type MessageMap, type MessageParams, type MessageKey, type AdapterCopy} from "@generative-a11y/core/messages";
+const messages: MessageMap = {...en.messages, "citation.available": ({count}) => String(count)};
+const catalog: Messages = {id:"consumer-en-v1",locale:"en",messages};
+const key: MessageKey = "citation.available";
+const parameters: MessageParams[typeof key] = {count:2};
+const copy: AdapterCopy = {locale:"en",toolLabel:"Tool",approvalRequested:"Approval needed",approvalResolved:{approved:"Approved",rejected:"Rejected",cancelled:"Cancelled"},inputRequested:"Input needed",inputResolved:{submitted:"Submitted",cancelled:"Cancelled"}};
+normalizeAdapterCopy(copy);
+createRuntime({messages:catalog}).dispose();
+createRuntime().dispose();
 void parameters;
 `;
   const optionTypes = {
-    react: "GenerativeA11yProviderProps",
-    "ai-sdk": "CreateObserverOptions",
+    react: "A11yProviderProps",
+    "ai-sdk": "ChatObserverOptions",
     "ai-sdk-react": "UseChatAccessibilityOptions",
-    "assistant-ui": "BindThreadRuntimeOptions",
+    "assistant-ui": "BindThreadOptions",
     "ag-ui": "BindAgentOptions",
   };
   const optionType = optionTypes[scenario.id];
   if (optionType)
     return `import { ${scenario.expectedExport}, type ${optionType} } from "${scenario.specifier}";
-import { type ${scenario.id === "react" ? "AnnouncementCatalog" : "AdapterAnnouncementCopy"} } from "@generative-a11y/core";
-declare const configured: ${scenario.id === "react" ? "AnnouncementCatalog" : "AdapterAnnouncementCopy"};
-const option: ${optionType}["${scenario.id === "react" ? "announcementCatalog" : "copy"}"] = configured;
+import { type ${scenario.id === "react" ? "Messages" : "AdapterCopy"} } from "@generative-a11y/core/messages";
+declare const configured: ${scenario.id === "react" ? "Messages" : "AdapterCopy"};
+const option: ${optionType}["${scenario.id === "react" ? "messages" : "copy"}"] = configured;
 void option; void ${scenario.expectedExport};
 `;
   return `import { ${scenario.expectedExport} } from "${scenario.specifier}";
@@ -152,15 +162,22 @@ export function createRuntimeConsumerSource(scenario) {
   const catalogCheck =
     scenario.id === "core"
       ? `
-for (const core of [esm, cjs]) {
+const messagesEsm = await import("@generative-a11y/core/messages");
+const messagesCjs = require("@generative-a11y/core/messages");
+assert.deepEqual(Object.keys(messagesEsm).sort(), Object.keys(messagesCjs).sort());
+for (const [core, copy] of [[esm, messagesEsm], [cjs, messagesCjs]]) {
+  core.createRuntime().dispose();
+  assert.equal(core.createGenerativeA11y, undefined);
+  assert.equal(core.en, undefined);
+  assert.equal(copy.englishAnnouncementCatalog, undefined);
   const clock = new core.ManualClock();
   const output = [];
-  const runtime = core.createGenerativeA11y({clock, announcementCatalog:core.englishAnnouncementCatalog, onAnnouncement:value=>output.push(value)});
+  const runtime = core.createRuntime({clock, messages:copy.en, onAnnouncement:value=>output.push(value)});
   runtime.dispatch({type:"response.started",responseId:"packed",locale:"fr"});
   runtime.dispatch({type:"response.completed",responseId:"packed"});
   clock.runUntilIdle();
   assert.equal(output.at(-1).locale,"en");
-  assert.equal(typeof core.normalizeAdapterAnnouncementCopy,"function");
+  assert.equal(typeof copy.normalizeAdapterCopy,"function");
   runtime.dispose();
 }
 `

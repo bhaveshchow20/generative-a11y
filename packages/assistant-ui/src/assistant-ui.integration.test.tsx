@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
-import type { GenerativeA11yEvent } from "@generative-a11y/core";
+import type { RuntimeEvent } from "@generative-a11y/core";
 import { useLocalRuntime } from "@assistant-ui/react";
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { bindThreadRuntime } from "./index.js";
+import { bindThread } from "./index.js";
 
 describe("assistant-ui public runtime integration", () => {
   it("binds and unbinds the installed public useLocalRuntime thread", () => {
@@ -16,8 +16,8 @@ describe("assistant-ui public runtime integration", () => {
         },
       }),
     );
-    const events: GenerativeA11yEvent[] = [];
-    const binding = bindThreadRuntime({
+    const events: RuntimeEvent[] = [];
+    const binding = bindThread({
       runtime: {
         dispatch(event) {
           events.push(event);

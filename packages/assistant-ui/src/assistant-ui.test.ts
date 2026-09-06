@@ -1,9 +1,6 @@
-import type {
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
-} from "@generative-a11y/core";
+import type { RuntimeEvent, Runtime } from "@generative-a11y/core";
 import { describe, expect, it } from "vitest";
-import { bindThreadRuntime, type ThreadRuntimeSource } from "./index.js";
+import { bindThread, type ThreadRuntimeSource } from "./index.js";
 
 type State = { messages: readonly unknown[] };
 function runtimeFor(initial: State) {
@@ -31,15 +28,15 @@ function assistant(
   return { id, role: "assistant", content: [{ type: "text", text }], status };
 }
 function eventsRuntime() {
-  const events: GenerativeA11yEvent[] = [];
+  const events: RuntimeEvent[] = [];
   return {
     events,
     runtime: {
-      dispatch(event: GenerativeA11yEvent) {
+      dispatch(event: RuntimeEvent) {
         events.push(event);
         return true;
       },
-    } satisfies Pick<GenerativeA11yRuntime, "dispatch">,
+    } satisfies Pick<Runtime, "dispatch">,
   };
 }
 
@@ -47,7 +44,7 @@ describe("assistant-ui binding", () => {
   it("silently baselines history, then streams one append-only suffix and terminal state", () => {
     const { events, runtime } = eventsRuntime();
     const thread = runtimeFor({ messages: [assistant("old", "history")] });
-    bindThreadRuntime({
+    bindThread({
       runtime,
       scopeId: "thread",
       thread: thread as unknown as ThreadRuntimeSource,
@@ -82,7 +79,7 @@ describe("assistant-ui binding", () => {
   it("does not invent a terminal state for an unknown incomplete reason, rejects rewrites, and ignores callbacks after dispose", () => {
     const { events, runtime } = eventsRuntime();
     const thread = runtimeFor({ messages: [] });
-    const binding = bindThreadRuntime({
+    const binding = bindThread({
       runtime,
       scopeId: "thread",
       thread: thread as unknown as ThreadRuntimeSource,
@@ -124,7 +121,7 @@ describe("assistant-ui binding", () => {
         },
       ],
     });
-    bindThreadRuntime({
+    bindThread({
       runtime,
       scopeId: "thread",
       thread: thread as unknown as ThreadRuntimeSource,
@@ -190,7 +187,7 @@ describe("assistant-ui binding", () => {
   it("fails closed rather than replaying untracked identities after a configured capacity is reached", () => {
     const { events, runtime } = eventsRuntime();
     const thread = runtimeFor({ messages: [] });
-    bindThreadRuntime({
+    bindThread({
       runtime,
       scopeId: "thread",
       thread: thread as unknown as ThreadRuntimeSource,
@@ -223,13 +220,13 @@ describe("assistant-ui binding", () => {
   it("validates ownership inputs and isolates a host dispatch failure", () => {
     const thread = runtimeFor({ messages: [] });
     expect(() =>
-      bindThreadRuntime({
+      bindThread({
         runtime: { dispatch: () => false },
         scopeId: " ",
         thread: thread as unknown as ThreadRuntimeSource,
       }),
     ).toThrow("scopeId");
-    const binding = bindThreadRuntime({
+    const binding = bindThread({
       runtime: {
         dispatch() {
           throw new Error("host delivery failed");
@@ -262,7 +259,7 @@ it("copies translated tool and approval copy from host configuration", () => {
   const { events, runtime } = eventsRuntime();
   const thread = runtimeFor({ messages: [] });
   const copy = frenchCopy();
-  const binding = bindThreadRuntime({
+  const binding = bindThread({
     runtime,
     scopeId: "fr",
     thread: thread as unknown as ThreadRuntimeSource,

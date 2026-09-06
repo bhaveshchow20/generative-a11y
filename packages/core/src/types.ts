@@ -50,7 +50,7 @@ export type WorkflowContext =
 
 type ContextualEventMetadata = EventMetadata & WorkflowContext;
 
-export type GenerativeA11yEvent =
+export type RuntimeEvent =
   | (EventMetadata & { type: "attention.changed"; mode: AttentionMode })
   | (EventMetadata & { type: "attention.override"; mode: AttentionOverride })
   | (ContextualEventMetadata & {
@@ -260,7 +260,7 @@ export interface AnnouncementIntent {
   at: number;
   channel: AnnouncementChannel;
   text: string;
-  sourceType: GenerativeA11yEvent["type"];
+  sourceType: RuntimeEvent["type"];
   sourceEventId?: string;
   responseId?: string;
   toolId?: string;
@@ -318,7 +318,7 @@ export interface AnnouncementDiagnostic {
   /** Number of suppressed decisions or events represented by an aggregate. */
   count?: number;
   announcement?: AnnouncementIntent;
-  sourceType?: GenerativeA11yEvent["type"];
+  sourceType?: RuntimeEvent["type"];
   sourceEventId?: string;
   responseId?: string;
   toolId?: string;
@@ -341,7 +341,7 @@ export interface AnnouncementDiagnostic {
 export interface DiagnosticPendingAnnouncement {
   id: string;
   channel: AnnouncementChannel;
-  sourceType: GenerativeA11yEvent["type"];
+  sourceType: RuntimeEvent["type"];
   sourceEventId?: string;
   responseId?: string;
   toolId?: string;
@@ -422,7 +422,7 @@ export interface DiagnosticStepSnapshot {
 }
 
 export interface RuntimeDiagnosticSnapshotV1 {
-  readonly announcementCatalog?: Readonly<{
+  readonly messages?: Readonly<{
     catalogId: string;
     locale: string;
   }>;
@@ -450,7 +450,7 @@ export type RuntimeDiagnosticEventV1 =
       sequence: number;
       at: number;
       kind: "event-observed";
-      event: GenerativeA11yEvent;
+      event: RuntimeEvent;
     }
   | {
       schemaVersion: 1;

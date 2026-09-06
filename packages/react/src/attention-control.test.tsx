@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
-import { createGenerativeA11y } from "@generative-a11y/core";
-import {
-  createAttentionStore,
-  bindAttentionToRuntime,
-} from "@generative-a11y/dom";
+import { createRuntime } from "@generative-a11y/core";
+import { createAttentionStore, bindAttention } from "@generative-a11y/dom";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { StrictMode, useEffect } from "react";
 import { hydrateRoot } from "react-dom/client";
@@ -11,9 +8,9 @@ import { renderToString } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 import * as reactA11y from "./index.js";
 
-const { GenerativeA11yProvider } = reactA11y;
+const { A11yProvider } = reactA11y;
 function Control() {
-  const { state, setOverride } = reactA11y.useGenerativeA11yAttentionControl();
+  const { state, setOverride } = reactA11y.useAttentionControl();
   return (
     <button onClick={() => setOverride("normal")}>
       {state.observed}/{state.override}/{state.effective}
@@ -32,14 +29,14 @@ afterEach(async () => {
 });
 
 it("keeps providers observation-only by default and control snapshots stable", async () => {
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   const dispatch = vi.spyOn(runtime, "dispatch");
   render(
-    <GenerativeA11yProvider runtime={runtime} dom={false}>
+    <A11yProvider runtime={runtime} delivery={false}>
       <Control />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   expect(screen.getByRole("button").textContent).toBe("unknown/auto/normal");
   expect(dispatch).not.toHaveBeenCalled();
@@ -50,21 +47,21 @@ it("forwards native observations in StrictMode and preserves an explicit overrid
     configurable: true,
     value: "hidden",
   });
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   const store = createAttentionStore({ document });
   const dispose = vi.spyOn(store, "dispose");
   const view = render(
     <StrictMode>
-      <GenerativeA11yProvider
+      <A11yProvider
         runtime={runtime}
         attentionStore={store}
         attentionPolicy
-        dom={false}
+        delivery={false}
       >
         <Control />
-      </GenerativeA11yProvider>
+      </A11yProvider>
     </StrictMode>,
   );
   expect(screen.getByRole("button").textContent).toBe("background/auto/quiet");
@@ -92,15 +89,15 @@ it("forwards native observations in StrictMode and preserves an explicit overrid
   runtime.dispose();
 });
 it("uses an inert SSR snapshot and hydrates to the borrowed runtime state without render dispatch", async () => {
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   runtime.dispatch({ type: "attention.override", mode: "quiet" });
   const dispatch = vi.spyOn(runtime, "dispatch");
   const app = (
-    <GenerativeA11yProvider runtime={runtime} dom={false}>
+    <A11yProvider runtime={runtime} delivery={false}>
       <Control />
-    </GenerativeA11yProvider>
+    </A11yProvider>
   );
   const container = document.createElement("div");
   container.innerHTML = renderToString(app);
@@ -123,18 +120,18 @@ it("uses an inert SSR snapshot and hydrates to the borrowed runtime state withou
   container.remove();
 });
 it("rejects a provider bridge competing with a DOM binding and preserves borrowed ownership", async () => {
-  const runtime = createGenerativeA11y({});
+  const runtime = createRuntime({});
   const store = createAttentionStore({ document });
   const disposeRuntime = vi.spyOn(runtime, "dispose");
   const disposeStore = vi.spyOn(store, "dispose");
-  const binding = bindAttentionToRuntime({ runtime, attentionStore: store });
+  const binding = bindAttention({ runtime, attentionStore: store });
   expect(() =>
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         runtime={runtime}
         attentionStore={store}
         attentionPolicy
-        dom={false}
+        delivery={false}
       />,
     ),
   ).toThrow(/already/);
@@ -148,24 +145,24 @@ it("rejects a provider bridge competing with a DOM binding and preserves borrowe
 
 it("returns a stable frozen default with disabled policy and owns the configured runtime", async () => {
   const states: Array<
-    ReturnType<typeof reactA11y.useGenerativeA11yAttentionControl>["state"]
+    ReturnType<typeof reactA11y.useAttentionControl>["state"]
   > = [];
   function DefaultControl() {
-    const { state } = reactA11y.useGenerativeA11yAttentionControl();
+    const { state } = reactA11y.useAttentionControl();
     useEffect(() => {
       states.push(state);
     });
     return <Control />;
   }
   const view = render(
-    <GenerativeA11yProvider dom={false}>
+    <A11yProvider delivery={false}>
       <DefaultControl />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   view.rerender(
-    <GenerativeA11yProvider dom={false}>
+    <A11yProvider delivery={false}>
       <DefaultControl />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   expect(states.length).toBeGreaterThanOrEqual(2);
   for (const state of states) {
@@ -181,13 +178,13 @@ it("returns a stable frozen default with disabled policy and owns the configured
     value: "hidden",
   });
   const enabled = render(
-    <GenerativeA11yProvider
-      dom={false}
+    <A11yProvider
+      delivery={false}
       attentionPolicy
       policy={{ attention: { enabled: true } }}
     >
       <Control />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   expect(screen.getByRole("button").textContent).toBe("background/auto/quiet");
   enabled.unmount();
@@ -195,7 +192,7 @@ it("returns a stable frozen default with disabled policy and owns the configured
 });
 
 it("rolls back a failed store subscription and leaves retained callbacks inert", async () => {
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   const store = createAttentionStore({ document });
@@ -208,11 +205,11 @@ it("rolls back a failed store subscription and leaves retained callbacks inert",
   const dispose = vi.spyOn(store, "dispose");
   expect(() =>
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         runtime={runtime}
         attentionStore={store}
         attentionPolicy
-        dom={false}
+        delivery={false}
       />,
     ),
   ).toThrow("subscription failed");
@@ -230,7 +227,7 @@ it("releases the bridge during keyed replacement without stale cleanup resetting
     configurable: true,
     value: "hidden",
   });
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   const store = createAttentionStore({ document });
@@ -238,15 +235,15 @@ it("releases the bridge during keyed replacement without stale cleanup resetting
   const disposeStore = vi.spyOn(store, "dispose");
   const app = (key: string) => (
     <StrictMode>
-      <GenerativeA11yProvider
+      <A11yProvider
         key={key}
         runtime={runtime}
         attentionStore={store}
         attentionPolicy
-        dom={false}
+        delivery={false}
       >
         <Control />
-      </GenerativeA11yProvider>
+      </A11yProvider>
     </StrictMode>
   );
   const view = render(app("first"));
@@ -267,35 +264,35 @@ it("releases the bridge during keyed replacement without stale cleanup resetting
 });
 
 it("still rejects two concurrently mounted provider bridges", async () => {
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     policy: { attention: { enabled: true } },
   });
   const store = createAttentionStore({ document });
   const first = render(
-    <GenerativeA11yProvider
+    <A11yProvider
       runtime={runtime}
       attentionStore={store}
       attentionPolicy
-      dom={false}
+      delivery={false}
     />,
   );
   expect(() =>
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         runtime={runtime}
         attentionStore={store}
         attentionPolicy
-        dom={false}
+        delivery={false}
       />,
     ),
   ).toThrow(/already/);
   await flush();
-  expect(() =>
-    bindAttentionToRuntime({ runtime, attentionStore: store }),
-  ).toThrow(/already/);
+  expect(() => bindAttention({ runtime, attentionStore: store })).toThrow(
+    /already/,
+  );
   first.unmount();
   await flush();
-  const next = bindAttentionToRuntime({ runtime, attentionStore: store });
+  const next = bindAttention({ runtime, attentionStore: store });
   next.dispose();
   store.dispose();
   runtime.dispose();
