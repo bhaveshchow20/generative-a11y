@@ -13,7 +13,7 @@ import * as reactA11y from "./index.js";
 
 const { GenerativeA11yProvider } = reactA11y;
 function Control() {
-  const { state, setOverride } = reactA11y.useGenerativeA11yAttentionControl();
+  const { state, setOverride } = reactA11y.useAttentionControl();
   return (
     <button onClick={() => setOverride("normal")}>
       {state.observed}/{state.override}/{state.effective}
@@ -148,10 +148,10 @@ it("rejects a provider bridge competing with a DOM binding and preserves borrowe
 
 it("returns a stable frozen default with disabled policy and owns the configured runtime", async () => {
   const states: Array<
-    ReturnType<typeof reactA11y.useGenerativeA11yAttentionControl>["state"]
+    ReturnType<typeof reactA11y.useAttentionControl>["state"]
   > = [];
   function DefaultControl() {
-    const { state } = reactA11y.useGenerativeA11yAttentionControl();
+    const { state } = reactA11y.useAttentionControl();
     useEffect(() => {
       states.push(state);
     });

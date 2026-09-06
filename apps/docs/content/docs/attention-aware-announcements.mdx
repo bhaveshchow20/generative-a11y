@@ -3,7 +3,7 @@ title: "Attention-aware announcements"
 description: "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls to an existing React interface."
 publicPath: "/docs/attention-aware-announcements"
 section: "Concepts"
-keywords: ["attention", "quiet", "override", "reading-history", "useGenerativeA11yAttentionControl", "bindAttentionToRuntime"]
+keywords: ["attention", "quiet", "override", "reading-history", "useAttentionControl", "bindAttentionToRuntime"]
 related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"]
 order: 7
 ---
@@ -15,7 +15,7 @@ export const sourceMetadata = {
   order: 7,
 };
 
-export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useGenerativeA11yAttentionControl bindAttentionToRuntime. Provider ownership and body-level live regions. Short React setup and control snippets.";
+export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useAttentionControl bindAttentionToRuntime. Provider ownership and body-level live regions. Short React setup and control snippets.";
 
 ## Opt in at both layers
 
@@ -23,7 +23,7 @@ Core attention filtering is disabled by default. Set `policy.attention.enabled: 
 
 The React provider's separate `attentionPolicy` prop opts into forwarding browser observations to the runtime. It does not enable core filtering by itself. A runtime supplied through `runtime` must already have its policy configured; provider policy props do not reconfigure a borrowed runtime.
 
-The provider renders no visible controls. The snippets below connect host-owned controls using `useGenerativeA11yAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
+The provider renders no visible controls. The snippets below connect host-owned controls using `useAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
 
 ## Understand what quiet suppresses
 
@@ -48,17 +48,18 @@ Import `GenerativeA11yProvider` from `@generative-a11y/react` and wrap your exis
 
 ## Connect your existing elements
 
-Inside a client component under that provider, import `useGenerativeA11yBindings` from `@generative-a11y/react`. Attach its props to the elements you already render; keep your current content and styling.
+Inside a client component under that provider, import `useAttentionTargets` from `@generative-a11y/react`. It registers the composer, conversation, and newest response as attention targets. Attach its props to those existing elements to observe focus and visibility; keep your content and styling.
 
 ```tsx
-const bindings = useGenerativeA11yBindings();
+const { composerProps, conversationProps, newestResponseProps } =
+  useAttentionTargets();
 
 return (
   <>
-    <div {...bindings.conversationProps}>
-      <article {...bindings.newestResponseProps}>{response}</article>
+    <div {...conversationProps}>
+      <article {...newestResponseProps}>{response}</article>
     </div>
-    <textarea {...bindings.composerProps} />
+    <textarea {...composerProps} />
   </>
 );
 ```
@@ -67,10 +68,10 @@ Here, `response` is your application's existing response content. These bindings
 
 ## Add controls where they fit
 
-Import `useGenerativeA11yAttentionControl` from `@generative-a11y/react` inside a client component under the provider. Connect `setOverride` to your own settings or controls. For example, a quiet toggle:
+Import `useAttentionControl` from `@generative-a11y/react` inside a client component under the provider. Connect `setOverride` to your own settings or controls. For example, a quiet toggle:
 
 ```tsx
-const { state, setOverride } = useGenerativeA11yAttentionControl();
+const { state, setOverride } = useAttentionControl();
 
 return (
   <button

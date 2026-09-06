@@ -21,7 +21,7 @@ import {
   GenerativeA11yProvider,
   useGenerativeA11y,
   useGenerativeA11yAttention,
-  useGenerativeA11yBindings,
+  useAttentionTargets,
   useGenerativeA11yPreferences,
   useGenerativeA11yRuntime,
 } from "./index.js";
@@ -412,7 +412,7 @@ describe("GenerativeA11yProvider", () => {
       useGenerativeA11y,
       useGenerativeA11yRuntime,
       useGenerativeA11yAttention,
-      useGenerativeA11yBindings,
+      useAttentionTargets,
       useGenerativeA11yPreferences,
     ]) {
       expect(() => renderHook(() => hook())).toThrow(
@@ -1156,7 +1156,7 @@ describe("attention and bindings", () => {
   it("registers, replaces, and unregisters binding refs", () => {
     const store = createAttentionStore({ document });
     function Fixture({ alternate = false }: { alternate?: boolean }) {
-      const bindings = useGenerativeA11yBindings();
+      const bindings = useAttentionTargets();
       const attention = useGenerativeA11yAttention();
       return (
         <>
@@ -1193,7 +1193,7 @@ describe("attention and bindings", () => {
 
   it("replays binding refs registered before owned attention installation", () => {
     function Fixture() {
-      const bindings = useGenerativeA11yBindings();
+      const bindings = useAttentionTargets();
       const attention = useGenerativeA11yAttention();
       return (
         <>
@@ -1216,7 +1216,7 @@ describe("attention and bindings", () => {
     const before = document.activeElement;
     const focus = vi.spyOn(HTMLElement.prototype, "focus");
     function Fixture() {
-      const bindings = useGenerativeA11yBindings();
+      const bindings = useAttentionTargets();
       return <textarea {...bindings.composerProps} />;
     }
     render(

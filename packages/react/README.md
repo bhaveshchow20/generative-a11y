@@ -23,19 +23,20 @@ one visually hidden polite region and one visually hidden assertive region.
 ```tsx
 import {
   GenerativeA11yProvider,
-  useGenerativeA11yBindings,
+  useAttentionTargets,
   useGenerativeA11yRuntime,
 } from "@generative-a11y/react";
 
 function ExistingChat() {
   const runtime = useGenerativeA11yRuntime();
-  const bindings = useGenerativeA11yBindings();
+  const { composerProps, conversationProps, newestResponseProps } =
+    useAttentionTargets();
 
   return (
-    <div {...bindings.conversationProps}>
+    <div {...conversationProps}>
       {/* Existing messages remain unchanged. */}
-      <div {...bindings.newestResponseProps}>Latest response</div>
-      <textarea {...bindings.composerProps} />
+      <div {...newestResponseProps}>Latest response</div>
+      <textarea {...composerProps} />
       <button
         onClick={() =>
           runtime.dispatch({ type: "response.started", responseId: "r1" })
@@ -118,10 +119,10 @@ Every hook throws a clear error outside `GenerativeA11yProvider`.
 - `useGenerativeA11yPreferences()` subscribes with `useSyncExternalStore` and
   returns a `GenerativeA11yPreferencesResult`: the frozen `preferences`
   snapshot, stable `setPreferences` callback, and underlying `store`.
-- `useGenerativeA11yBindings()` returns stable, ref-only
-  `GenerativeA11yBindings` for the host's existing elements.
+- `useAttentionTargets()` returns stable, ref-only `GenerativeA11yBindings` for
+  the host's existing elements.
 
-## Bindings
+## Attention targets
 
 `GenerativeA11yBindings` contains:
 
@@ -138,11 +139,12 @@ not add roles, infer stop/retry/approval lifecycle events, focus elements, or
 scroll the application.
 
 ```tsx
-const bindings = useGenerativeA11yBindings();
+const { composerProps, conversationProps, newestResponseProps } =
+  useAttentionTargets();
 
-<textarea {...bindings.composerProps} />;
-<div {...bindings.conversationProps}>...</div>;
-<div {...bindings.newestResponseProps} />;
+<textarea {...composerProps} />;
+<div {...conversationProps}>...</div>;
+<div {...newestResponseProps} />;
 ```
 
 ## SSR and hydration
@@ -229,14 +231,13 @@ provider policy props do not reconfigure borrowed resources. Like the other
 provider resource options, `attentionPolicy` is captured on mount; use a keyed
 remount to change it. Only one attention bridge can own a runtime at a time.
 
-`useGenerativeA11yAttentionControl()` returns
-`GenerativeA11yAttentionControlResult`: `{ state, setOverride }`. `state`
-contains `observed`, `override`, and `effective`;
-`setOverride("auto" | "normal" | "quiet")` changes the explicit user preference.
-Call it from an event handler or effect. An explicit override takes precedence
-over observations. The hook requires a provider and follows the runtime even
-when observation forwarding is disabled. When the runtime policy is disabled, it
-returns a stable frozen
+`useAttentionControl()` returns `GenerativeA11yAttentionControlResult`:
+`{ state, setOverride }`. `state` contains `observed`, `override`, and
+`effective`; `setOverride("auto" | "normal" | "quiet")` changes the explicit
+user preference. Call it from an event handler or effect. An explicit override
+takes precedence over observations. The hook requires a provider and follows the
+runtime even when observation forwarding is disabled. When the runtime policy is
+disabled, it returns a stable frozen
 `{ observed: "unknown", override: "auto", effective: "normal" }` default. Server
 rendering always uses that inert default, with current runtime state read after
 hydration. The bridge dispatches only after commit and releases its subscription

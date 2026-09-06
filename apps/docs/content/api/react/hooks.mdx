@@ -9,7 +9,7 @@ keywords:
   [
     "useGenerativeA11y",
     "useGenerativeA11yRuntime",
-    "useGenerativeA11yBindings",
+    "useAttentionTargets",
     "hooks",
   ]
 related: []
@@ -24,19 +24,19 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useGenerativeA11yAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
+  "Attention policy attentionPolicy useAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
   "React hooks",
   "React hooks for the runtime, attention, preferences, and refs for existing app elements.",
   "React",
   "useGenerativeA11y",
   "useGenerativeA11yRuntime",
-  "useGenerativeA11yBindings",
+  "useAttentionTargets",
   "hooks",
   "complete-example",
   "Bind an existing chat interface",
   "Bindings contain refs only. Add them to semantic elements already in your app.",
   "tsx",
-  'function ExistingChat() { const runtime = useGenerativeA11yRuntime(); const attention = useGenerativeA11yAttention(); const { preferences, setPreferences } = useGenerativeA11yPreferences(); const bindings = useGenerativeA11yBindings(); return ( <main {...bindings.conversationProps}> <article {...bindings.newestResponseProps}>Latest response</article> <textarea {...bindings.composerProps} /> <button onClick={() => runtime.dispatch(startEvent)}>Send</button> <output>{attention.mode}</output> <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}> Reduce streaming detail </button> </main> ); }',
+  'function ExistingChat() { const runtime = useGenerativeA11yRuntime(); const attention = useGenerativeA11yAttention(); const { preferences, setPreferences } = useGenerativeA11yPreferences(); const { composerProps, conversationProps, newestResponseProps } = useAttentionTargets(); return ( <main {...conversationProps}> <article {...newestResponseProps}>Latest response</article> <textarea {...composerProps} /> <button onClick={() => runtime.dispatch(startEvent)}>Send</button> <output>{attention.mode}</output> <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}> Reduce streaming detail </button> </main> ); }',
   "Read the app runtime",
   "Send only events that your app knows happened.",
   "Register existing elements",
@@ -63,7 +63,7 @@ export const searchableText = [
   "Hook",
   "n/a",
   "Returns validated preferences, setPreferences, and the underlying store.",
-  "useGenerativeA11yBindings()",
+  "useAttentionTargets()",
   "GenerativeA11yBindings",
   "Hook",
   "n/a",
@@ -97,12 +97,12 @@ function ExistingChat() {
   const runtime = useGenerativeA11yRuntime();
   const attention = useGenerativeA11yAttention();
   const { preferences, setPreferences } = useGenerativeA11yPreferences();
-  const bindings = useGenerativeA11yBindings();
+  const { composerProps, conversationProps, newestResponseProps } = useAttentionTargets();
 
   return (
-    <main {...bindings.conversationProps}>
-      <article {...bindings.newestResponseProps}>Latest response</article>
-      <textarea {...bindings.composerProps} />
+    <main {...conversationProps}>
+      <article {...newestResponseProps}>Latest response</article>
+      <textarea {...composerProps} />
       <button onClick={() => runtime.dispatch(startEvent)}>Send</button>
       <output>{attention.mode}</output>
       <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}>
@@ -177,7 +177,7 @@ Preference updates remain validated and versioned.
         </>
       ),
     },
-    "useGenerativeA11yBindings()": {
+    "useAttentionTargets()": {
       type: <>GenerativeA11yBindings</>,
       description: (
         <>
@@ -222,7 +222,7 @@ Each property contains a React ref for an existing part of your interface.
   </tbody>
 </table>
 
-## useGenerativeA11yAttentionControl
+## useAttentionControl
 
 Returns `{ state: { observed, override, effective }, setOverride }`. Call `setOverride("quiet")`, `setOverride("normal")`, or `setOverride("auto")` from controls owned by your host app. The provider adds no visible controls. With attention filtering disabled, effective mode remains normal.
 

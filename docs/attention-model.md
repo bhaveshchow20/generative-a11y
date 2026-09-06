@@ -112,7 +112,7 @@ completion notice too, so a suppressed response can finish silently.
 
 React's `attentionPolicy` prop explicitly enables forwarding, separately from
 core `policy.attention.enabled`. Existing attention refs/hooks stay observation-
-only by default. `useGenerativeA11yAttentionControl()` returns current
+only by default. `useAttentionControl()` returns current
 `{ observed, override, effective }` state and `setOverride()` for a host-owned
 control. No visual control is rendered by the library. Provider options are
 captured at mount; keyed replacement safely releases and reacquires the bridge.

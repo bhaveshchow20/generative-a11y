@@ -794,7 +794,7 @@ export function useGenerativeA11yAttention(): AttentionSnapshot {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export function useGenerativeA11yAttentionControl(): GenerativeA11yAttentionControlResult {
+export function useAttentionControl(): GenerativeA11yAttentionControlResult {
   const { runtime } = useGenerativeA11y();
   const subscribe = useCallback(
     (listener: () => void) => runtime.subscribeDiagnostics(listener),
@@ -846,7 +846,7 @@ export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult 
   );
 }
 
-export function useGenerativeA11yBindings(): GenerativeA11yBindings {
+export function useAttentionTargets(): GenerativeA11yBindings {
   const { attentionStore } = useGenerativeA11y();
   const registerComposer = useCallback(
     (element: Element) => attentionStore.registerComposer(element),
