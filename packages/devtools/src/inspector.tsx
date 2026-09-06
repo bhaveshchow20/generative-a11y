@@ -117,6 +117,8 @@ function explain(record: DevtoolsRecord) {
         duplicate: "The runtime suppressed a recently delivered duplicate.",
         "policy-silent":
           "The active policy intentionally made this event silent.",
+        "catalog-format-error":
+          "The host message formatter failed; the runtime used a generic English notice without retaining the error or parameters.",
         "attention-quiet":
           "Quiet mode discarded routine output without retaining an announcement backlog.",
         "attention-updated":
@@ -324,6 +326,18 @@ function Detail({
         <h4>Policy and scheduling</h4>
         {runtime ? (
           <dl className="ga-key-values">
+            {runtime.announcementCatalog && (
+              <>
+                <div>
+                  <dt>Announcement catalog</dt>
+                  <dd>{runtime.announcementCatalog.catalogId}</dd>
+                </div>
+                <div>
+                  <dt>Notice language</dt>
+                  <dd>{runtime.announcementCatalog.locale}</dd>
+                </div>
+              </>
+            )}
             {runtime.attention && (
               <>
                 <div>

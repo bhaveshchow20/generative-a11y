@@ -15,6 +15,7 @@ describe("Fumadocs content", () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain("/docs/getting-started");
     expect(paths).toContain("/docs/attention-aware-announcements");
+    expect(paths).toContain("/docs/localized-announcements");
     expect(paths).toContain("/docs/project/overview");
     expect(paths).toContain("/api/core/create-generative-a11y");
     expect(paths).not.toContain("/project/overview");

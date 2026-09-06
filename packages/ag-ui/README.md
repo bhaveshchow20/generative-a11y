@@ -57,3 +57,24 @@ All identities are bounded; capacity exhaustion suppresses later events.
   receives the normalized agent events.
 - [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
   provides browser delivery for React applications.
+
+## Host-owned localized copy
+
+The binding/observer accepts optional `copy: AdapterAnnouncementCopy` from
+`@generative-a11y/core`. Supply a complete object with `locale`, `toolLabel`,
+`approvalRequested`, `approvalResolved` (approved/rejected/cancelled),
+`inputRequested`, and `inputResolved` (submitted/cancelled). It is validated and
+copied at construction; each adapter uses only copy for events it already
+observes. Copy-bearing events carry its locale; response text is never assigned
+a language from this option. No lifecycle fidelity changes.
+
+Pair this with core's `announcementCatalog` for generated notices. Reuse your
+existing i18n system; no translation engine is added. Copy strings are nonempty
+and at most 4,096 UTF-16 code units; locale is a valid language tag of at
+most 128. Invalid configuration throws before subscribing. Omitted copy
+preserves existing generic English labels.
+
+See the
+[complete localization guide](https://generativea11y.com/docs/localized-announcements)
+for every field, ownership, fallbacks, and an illustrative complete French
+example.

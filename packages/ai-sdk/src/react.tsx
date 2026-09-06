@@ -1,4 +1,7 @@
-import type { GenerativeA11yRuntime } from "@generative-a11y/core";
+import type {
+  AdapterAnnouncementCopy,
+  GenerativeA11yRuntime,
+} from "@generative-a11y/core";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ChatOnErrorCallback, ChatOnFinishCallback, UIMessage } from "ai";
 import { useEffect, useMemo, useRef } from "react";
@@ -21,6 +24,8 @@ export interface UseChatAccessibilityOptions<
 > {
   readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
   readonly scopeId: string;
+  /** Captured with the observer; replace its scope/runtime to change language. */
+  readonly copy?: AdapterAnnouncementCopy;
   readonly maxTrackedEntities?: number;
   readonly getToolLabel?: (context: ToolLabelContext) => string;
   readonly onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
@@ -52,14 +57,17 @@ export function useChatAccessibility<UI_MESSAGE extends UIMessage>(
   const latestOptions = useRef(options);
   latestOptions.current = options;
   const integration = useMemo<ChatIntegration<UI_MESSAGE>>(() => {
+    const copy = latestOptions.current.copy;
+    const defaultLabel = copy?.toolLabel ?? "A tool";
     const observer = createObserver({
       runtime: options.runtime,
       scopeId: options.scopeId,
+      ...(copy === undefined ? {} : { copy }),
       ...(options.maxTrackedEntities === undefined
         ? {}
         : { maxTrackedEntities: options.maxTrackedEntities }),
       getToolLabel: (context) =>
-        latestOptions.current.getToolLabel?.(context) ?? "A tool",
+        latestOptions.current.getToolLabel?.(context) ?? defaultLabel,
     });
     return {
       observer,
@@ -70,15 +78,20 @@ export function useChatAccessibility<UI_MESSAGE extends UIMessage>(
       }),
     };
   }, [options.runtime, options.scopeId, options.maxTrackedEntities]);
-  const cleanupGeneration = useRef(0);
+  const cleanupGenerations = useRef(new WeakMap<ChatObserver, number>());
 
   useEffect(() => {
-    cleanupGeneration.current += 1;
+    const observer = integration.observer;
+    const generations = cleanupGenerations.current;
+    generations.set(observer, (generations.get(observer) ?? 0) + 1);
     return () => {
-      const generation = ++cleanupGeneration.current;
+      const generation = (generations.get(observer) ?? 0) + 1;
+      generations.set(observer, generation);
       queueMicrotask(() => {
-        if (cleanupGeneration.current === generation)
-          integration.observer.dispose();
+        if (generations.get(observer) === generation) {
+          observer.dispose();
+          generations.delete(observer);
+        }
       });
     };
   }, [integration]);

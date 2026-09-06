@@ -244,3 +244,72 @@ describe("assistant-ui binding", () => {
     binding.dispose();
   });
 });
+
+const frenchCopy = () => ({
+  locale: "fr",
+  toolLabel: "Un outil",
+  approvalRequested: "Autorisation requise.",
+  approvalResolved: {
+    approved: "Autorisation accordée.",
+    rejected: "Autorisation refusée.",
+    cancelled: "Autorisation annulée.",
+  },
+  inputRequested: "Saisie requise.",
+  inputResolved: { submitted: "Saisie reçue.", cancelled: "Saisie annulée." },
+});
+
+it("copies translated tool and approval copy from host configuration", () => {
+  const { events, runtime } = eventsRuntime();
+  const thread = runtimeFor({ messages: [] });
+  const copy = frenchCopy();
+  const binding = bindThreadRuntime({
+    runtime,
+    scopeId: "fr",
+    thread: thread as unknown as ThreadRuntimeSource,
+    copy,
+  });
+  copy.approvalResolved.approved = "mutated";
+  const update = (approved?: boolean) =>
+    thread.update({
+      messages: [
+        {
+          id: "m",
+          role: "assistant",
+          status: { type: "running" },
+          content: [
+            {
+              type: "tool-call",
+              toolCallId: "t",
+              toolName: "secret",
+              approval: {
+                id: "a",
+                ...(approved === undefined ? {} : { approved }),
+              },
+            },
+          ],
+        },
+      ],
+    });
+  update();
+  update(true);
+  expect(events).toContainEqual({
+    type: "tool.started",
+    toolId: "fr:tool:t",
+    label: "Un outil",
+    locale: "fr",
+  });
+  expect(events).toContainEqual({
+    type: "approval.requested",
+    approvalId: "fr:approval:a",
+    label: "Autorisation requise.",
+    locale: "fr",
+  });
+  expect(events).toContainEqual({
+    type: "approval.resolved",
+    approvalId: "fr:approval:a",
+    outcome: "approved",
+    label: "Autorisation accordée.",
+    locale: "fr",
+  });
+  binding.dispose();
+});

@@ -120,3 +120,14 @@ use explicit exports and do not import another package's source files. Browser
 and assistive-technology support is published only from dated test results; see
 [browser support](browser-support.md) and the
 [manual AT test plan](manual-at-test-plan.md).
+
+## Host translation boundary
+
+Core accepts a complete typed `announcementCatalog` at construction. Strings or
+pure synchronous callbacks reuse host translations and pluralization; core does
+not parse ICU, fetch translations, or detect language. It formats only eligible
+candidates before scheduling. Adapters accept copied safe labels/outcomes
+without adding lifecycle inference. DOM receives final text and its actual
+language; React forwards construction options. Catalog code/text stays out of
+diagnostic snapshots and replay; matching configuration is required for
+reproduction.

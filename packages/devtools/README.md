@@ -170,3 +170,13 @@ consumers can ignore the optional fields.
 - [`@generative-a11y/core/testing`](https://generativea11y.com/api/core/testing)
   provides deterministic replay and semantic test assertions without another
   package installation.
+
+## Localized announcements
+
+Runtime snapshots include optional `announcementCatalog: { catalogId, locale }`.
+The inspector exposes only these fields and `catalog-format-error`; catalog
+messages, formatter arguments/functions and error text are not retained. Use a
+non-sensitive catalog ID.
+
+See the
+[localization guide](https://generativea11y.com/docs/localized-announcements).

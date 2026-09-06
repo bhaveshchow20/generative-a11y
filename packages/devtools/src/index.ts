@@ -465,6 +465,14 @@ function copyRuntimeSnapshot(
           }
         : {}),
     }),
+    ...(source.announcementCatalog
+      ? {
+          announcementCatalog: Object.freeze({
+            catalogId: source.announcementCatalog.catalogId,
+            locale: source.announcementCatalog.locale,
+          }),
+        }
+      : {}),
     ...(source.attention
       ? {
           attention: Object.freeze({

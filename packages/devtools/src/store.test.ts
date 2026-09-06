@@ -690,3 +690,35 @@ describe("devtools store", () => {
     expect(store.getSnapshot().records.at(-1)).not.toHaveProperty("sequence");
   });
 });
+
+it("allowlists catalog identity without retaining catalog payloads", () => {
+  const runtime = createGenerativeA11y({});
+  const getSnapshot = runtime.getDiagnosticSnapshot.bind(runtime);
+  runtime.getDiagnosticSnapshot = () => ({
+    ...getSnapshot(),
+    announcementCatalog: {
+      catalogId: "example-fr-v1",
+      locale: "fr",
+      messages: { secret: "private-copy" },
+    },
+  });
+  const store = createDevtoolsStore();
+  store.attachRuntime({ id: "localized", runtime });
+  const trace = store.exportTrace();
+  expect(trace.runtimeSnapshots.localized).toHaveProperty(
+    "announcementCatalog",
+    { catalogId: "example-fr-v1", locale: "fr" },
+  );
+  expect(JSON.stringify(trace)).not.toContain("private-copy");
+  expect(
+    Object.isFrozen(
+      (
+        trace.runtimeSnapshots.localized as unknown as {
+          announcementCatalog: object;
+        }
+      ).announcementCatalog,
+    ),
+  ).toBe(true);
+  store.dispose();
+  runtime.dispose();
+});

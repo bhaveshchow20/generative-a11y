@@ -280,6 +280,7 @@ export type DiagnosticDisposition =
   "queued" | "merged" | "suppressed" | "cancelled" | "announced";
 
 export type DiagnosticReason =
+  | "catalog-format-error"
   | "scheduled"
   | "coalesced"
   | "duplicate"
@@ -421,6 +422,10 @@ export interface DiagnosticStepSnapshot {
 }
 
 export interface RuntimeDiagnosticSnapshotV1 {
+  readonly announcementCatalog?: Readonly<{
+    catalogId: string;
+    locale: string;
+  }>;
   schemaVersion: 1;
   at: number;
   policy: ReadonlyAnnouncementPolicy;

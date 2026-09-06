@@ -20,6 +20,8 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { frenchCatalog } from "../lib/french-announcements";
+
 import { createScenarioSteps, type ScenarioName } from "../lib/scenarios";
 
 interface ObservedEvent {
@@ -86,9 +88,10 @@ export function LifecycleLab() {
     return () => disposeSession();
   }, [disposeSession]);
 
-  function createSession() {
+  function createSession(localized = false) {
     const runtime = createGenerativeA11y({
       preset: "verbose",
+      ...(localized ? {announcementCatalog: frenchCatalog} : {}),
       policy: {
         text: { minimumCharacters: 1, maximumDelayMs: 0 },
         tools: { announceStartAfterMs: 0, announceProgress: true },
@@ -146,9 +149,9 @@ export function LifecycleLab() {
     runtime.dispatch(event);
   }
 
-  function runScenario(name: ScenarioName) {
+  function runScenario(name: ScenarioName, localized = false) {
     reset();
-    const runtime = createSession();
+    const runtime = createSession(localized);
     setRunning(true);
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const allSteps = createScenarioSteps(name);
@@ -156,7 +159,7 @@ export function LifecycleLab() {
     steps.forEach((step, index) => {
       const delay = reduceMotion ? index * 30 : step.at;
       const timer = window.setTimeout(() => {
-        dispatchObserved(runtime, step.event, step.label, step.at, step.visibleText);
+        dispatchObserved(runtime, localized ? {...step.event, locale: "en"} : step.event, step.label, step.at, step.visibleText);
         if (index === steps.length - 1) setRunning(false);
       }, delay);
       timersRef.current.push(timer);
@@ -222,6 +225,7 @@ export function LifecycleLab() {
             {scenario.label}
           </button>
         ))}
+        <button type="button" onClick={() => runScenario("stream", true)} disabled={!interactive || running}>Stream with French notices</button>
         <button className="danger-control" type="button" onClick={stop} disabled={!interactive}>Stop response</button>
         <button className="quiet-control" type="button" onClick={reset} disabled={!interactive}>Reset</button>
       </div>
@@ -256,7 +260,7 @@ export function LifecycleLab() {
             {announcements.length ? announcements.map((announcement) => (
               <li key={announcement.id}>
                 <time>{formatTime(announcement.at)}</time>
-                <div><b>{announcement.sourceType}</b><p>“{announcement.text}”</p></div>
+                <div><b>{announcement.sourceType}</b><p lang={announcement.locale}>“{announcement.text}”</p></div>
                 <span data-channel={announcement.channel}>{announcement.channel}</span>
               </li>
             )) : <li className="empty-trace">Choose a scenario to see the updates.</li>}

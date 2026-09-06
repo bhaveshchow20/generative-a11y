@@ -138,3 +138,13 @@ reentrancy. No timer may flush a suffix that began during quiet mode. Control
 events use existing advance-clock-before-dispatch replay ordering, so due timers
 can fire before an equal-timestamp control. Devtools must omit invalid mode
 payloads and never retain response content or DOM targets.
+
+## Catalog contracts
+
+Cover all 25 typed message keys, invalid construction input, frozen parameters,
+throwing/empty/non-string/overlong output, English fallback language, explicit
+host copy precedence, policy and attention eligibility, reentrant disposal,
+bounded multilingual buffers, dedupe language identity and terminal cleanup.
+Replay requires identical catalog implementation/version, copy, policy, clock
+ordering and relevant Intl environment; do not serialize callbacks. Verify
+allowlisted catalog ID/locale and redacted format-error diagnostics in devtools.

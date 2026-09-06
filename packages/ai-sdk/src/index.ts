@@ -1,3 +1,7 @@
+import {
+  normalizeAdapterAnnouncementCopy,
+  type AdapterAnnouncementCopy,
+} from "@generative-a11y/core";
 import type {
   AdapterFidelity,
   GenerativeA11yEvent,
@@ -62,6 +66,8 @@ export interface ToolLabelContext {
 }
 
 export interface CreateObserverOptions {
+  /** Host-owned localized copy, captured and validated at construction. */
+  readonly copy?: AdapterAnnouncementCopy;
   readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
   readonly scopeId: string;
   /** Positive cap for each response, tool, approval, and source identity set. */
@@ -230,6 +236,10 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
   if (!Number.isSafeInteger(maxTrackedEntities) || maxTrackedEntities <= 0) {
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
   }
+  const copy =
+    options.copy === undefined
+      ? undefined
+      : normalizeAdapterAnnouncementCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const responses = new Map<string, ResponseRecord>();
   const tools = new Map<string, ToolRecord>();
@@ -244,7 +254,12 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
   function dispatch(event: GenerativeA11yEvent): void {
     if (disposed || saturated) return;
     try {
-      options.runtime.dispatch(event);
+      options.runtime.dispatch(
+        copy &&
+          (event.type.startsWith("tool.") || event.type.startsWith("approval."))
+          ? { ...event, locale: copy.locale }
+          : event,
+      );
     } catch {
       saturated = true;
     }
@@ -257,7 +272,9 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           title: part.title,
-        }) ?? defaultToolLabel()
+        }) ??
+        copy?.toolLabel ??
+        defaultToolLabel()
       );
     } catch {
       saturated = true;
@@ -360,7 +377,7 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
       dispatch({
         type: "approval.requested",
         approvalId: id,
-        label,
+        label: copy?.approvalRequested ?? label,
       });
       return;
     }
@@ -376,7 +393,10 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
         type: "approval.resolved",
         approvalId: id,
         outcome: part.approval.approved === true ? "approved" : "rejected",
-        label,
+        label:
+          copy?.approvalResolved[
+            part.approval.approved === true ? "approved" : "rejected"
+          ] ?? label,
       });
     }
   }

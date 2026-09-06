@@ -338,3 +338,97 @@ APIs cannot retract output already delivered to assistive technology.
   delivers announcement intents in the browser.
 - [`@generative-a11y/react`](https://www.npmjs.com/package/@generative-a11y/react)
   provides React context, hooks, and DOM bindings.
+
+## Localized announcements
+
+Pass `announcementCatalog` to `createGenerativeA11y` (or the recorder) to format
+library-generated notices using your existing i18n framework. Core provides
+timing, accessibility policy and language attribution; it does not provide
+translation services, ICU parsing or language detection.
+
+`AnnouncementCatalog` contains a non-sensitive `id`, an explicit BCP 47
+`locale`, and a complete `AnnouncementMessages` map. Each value is a fixed
+string or a pure synchronous callback receiving the frozen, typed parameters
+from `AnnouncementMessageParameters`. `AnnouncementMessageId` is the union of
+its 25 keys. The exported `englishAnnouncementCatalog` preserves existing
+English wording. English customization may spread its messages; a translated
+catalog must translate every entry rather than silently reuse English defaults.
+
+```ts
+import {
+  createGenerativeA11y,
+  englishAnnouncementCatalog,
+  type AnnouncementCatalog,
+} from "@generative-a11y/core";
+
+const customEnglish: AnnouncementCatalog = {
+  ...englishAnnouncementCatalog,
+  id: "my-app.en.v1",
+  messages: {
+    ...englishAnnouncementCatalog.messages,
+    "response.completed": "Your answer is ready.",
+    "citation.available": ({ count }) =>
+      `${count} ${count === 1 ? "reference" : "references"} available.`,
+  },
+};
+const runtime = createGenerativeA11y({ announcementCatalog: customEnglish });
+```
+
+For a complete translated catalog, call the host's translation function inside
+these callbacks. The host owns grammar, pluralization and translation quality;
+no i18n dependency is required. Catalog replacement requires a new runtime.
+
+| Keys                                                                                | Callback parameters                 |
+| ----------------------------------------------------------------------------------- | ----------------------------------- |
+| `response.started`, `response.completed`, `response.interrupted`, `response.failed` | None                                |
+| `response.retrying`, `run.retrying`                                                 | Optional `attempt`                  |
+| `tool.started`, `tool.completed`, `tool.failed`                                     | `label`                             |
+| `tool.progress`, `step.progress`                                                    | `label`, optional integer `percent` |
+| `run.started`                                                                       | Optional `label`                    |
+| `run.completed`                                                                     | `completedSteps`, `failedSteps`     |
+| `run.interrupted`, `run.failed`                                                     | None                                |
+| `step.started`, `step.completed`, `step.interrupted`, `step.failed`                 | `label`                             |
+| `step.retrying`                                                                     | `label`, optional `attempt`         |
+| `interaction.resolved`                                                              | `kind`, `outcome`                   |
+| `approval.resolved`                                                                 | `outcome`                           |
+| `connection.lost`, `connection.restored`                                            | None                                |
+| `citation.available`                                                                | `count`                             |
+
+Generated notices use the catalog language, independently of response text. The
+default catalog now explicitly tags generated English notices `en`, even when an
+event/response carries another locale. Explicit host `announcement`, `summary`,
+`message` or interaction labels retain existing precedence and host language
+metadata. Labels interpolated into a whole generated sentence should be in the
+catalog language; one intent cannot represent mixed-language spans. Response
+text with changing language is delivered in separate chunks. In completion mode
+those chunks wait until completion, with prior-language chunks bounded by
+`maxQueueSize` (oldest overflow chunks are discarded with a `queue-capacity`
+diagnostic).
+
+Construction validates and copies/freezes the complete message map before
+allocating runtime resources. IDs and language tags are limited to 128 UTF-16
+code units; fixed and formatted messages to 4,096. Callbacks run only after
+policy and attention eligibility checks. A callback throwing, returning a
+Promise/non-string, empty text or overlong text produces the content-free
+`catalog-format-error` diagnostic and the generic English fallback “Status
+updated.” tagged `en`. Fallback never interpolates labels or backend errors.
+Callbacks cannot change channels, timing, focus, or lifecycle behavior. Trusted
+host callbacks must be synchronous and side-effect-free; core cannot bound their
+execution cost or allocations.
+
+`RuntimeDiagnosticSnapshotV1.announcementCatalog` exposes only
+`{ catalogId, locale }`, not catalog strings, callback arguments or errors.
+Replay V1 events remain unchanged; exact reproduction requires the same catalog
+implementation/version, adapter copy, policy and relevant Intl environment.
+Callbacks are not serialized. Recordings may contain host content and are not
+content-free. Automated transcripts and DOM tests do not establish real
+assistive-technology speech behavior.
+
+`AdapterAnnouncementCopy` is the shared serializable copy contract for existing
+adapter bindings: `locale`, `toolLabel`, `approvalRequested`, `approvalResolved`
+(`approved`, `rejected`, `cancelled`), `inputRequested`, and `inputResolved`
+(`submitted`, `cancelled`). `normalizeAdapterAnnouncementCopy(copy)` validates
+all fields with the same language/string limits, canonicalizes the language tag,
+and returns a copied, frozen object including nested outcome records. Adapters
+apply this copy only to events they already expose reliably; it does not add
+lifecycle fidelity or tag generated response text.
