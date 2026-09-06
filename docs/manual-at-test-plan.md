@@ -35,7 +35,7 @@ Use one stable page that exposes controls for:
 - start, sentence streaming, completion, stop, retry, tool status, and failure
   events from a deterministic fixture.
 
-The fixture must display a visual event log and `DOMDeliveryResult` without
+The fixture must display a visual event log and `DeliveryResult` without
 changing the host page's focus. Do not expose test controls as part of the
 announcement regions.
 
@@ -85,7 +85,7 @@ language.
 4. In the throwing-notifier fixture, confirm the current message uses the live
    region and later messages no longer call the notifier.
 5. Compare missing, successful, and throwing API cases without treating
-   `DOMDeliveryResult` as proof of speech.
+   `DeliveryResult` as proof of speech.
 
 ### Focus preservation and explicit restoration
 

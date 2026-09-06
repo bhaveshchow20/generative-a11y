@@ -28,7 +28,7 @@ export const searchableText = [
   "scheduler",
   "install",
   "Install and import",
-  "Core does not depend on the DOM, React, or an AI framework. Your app sends it GenerativeA11yEvent objects, and it creates AnnouncementIntent objects when there is something useful to announce.",
+  "Core does not depend on the DOM, React, or an AI framework. Your app sends it RuntimeEvent objects, and it creates AnnouncementIntent objects when there is something useful to announce.",
   "shell",
   "npm install @generative-a11y/core",
   "Install core",
@@ -42,10 +42,10 @@ export const searchableText = [
   "Exports",
   "Reference",
   "Runtime",
-  "createGenerativeA11y, GenerativeA11yRuntime",
-  "/api/core/create-generative-a11y",
+  "createRuntime, Runtime",
+  "/api/core/create-runtime",
   "Events",
-  "GenerativeA11yEvent and event family types",
+  "RuntimeEvent and event family types",
   "/api/core/events",
   "Workflows",
   "WorkflowContext, run and step lifecycle types",
@@ -54,10 +54,10 @@ export const searchableText = [
   "presets, resolvePolicy, PolicyOverrides, WorkflowPolicy",
   "/api/core/policy",
   "Scheduler",
-  "createAnnouncementScheduler and scheduler types",
+  "createScheduler and scheduler types",
   "/api/core/scheduler",
   "Testing",
-  "ManualClock, createAnnouncementRecorder",
+  "ManualClock, createRecorder",
   "/api/core/testing",
   "Diagnostics",
   "AnnouncementIntent, AnnouncementDiagnostic",
@@ -69,7 +69,7 @@ export const searchableText = [
 ## Install and import
 
 Core does not depend on the DOM, React, or an AI framework. Your app sends it
-GenerativeA11yEvent objects, and it creates AnnouncementIntent objects when
+RuntimeEvent objects, and it creates AnnouncementIntent objects when
 there is something useful to announce.
 
 {/* prettier-ignore */}
@@ -117,12 +117,12 @@ Use the narrowest public export for the behavior you own.
   <tbody>
     <tr>
       <td>Runtime</td>
-      <td>createGenerativeA11y, GenerativeA11yRuntime</td>
-      <td>/api/core/create&#45;generative&#45;a11y</td>
+      <td>createRuntime, Runtime</td>
+      <td>/api/core/create&#45;runtime</td>
     </tr>
     <tr>
       <td>Events</td>
-      <td>GenerativeA11yEvent and event family types</td>
+      <td>RuntimeEvent and event family types</td>
       <td>/api/core/events</td>
     </tr>
     <tr>
@@ -137,12 +137,12 @@ Use the narrowest public export for the behavior you own.
     </tr>
     <tr>
       <td>Scheduler</td>
-      <td>createAnnouncementScheduler and scheduler types</td>
+      <td>createScheduler and scheduler types</td>
       <td>/api/core/scheduler</td>
     </tr>
     <tr>
       <td>Testing</td>
-      <td>ManualClock, createAnnouncementRecorder</td>
+      <td>ManualClock, createRecorder</td>
       <td>/api/core/testing</td>
     </tr>
     <tr>
@@ -152,3 +152,19 @@ Use the narrowest public export for the behavior you own.
     </tr>
   </tbody>
 </table>
+
+## Messages
+
+English notices work without configuration. For custom copy, import `en` and
+`Messages` from `@generative-a11y/core/messages` and pass `messages` to
+`createRuntime`. This entry point also exports `MessageMap`, `MessageParams`,
+`MessageKey`, `AdapterCopy`, and `normalizeAdapterCopy`. These exports are not
+available from the core root.
+
+See [localized announcements](/docs/localized-announcements) for examples and
+[API naming changes](/docs/stability#public-api-naming-update) for the breaking
+rename reference.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/core" />

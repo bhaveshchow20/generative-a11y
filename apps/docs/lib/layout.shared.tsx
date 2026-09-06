@@ -1,7 +1,7 @@
 import type { ComponentProps, Ref } from "react";
 import type { HomeLayoutProps } from "fumadocs-ui/layouts/home";
 import type { DocsLayoutProps } from "fumadocs-ui/layouts/docs";
-import { BookOpen, Braces, FlaskConical } from "lucide-react";
+import { BookOpen, Braces } from "lucide-react";
 
 import { SiteLogo } from "../components/layout/site-logo";
 import { REPOSITORY_URL } from "./site";
@@ -53,7 +53,8 @@ export const docsLayoutOptions = {
     {
       title: "Guides",
       description: "Learn how to add accessible behavior to AI interfaces.",
-      url: "/docs/getting-started",
+      // Match every guide; the section root redirects to Getting started.
+      url: "/docs",
       icon: <BookOpen aria-hidden="true" />,
     },
     {
@@ -61,12 +62,6 @@ export const docsLayoutOptions = {
       description: "Explore every package and public API.",
       url: "/api",
       icon: <Braces aria-hidden="true" />,
-    },
-    {
-      title: "Examples",
-      description: "Explore the lifecycle in interactive examples.",
-      url: "/examples/lifecycle-lab",
-      icon: <FlaskConical aria-hidden="true" />,
     },
   ],
   links: [

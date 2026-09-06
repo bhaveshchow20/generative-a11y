@@ -41,9 +41,9 @@ export const searchableText = [
   "The store borrows public diagnostic methods from a runtime your app owns.",
   "trace-explorer",
   "Open the Accessibility Trace Explorer",
-  "The optional overlay mounts only when your code calls mountDevtoolsOverlay. It starts collapsed inside an open Shadow DOM and provides search, filters, causal evidence, capture controls, and explicit trace copy.",
+  "The optional overlay mounts only when your code calls mountOverlay. It starts collapsed inside an open Shadow DOM and provides search, filters, causal evidence, capture controls, and explicit trace copy.",
   "typescript",
-  'import { createDevtoolsStore } from "@generative-a11y/devtools"; import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay"; const store = createDevtoolsStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const overlay = mountDevtoolsOverlay({ store }); // Dispose in reverse ownership order. overlay.dispose(); detach(); store.dispose();',
+  'import { createStore } from "@generative-a11y/devtools"; import { mountOverlay } from "@generative-a11y/devtools/overlay"; const store = createStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const overlay = mountOverlay({ store }); // Dispose in reverse ownership order. overlay.dispose(); detach(); store.dispose();',
   "Create a bounded store",
   "maxEntries limits retained diagnostic records and reports how many older records were dropped.",
   "Attach one runtime identity",
@@ -59,7 +59,7 @@ export const searchableText = [
   "Pass adapter metadata through source only when a documented integration can support it. Devtools does not detect a framework or invent events that the framework did not report.",
   "delivery-correlation",
   "Correlate runtime decisions with DOM delivery",
-  "Send DOMDeliveryResult values from createDOMAnnouncer onDiagnostic to store.recordDelivery. Safe announcement and entity IDs connect the browser action to the runtime decision that requested it.",
+  "Send DeliveryResult values from the active binding's onDelivery callback to store.recordDelivery. Safe announcement and entity IDs connect the browser action to the runtime decision that requested it.",
   "A trace can confirm a runtime decision and a browser API call or live-region mutation. It cannot prove that assistive technology spoke the announcement.",
   "keyboard-and-focus",
   "Overlay keyboard and focus behavior",
@@ -106,23 +106,25 @@ The store borrows public diagnostic methods from a runtime your app owns.
 
 ## Open the Accessibility Trace Explorer
 
-The optional overlay mounts only when your code calls mountDevtoolsOverlay. It
+The optional overlay mounts only when your code calls mountOverlay. It
 starts collapsed inside an open Shadow DOM and provides search, filters, causal
 evidence, capture controls, and explicit trace copy.
 
 {/* prettier-ignore */}
 ```typescript
-import { createDevtoolsStore } from "@generative-a11y/devtools";
-import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+import { createStore } from "@generative-a11y/devtools";
+import { mountOverlay } from "@generative-a11y/devtools/overlay";
 
-const store = createDevtoolsStore({ maxEntries: 250 });
+const store = createStore({ maxEntries: 250 });
 const detach = store.attachRuntime({ id: "support", runtime });
-const overlay = mountDevtoolsOverlay({ store });
+const overlay = mountOverlay({ store });
 
-// Dispose in reverse ownership order.
-overlay.dispose();
-detach();
-store.dispose();
+// Call when removing the workbench. The runtime is borrowed.
+export function disposeDevtools() {
+  overlay.dispose();
+  detach();
+  store.dispose();
+}
 ```
 
 ### Walkthrough
@@ -189,7 +191,30 @@ framework did not report.
 
 ## Correlate runtime decisions with DOM delivery
 
-Send DOMDeliveryResult values from createDOMAnnouncer onDiagnostic to
+```ts
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
+import { createStore } from "@generative-a11y/devtools";
+
+export const runtime = createRuntime();
+export const store = createStore();
+const detach = store.attachRuntime({ id: "support", runtime });
+const delivery = bindRuntime(runtime, {
+  onDelivery(result) {
+    store.recordDelivery({ runtimeId: "support", result });
+  },
+});
+
+// Dispatch your host events through runtime. Keep this binding for the session.
+export function disposeChat() {
+  delivery.dispose();
+  detach();
+  store.dispose();
+  runtime.dispose();
+}
+```
+
+Send DeliveryResult values from the active binding's onDelivery callback to
 store.recordDelivery. Safe announcement and entity IDs connect the browser
 action to the runtime decision that requested it.
 
@@ -208,9 +233,3 @@ Opening the workspace moves focus into it. Escape or the close control collapses
 the workspace and restores the element focused before opening. Streaming records
 do not move focus, the overlay does not trap focus, and it creates no live
 region or global keyboard shortcut.
-
-## Related
-
-- [/api/devtools](/api/devtools)
-- [/api/core/diagnostics](/api/core/diagnostics)
-- [/docs/troubleshooting](/docs/troubleshooting)

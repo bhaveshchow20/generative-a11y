@@ -159,12 +159,13 @@ Then connect the runtime to the DOM without replacing the application's visual
 interface:
 
 ```ts
-import { createGenerativeA11y } from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "@generative-a11y/dom";
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({});
-const delivery = connectRuntimeToDOM(runtime);
+const runtime = createRuntime();
+const delivery = bindRuntime(runtime);
 
+// Send these events from your existing response lifecycle callbacks.
 runtime.dispatch({ type: "response.started", responseId: "response-1" });
 runtime.dispatch({
   type: "response.text.delta",
@@ -173,8 +174,11 @@ runtime.dispatch({
 });
 runtime.dispatch({ type: "response.completed", responseId: "response-1" });
 
-delivery.dispose();
-runtime.dispose();
+// Call this when the chat is removed, not when a response finishes.
+export function disposeChat() {
+  delivery.dispose();
+  runtime.dispose();
+}
 ```
 
 See [`@generative-a11y/core`](packages/core/README.md) for the runtime contract
@@ -227,3 +231,10 @@ research, documentation, or technical reports.
 ## License
 
 [MIT](LICENSE)
+
+## API design
+
+See [API conventions and research](docs/api-conventions.md) for naming and
+ownership rules, and the [public inventory](docs/api-inventory.json) for every
+exported value and type. Runnable, typechecked onboarding examples live in
+[consumer journeys](examples/consumer-journeys).

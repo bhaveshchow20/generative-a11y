@@ -1,4 +1,4 @@
-import type { AdapterAnnouncementCopy, AnnouncementCatalog } from "@generative-a11y/core";
+import type {AdapterCopy, Messages} from "@generative-a11y/core/messages";
 
 // Illustrative host-owned copy, not a supported translation pack. Have a fluent
 // speaker review production wording. A host may call its existing i18n system
@@ -37,10 +37,10 @@ export const frenchCatalog = {
     "connection.restored": "Connexion rétablie.",
     "citation.available": ({ count }) => plural.select(count) === "one" ? `${number.format(count)} source disponible.` : `${number.format(count)} sources disponibles.`,
   },
-} satisfies AnnouncementCatalog;
+} satisfies Messages;
 
 export const frenchAdapterCopy = {
   locale: "fr", toolLabel: "Un outil", approvalRequested: "Autorisation requise.",
   approvalResolved: { approved: "Autorisation accordée.", rejected: "Autorisation refusée.", cancelled: "Autorisation annulée." },
   inputRequested: "Saisie requise.", inputResolved: { submitted: "Saisie reçue.", cancelled: "Saisie annulée." },
-} satisfies AdapterAnnouncementCopy;
+} satisfies AdapterCopy;

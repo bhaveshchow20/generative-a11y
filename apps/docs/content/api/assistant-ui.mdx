@@ -5,7 +5,7 @@ description:
   and source events."
 publicPath: "/api/assistant-ui"
 section: "assistant-ui"
-keywords: ["assistant-ui", "ThreadRuntime", "THREAD_ADAPTER_METADATA"]
+keywords: ["assistant-ui", "ThreadRuntime", "adapterInfo"]
 related: []
 order: 18
 ---
@@ -23,20 +23,20 @@ export const searchableText = [
   "assistant-ui",
   "assistant-ui",
   "ThreadRuntime",
-  "THREAD_ADAPTER_METADATA",
+  "adapterInfo",
   "exports",
   "Public exports",
   "assistant-ui integration uses only getState and subscribe from your ThreadRuntime.",
   "Export",
   "Kind",
   "Purpose",
-  "bindThreadRuntime",
+  "bindThread",
   "Function",
   "Create one adapter subscription",
-  "THREAD_ADAPTER_METADATA",
+  "adapterInfo",
   "Frozen constant",
   "List supported events and methods",
-  "BindThreadRuntimeOptions",
+  "BindThreadOptions",
   "Interface",
   "Options for the binding",
   "ThreadBinding",
@@ -65,17 +65,17 @@ ThreadRuntime.
   </thead>
   <tbody>
     <tr>
-      <td>bindThreadRuntime</td>
+      <td>bindThread</td>
       <td>Function</td>
       <td>Create one adapter subscription</td>
     </tr>
     <tr>
-      <td>THREAD&#95;ADAPTER&#95;METADATA</td>
+      <td>adapterInfo</td>
       <td>Frozen constant</td>
       <td>List supported events and methods</td>
     </tr>
     <tr>
-      <td>BindThreadRuntimeOptions</td>
+      <td>BindThreadOptions</td>
       <td>Interface</td>
       <td>Options for the binding</td>
     </tr>
@@ -106,6 +106,10 @@ fields.
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/assistant-ui" />

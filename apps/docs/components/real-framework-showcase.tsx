@@ -7,13 +7,13 @@ import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
-import { bindThreadRuntime, type ThreadRuntimeSource } from "@generative-a11y/assistant-ui";
+import { bindThread, type ThreadRuntimeSource } from "@generative-a11y/assistant-ui";
 import {
-  createGenerativeA11y,
+  createRuntime,
   type AnnouncementIntent,
-  type GenerativeA11yEvent,
+  type RuntimeEvent,
 } from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "@generative-a11y/dom";
+import { bindRuntime } from "@generative-a11y/dom";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { useEffect, useMemo, useState } from "react";
 
@@ -102,7 +102,7 @@ function AssistantUiConnected({ runtime }: { runtime: AssistantRuntime }) {
   const snapshot = thread.getState();
 
   useEffect(() => {
-    const binding = bindThreadRuntime({ runtime: harness.bridge, scopeId: "product-thread", thread: thread as unknown as ThreadRuntimeSource });
+    const binding = bindThread({ runtime: harness.bridge, scopeId: "product-thread", thread: thread as unknown as ThreadRuntimeSource });
     return () => binding.dispose();
   }, [harness.bridge, thread]);
 
@@ -116,19 +116,19 @@ function AssistantUiConnected({ runtime }: { runtime: AssistantRuntime }) {
 }
 
 function useHarness() {
-  const [events, setEvents] = useState<GenerativeA11yEvent[]>([]);
+  const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
-  const runtime = useMemo(() => createGenerativeA11y({ preset: "verbose", policy: { text: { minimumCharacters: 1, maximumDelayMs: 0 }, tools: { announceStartAfterMs: 0, announceProgress: true }, minimumGapMs: 0 } }), []);
-  const bridge = useMemo(() => ({ dispatch(event: GenerativeA11yEvent) { setEvents((current) => [...current, event]); return runtime.dispatch(event); } }), [runtime]);
+  const runtime = useMemo(() => createRuntime({ preset: "verbose", policy: { text: { minimumCharacters: 1, maximumDelayMs: 0 }, tools: { announceStartAfterMs: 0, announceProgress: true }, minimumGapMs: 0 } }), []);
+  const bridge = useMemo(() => ({ dispatch(event: RuntimeEvent) { setEvents((current) => [...current, event]); return runtime.dispatch(event); } }), [runtime]);
   useEffect(() => {
     const unsubscribe = runtime.subscribeAnnouncements((announcement) => setAnnouncements((current) => [...current, announcement]));
-    const dom = connectRuntimeToDOM(runtime, { mode: "live-region" });
+    const dom = bindRuntime(runtime, { mode: "live-region" });
     return () => { unsubscribe(); dom.dispose(); runtime.dispose(); };
   }, [runtime]);
   return { events, announcements, bridge, clear() { setEvents([]); setAnnouncements([]); } };
 }
 
-function ExampleSurface({ framework, active, status, messages, events, announcements, onRun }: { framework: string; active: ExampleName; status: string; messages: readonly unknown[]; events: readonly GenerativeA11yEvent[]; announcements: readonly AnnouncementIntent[]; onRun(name: ExampleName): void }) {
+function ExampleSurface({ framework, active, status, messages, events, announcements, onRun }: { framework: string; active: ExampleName; status: string; messages: readonly unknown[]; events: readonly RuntimeEvent[]; announcements: readonly AnnouncementIntent[]; onRun(name: ExampleName): void }) {
   return (
     <div className="real-example-panel" role="tabpanel">
       <nav className="example-picker" aria-label="Real world examples">{examples.map((example) => <button key={example.name} type="button" aria-current={active === example.name ? "true" : undefined} onClick={() => onRun(example.name)}><span>{example.title}</span><small>{example.detail}</small></button>)}</nav>
@@ -215,11 +215,11 @@ const eventExplanations: Record<string, { title: string; summary: string; why: s
   "citation.available": { title: "Response includes a source", summary: "Your framework added source information.", why: "Core can announce that sources are available without reading each URL." },
 };
 
-function explainEvent(event: GenerativeA11yEvent) {
+function explainEvent(event: RuntimeEvent) {
   return eventExplanations[event.type] ?? { title: "App state changed", summary: "Your adapter received an event its framework can confirm.", why: "One event format works across supported frameworks." };
 }
 
-function eventIdentity(event: GenerativeA11yEvent) {
+function eventIdentity(event: RuntimeEvent) {
   if ("responseId" in event) return event.responseId;
   if ("toolId" in event) return event.toolId;
   if ("approvalId" in event) return event.approvalId;
