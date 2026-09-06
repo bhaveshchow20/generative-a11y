@@ -5,7 +5,7 @@ description:
   events."
 publicPath: "/api/ai-sdk"
 section: "AI SDK"
-keywords: ["AI SDK", "createObserver", "composeChatCallbacks", "useChat"]
+keywords: ["AI SDK", "createChatObserver", "composeChatCallbacks", "useChat"]
 related: []
 order: 16
 ---
@@ -22,7 +22,7 @@ export const searchableText = [
   "Turn documented AI SDK useChat state and callbacks into generative-a11y events.",
   "AI SDK",
   "AI SDK",
-  "createObserver",
+  "createChatObserver",
   "composeChatCallbacks",
   "useChat",
   "surface",
@@ -32,13 +32,13 @@ export const searchableText = [
   "Exports",
   "Use",
   "Framework-neutral",
-  "createObserver, composeChatCallbacks",
+  "createChatObserver, composeChatCallbacks",
   "Custom subscription or state bridge",
   "React",
   "useChatAccessibility, useObserveChatAccessibility",
   "AI SDK useChat components",
   "Metadata",
-  "CHAT_ADAPTER_METADATA",
+  "adapterInfo",
   "Supported events and framework APIs",
   "ownership",
   "Runtime and app ownership",
@@ -67,7 +67,7 @@ onError report final response state.
   <tbody>
     <tr>
       <td>Framework&#45;neutral</td>
-      <td>createObserver, composeChatCallbacks</td>
+      <td>createChatObserver, composeChatCallbacks</td>
       <td>Custom subscription or state bridge</td>
     </tr>
     <tr>
@@ -77,7 +77,7 @@ onError report final response state.
     </tr>
     <tr>
       <td>Metadata</td>
-      <td>CHAT&#95;ADAPTER&#95;METADATA</td>
+      <td>adapterInfo</td>
       <td>Supported events and framework APIs</td>
     </tr>
   </tbody>
@@ -99,6 +99,91 @@ actions or reading rendered messages and private AI SDK fields.
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/ai-sdk" />
+
+## Non-React observer API
+
+`createChatObserver(options)` returns a `ChatObserver` and never owns the core
+runtime. `ChatObserverOptions` requires a non-empty `scopeId` and a runtime
+with `dispatch`. Optional `copy` comes from `core/messages`; `getToolLabel`
+receives `ToolLabelContext` (`toolCallId`, `toolName`, and optional-value `title`).
+Its safe label overrides the generic copy. `maxTrackedEntities` defaults to
+1,000 and must be a positive safe integer.
+
+| Method | Contract |
+| --- | --- |
+| `observe(snapshot)` | Accepts `ChatSnapshot`: public `messages`, `status`, and `error`. The first valid snapshot establishes a silent baseline. Later append-only parts produce events; it does not subscribe to a framework for you. |
+| `finish(message, outcome)` | Accepts an SDK assistant `UIMessage` and `ChatFinishOutcome` with `isAbort`, `isDisconnect`, and `isError`. Disconnect emits connection loss rather than completion; error precedes abort, and ordinary finish completes the active response. |
+| `failActiveResponse()` | Reports failure for the last observed active response. No active response means no output; raw error text is never copied. |
+| `dispose()` | Clears observer state and makes later observations/callbacks inert. It does not dispose the runtime. |
+
+`composeChatCallbacks({ observer, onFinish?, onError? })` accepts
+`ComposeChatCallbacksOptions` and returns the SDK-compatible callbacks. It calls
+the observer first, then the host callback in a `finally` block so host handling
+still runs if observer dispatch throws. Install these callbacks before creating
+the SDK chat; observe its public snapshots separately.
+
+After identity capacity is exhausted, **all later snapshot and terminal-callback
+lifecycle events are suppressed**, including known identities. Create a fresh
+observer at an intentional session boundary. A non-prefix text rewrite is also
+suppressed for that part until its message ID changes. These conservative limits
+prevent guessed lifecycle events.
+
+The following complete deterministic example exercises the public observer
+contract without a React component or backend. In a live application, use the
+SDK's real snapshots and callbacks, a browser delivery binding, and cleanup when
+the surface is removed. Do not recreate the adapter's private scoped IDs.
+
+```ts
+import {
+  createRuntime,
+  ManualClock,
+  type AnnouncementIntent,
+} from "@generative-a11y/core";
+import {
+  createChatObserver,
+  composeChatCallbacks,
+} from "@generative-a11y/ai-sdk";
+import type { UIMessage } from "ai";
+
+// A deterministic demonstration of the non-React API, using public SDK data.
+export const announcements: AnnouncementIntent[] = [];
+const clock = new ManualClock();
+const runtime = createRuntime({
+  clock,
+  onAnnouncement: (intent) => announcements.push(intent),
+});
+const observer = createChatObserver({ runtime, scopeId: "support" });
+const callbacks = composeChatCallbacks({ observer });
+
+// Supply the initial public snapshot first; historical content is not replayed.
+observer.observe({ messages: [], status: "ready", error: undefined });
+const message: UIMessage = {
+  id: "assistant-1",
+  role: "assistant",
+  parts: [{ type: "text", text: "Your answer is ready." }],
+};
+observer.observe({
+  messages: [message],
+  status: "streaming",
+  error: undefined,
+});
+// In an application, pass callbacks to the SDK when constructing its chat.
+callbacks.onFinish({
+  message,
+  messages: [message],
+  isAbort: false,
+  isDisconnect: false,
+  isError: false,
+  finishReason: "stop",
+});
+clock.runUntilIdle();
+observer.dispose();
+runtime.dispose();
+```

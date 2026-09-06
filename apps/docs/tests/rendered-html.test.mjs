@@ -176,7 +176,7 @@ test("serves crawler and AI discovery resources", async () => {
   const llmsFullText = await llmsFull.text();
   assert.match(llmsFullText, /^# generative-a11y full documentation/m);
   assert.match(llmsFullText, /## Accessible streaming AI for screen readers/i);
-  assert.match(llmsFullText, /## createGenerativeA11y/i);
+  assert.match(llmsFullText, /## createRuntime/i);
 });
 
 test("documentation pages expose article and breadcrumb structured data", async () => {
@@ -188,7 +188,7 @@ test("documentation pages expose article and breadcrumb structured data", async 
   assert.match(html, /"@type":"BreadcrumbList"/i);
   assert.match(html, /"@type":"Person"/i);
   assert.match(html, /"name":"Bhavesh Chowdhury"/i);
-  assert.match(html, /Maintained by[\s\S]*Bhavesh Chowdhury/i);
+  assert.doesNotMatch(html, /Maintained by/i);
 });
 
 test("legacy documentation routes redirect permanently", async () => {
@@ -210,14 +210,14 @@ test("server-renders the dedicated API reference and symbol pages", async () => 
   for (const [pathname, expected] of [
     ["/api", /API reference/i],
     ["/api/core", /@generative-a11y\/core/i],
-    ["/api/core/create-generative-a11y", /dispatch\(event\)/i],
+    ["/api/core/create-runtime", /dispatch\(event\)/i],
     ["/api/core/workflows", /WorkflowContext/i],
-    ["/api/dom/create-dom-announcer", /DOMAnnouncerOptions/i],
-    ["/api/react/hooks", /useGenerativeA11yRuntime/i],
+    ["/api/dom/create-announcer", /AnnouncerOptions/i],
+    ["/api/react/hooks", /useRuntime/i],
     ["/api/ai-sdk/use-chat-accessibility", /useChatAccessibility/i],
-    ["/api/assistant-ui/bind-thread-runtime", /bindThreadRuntime/i],
+    ["/api/assistant-ui/bind-thread", /bindThread/i],
     ["/api/ag-ui/bind-agent", /bindAgent/i],
-    ["/api/devtools", /createDevtoolsStore/i],
+    ["/api/devtools", /createStore/i],
     ["/api/core/testing", /replayEvents/i],
   ]) {
     const response = await render(pathname);
@@ -247,7 +247,7 @@ test("server-renders documentation and project deep links", async () => {
     ["/docs/testing", /Chromium, Firefox, and WebKit/i],
     ["/docs/compatibility", /cannot replace Safari testing/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
-    ["/api/core/create-generative-a11y", /createGenerativeA11y/i],
+    ["/api/core/create-runtime", /createRuntime/i],
     ["/docs/integrations/ag-ui", /bindAgent/i],
     ["/docs/devtools", /Accessibility Trace Explorer/i],
     ["/docs/testing/replay", /deterministic replay/i],
@@ -261,12 +261,13 @@ test("server-renders documentation and project deep links", async () => {
   }
 });
 
-test("concept guides expose native documentation navigation and related routes", async () => {
+test("concept guides expose native navigation without Related blocks", async () => {
   const response = await render("/docs/screen-readers-and-streaming-ai");
   assert.equal(response.status, 200);
   const html = await response.text();
 
   assert.match(html, /Accessible streaming AI for screen readers/i);
+  assert.doesNotMatch(html, /id="related"|>Related<\/h[1-6]>/i);
   assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/docs\/aria-live-and-generative-ai"/i);
   assert.match(html, /href="\/docs\/integrations\/ai-sdk"/i);

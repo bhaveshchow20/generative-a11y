@@ -52,6 +52,16 @@
         "types": "./dist/testing.d.cts",
         "default": "./dist/testing.cjs"
       }
+    },
+    "./messages": {
+      "import": {
+        "types": "./dist/messages-entry.d.ts",
+        "default": "./dist/messages-entry.js"
+      },
+      "require": {
+        "types": "./dist/messages-entry.d.cts",
+        "default": "./dist/messages-entry.cjs"
+      }
     }
   },
   "files": [
@@ -59,7 +69,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/testing.ts --format esm,cjs --dts --sourcemap --clean",
+    "build": "tsup src/index.ts src/testing.ts src/messages-entry.ts --format esm,cjs --dts --sourcemap --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -2,11 +2,11 @@ import { JSDOM } from "jsdom";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  createGenerativeA11y,
+  createRuntime,
   ManualClock,
   type AnnouncementIntent,
 } from "@generative-a11y/core";
-import { connectRuntimeToDOM, createDOMAnnouncer } from "./index.js";
+import { bindRuntime, createAnnouncer } from "./index.js";
 
 function intent(
   text = "Update available",
@@ -23,10 +23,10 @@ function intent(
   };
 }
 
-describe("createDOMAnnouncer", () => {
+describe("createAnnouncer", () => {
   it("correlates every delivery attempt with the source intent without a wall clock", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
@@ -47,7 +47,7 @@ describe("createDOMAnnouncer", () => {
   });
 
   it("preserves explicitly supplied empty correlation identifiers", () => {
-    const result = createDOMAnnouncer().announce({
+    const result = createAnnouncer().announce({
       ...intent(),
       sourceEventId: "",
       responseId: "",
@@ -95,33 +95,33 @@ describe("createDOMAnnouncer", () => {
       stepInstanceId: "step-attempt-1",
     };
 
-    const unavailable = createDOMAnnouncer().announce(sourceIntent);
+    const unavailable = createAnnouncer().announce(sourceIntent);
 
     const notifyDOM = new JSDOM("<!doctype html><html><body></body></html>");
-    const notifying = createDOMAnnouncer({
+    const notifying = createAnnouncer({
       document: notifyDOM.window.document,
-      mode: "aria-notify",
+      mode: "auto",
     });
     Object.defineProperty(notifying.getRegions()?.polite, "ariaNotify", {
       value: vi.fn(),
     });
 
     const fallbackDOM = new JSDOM("<!doctype html><html><body></body></html>");
-    const fallback = createDOMAnnouncer({
+    const fallback = createAnnouncer({
       document: fallbackDOM.window.document,
-      mode: "aria-notify",
+      mode: "auto",
     });
 
     const liveRegionDOM = new JSDOM(
       "<!doctype html><html><body></body></html>",
     );
-    const liveRegion = createDOMAnnouncer({
+    const liveRegion = createAnnouncer({
       document: liveRegionDOM.window.document,
       mode: "live-region",
     });
 
     const disposedDOM = new JSDOM("<!doctype html><html><body></body></html>");
-    const disposed = createDOMAnnouncer({
+    const disposed = createAnnouncer({
       document: disposedDOM.window.document,
     });
     disposed.dispose();
@@ -152,8 +152,8 @@ describe("createDOMAnnouncer", () => {
   });
 
   it("is inert without a document", () => {
-    const onDiagnostic = vi.fn();
-    const announcer = createDOMAnnouncer({ onDiagnostic });
+    const onDelivery = vi.fn();
+    const announcer = createAnnouncer({ onDelivery });
 
     expect(announcer.getRegions()).toBeUndefined();
     const result = announcer.announce(intent());
@@ -162,15 +162,15 @@ describe("createDOMAnnouncer", () => {
       method: "none",
       channel: "polite",
     });
-    expect(onDiagnostic).toHaveBeenCalledWith(result);
+    expect(onDelivery).toHaveBeenCalledWith(result);
   });
 
   it("mounts two isolated live regions synchronously", () => {
     const firstDOM = new JSDOM("<!doctype html><html><body></body></html>");
     const secondDOM = new JSDOM("<!doctype html><html><body></body></html>");
 
-    const first = createDOMAnnouncer({ document: firstDOM.window.document });
-    const second = createDOMAnnouncer({ document: secondDOM.window.document });
+    const first = createAnnouncer({ document: firstDOM.window.document });
+    const second = createAnnouncer({ document: secondDOM.window.document });
 
     const firstRegions = first.getRegions();
     const secondRegions = second.getRegions();
@@ -200,7 +200,7 @@ describe("createDOMAnnouncer", () => {
     "mutates only the %s channel in forced live-region mode",
     (channel) => {
       const dom = new JSDOM("<!doctype html><html><body></body></html>");
-      const announcer = createDOMAnnouncer({
+      const announcer = createAnnouncer({
         document: dom.window.document,
         mode: "live-region",
       });
@@ -225,7 +225,7 @@ describe("createDOMAnnouncer", () => {
 
   it("replaces an identical announcement with a distinct text node", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
@@ -241,7 +241,7 @@ describe("createDOMAnnouncer", () => {
 
   it("applies locale before content and clears a stale locale", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
@@ -276,7 +276,7 @@ describe("createDOMAnnouncer", () => {
     "applies locale $expectedLocale before ariaNotify",
     ({ initialLocale, locale, expectedLocale }) => {
       const dom = new JSDOM("<!doctype html><html><body></body></html>");
-      const announcer = createDOMAnnouncer({
+      const announcer = createAnnouncer({
         document: dom.window.document,
         mode: "auto",
       });
@@ -300,12 +300,12 @@ describe("createDOMAnnouncer", () => {
 
   it.each([
     ["auto", "polite", "normal"],
-    ["aria-notify", "assertive", "high"],
+    ["auto", "assertive", "high"],
   ] as const)(
     "%s uses ariaNotify on %s with %s priority and leaves fallback content unchanged",
     (mode, channel, priority) => {
       const dom = new JSDOM("<!doctype html><html><body></body></html>");
-      const announcer = createDOMAnnouncer({
+      const announcer = createAnnouncer({
         document: dom.window.document,
         mode,
       });
@@ -326,12 +326,12 @@ describe("createDOMAnnouncer", () => {
 
   it("isolates a throwing diagnostic callback from notifier delivery", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const onDiagnostic = vi.fn(() => {
+    const onDelivery = vi.fn(() => {
       throw new Error("diagnostic failed");
     });
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
-      onDiagnostic,
+      onDelivery,
     });
     const region = announcer.getRegions()?.polite;
     const notify = vi.fn();
@@ -348,7 +348,7 @@ describe("createDOMAnnouncer", () => {
       channel: "polite",
     });
     expect(notify).toHaveBeenCalledTimes(2);
-    expect(onDiagnostic).toHaveBeenCalledTimes(2);
+    expect(onDelivery).toHaveBeenCalledTimes(2);
     expect(region?.textContent).toBe("");
   });
 
@@ -384,7 +384,7 @@ describe("createDOMAnnouncer", () => {
     "disables a throwing ariaNotify accessor with a serializable %s diagnostic",
     (_label, createCause) => {
       const dom = new JSDOM("<!doctype html><html><body></body></html>");
-      const announcer = createDOMAnnouncer({ document: dom.window.document });
+      const announcer = createAnnouncer({ document: dom.window.document });
       const region = announcer.getRegions()?.polite;
       const accessor = vi.fn(() => {
         throw createCause();
@@ -413,9 +413,9 @@ describe("createDOMAnnouncer", () => {
   it("disables a throwing notifier and falls back for this and later intents", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const diagnostics: unknown[] = [];
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
-      onDiagnostic: (result) => diagnostics.push(result),
+      onDelivery: (result) => diagnostics.push(result),
     });
     const region = announcer.getRegions()?.polite;
     const notify = vi.fn(() => {
@@ -443,7 +443,7 @@ describe("createDOMAnnouncer", () => {
 
   it("removes owned regions once and prevents post-disposal delivery", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const announcer = createDOMAnnouncer({ document: dom.window.document });
+    const announcer = createAnnouncer({ document: dom.window.document });
     const regions = announcer.getRegions();
     const notify = vi.fn();
     Object.defineProperty(regions?.polite, "ariaNotify", { value: notify });
@@ -470,7 +470,7 @@ describe("createDOMAnnouncer", () => {
     const assertive = dom.window.document.querySelector<HTMLElement>("#a");
     if (!polite || !assertive) throw new Error("fixture regions missing");
 
-    const announcer = createDOMAnnouncer({ regions: { polite, assertive } });
+    const announcer = createAnnouncer({ regions: { polite, assertive } });
 
     expect(announcer.getRegions()).toEqual({ polite, assertive });
     expect(polite.getAttribute("aria-live")).toBe("polite");
@@ -495,7 +495,7 @@ describe("createDOMAnnouncer", () => {
     const assertive = dom.window.document.querySelector<HTMLElement>("#a");
     if (!polite || !assertive) throw new Error("fixture regions missing");
 
-    createDOMAnnouncer({ regions: { polite, assertive } });
+    createAnnouncer({ regions: { polite, assertive } });
 
     for (const region of [polite, assertive]) {
       expect(region.hasAttribute("role")).toBe(false);
@@ -568,7 +568,7 @@ describe("createDOMAnnouncer", () => {
       }));
 
       expect(() =>
-        createDOMAnnouncer({
+        createAnnouncer({
           ...(suppliedDocument === undefined
             ? {}
             : { document: suppliedDocument }),
@@ -584,7 +584,7 @@ describe("createDOMAnnouncer", () => {
 
   it("treats markup-shaped announcement text as literal text", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const announcer = createDOMAnnouncer({
+    const announcer = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
@@ -601,8 +601,8 @@ describe("createDOMAnnouncer", () => {
   it("falls back when ariaNotify is absent in progressive-enhancement modes", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
 
-    for (const mode of ["auto", "aria-notify"] as const) {
-      const announcer = createDOMAnnouncer({
+    for (const mode of ["auto"] as const) {
+      const announcer = createAnnouncer({
         document: dom.window.document,
         mode,
       });
@@ -621,7 +621,7 @@ describe("createDOMAnnouncer", () => {
     );
     dom.window.document.body.remove();
 
-    const announcer = createDOMAnnouncer({ document: dom.window.document });
+    const announcer = createAnnouncer({ document: dom.window.document });
 
     expect(announcer.getRegions()?.polite.parentElement).toBe(
       dom.window.document.documentElement,
@@ -633,11 +633,11 @@ describe("createDOMAnnouncer", () => {
 
   it("keeps multiple drivers in one document isolated", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const first = createDOMAnnouncer({
+    const first = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
-    const second = createDOMAnnouncer({
+    const second = createAnnouncer({
       document: dom.window.document,
       mode: "live-region",
     });
@@ -652,12 +652,12 @@ describe("createDOMAnnouncer", () => {
   });
 });
 
-describe("connectRuntimeToDOM", () => {
+describe("bindRuntime", () => {
   it("can attach the runtime's first announcement listener", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({ clock });
-    const binding = connectRuntimeToDOM(runtime, {
+    const runtime = createRuntime({ clock });
+    const binding = bindRuntime(runtime, {
       document: dom.window.document,
       mode: "live-region",
     });
@@ -673,20 +673,20 @@ describe("connectRuntimeToDOM", () => {
 
   it("removes owned regions when subscribing to a disposed runtime fails", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       onAnnouncement: () => undefined,
     });
     runtime.dispose();
 
     expect(() =>
-      connectRuntimeToDOM(runtime, { document: dom.window.document }),
+      bindRuntime(runtime, { document: dom.window.document }),
     ).toThrow("Cannot subscribe to a disposed generative-a11y runtime");
     expect(dom.window.document.body.children).toHaveLength(0);
   });
 
   it("removes owned regions when unsubscribe throws and remains idempotent", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
-    const baseRuntime = createGenerativeA11y({
+    const baseRuntime = createRuntime({
       onAnnouncement: () => undefined,
     });
     const unsubscribeFailure = vi.fn(() => {
@@ -704,7 +704,7 @@ describe("connectRuntimeToDOM", () => {
         };
       },
     };
-    const binding = connectRuntimeToDOM(runtime, {
+    const binding = bindRuntime(runtime, {
       document: dom.window.document,
     });
 
@@ -721,16 +721,16 @@ describe("connectRuntimeToDOM", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const clock = new ManualClock();
     const originalListener = vi.fn();
-    const onDiagnostic = vi.fn();
-    const runtime = createGenerativeA11y({
+    const onDelivery = vi.fn();
+    const runtime = createRuntime({
       clock,
       onAnnouncement: originalListener,
     });
     const runtimeDispose = vi.spyOn(runtime, "dispose");
-    const binding = connectRuntimeToDOM(runtime, {
+    const binding = bindRuntime(runtime, {
       document: dom.window.document,
       mode: "live-region",
-      onDiagnostic,
+      onDelivery,
     });
     const polite = binding.announcer.getRegions()?.polite;
 
@@ -739,7 +739,7 @@ describe("connectRuntimeToDOM", () => {
     clock.runUntilIdle();
 
     expect(polite?.textContent).toBe("Response stopped.");
-    expect(onDiagnostic).toHaveBeenCalledOnce();
+    expect(onDelivery).toHaveBeenCalledOnce();
     expect(originalListener).toHaveBeenCalledOnce();
     const deliveredNode = polite?.firstChild;
 
@@ -750,7 +750,7 @@ describe("connectRuntimeToDOM", () => {
     clock.runUntilIdle();
 
     expect(polite?.firstChild).toBe(deliveredNode);
-    expect(onDiagnostic).toHaveBeenCalledOnce();
+    expect(onDelivery).toHaveBeenCalledOnce();
     expect(originalListener).toHaveBeenCalledTimes(2);
     expect(runtimeDispose).not.toHaveBeenCalled();
   });
@@ -760,19 +760,19 @@ describe("connectRuntimeToDOM", () => {
     const secondDOM = new JSDOM("<!doctype html><html><body></body></html>");
     const firstClock = new ManualClock();
     const secondClock = new ManualClock();
-    const firstRuntime = createGenerativeA11y({
+    const firstRuntime = createRuntime({
       clock: firstClock,
       onAnnouncement: () => undefined,
     });
-    const secondRuntime = createGenerativeA11y({
+    const secondRuntime = createRuntime({
       clock: secondClock,
       onAnnouncement: () => undefined,
     });
-    const first = connectRuntimeToDOM(firstRuntime, {
+    const first = bindRuntime(firstRuntime, {
       document: firstDOM.window.document,
       mode: "live-region",
     });
-    const second = connectRuntimeToDOM(secondRuntime, {
+    const second = bindRuntime(secondRuntime, {
       document: secondDOM.window.document,
       mode: "live-region",
     });
@@ -795,12 +795,12 @@ describe("connectRuntimeToDOM", () => {
   it("rejects a listener snapshot that becomes stale during delivery", () => {
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const clock = new ManualClock();
-    let binding: ReturnType<typeof connectRuntimeToDOM> | undefined;
-    const runtime = createGenerativeA11y({
+    let binding: ReturnType<typeof bindRuntime> | undefined;
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => binding?.dispose(),
     });
-    binding = connectRuntimeToDOM(runtime, {
+    binding = bindRuntime(runtime, {
       document: dom.window.document,
       mode: "live-region",
     });
@@ -813,4 +813,15 @@ describe("connectRuntimeToDOM", () => {
     expect(polite?.textContent).toBe("");
     expect(polite?.isConnected).toBe(false);
   });
+});
+
+it("rejects unsupported delivery modes before allocating live regions", () => {
+  const dom = new JSDOM();
+  const { document } = dom.window;
+  const before = document.querySelectorAll("[aria-live]").length;
+  expect(() =>
+    createAnnouncer({ document, mode: "aria-notify" as never }),
+  ).toThrow('mode must be "auto" or "live-region"');
+  expect(document.querySelectorAll("[aria-live]")).toHaveLength(before);
+  dom.window.close();
 });

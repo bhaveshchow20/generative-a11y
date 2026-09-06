@@ -1,9 +1,6 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import type {
-  AttentionState,
-  GenerativeA11yEvent,
-} from "@generative-a11y/core";
+import type { AttentionState, RuntimeEvent } from "@generative-a11y/core";
 
 const fixturePath = "/examples/at-fixture/";
 
@@ -374,7 +371,7 @@ declare global {
         attention?: boolean;
         syntheticCatalog?: boolean;
       }): void;
-      dispatch(event: GenerativeA11yEvent): void;
+      dispatch(event: RuntimeEvent): void;
       drain(): void;
       captureAndEnterInteraction(): void;
       restoreCapturedFocus(): void;

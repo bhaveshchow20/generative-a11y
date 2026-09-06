@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": [
+    "../../examples/consumer-journeys/*.ts",
+    "../../examples/consumer-journeys/*.tsx",
+    "./*.tsx"
+  ]
+}

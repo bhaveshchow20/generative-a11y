@@ -1,14 +1,11 @@
 // @vitest-environment jsdom
-import {
-  ManualClock,
-  englishAnnouncementCatalog,
-  createGenerativeA11y,
-} from "@generative-a11y/core";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
+import { en } from "@generative-a11y/core/messages";
 import { act, render, cleanup } from "@testing-library/react";
 import { StrictMode, useLayoutEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, expect, it } from "vitest";
-import { GenerativeA11yProvider, useGenerativeA11yRuntime } from "./index.js";
+import { A11yProvider, useRuntime } from "./index.js";
 
 afterEach(cleanup);
 it("forwards construction catalogs through StrictMode without dispatch during SSR", async () => {
@@ -18,12 +15,12 @@ it("forwards construction catalogs through StrictMode without dispatch during SS
     id: "react-fr",
     locale: "fr",
     messages: {
-      ...englishAnnouncementCatalog.messages,
+      ...en.messages,
       "response.completed": "Réponse terminée.",
     },
   };
   function Child() {
-    const runtime = useGenerativeA11yRuntime();
+    const runtime = useRuntime();
     useLayoutEffect(() => {
       runtime.dispatch({
         type: "response.started",
@@ -36,14 +33,14 @@ it("forwards construction catalogs through StrictMode without dispatch during SS
   }
   const tree = (
     <StrictMode>
-      <GenerativeA11yProvider
+      <A11yProvider
         clock={clock}
-        announcementCatalog={catalog}
+        messages={catalog}
         onAnnouncement={(a) => delivered.push(a.text)}
         policy={{ minimumGapMs: 0 }}
       >
         <Child />
-      </GenerativeA11yProvider>
+      </A11yProvider>
     </StrictMode>
   );
   expect(renderToString(tree)).not.toContain("Réponse terminée.");
@@ -67,14 +64,14 @@ it("forwards construction catalogs through StrictMode without dispatch during SS
 it("preserves a borrowed runtime catalog across keyed provider replacement", async () => {
   const clock = new ManualClock();
   const delivered: string[] = [];
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     clock,
     onAnnouncement: (a) => delivered.push(a.text),
-    announcementCatalog: {
+    messages: {
       id: "borrowed-en",
       locale: "en",
       messages: {
-        ...englishAnnouncementCatalog.messages,
+        ...en.messages,
         "response.completed": "Borrowed catalog.",
       },
     },
@@ -83,27 +80,19 @@ it("preserves a borrowed runtime catalog across keyed provider replacement", asy
     id: "provider-en",
     locale: "en",
     messages: {
-      ...englishAnnouncementCatalog.messages,
+      ...en.messages,
       "response.completed": "Provider catalog.",
     },
   };
   const view = render(
-    <GenerativeA11yProvider
-      key="one"
-      runtime={runtime}
-      announcementCatalog={ignored}
-    >
+    <A11yProvider key="one" runtime={runtime} messages={ignored}>
       <span>First</span>
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   view.rerender(
-    <GenerativeA11yProvider
-      key="two"
-      runtime={runtime}
-      announcementCatalog={ignored}
-    >
+    <A11yProvider key="two" runtime={runtime} messages={ignored}>
       <span>Second</span>
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   await act(async () => {
     await Promise.resolve();
@@ -134,7 +123,7 @@ it("uses a new catalog only when an owned provider is explicitly replaced", asyn
     id: "first-en",
     locale: "en",
     messages: {
-      ...englishAnnouncementCatalog.messages,
+      ...en.messages,
       "response.completed": "First catalog.",
     },
   };
@@ -142,12 +131,12 @@ it("uses a new catalog only when an owned provider is explicitly replaced", asyn
     id: "second-en",
     locale: "en",
     messages: {
-      ...englishAnnouncementCatalog.messages,
+      ...en.messages,
       "response.completed": "Second catalog.",
     },
   };
   function Complete() {
-    const runtime = useGenerativeA11yRuntime();
+    const runtime = useRuntime();
     useLayoutEffect(() => {
       runtime.dispatch({ type: "response.started", responseId: "r" });
       runtime.dispatch({ type: "response.completed", responseId: "r" });
@@ -159,22 +148,22 @@ it("uses a new catalog only when an owned provider is explicitly replaced", asyn
     onAnnouncement: (a: { text: string }) => delivered.push(a.text),
   };
   const view = render(
-    <GenerativeA11yProvider key="one" {...props} announcementCatalog={first}>
+    <A11yProvider key="one" {...props} messages={first}>
       <Complete />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   await act(() => clock.runUntilIdle());
   view.rerender(
-    <GenerativeA11yProvider key="one" {...props} announcementCatalog={second}>
+    <A11yProvider key="one" {...props} messages={second}>
       <Complete />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   await act(() => clock.runUntilIdle());
   expect(delivered).toEqual(["First catalog."]);
   view.rerender(
-    <GenerativeA11yProvider key="two" {...props} announcementCatalog={second}>
+    <A11yProvider key="two" {...props} messages={second}>
       <Complete />
-    </GenerativeA11yProvider>,
+    </A11yProvider>,
   );
   await act(async () => {
     await Promise.resolve();

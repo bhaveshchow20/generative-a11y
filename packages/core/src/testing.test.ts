@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ManualClock, createAnnouncementRecorder } from "./index.js";
+import { ManualClock, createRecorder } from "./index.js";
 import {
   createReplayFixture,
   matchesPartial,
@@ -10,7 +10,7 @@ import {
 
 describe("core testing utilities", () => {
   it("records and replays attention observations and user overrides", () => {
-    const source = createAnnouncementRecorder({
+    const source = createRecorder({
       policy: { attention: { enabled: true }, minimumGapMs: 0 },
     });
     const recording = recordRuntime({
@@ -38,7 +38,7 @@ describe("core testing utilities", () => {
       recording.runtime.dispatch(event);
     }
     source.clock.runUntilIdle();
-    const target = createAnnouncementRecorder({
+    const target = createRecorder({
       policy: { attention: { enabled: true }, minimumGapMs: 0 },
     });
     replayEvents(
@@ -89,7 +89,7 @@ describe("core testing utilities", () => {
 
   it("records only forwarded events as relative, immutable fixture entries", () => {
     const clock = new ManualClock(100);
-    const recorder = createAnnouncementRecorder({ startAt: 100 });
+    const recorder = createRecorder({ startAt: 100 });
     const recording = recordRuntime({ runtime: recorder.runtime, clock });
     const event = {
       type: "response.started" as const,
@@ -117,7 +117,7 @@ describe("core testing utilities", () => {
   });
 
   it("returns dispatch acceptance and excludes rejected runtime events", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     const recording = recordRuntime({
       runtime: recorder.runtime,
       clock: recorder.clock,
@@ -134,7 +134,7 @@ describe("core testing utilities", () => {
   });
 
   it("replays stable same-time ordering without settling caller-controlled timers", () => {
-    const target = createAnnouncementRecorder({ startAt: 10 });
+    const target = createRecorder({ startAt: 10 });
     const fixture = createReplayFixture(
       [
         {
@@ -169,7 +169,7 @@ describe("core testing utilities", () => {
   });
 
   it("fails with the fixture entry index when the target rejects an event", () => {
-    const target = createAnnouncementRecorder();
+    const target = createRecorder();
     const fixture = createReplayFixture([
       {
         at: 0,
@@ -184,7 +184,7 @@ describe("core testing utilities", () => {
   });
 
   it("rejects malformed and backwards fixtures before dispatching", () => {
-    const target = createAnnouncementRecorder();
+    const target = createRecorder();
     expect(() =>
       replayEvents(target.runtime, target.clock, {
         format: "generative-a11y/replay",
@@ -200,7 +200,7 @@ describe("core testing utilities", () => {
   });
 
   it("records and replays hierarchical attempts with stable relationships", () => {
-    const target = createAnnouncementRecorder({
+    const target = createRecorder({
       policy: {
         workflows: { runs: "silent", steps: "silent" },
       },

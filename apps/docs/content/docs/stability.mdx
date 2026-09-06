@@ -27,6 +27,7 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Public API naming update: createRuntime Runtime RuntimeOptions RuntimeEvent A11yProvider useRuntime createAnnouncer core/messages en Messages. Pre-1.0 breaking replacements without deprecated aliases. Complete import and type migration table.",
   "Stability and migrations",
   "Learn how package versions, supported framework ranges, deprecations, and upgrades work.",
   "Reference",
@@ -83,7 +84,7 @@ export const searchableText = [
   "Repeat the application's documented assistive-technology smoke test.",
   "deprecations",
   "Deprecations remain documented",
-  "Deprecated exports remain documented with their replacement and migration path until a major release removes them. Release notes identify changed defaults, event semantics, ownership rules, and peer dependency ranges.",
+  "This pre-1.0 naming update replaces APIs without deprecated aliases. Release notes and the migration table identify changed names, defaults, event semantics, ownership rules, and peer dependency ranges.",
 ].join("\n");
 
 <span id="versioning"></span>
@@ -183,6 +184,120 @@ browsers and with the screen readers you support.
 
 ## Deprecations remain documented
 
-Deprecated exports remain documented with their replacement and migration path
-until a major release removes them. Release notes identify changed defaults,
+When an API is deprecated, its replacement and migration path remain documented
+until removal. This pre-1.0 naming update makes direct breaking replacements
+without a deprecation period. Release notes identify changed defaults,
 event semantics, ownership rules, and peer dependency ranges.
+
+## Public API naming update
+
+This release replaces the earlier API names directly. There are no deprecated
+aliases. Update imports, type annotations, and runtime configuration together.
+The package provides context: `createRuntime` creates a core runtime,
+`createAnnouncer` creates browser delivery, and `A11yProvider` owns the React
+integration. Lifecycle event names and accessibility behavior are unchanged.
+
+| Previous API | Current API |
+| --- | --- |
+| `createGenerativeA11y` | `createRuntime` |
+| `GenerativeA11yRuntime`, `GenerativeA11yOptions`, `GenerativeA11yEvent` | `Runtime`, `RuntimeOptions`, `RuntimeEvent` |
+| `englishAnnouncementCatalog` from core | `en` from `@generative-a11y/core/messages` |
+| `AnnouncementCatalog` | `Messages` from `core/messages` |
+| `AnnouncementMessages`, `AnnouncementMessageParameters`, `AnnouncementMessageId` | `MessageMap`, `MessageParams`, `MessageKey` from `core/messages` |
+| `AdapterAnnouncementCopy`, `normalizeAdapterAnnouncementCopy` | `AdapterCopy`, `normalizeAdapterCopy` from `core/messages` |
+| `announcementCatalog` runtime/provider option | `messages` |
+| `GenerativeA11yProvider` | `A11yProvider` |
+| `useGenerativeA11y`, `useGenerativeA11yRuntime` | `useA11y`, `useRuntime` |
+| `useGenerativeA11yAttention`, `useGenerativeA11yAttentionControl` | `useAttention`, `useAttentionControl` |
+| `useGenerativeA11yPreferences`, `useGenerativeA11yBindings` | `usePreferences`, `useAttentionRefs` |
+| `createDOMAnnouncer`, `connectRuntimeToDOM`, `bindAttentionToRuntime` | `createAnnouncer`, `bindRuntime`, `bindAttention` |
+| `GenerativeA11yExpect`, `GenerativeA11yMatchers` | `A11yExpect`, `A11yMatchers` from `core/testing` |
+| `createAnnouncementRecorder`, `createAnnouncementScheduler` | `createRecorder`, `createScheduler` |
+| AI SDK `createObserver` | `createChatObserver` |
+| assistant-ui `bindThreadRuntime` | `bindThread` |
+| devtools `createDevtoolsStore`, `mountDevtoolsOverlay` | `createStore`, `mountOverlay` |
+
+Associated types follow the same names: `A11yProviderProps`, `AnnouncerOptions`,
+`Announcer`, `RuntimeBinding`, `SchedulerOptions`, `ChatObserverOptions`,
+`BindThreadOptions`, `StoreOptions`, and `OverlayOptions`.
+The diagnostic snapshot's `announcementCatalog` field is now `messages`;
+its content-free `{ catalogId, locale }` value is unchanged.
+
+English is the default. Import messages only when customizing the copy:
+
+```ts
+import { createRuntime } from "@generative-a11y/core";
+
+const runtime = createRuntime();
+```
+
+```ts
+import { createRuntime } from "@generative-a11y/core";
+import { en, type Messages } from "@generative-a11y/core/messages";
+
+const messages = {
+  ...en,
+  id: "my-app.en.v1",
+  messages: {
+    ...en.messages,
+    "response.completed": "Your answer is ready.",
+  },
+} satisfies Messages;
+
+const runtime = createRuntime({ messages });
+```
+
+`Messages` is the complete configuration with an ID, locale and message map.
+A different language supplies every message; use your existing translation
+system inside the typed formatters. See [localized announcements](/docs/localized-announcements).
+
+### Additional type replacements
+
+| Previous type | Current type |
+| --- | --- |
+| `GenerativeA11yProviderProps` | `A11yProviderProps` |
+| `GenerativeA11yContextValue` | `A11yContextValue` |
+| `GenerativeA11yDOMOptions` | `DeliveryOptions` |
+| `GenerativeA11yAttentionControlResult` | `AttentionControl` |
+| `GenerativeA11yPreferencesResult` | `PreferencesResult` |
+| `GenerativeA11yComposerProps` | `AttentionRefs["composerRef"]` (callback ref, not a props object) |
+| `GenerativeA11yConversationProps` | `AttentionRefs["conversationRef"]` |
+| `GenerativeA11yNewestResponseProps` | `AttentionRefs["newestResponseRef"]` |
+| `GenerativeA11yBindings` | `AttentionRefs` |
+| `DOMAnnouncer` | `Announcer` |
+| `DOMAnnouncerOptions` | `AnnouncerOptions` |
+| `DOMAnnouncementMode` | `DeliveryMode` |
+| `DOMLiveRegions` | `LiveRegions` |
+| `DOMDeliveryResult` | `DeliveryResult` |
+| `DOMRuntimeBinding` | `RuntimeBinding` |
+| `AttentionRuntimeBindingOptions` | `AttentionBindingOptions` |
+| `AttentionRuntimeBinding` | `AttentionBinding` |
+| `AnnouncementRecorder` | `Recorder` |
+| `AnnouncementScheduler` | `Scheduler` |
+| `AnnouncementSchedulerOptions` | `SchedulerOptions` |
+| `CreateObserverOptions` | `ChatObserverOptions` |
+| `BindThreadRuntimeOptions` | `BindThreadOptions` |
+| `DevtoolsStoreOptions` | `StoreOptions` |
+| `DevtoolsStore` | `Store` |
+| `MountDevtoolsOverlayOptions` | `OverlayOptions` |
+| `MountedDevtoolsOverlay` | `Overlay` |
+
+### Integration clarity changes
+
+- Provider `dom` is now `delivery`; its browser callback is `onDelivery`. Core
+  and preference-store `onDiagnostic` callbacks retain their separate meaning.
+- `useBindings` becomes `useAttentionRefs`, returning `composerRef`,
+  `conversationRef`, and `newestResponseRef` directly. Use `ref={composerRef}`;
+  these refs observe attention and add no semantic props. The former props types
+  are removed; `AttentionRefs` describes the callbacks for host HTMLElements.
+- Each adapter exports `adapterInfo` and `AdapterInfo` instead of
+  `CHAT_ADAPTER_METADATA`/`ChatAdapterMetadata`,
+  `THREAD_ADAPTER_METADATA`/`ThreadAdapterMetadata`, or
+  `AGENT_ADAPTER_METADATA`/`AgentAdapterMetadata`.
+- Requested delivery mode `aria-notify` is removed because it behaved exactly
+  like `auto`. Use `auto` for notification with fallback, or `live-region` to
+  choose that path. The observed result method can still be `aria-notify`.
+- Configuration errors name the invalid field or missing documented message key
+  without including supplied values.
+
+See the [API reference](/api) for the updated imports, options, and usage examples.

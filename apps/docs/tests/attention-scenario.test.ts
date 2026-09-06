@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createGenerativeA11y, ManualClock, type AnnouncementIntent } from "@generative-a11y/core";
+import { createRuntime, ManualClock, type AnnouncementIntent } from "@generative-a11y/core";
 import { attentionScenario } from "../lib/attention-scenario";
 
 describe("attention host scenario", () => {
   it("retains terminal and approval intents while quiet drops response text", () => {
     const clock = new ManualClock();
     const intents: AnnouncementIntent[] = [];
-    const runtime = createGenerativeA11y({ clock, preset: "verbose", policy: {
+    const runtime = createRuntime({ clock, preset: "verbose", policy: {
       attention: { enabled: true }, minimumGapMs: 0,
       text: { minimumCharacters: 1, maximumDelayMs: 0 },
       tools: { announceStartAfterMs: 0 },

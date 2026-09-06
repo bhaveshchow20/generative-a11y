@@ -1,10 +1,10 @@
 import {
-  createAnnouncementRecorder,
-  type GenerativeA11yEvent,
-  type GenerativeA11yRuntime,
+  createRecorder,
+  type RuntimeEvent,
+  type Runtime,
 } from "@generative-a11y/core";
 import { describe, expect, it } from "vitest";
-import { AGENT_ADAPTER_METADATA, bindAgent } from "./index.js";
+import { adapterInfo, bindAgent } from "./index.js";
 
 type Subscriber = Record<
   string,
@@ -38,21 +38,21 @@ function agentFor() {
   };
 }
 function recorder() {
-  const events: GenerativeA11yEvent[] = [];
+  const events: RuntimeEvent[] = [];
   return {
     events,
     runtime: {
-      dispatch(event: GenerativeA11yEvent) {
+      dispatch(event: RuntimeEvent) {
         events.push(event);
         return true;
       },
-    } satisfies Pick<GenerativeA11yRuntime, "dispatch">,
+    } satisfies Pick<Runtime, "dispatch">,
   };
 }
 
 describe("AG-UI binding", () => {
   it("continues observed run, response, and tool lifecycles during quiet mode", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { attention: { enabled: true }, minimumGapMs: 0 },
     });
@@ -131,7 +131,7 @@ describe("AG-UI binding", () => {
   });
 
   it("declares exact run support and partial name-only step support", () => {
-    expect(AGENT_ADAPTER_METADATA.fidelity).toMatchObject({
+    expect(adapterInfo.fidelity).toMatchObject({
       runs: "exact",
       steps: "partial",
       hierarchy: "partial",
@@ -143,7 +143,7 @@ describe("AG-UI binding", () => {
     });
   });
   it("surfaces name-only steps as diagnostic evidence without inventing identity", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     const agent = agentFor();
     bindAgent({
       runtime: recorder.runtime,
@@ -186,7 +186,7 @@ describe("AG-UI binding", () => {
     expect(recorder.transcript()).toEqual([]);
   });
   it("announces an interrupt request before terminating its owning run", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     const agent = agentFor();
     bindAgent({
       runtime: recorder.runtime,
@@ -366,7 +366,7 @@ describe("AG-UI binding", () => {
   });
 
   it("terminalizes active child runs and tools before a top-level run error", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     const agent = agentFor();
     bindAgent({
       runtime: recorder.runtime,
@@ -457,7 +457,7 @@ describe("AG-UI binding", () => {
   });
 
   it("fails an active tool without run ownership on a top-level error", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     const agent = agentFor();
     bindAgent({
       runtime: recorder.runtime,

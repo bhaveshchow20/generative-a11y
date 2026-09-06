@@ -11,11 +11,11 @@ npm install @generative-a11y/core
 ## Quick start
 
 ```ts
-import { createGenerativeA11y } from "@generative-a11y/core";
+import { createRuntime } from "@generative-a11y/core";
 
-const runtime = createGenerativeA11y({
+const runtime = createRuntime({
   onAnnouncement(announcement) {
-    deliveryDriver.announce(announcement);
+    console.log(announcement); // Attach browser delivery in your application.
   },
 });
 
@@ -84,13 +84,13 @@ completion.
 
 ## Runtime contract
 
-`createGenerativeA11y(options)` accepts a preset, nested policy overrides, an
-optional injected `Clock`, and optional delivery callbacks:
+`createRuntime(options)` accepts a preset, nested policy overrides, an optional
+injected `Clock`, and optional delivery callbacks:
 
 - `onAnnouncement(intent)` optionally installs an initial listener for prepared
   polite/assertive intents. If it throws, scheduling continues and
   `onDeliveryError(error, intent)` is called. A runtime intended for
-  `subscribeAnnouncements()` or `connectRuntimeToDOM()` does not need a no-op
+  `subscribeAnnouncements()` or `bindRuntime()` does not need a no-op
   construction listener. An announcement emitted while no listener is attached
   receives a `delivery-error` diagnostic.
 - `onDiagnostic(decision)` observes best-effort queued, merged, suppressed,
@@ -148,14 +148,14 @@ No policy setting manufactures hierarchy that a source cannot identify.
 
 ## Scheduler
 
-`createAnnouncementScheduler(options)` is the lower-level prioritized queue used
-by the runtime. `schedule(candidate)` supports delay, scope cancellation,
-coalescing, explicit dedupe keys, and an optional `capacityPriority` of
-`"status"` or `"content"` for capacity retention. Candidates without a capacity
-priority retain the legacy content tier. `cancelScope(scope)` cancels queued
-candidates, `pendingCount()` reports queue length, and `dispose()` permanently
-clears it. The scheduler validates bounds, preserves assertive work under
-capacity pressure, isolates callback failures and defaults deduplication to the
+`createScheduler(options)` is the lower-level prioritized queue used by the
+runtime. `schedule(candidate)` supports delay, scope cancellation, coalescing,
+explicit dedupe keys, and an optional `capacityPriority` of `"status"` or
+`"content"` for capacity retention. Candidates without a capacity priority
+retain the legacy content tier. `cancelScope(scope)` cancels queued candidates,
+`pendingCount()` reports queue length, and `dispose()` permanently clears it.
+The scheduler validates bounds, preserves assertive work under capacity
+pressure, isolates callback failures and defaults deduplication to the
 candidate's semantic entity.
 
 `getDiagnosticSnapshot()` returns the scheduler's current pending work without
@@ -175,12 +175,12 @@ directly.
 equal-time callbacks retain insertion order. `runUntilIdle(maxTasks)` throws
 before exceeding its safety limit.
 
-`createAnnouncementRecorder()` returns a runtime wired to a `ManualClock`.
-`transcript()` contains delivered intents; `diagnosticTranscript()` also exposes
-stable dispositions and reason codes. A capacity diagnostic may include a
-serializable `count` when it represents multiple suppressed decisions, including
-dropped nested runtime events. These records prove runtime policy behavior, not
-actual assistive-technology speech.
+`createRecorder()` returns a runtime wired to a `ManualClock`. `transcript()`
+contains delivered intents; `diagnosticTranscript()` also exposes stable
+dispositions and reason codes. A capacity diagnostic may include a serializable
+`count` when it represents multiple suppressed decisions, including dropped
+nested runtime events. These records prove runtime policy behavior, not actual
+assistive-technology speech.
 
 For development tooling, `RuntimeDiagnosticEventV1` has an explicit schema
 version and monotonically increasing sequence. A source event is emitted before
@@ -198,7 +198,7 @@ add anything to the main core entry.
 
 ```ts
 import { expect } from "vitest";
-import { createAnnouncementRecorder } from "@generative-a11y/core";
+import { createRecorder } from "@generative-a11y/core";
 import {
   installVitestMatchers,
   recordRuntime,
@@ -207,7 +207,7 @@ import {
 
 const accessibilityExpect = installVitestMatchers(expect);
 
-const recorder = createAnnouncementRecorder();
+const recorder = createRecorder();
 const recording = recordRuntime({
   runtime: recorder.runtime,
   clock: recorder.clock,
@@ -223,7 +223,7 @@ recording.runtime.dispatch({
 });
 
 const fixture = recording.fixture();
-const replay = createAnnouncementRecorder({ startAt: fixture.startAt });
+const replay = createRecorder({ startAt: fixture.startAt });
 replayEvents(replay.runtime, replay.clock, fixture);
 replay.clock.runUntilIdle();
 
@@ -248,7 +248,7 @@ whitespace only at the delivery boundary.
 
 ## Types
 
-The package exports the normalized `GenerativeA11yEvent` union, announcement and
+The package exports the normalized `RuntimeEvent` union, announcement and
 diagnostic records, policy types, adapter fidelity metadata, scheduler types,
 and clock types. Events are serializable where practical; callbacks and clock
 handles are intentionally runtime-only.
@@ -259,7 +259,7 @@ Attention control is opt-in and keeps the current runtime and lifecycle state.
 It changes announcement decisions, not generation, focus, or the host UI.
 
 ```ts
-const runtime = createGenerativeA11y({
+const runtime = createRuntime({
   preset: "balanced",
   policy: {
     attention: {
@@ -341,37 +341,33 @@ APIs cannot retract output already delivered to assistive technology.
 
 ## Localized announcements
 
-Pass `announcementCatalog` to `createGenerativeA11y` (or the recorder) to format
-library-generated notices using your existing i18n framework. Core provides
-timing, accessibility policy and language attribution; it does not provide
-translation services, ICU parsing or language detection.
+Pass `messages` to `createRuntime` (or the recorder) to format library-generated
+notices using your existing i18n framework. Core provides timing, accessibility
+policy and language attribution; it does not provide translation services, ICU
+parsing or language detection.
 
-`AnnouncementCatalog` contains a non-sensitive `id`, an explicit BCP 47
-`locale`, and a complete `AnnouncementMessages` map. Each value is a fixed
-string or a pure synchronous callback receiving the frozen, typed parameters
-from `AnnouncementMessageParameters`. `AnnouncementMessageId` is the union of
-its 25 keys. The exported `englishAnnouncementCatalog` preserves existing
+`Messages` contains a non-sensitive `id`, an explicit BCP 47 `locale`, and a
+complete `MessageMap` map. Each value is a fixed string or a pure synchronous
+callback receiving the frozen, typed parameters from `MessageParams`.
+`MessageKey` is the union of its 25 keys. The exported `en` preserves existing
 English wording. English customization may spread its messages; a translated
 catalog must translate every entry rather than silently reuse English defaults.
 
 ```ts
-import {
-  createGenerativeA11y,
-  englishAnnouncementCatalog,
-  type AnnouncementCatalog,
-} from "@generative-a11y/core";
+import { createRuntime } from "@generative-a11y/core";
+import { en, type Messages } from "@generative-a11y/core/messages";
 
-const customEnglish: AnnouncementCatalog = {
-  ...englishAnnouncementCatalog,
+const customEnglish: Messages = {
+  ...en,
   id: "my-app.en.v1",
   messages: {
-    ...englishAnnouncementCatalog.messages,
+    ...en.messages,
     "response.completed": "Your answer is ready.",
     "citation.available": ({ count }) =>
       `${count} ${count === 1 ? "reference" : "references"} available.`,
   },
 };
-const runtime = createGenerativeA11y({ announcementCatalog: customEnglish });
+const runtime = createRuntime({ messages: customEnglish });
 ```
 
 For a complete translated catalog, call the host's translation function inside
@@ -416,19 +412,23 @@ Callbacks cannot change channels, timing, focus, or lifecycle behavior. Trusted
 host callbacks must be synchronous and side-effect-free; core cannot bound their
 execution cost or allocations.
 
-`RuntimeDiagnosticSnapshotV1.announcementCatalog` exposes only
-`{ catalogId, locale }`, not catalog strings, callback arguments or errors.
-Replay V1 events remain unchanged; exact reproduction requires the same catalog
-implementation/version, adapter copy, policy and relevant Intl environment.
-Callbacks are not serialized. Recordings may contain host content and are not
-content-free. Automated transcripts and DOM tests do not establish real
-assistive-technology speech behavior.
+`RuntimeDiagnosticSnapshotV1.messages` exposes only `{ catalogId, locale }`, not
+catalog strings, callback arguments or errors. Replay V1 events remain
+unchanged; exact reproduction requires the same catalog implementation/version,
+adapter copy, policy and relevant Intl environment. Callbacks are not
+serialized. Recordings may contain host content and are not content-free.
+Automated transcripts and DOM tests do not establish real assistive-technology
+speech behavior.
 
-`AdapterAnnouncementCopy` is the shared serializable copy contract for existing
-adapter bindings: `locale`, `toolLabel`, `approvalRequested`, `approvalResolved`
+`AdapterCopy` is the shared serializable copy contract for existing adapter
+bindings: `locale`, `toolLabel`, `approvalRequested`, `approvalResolved`
 (`approved`, `rejected`, `cancelled`), `inputRequested`, and `inputResolved`
-(`submitted`, `cancelled`). `normalizeAdapterAnnouncementCopy(copy)` validates
-all fields with the same language/string limits, canonicalizes the language tag,
-and returns a copied, frozen object including nested outcome records. Adapters
-apply this copy only to events they already expose reliably; it does not add
-lifecycle fidelity or tag generated response text.
+(`submitted`, `cancelled`). `normalizeAdapterCopy(copy)` validates all fields
+with the same language/string limits, canonicalizes the language tag, and
+returns a copied, frozen object including nested outcome records. Adapters apply
+this copy only to events they already expose reliably; it does not add lifecycle
+fidelity or tag generated response text.
+
+`Recorder.clear()` clears recorded announcements and diagnostics only. It does
+not reset the runtime, entity history, queued work, or clock time. Create a new
+recorder for an independent test session and dispose the previous runtime.

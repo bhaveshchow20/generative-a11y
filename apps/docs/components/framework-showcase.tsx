@@ -1,29 +1,29 @@
 "use client";
 
-import { createObserver } from "@generative-a11y/ai-sdk";
+import { createChatObserver } from "@generative-a11y/ai-sdk";
 import {
-  bindThreadRuntime,
+  bindThread,
   type ThreadRuntimeSource,
 } from "@generative-a11y/assistant-ui";
 import {
-  createGenerativeA11y,
+  createRuntime,
   type AnnouncementIntent,
-  type GenerativeA11yEvent,
-  type GenerativeA11yRuntime,
+  type RuntimeEvent,
+  type Runtime,
 } from "@generative-a11y/core";
 import {
-  connectRuntimeToDOM,
-  type DOMDeliveryResult,
+  bindRuntime,
+  type DeliveryResult,
 } from "@generative-a11y/dom";
 import { useEffect, useRef, useState } from "react";
 
 type Framework = "ai-sdk" | "assistant-ui";
 
 const snippets: Record<Framework, string> = {
-  "ai-sdk": `const observer = createObserver({ runtime, scopeId: "release-chat" });
+  "ai-sdk": `const observer = createChatObserver({ runtime, scopeId: "release-chat" });
 observer.observe({ messages, status, error });
 observer.finish(message, finishOutcome);`,
-  "assistant-ui": `const binding = bindThreadRuntime({
+  "assistant-ui": `const binding = bindThread({
   runtime,
   scopeId: "release-thread",
   thread,
@@ -32,9 +32,9 @@ observer.finish(message, finishOutcome);`,
 
 export function FrameworkShowcase() {
   const [framework, setFramework] = useState<Framework>("ai-sdk");
-  const [events, setEvents] = useState<GenerativeA11yEvent[]>([]);
+  const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
-  const [deliveries, setDeliveries] = useState<DOMDeliveryResult[]>([]);
+  const [deliveries, setDeliveries] = useState<DeliveryResult[]>([]);
   const disposeRef = useRef<() => void>(() => undefined);
 
   useEffect(() => () => disposeRef.current(), []);
@@ -44,7 +44,7 @@ export function FrameworkShowcase() {
     setEvents([]);
     setAnnouncements([]);
     setDeliveries([]);
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       preset: "verbose",
       policy: {
         text: { minimumCharacters: 1, maximumDelayMs: 0 },
@@ -55,24 +55,24 @@ export function FrameworkShowcase() {
     const unsubscribe = runtime.subscribeAnnouncements((announcement) => {
       setAnnouncements((current) => [...current, announcement]);
     });
-    const dom = connectRuntimeToDOM(runtime, {
+    const dom = bindRuntime(runtime, {
       mode: "live-region",
-      onDiagnostic(result) {
+      onDelivery(result) {
         setDeliveries((current) => [...current, result]);
       },
     });
     const bridge = {
-      dispatch(event: GenerativeA11yEvent) {
+      dispatch(event: RuntimeEvent) {
         setEvents((current) => [...current, event]);
         return runtime.dispatch(event);
       },
-    } satisfies Pick<GenerativeA11yRuntime, "dispatch">;
+    } satisfies Pick<Runtime, "dispatch">;
     return { runtime, bridge, dom, unsubscribe };
   }
 
   function runAiSdk() {
     const session = newSession();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime: session.bridge,
       scopeId: "release-chat",
       getToolLabel: () => "Prepare release report",
@@ -115,7 +115,7 @@ export function FrameworkShowcase() {
         };
       },
     } as unknown as ThreadRuntimeSource;
-    const binding = bindThreadRuntime({
+    const binding = bindThread({
       runtime: session.bridge,
       scopeId: "release-thread",
       thread,
@@ -203,7 +203,7 @@ export function FrameworkShowcase() {
   );
 }
 
-function identity(event: GenerativeA11yEvent) {
+function identity(event: RuntimeEvent) {
   if ("responseId" in event) return event.responseId;
   if ("toolId" in event) return event.toolId;
   if ("approvalId" in event) return event.approvalId;

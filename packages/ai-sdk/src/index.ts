@@ -1,17 +1,17 @@
 import {
-  normalizeAdapterAnnouncementCopy,
-  type AdapterAnnouncementCopy,
-} from "@generative-a11y/core";
+  normalizeAdapterCopy,
+  type AdapterCopy,
+} from "@generative-a11y/core/messages";
 import type {
   AdapterFidelity,
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
+  RuntimeEvent,
+  Runtime,
 } from "@generative-a11y/core";
 import type { ChatOnErrorCallback, ChatOnFinishCallback, UIMessage } from "ai";
 
 const DEFAULT_MAX_TRACKED_ENTITIES = 1_000;
 
-export interface ChatAdapterMetadata {
+export interface AdapterInfo {
   readonly name: "ai-sdk";
   readonly fidelity: Readonly<Omit<AdapterFidelity, "optionalEvents">> & {
     readonly optionalEvents: readonly NonNullable<
@@ -24,7 +24,7 @@ export interface ChatAdapterMetadata {
 }
 
 /** Frozen evidence and fidelity declaration for the AI SDK adapter. */
-export const CHAT_ADAPTER_METADATA: ChatAdapterMetadata = Object.freeze({
+export const adapterInfo: AdapterInfo = Object.freeze({
   name: "ai-sdk",
   fidelity: Object.freeze({
     runs: "unavailable",
@@ -65,10 +65,10 @@ export interface ToolLabelContext {
   readonly title: string | undefined;
 }
 
-export interface CreateObserverOptions {
+export interface ChatObserverOptions {
   /** Host-owned localized copy, captured and validated at construction. */
-  readonly copy?: AdapterAnnouncementCopy;
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly copy?: AdapterCopy;
+  readonly runtime: Pick<Runtime, "dispatch">;
   readonly scopeId: string;
   /** Positive cap for each response, tool, approval, and source identity set. */
   readonly maxTrackedEntities?: number;
@@ -224,7 +224,7 @@ function defaultToolLabel(): string {
  * silently records history; it never interprets `ready` or `error` as a
  * response terminal state.
  */
-export function createObserver(options: CreateObserverOptions): ChatObserver {
+export function createChatObserver(options: ChatObserverOptions): ChatObserver {
   if (
     typeof options.scopeId !== "string" ||
     options.scopeId.trim().length === 0
@@ -237,9 +237,7 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
   }
   const copy =
-    options.copy === undefined
-      ? undefined
-      : normalizeAdapterAnnouncementCopy(options.copy);
+    options.copy === undefined ? undefined : normalizeAdapterCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const responses = new Map<string, ResponseRecord>();
   const tools = new Map<string, ToolRecord>();
@@ -251,7 +249,7 @@ export function createObserver(options: CreateObserverOptions): ChatObserver {
   let lastActiveResponseId: string | undefined;
   let connectionLost = false;
 
-  function dispatch(event: GenerativeA11yEvent): void {
+  function dispatch(event: RuntimeEvent): void {
     if (disposed || saturated) return;
     try {
       options.runtime.dispatch(

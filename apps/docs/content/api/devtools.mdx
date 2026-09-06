@@ -7,13 +7,13 @@ publicPath: "/api/devtools"
 section: "Devtools"
 keywords:
   [
-    "createDevtoolsStore",
-    "mountDevtoolsOverlay",
-    "DevtoolsStore",
+    "createStore",
+    "mountOverlay",
+    "Store",
     "trace explorer",
   ]
 related:
-  ["/docs/devtools", "/api/core/diagnostics", "/api/dom/create-dom-announcer"]
+  ["/docs/devtools", "/api/core/diagnostics", "/api/dom/create-announcer"]
 order: 22
 ---
 
@@ -23,7 +23,7 @@ export const sourceMetadata = {
   related: [
     "/docs/devtools",
     "/api/core/diagnostics",
-    "/api/dom/create-dom-announcer",
+    "/api/dom/create-announcer",
   ],
   order: 22,
 };
@@ -32,18 +32,18 @@ export const searchableText = [
   "@generative-a11y/devtools",
   "Create a bounded redacted diagnostic store and an explicit browser Accessibility Trace Explorer for development.",
   "Devtools",
-  "createDevtoolsStore",
-  "mountDevtoolsOverlay",
-  "DevtoolsStore",
+  "createStore",
+  "mountOverlay",
+  "Store",
   "trace explorer",
   "/docs/devtools",
   "/api/core/diagnostics",
-  "/api/dom/create-dom-announcer",
+  "/api/dom/create-announcer",
   "store",
-  "createDevtoolsStore",
+  "createStore",
   "The headless store is framework-neutral and has no browser side effects on import. It subscribes to public runtime diagnostics and owns only its bounded captured history.",
   "typescript",
-  'import { createDevtoolsStore } from "@generative-a11y/devtools"; const store = createDevtoolsStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const snapshot = store.getSnapshot(); const trace = store.exportTrace(); detach(); store.dispose();',
+  'import { createStore } from "@generative-a11y/devtools"; const store = createStore({ maxEntries: 250 }); const detach = store.attachRuntime({ id: "support", runtime }); const snapshot = store.getSnapshot(); const trace = store.exportTrace(); detach(); store.dispose();',
   "Bound retained records",
   "maxEntries defaults to 250 and must be a positive safe integer.",
   "Attach public diagnostics",
@@ -52,8 +52,8 @@ export const searchableText = [
   "Snapshots and V1 trace exports are immutable and content-free.",
   "Release capture",
   "Detach the borrowed runtime before disposing the store.",
-  "createDevtoolsStore(options)",
-  "DevtoolsStore",
+  "createStore(options)",
+  "Store",
   "Function",
   "maxEntries: 250",
   "Creates an isolated store with bounded records and no attached runtimes.",
@@ -140,10 +140,10 @@ export const searchableText = [
   "{}",
   "Stores immutable adapter evidence revisions still referenced by retained records.",
   "overlay",
-  "mountDevtoolsOverlay",
+  "mountOverlay",
   "Import the browser helper from @generative-a11y/devtools/overlay. It mounts one Shadow DOM host after an explicit call, starts collapsed, and restores prior focus when closed.",
   "typescript",
-  'import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay"; const overlay = mountDevtoolsOverlay({ store }); overlay.dispose();',
+  'import { mountOverlay } from "@generative-a11y/devtools/overlay"; const overlay = mountOverlay({ store }); // Call overlay.dispose() when removing the workbench.',
   "Pass the store",
   "The overlay reads the store you created and does not attach a runtime itself.",
   "Mount explicitly",
@@ -151,7 +151,7 @@ export const searchableText = [
   "Dispose the host",
   "dispose unmounts the workbench and removes the custom element.",
   "store",
-  "DevtoolsStore",
+  "Store",
   "Required",
   "n/a",
   "Supplies the captured records and control methods displayed by the overlay.",
@@ -180,7 +180,7 @@ export const searchableText = [
 
 <span id="store"></span>
 
-## createDevtoolsStore
+## createStore
 
 The headless store is framework&#45;neutral and has no browser side effects on
 import. It subscribes to public runtime diagnostics and owns only its bounded
@@ -188,9 +188,9 @@ captured history.
 
 {/* prettier-ignore */}
 ```typescript
-import { createDevtoolsStore } from "@generative-a11y/devtools";
+import { createStore } from "@generative-a11y/devtools";
 
-const store = createDevtoolsStore({ maxEntries: 250 });
+const store = createStore({ maxEntries: 250 });
 const detach = store.attachRuntime({ id: "support", runtime });
 const snapshot = store.getSnapshot();
 const trace = store.exportTrace();
@@ -240,8 +240,8 @@ Detach the borrowed runtime before disposing the store.
 
 <TypeTable
   type={{
-    "createDevtoolsStore(options)": {
-      type: <>DevtoolsStore</>,
+    "createStore(options)": {
+      type: <>Store</>,
       default: <>maxEntries: 250</>,
       description: (
         <>
@@ -462,7 +462,7 @@ does not inspect framework internals or fill in evidence the adapter lacks.
 
 <span id="overlay"></span>
 
-## mountDevtoolsOverlay
+## mountOverlay
 
 Import the browser helper from @generative&#45;a11y/devtools/overlay. It mounts
 one Shadow DOM host after an explicit call, starts collapsed, and restores prior
@@ -470,10 +470,10 @@ focus when closed.
 
 {/* prettier-ignore */}
 ```typescript
-import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+import { mountOverlay } from "@generative-a11y/devtools/overlay";
 
-const overlay = mountDevtoolsOverlay({ store });
-overlay.dispose();
+const overlay = mountOverlay({ store });
+// Call overlay.dispose() when removing the workbench.
 ```
 
 ### Walkthrough
@@ -509,7 +509,7 @@ dispose unmounts the workbench and removes the custom element.
 <TypeTable
   type={{
     store: {
-      type: <>DevtoolsStore</>,
+      type: <>Store</>,
       required: true,
       description: (
         <>
@@ -561,16 +561,16 @@ spoke an announcement.
 
 </Callout>
 
-## Related
-
-- [/docs/devtools](/docs/devtools)
-- [/api/core/diagnostics](/api/core/diagnostics)
-- [/api/dom/create-dom-announcer](/api/dom/create-dom-announcer)
-
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/devtools" />
+
+<ApiReference entry="@generative-a11y/devtools/overlay" />

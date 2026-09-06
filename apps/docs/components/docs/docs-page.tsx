@@ -1,12 +1,12 @@
 import type { TOCItemType } from "fumadocs-core/toc";
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
+import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType } from "react";
 
 import { JsonLd } from "../json-ld";
 import { createArticleJsonLd } from "../../lib/seo";
-import { PROJECT_AUTHOR_NAME, PROJECT_AUTHOR_URL } from "../../lib/site";
 import { useMDXComponents } from "../../mdx-components";
+import { DocumentationHeader } from "./docs-header";
 
 type MdxBody = ComponentType<{ components?: MDXComponents }>;
 
@@ -37,11 +37,7 @@ export function DocumentationPage({
         })}
       />
       <DocsPage toc={toc}>
-        <DocsTitle>{title}</DocsTitle>
-        <DocsDescription>{description}</DocsDescription>
-        <p className="docs-maintainer">
-          Maintained by <a href={PROJECT_AUTHOR_URL}>{PROJECT_AUTHOR_NAME}</a>
-        </p>
+        <DocumentationHeader title={title} description={description} />
         <DocsBody>
           <Body components={useMDXComponents({})} />
         </DocsBody>

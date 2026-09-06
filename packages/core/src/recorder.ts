@@ -1,28 +1,25 @@
 import { ManualClock } from "./clock.js";
-import { createGenerativeA11y, type GenerativeA11yOptions } from "./runtime.js";
+import { createRuntime, type RuntimeOptions } from "./runtime.js";
 import type { AnnouncementDiagnostic, AnnouncementIntent } from "./types.js";
 
-export interface AnnouncementRecorder {
-  runtime: ReturnType<typeof createGenerativeA11y>;
+export interface Recorder {
+  runtime: ReturnType<typeof createRuntime>;
   clock: ManualClock;
   transcript(): AnnouncementIntent[];
   diagnosticTranscript(): AnnouncementDiagnostic[];
   clear(): void;
 }
 
-export function createAnnouncementRecorder(
-  options: Omit<
-    GenerativeA11yOptions,
-    "clock" | "onAnnouncement" | "onDiagnostic"
-  > & {
+export function createRecorder(
+  options: Omit<RuntimeOptions, "clock" | "onAnnouncement" | "onDiagnostic"> & {
     startAt?: number;
   } = {},
-): AnnouncementRecorder {
+): Recorder {
   const { startAt, ...runtimeOptions } = options;
   const clock = new ManualClock(startAt);
   const announcements: AnnouncementIntent[] = [];
   const diagnostics: AnnouncementDiagnostic[] = [];
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     ...runtimeOptions,
     clock,
     onAnnouncement: (announcement) => announcements.push(announcement),

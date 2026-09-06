@@ -1,15 +1,15 @@
 ---
-title: "createDOMAnnouncer"
+title: "createAnnouncer"
 description:
   "Create an owned browser announcer with progressive ariaNotify delivery,
   stable live-region fallback, diagnostics, and cleanup."
-publicPath: "/api/dom/create-dom-announcer"
+publicPath: "/api/dom/create-announcer"
 section: "DOM"
 keywords:
   [
-    "createDOMAnnouncer",
-    "DOMAnnouncerOptions",
-    "DOMDeliveryResult",
+    "createAnnouncer",
+    "AnnouncerOptions",
+    "DeliveryResult",
     "live region",
   ]
 related: []
@@ -17,43 +17,43 @@ order: 9
 ---
 
 export const sourceMetadata = {
-  publicPath: "/api/dom/create-dom-announcer",
+  publicPath: "/api/dom/create-announcer",
   section: "DOM",
   related: [],
   order: 9,
 };
 
 export const searchableText = [
-  "createDOMAnnouncer",
+  "createAnnouncer",
   "Create an owned browser announcer with progressive ariaNotify delivery, stable live-region fallback, diagnostics, and cleanup.",
   "DOM",
-  "createDOMAnnouncer",
-  "DOMAnnouncerOptions",
-  "DOMDeliveryResult",
+  "createAnnouncer",
+  "AnnouncerOptions",
+  "DeliveryResult",
   "live region",
   "signature",
   "Signature and import",
   "auto mode attempts ariaNotify when available, then falls back to the selected polite or assertive live region.",
   "typescript",
-  'import { createDOMAnnouncer } from "@generative-a11y/dom"; const announcer = createDOMAnnouncer({ mode: "auto", onDiagnostic(result) { console.log(result.status, result.method); }, }); const result = announcer.announce(intent); announcer.dispose();',
+  'import { createAnnouncer } from "@generative-a11y/dom"; const announcer = createAnnouncer({ mode: "auto", onDelivery(result) { console.log(result.status, result.method); }, }); const result = announcer.announce(intent); // Call announcer.dispose() when the owning surface is removed.',
   "Use progressive delivery",
   "auto keeps the fallback available when ariaNotify is absent or throws.",
   "Observe the attempt",
-  "DOMDeliveryResult reports the browser action without making a speech claim.",
+  "DeliveryResult reports the browser action without making a speech claim.",
   "Release owned nodes",
   "Dispose removes only live regions created by this announcer.",
   "options",
-  "DOMAnnouncerOptions",
+  "AnnouncerOptions",
   "Optional",
   "{}",
   "Selects document, delivery mode, supplied regions, and diagnostic observation.",
   "return",
-  "DOMAnnouncer",
+  "Announcer",
   "Return",
   "n/a",
   "Owned announcer with announce, getRegions, and dispose methods.",
   "options",
-  "DOMAnnouncerOptions",
+  "AnnouncerOptions",
   "Supplying regions transfers neither node ownership nor removal responsibility to the library.",
   "document",
   "Document",
@@ -61,22 +61,22 @@ export const searchableText = [
   "global document",
   "Document used to create live regions. Without a document, the announcer remains inert and reports unavailable.",
   "mode",
-  "auto | aria-notify | live-region",
+  "auto | live-region",
   "Optional",
   '"auto"',
   "Selects progressive enhancement or a forced test path.",
   "regions",
-  "DOMLiveRegions",
+  "LiveRegions",
   "Optional",
   "owned regions",
   "Supplies stable polite and assertive elements. Both must belong to the same document.",
-  "onDiagnostic",
+  "onDelivery",
   "(result) => void",
   "Optional",
   "undefined",
   "Observes each delivery attempt. Callback failures cannot alter delivery.",
   "result",
-  "DOMDeliveryResult",
+  "DeliveryResult",
   "announce returns one result synchronously.",
   "Status",
   "Method",
@@ -104,7 +104,7 @@ export const searchableText = [
   "n/a",
   "Stable ID copied from the AnnouncementIntent for diagnostic correlation.",
   "sourceType",
-  "GenerativeA11yEvent['type']",
+  "RuntimeEvent['type']",
   "Required",
   "n/a",
   "Event type that produced the announcement intent.",
@@ -145,17 +145,17 @@ polite or assertive live region.
 
 {/* prettier-ignore */}
 ```typescript
-import { createDOMAnnouncer } from "@generative-a11y/dom";
+import { createAnnouncer } from "@generative-a11y/dom";
 
-const announcer = createDOMAnnouncer({
+const announcer = createAnnouncer({
   mode: "auto",
-  onDiagnostic(result) {
+  onDelivery(result) {
     console.log(result.status, result.method);
   },
 });
 
 const result = announcer.announce(intent);
-announcer.dispose();
+// Call announcer.dispose() when the owning surface is removed.
 ```
 
 ### Walkthrough
@@ -174,7 +174,7 @@ auto keeps the fallback available when ariaNotify is absent or throws.
 
 ### Observe the attempt
 
-DOMDeliveryResult reports the browser action without making a speech claim.
+DeliveryResult reports the browser action without making a speech claim.
 
 </Step>
 
@@ -191,7 +191,7 @@ Dispose removes only live regions created by this announcer.
 <TypeTable
   type={{
     options: {
-      type: <>DOMAnnouncerOptions</>,
+      type: <>AnnouncerOptions</>,
       default: <>&#123;&#125;</>,
       description: (
         <>
@@ -201,7 +201,7 @@ Dispose removes only live regions created by this announcer.
       ),
     },
     return: {
-      type: <>DOMAnnouncer</>,
+      type: <>Announcer</>,
       description: (
         <>
           Return. Owned announcer with announce, getRegions, and dispose
@@ -214,7 +214,7 @@ Dispose removes only live regions created by this announcer.
 
 <span id="options"></span>
 
-## DOMAnnouncerOptions
+## AnnouncerOptions
 
 Supplying regions transfers neither node ownership nor removal responsibility to
 the library.
@@ -232,12 +232,12 @@ the library.
       ),
     },
     mode: {
-      type: <>auto &#124; aria&#45;notify &#124; live&#45;region</>,
+      type: <>auto &#124; live&#45;region</>,
       default: <>"auto"</>,
       description: <>Selects progressive enhancement or a forced test path.</>,
     },
     regions: {
-      type: <>DOMLiveRegions</>,
+      type: <>LiveRegions</>,
       default: <>owned regions</>,
       description: (
         <>
@@ -246,7 +246,7 @@ the library.
         </>
       ),
     },
-    onDiagnostic: {
+    onDelivery: {
       type: <>(result) &#61;&#62; void</>,
       default: <>undefined</>,
       description: (
@@ -261,11 +261,11 @@ the library.
 
 <span id="result"></span>
 
-## DOMDeliveryResult
+## DeliveryResult
 
 announce returns one result synchronously.
 
-<table aria-label="DOMDeliveryResult table">
+<table aria-label="DeliveryResult table">
   <thead>
     <tr>
       <th>Status</th>
@@ -315,7 +315,7 @@ announce returns one result synchronously.
       ),
     },
     sourceType: {
-      type: <>GenerativeA11yEvent&#91;'type'&#93;</>,
+      type: <>RuntimeEvent&#91;'type'&#93;</>,
       required: true,
       description: <>Event type that produced the announcement intent.</>,
     },

@@ -1,4 +1,4 @@
-import type { GenerativeA11yEvent } from "@generative-a11y/core";
+import type { RuntimeEvent } from "@generative-a11y/core";
 
 export type ScenarioName =
   | "stream"
@@ -10,7 +10,7 @@ export type ScenarioName =
 
 export interface ScenarioStep {
   readonly at: number;
-  readonly event: GenerativeA11yEvent;
+  readonly event: RuntimeEvent;
   readonly visibleText?: string;
   readonly label: string;
 }

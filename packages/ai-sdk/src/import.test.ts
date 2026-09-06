@@ -10,7 +10,7 @@ describe("AI SDK root export", () => {
     Reflect.deleteProperty(globalThis, "document");
     try {
       await expect(import("./index.js")).resolves.toMatchObject({
-        CHAT_ADAPTER_METADATA: expect.any(Object),
+        adapterInfo: expect.any(Object),
       });
       await expect(import("./react.js")).resolves.toMatchObject({
         useChatAccessibility: expect.any(Function),

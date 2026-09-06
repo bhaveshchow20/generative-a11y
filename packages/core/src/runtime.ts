@@ -1,10 +1,10 @@
 import {
-  englishAnnouncementCatalog,
+  en,
   normalizeAnnouncementCatalog,
   formatAnnouncement,
-  type AnnouncementCatalog,
-  type AnnouncementMessageId,
-  type AnnouncementMessageParameters,
+  type Messages,
+  type MessageKey,
+  type MessageParams,
 } from "./messages.js";
 import type { Clock, ClockTimer } from "./clock.js";
 import { systemClock } from "./clock.js";
@@ -16,9 +16,9 @@ import {
 } from "./attention.js";
 import { resolvePolicy, type PolicyOverrides } from "./policy.js";
 import {
-  createAnnouncementScheduler,
+  createScheduler,
   type AnnouncementCapacityPriority,
-  type AnnouncementScheduler,
+  type Scheduler,
 } from "./scheduler.js";
 import { normalizeAnnouncementText, segmentText } from "./segmenter.js";
 import type {
@@ -30,7 +30,7 @@ import type {
   DiagnosticRunSnapshot,
   DiagnosticStepSnapshot,
   DiagnosticToolSnapshot,
-  GenerativeA11yEvent,
+  RuntimeEvent,
   PresetName,
   ReadonlyAnnouncementPolicy,
   RuntimeDiagnosticEventV1,
@@ -92,13 +92,13 @@ interface StepState {
   lastProgressBucket: number;
 }
 
-type ResponseEvent = Extract<GenerativeA11yEvent, { responseId: string }>;
-type ToolEvent = Extract<GenerativeA11yEvent, { toolId: string }>;
-type RunEvent = Extract<GenerativeA11yEvent, { type: `run.${string}` }>;
-type StepEvent = Extract<GenerativeA11yEvent, { type: `step.${string}` }>;
+type ResponseEvent = Extract<RuntimeEvent, { responseId: string }>;
+type ToolEvent = Extract<RuntimeEvent, { toolId: string }>;
+type RunEvent = Extract<RuntimeEvent, { type: `run.${string}` }>;
+type StepEvent = Extract<RuntimeEvent, { type: `step.${string}` }>;
 
-export interface GenerativeA11yOptions {
-  announcementCatalog?: AnnouncementCatalog;
+export interface RuntimeOptions {
+  messages?: Messages;
   preset?: PresetName;
   policy?: PolicyOverrides;
   clock?: Clock;
@@ -113,8 +113,8 @@ export type RuntimeDiagnosticListener = (
   event: RuntimeDiagnosticEventV1,
 ) => void;
 
-export interface GenerativeA11yRuntime {
-  dispatch(event: GenerativeA11yEvent): boolean;
+export interface Runtime {
+  dispatch(event: RuntimeEvent): boolean;
   getPolicy(): ReadonlyAnnouncementPolicy;
   pendingCount(): number;
   subscribeAnnouncements(listener: AnnouncementListener): () => void;
@@ -124,7 +124,7 @@ export interface GenerativeA11yRuntime {
   dispose(): void;
 }
 
-function eventContext(event: GenerativeA11yEvent) {
+function eventContext(event: RuntimeEvent) {
   return {
     sourceType: event.type,
     ...(event.eventId ? { sourceEventId: event.eventId } : {}),
@@ -144,11 +144,9 @@ function eventContext(event: GenerativeA11yEvent) {
 // never an accumulating response or a transcript to replay later.
 const MAX_SUPPRESSED_BOUNDARY_CHARACTERS = 256;
 
-export function createGenerativeA11y(
-  options: GenerativeA11yOptions,
-): GenerativeA11yRuntime {
-  let catalog: AnnouncementCatalog | undefined = normalizeAnnouncementCatalog(
-    options.announcementCatalog ?? englishAnnouncementCatalog,
+export function createRuntime(options: RuntimeOptions = {}): Runtime {
+  let catalog: Messages | undefined = normalizeAnnouncementCatalog(
+    options.messages ?? en,
   );
   const catalogMetadata = Object.freeze({
     catalogId: catalog.id,
@@ -179,8 +177,8 @@ export function createGenerativeA11y(
   let dispatching = false;
   let reportingDispatchOverflow = false;
   let nestedDispatchCount = 0;
-  const dispatchQueue: GenerativeA11yEvent[] = [];
-  const dispatchOverflowQueue: GenerativeA11yEvent[] = [];
+  const dispatchQueue: RuntimeEvent[] = [];
+  const dispatchOverflowQueue: RuntimeEvent[] = [];
   let dispatchOverflowAggregateCount = 0;
   let announcementEmissionDepth = 0;
   let clearListenersAfterDeliveryDiagnostic = false;
@@ -272,17 +270,17 @@ export function createGenerativeA11y(
     }
   }
 
-  function observeEvent(event: GenerativeA11yEvent): void {
+  function observeEvent(event: RuntimeEvent): void {
     emitDiagnosticEvent({
       schemaVersion: 1,
       sequence: diagnosticSequence++,
       at: clock.now(),
       kind: "event-observed",
-      event: Object.freeze({ ...event }) as GenerativeA11yEvent,
+      event: Object.freeze({ ...event }) as RuntimeEvent,
     });
   }
 
-  const scheduler: AnnouncementScheduler = createAnnouncementScheduler({
+  const scheduler: Scheduler = createScheduler({
     clock,
     minimumGapMs: policy.minimumGapMs,
     dedupeWindowMs: policy.dedupeWindowMs,
@@ -292,7 +290,7 @@ export function createGenerativeA11y(
   });
 
   function diagnose(
-    event: GenerativeA11yEvent,
+    event: RuntimeEvent,
     reason: AnnouncementDiagnostic["reason"],
   ): void {
     emitDiagnostic({
@@ -323,9 +321,9 @@ export function createGenerativeA11y(
     });
   }
 
-  function message<K extends AnnouncementMessageId>(
+  function message<K extends MessageKey>(
     id: K,
-    parameters: AnnouncementMessageParameters[K],
+    parameters: MessageParams[K],
   ): () => { text: string; locale: string } {
     return () => {
       const selectedCatalog = catalog;
@@ -338,7 +336,7 @@ export function createGenerativeA11y(
   }
 
   function announce(
-    event: GenerativeA11yEvent,
+    event: RuntimeEvent,
     text: string | (() => { text: string; locale: string }),
     channel: "polite" | "assertive" = "polite",
     extra: {
@@ -450,9 +448,9 @@ export function createGenerativeA11y(
 
   function activeRun(
     event: { runId: string; runInstanceId?: string },
-    diagnosticEvent?: GenerativeA11yEvent,
+    diagnosticEvent?: RuntimeEvent,
   ): RunState | undefined {
-    const source = diagnosticEvent ?? (event as GenerativeA11yEvent);
+    const source = diagnosticEvent ?? (event as RuntimeEvent);
     const state = runs.get(event.runId);
     if (!state) {
       diagnose(source, "unknown-run");
@@ -475,9 +473,9 @@ export function createGenerativeA11y(
       stepId?: string;
       stepInstanceId?: string;
     },
-    diagnosticEvent?: GenerativeA11yEvent,
+    diagnosticEvent?: RuntimeEvent,
   ): StepState | undefined {
-    const source = diagnosticEvent ?? (event as GenerativeA11yEvent);
+    const source = diagnosticEvent ?? (event as RuntimeEvent);
     if (!event.stepId) {
       diagnose(source, "partial-identity");
       return undefined;
@@ -498,7 +496,7 @@ export function createGenerativeA11y(
     return state;
   }
 
-  function validateWorkflowContext(event: GenerativeA11yEvent): boolean {
+  function validateWorkflowContext(event: RuntimeEvent): boolean {
     if (
       ("runInstanceId" in event &&
         event.runInstanceId !== undefined &&
@@ -1577,7 +1575,7 @@ export function createGenerativeA11y(
 
   function dispatchOther(
     event: Exclude<
-      GenerativeA11yEvent,
+      RuntimeEvent,
       | { responseId: string }
       | { toolId: string }
       | { type: `run.${string}` }
@@ -1666,7 +1664,7 @@ export function createGenerativeA11y(
     );
   }
 
-  function dispatchOne(event: GenerativeA11yEvent): void {
+  function dispatchOne(event: RuntimeEvent): void {
     if (
       event.type === "attention.changed" ||
       event.type === "attention.override"
@@ -1908,7 +1906,7 @@ export function createGenerativeA11y(
       const announcements = scheduler.getDiagnosticSnapshot();
       return Object.freeze({
         schemaVersion: 1 as const,
-        announcementCatalog: catalogMetadata,
+        messages: catalogMetadata,
         at: clock.now(),
         policy,
         ...(attention ? { attention } : {}),

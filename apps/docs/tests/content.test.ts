@@ -17,7 +17,7 @@ describe("Fumadocs content", () => {
     expect(paths).toContain("/docs/attention-aware-announcements");
     expect(paths).toContain("/docs/localized-announcements");
     expect(paths).toContain("/docs/project/overview");
-    expect(paths).toContain("/api/core/create-generative-a11y");
+    expect(paths).toContain("/api/core/create-runtime");
     expect(paths).not.toContain("/project/overview");
   });
 
@@ -77,8 +77,8 @@ describe("Fumadocs content", () => {
     );
 
     for (const path of [
-      "/api/dom/create-dom-announcer",
-      "/api/dom/connect-runtime-to-dom",
+      "/api/dom/create-announcer",
+      "/api/dom/bind-runtime",
       "/api/dom/focus",
       "/api/dom/attention",
       "/api/dom/preferences",

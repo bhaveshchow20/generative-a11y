@@ -73,9 +73,9 @@ export const searchableText = [
   "Use ManualClock for time-dependent behavior",
   "Advance the test clock instead of waiting for real timers. Check diagnostics when the runtime intentionally skips an update.",
   "typescript",
-  'const recorder = createAnnouncementRecorder({ preset: "balanced" }); const runtime = recorder.runtime; const clock = recorder.clock; runtime.dispatch(started); runtime.dispatch(delta); clock.advanceBy(2_000); expect(recorder.transcript()).toHaveLength(1);',
+  'const recorder = createRecorder({ preset: "balanced" }); const runtime = recorder.runtime; const clock = recorder.clock; runtime.dispatch(started); runtime.dispatch(delta); clock.advanceBy(2_000); expect(recorder.transcript()).toHaveLength(1);',
   "Create the harness",
-  "createAnnouncementRecorder supplies a runtime and ManualClock.",
+  "createRecorder supplies a runtime and ManualClock.",
   "Send app events",
   "Use the same events your integration sends in the application.",
   "Advance the clock",
@@ -207,7 +207,7 @@ when the runtime intentionally skips an update.
 
 {/* prettier-ignore */}
 ```typescript
-const recorder = createAnnouncementRecorder({ preset: "balanced" });
+const recorder = createRecorder({ preset: "balanced" });
 const runtime = recorder.runtime;
 const clock = recorder.clock;
 
@@ -226,7 +226,7 @@ expect(recorder.transcript()).toHaveLength(1);
 
 ### Create the harness
 
-createAnnouncementRecorder supplies a runtime and ManualClock.
+createRecorder supplies a runtime and ManualClock.
 
 </Step>
 

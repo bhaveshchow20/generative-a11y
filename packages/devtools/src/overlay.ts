@@ -1,16 +1,16 @@
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-import { DevtoolsInspector } from "./inspector.js";
-import type { DevtoolsStore } from "./index.js";
+import { Inspector } from "./inspector.js";
+import type { Store } from "./index.js";
 
-export interface MountDevtoolsOverlayOptions {
-  readonly store: DevtoolsStore;
+export interface OverlayOptions {
+  readonly store: Store;
   readonly document?: Document;
   readonly copyText?: (value: string) => void | Promise<void>;
 }
 
-export interface MountedDevtoolsOverlay {
+export interface Overlay {
   readonly host: HTMLElement;
   dispose(): void;
 }
@@ -99,9 +99,7 @@ button:focus-visible, input:focus-visible, [role="listbox"]:focus-visible, [role
 @media (max-width: 760px) { .ga-bottom-dock { height: min(720px, 80vh); } .ga-inspector-header, .ga-session-toolbar { padding-right: 12px; padding-left: 12px; } .ga-session-toolbar { flex-wrap: wrap; } .ga-inspector-search { width: 100%; } .ga-session-count { margin-left: 0; } .ga-explorer-layout { flex-direction: column; } [data-slot="resizable-handle"] { width: 100%; height: 1px; } .ga-trace-row { grid-template-columns: 70px 1fr; padding: 8px 12px; } .ga-trace-row span, .ga-trace-row code { grid-column: 2; } .ga-trace-detail { padding: 18px 12px; } .ga-key-values { grid-template-columns: 1fr; } .ga-key-values-wide { grid-column: auto; } }
 `;
 
-export function mountDevtoolsOverlay(
-  options: MountDevtoolsOverlayOptions,
-): MountedDevtoolsOverlay {
+export function mountOverlay(options: OverlayOptions): Overlay {
   const selectedDocument =
     options.document ??
     (typeof document === "undefined" ? undefined : document);
@@ -162,7 +160,7 @@ export function mountDevtoolsOverlay(
         return clipboard.writeText(value);
       });
     root.render(
-      createElement(DevtoolsInspector, {
+      createElement(Inspector, {
         onClose: close,
         onCopy: copyText,
         store: options.store,

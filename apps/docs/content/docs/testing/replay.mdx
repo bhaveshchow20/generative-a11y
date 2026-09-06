@@ -48,7 +48,7 @@ export const searchableText = [
   "Record and replay normalized events",
   "recordRuntime captures only events sent through the dispatch target it returns. Fixtures use a versioned JSON envelope, relative timestamps, and array order for events with the same time.",
   "typescript",
-  'import { ManualClock, createGenerativeA11y } from "@generative-a11y/core"; import { recordRuntime, replayEvents } from "@generative-a11y/core/testing"; const clock = new ManualClock(0); const runtime = createGenerativeA11y({ clock }); const recording = recordRuntime({ runtime, clock }); recording.runtime.dispatch({ type: "response.started", responseId: "report", }); const fixture = recording.fixture(); const replayClock = new ManualClock(fixture.startAt); const replayRuntime = createGenerativeA11y({ clock: replayClock }); replayEvents(replayRuntime, replayClock, fixture); replayClock.runUntilIdle(); runtime.dispose(); replayRuntime.dispose();',
+  'import { ManualClock, createRuntime } from "@generative-a11y/core"; import { recordRuntime, replayEvents } from "@generative-a11y/core/testing"; const clock = new ManualClock(0); const runtime = createRuntime({ clock }); const recording = recordRuntime({ runtime, clock }); recording.runtime.dispatch({ type: "response.started", responseId: "report", }); const fixture = recording.fixture(); const replayClock = new ManualClock(fixture.startAt); const replayRuntime = createRuntime({ clock: replayClock }); replayEvents(replayRuntime, replayClock, fixture); replayClock.runUntilIdle(); runtime.dispose(); replayRuntime.dispose();',
   "Wrap the dispatch target",
   "Send the same normalized events used by the application through recording.runtime.",
   "Create a fixture",
@@ -117,11 +117,11 @@ events with the same time.
 
 {/* prettier-ignore */}
 ```typescript
-import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
 import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
 
 const clock = new ManualClock(0);
-const runtime = createGenerativeA11y({ clock });
+const runtime = createRuntime({ clock });
 const recording = recordRuntime({ runtime, clock });
 recording.runtime.dispatch({
   type: "response.started",
@@ -130,7 +130,7 @@ recording.runtime.dispatch({
 const fixture = recording.fixture();
 
 const replayClock = new ManualClock(fixture.startAt);
-const replayRuntime = createGenerativeA11y({ clock: replayClock });
+const replayRuntime = createRuntime({ clock: replayClock });
 replayEvents(replayRuntime, replayClock, fixture);
 replayClock.runUntilIdle();
 
@@ -203,8 +203,3 @@ Replay proves that normalized events produce repeatable runtime output under a
 controlled clock. It does not prove browser delivery or screen&#45;reader
 speech. Keep browser fixtures and hands&#45;on assistive&#45;technology tests as
 separate release evidence.
-
-## Related
-
-- [/api/core/testing](/api/core/testing)
-- [/docs/testing](/docs/testing)

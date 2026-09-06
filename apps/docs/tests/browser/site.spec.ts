@@ -24,14 +24,14 @@ const representativeResponsivePages = [
   "/",
   "/docs/getting-started",
   "/docs/integrations/ai-sdk",
-  "/api/core/create-generative-a11y",
+  "/api/core/create-runtime",
   "/examples/lifecycle-lab",
 ] as const;
 
 const representativeThemePages = [
   "/",
   "/docs/getting-started",
-  "/api/core/create-generative-a11y",
+  "/api/core/create-runtime",
   "/examples/lifecycle-lab",
   "/docs/project/overview",
 ] as const;
@@ -186,6 +186,13 @@ test("documentation route families use native Fumadocs title typography", async 
     );
     expect(size, path).toBeGreaterThanOrEqual(24);
     expect(size, path).toBeLessThanOrEqual(36);
+    const header = page.locator("article header.docs-page-header");
+    await expect(header.locator("h1")).toHaveCount(1);
+    await expect(header.locator("p")).not.toBeEmpty();
+    await expect(header).toHaveCSS("border-bottom-width", "1px");
+    await expect(header).toHaveCSS("border-bottom-style", "solid");
+    await expect(header.locator("button")).toHaveCount(0);
+
   }
 });
 
@@ -468,7 +475,7 @@ test("wide documentation content scrolls locally on phones", async ({ page }) =>
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/docs/getting-started");
 
-  const code = page.locator('figure [role="region"]').filter({ hasText: "createGenerativeA11y" }).first();
+  const code = page.locator('figure [role="region"]').filter({ hasText: "createRuntime" }).first();
   await expect(code).toBeVisible();
   expect(await code.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   expect(
@@ -698,7 +705,7 @@ test("system theme follows operating system changes across navigation", async ({
 
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).not.toHaveClass(/dark/);
-  await page.goto("/api/core/create-generative-a11y");
+  await page.goto("/api/core/create-runtime");
   await waitForThemeControls(page);
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
@@ -876,7 +883,7 @@ test("framework trace explains events in plain language and expands technical de
 test("API reference expands option defaults and explanations", async ({
   page,
 }) => {
-  await page.goto("/api/core/create-generative-a11y");
+  await page.goto("/api/core/create-runtime");
   await waitForThemeControls(page);
   const presetButton = page.getByRole("button", { name: /preset/i });
   await expect(presetButton).toHaveAttribute("aria-expanded", "false");
@@ -903,15 +910,15 @@ test("Docs and API provide separate top-level navigation and legacy reference li
     .getByRole("button", { name: /API Reference/ })
     .first()
     .click({ position: { x: 10, y: 10 } });
-  await expect(page.getByRole("link", { name: /Examples/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Examples/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await page
-    .getByRole("link", { name: "createGenerativeA11y", exact: true })
+    .getByRole("link", { name: "createRuntime", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/api\/core\/create-generative-a11y$/);
+  await expect(page).toHaveURL(/\/api\/core\/create-runtime$/);
 
   await page.goto("/docs/api/runtime");
-  await expect(page).toHaveURL(/\/api\/core\/create-generative-a11y$/);
+  await expect(page).toHaveURL(/\/api\/core\/create-runtime$/);
 });
 
 test("release guidance covers integration choice, troubleshooting, and stability", async ({
@@ -1120,4 +1127,19 @@ test("missing GitHub star data stays empty and secondary calls to action are abs
   await expect(
     openSourceSection.getByRole("link", { name: "View on GitHub" }),
   ).toHaveCount(0);
+});
+
+test("section switcher remains available after navigating to a nested guide", async ({ page }) => {
+  await page.goto("/docs/getting-started");
+  await page.getByRole("link", { name: "Vercel AI SDK accessibility", exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/integrations\/ai-sdk$/);
+  const switcher = page.getByRole("button", { name: /^Guides/ });
+  await expect(switcher).toBeVisible();
+  await switcher.click();
+  await page.getByRole("link", { name: /^API Reference/ }).click();
+  await expect(page).toHaveURL(/\/api$/);
+  await page.getByRole("button", { name: /^API Reference/ }).click();
+  await page.getByRole("link", { name: /^Guides/ }).click();
+  await expect(page).toHaveURL(/\/docs\/getting-started$/);
+  await expect(page.getByRole("button", { name: /^Guides/ })).toBeVisible();
 });

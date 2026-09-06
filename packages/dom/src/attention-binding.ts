@@ -1,22 +1,22 @@
-import type { GenerativeA11yRuntime } from "@generative-a11y/core";
+import type { Runtime } from "@generative-a11y/core";
 import type { AttentionSnapshot, AttentionStore } from "./attention.js";
 
-export interface AttentionRuntimeBindingOptions {
-  readonly runtime: GenerativeA11yRuntime;
+export interface AttentionBindingOptions {
+  readonly runtime: Runtime;
   readonly attentionStore: AttentionStore;
 }
 
-export interface AttentionRuntimeBinding {
+export interface AttentionBinding {
   dispose(): void;
 }
 
-const boundRuntimes = new WeakSet<GenerativeA11yRuntime>();
+const boundRuntimes = new WeakSet<Runtime>();
 
 /** Borrow a store and runtime, forwarding observations without changing overrides. */
-export function bindAttentionToRuntime({
+export function bindAttention({
   runtime,
   attentionStore,
-}: AttentionRuntimeBindingOptions): AttentionRuntimeBinding {
+}: AttentionBindingOptions): AttentionBinding {
   if (boundRuntimes.has(runtime)) {
     throw new Error("Runtime already has an attention binding");
   }

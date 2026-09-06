@@ -4,22 +4,17 @@ import { describe, expect, it } from "vitest";
 import { docsLayoutOptions, homeLayoutOptions } from "../lib/layout.shared";
 
 describe("documentation layout tabs", () => {
-  it("offers Guides, API Reference, and Examples through the native Fumadocs tab API", () => {
+  it("offers Guides and API Reference through the native Fumadocs tab API", () => {
     expect(docsLayoutOptions.tabs).toEqual([
       expect.objectContaining({
         title: "Guides",
         description: "Learn how to add accessible behavior to AI interfaces.",
-        url: "/docs/getting-started",
+        url: "/docs",
       }),
       expect.objectContaining({
         title: "API Reference",
         description: "Explore every package and public API.",
         url: "/api",
-      }),
-      expect.objectContaining({
-        title: "Examples",
-        description: "Explore the lifecycle in interactive examples.",
-        url: "/examples/lifecycle-lab",
       }),
     ]);
   });
