@@ -136,6 +136,25 @@ try {
     for (const mode of typescriptConsumerModes) {
       const consumerPath = join(projectRoot, mode.fileName);
       await writeFile(consumerPath, typeScriptSource);
+      // A .tsx file needs its own CommonJS package scope in the CJS mode.
+      const recipeDirectory = join(projectRoot, `recipe-${mode.fileName}`);
+      const recipePath = join(recipeDirectory, "Chat.tsx");
+      if (scenario.id === "react") {
+        await mkdir(recipeDirectory);
+        await writeFile(
+          join(recipeDirectory, "package.json"),
+          JSON.stringify({
+            type: mode.fileName.endsWith(".cts") ? "commonjs" : "module",
+          }),
+        );
+        await writeFile(
+          recipePath,
+          await readFile(
+            join(root, "examples/react-lifecycle/Chat.tsx"),
+            "utf8",
+          ),
+        );
+      }
       const compilerOptions = {
         module: ts.ModuleKind[mode.module],
         moduleResolution: ts.ModuleResolutionKind[mode.moduleResolution],
@@ -147,7 +166,17 @@ try {
           .filter((packageName) => packageName.startsWith("@types/"))
           .map((packageName) => packageName.slice("@types/".length)),
       };
-      const program = ts.createProgram([consumerPath], compilerOptions);
+      const program = ts.createProgram(
+        scenario.id === "react" ? [consumerPath, recipePath] : [consumerPath],
+        scenario.id === "react"
+          ? {
+              ...compilerOptions,
+              jsx: ts.JsxEmit.ReactJSX,
+              exactOptionalPropertyTypes: true,
+              noUncheckedIndexedAccess: true,
+            }
+          : compilerOptions,
+      );
       const diagnostics = ts.getPreEmitDiagnostics(program);
       const knownUpstreamDiagnostics = diagnostics.filter((diagnostic) =>
         isKnownUpstreamDeclarationDiagnostic(scenario, diagnostic),

@@ -2,6 +2,7 @@
   "root": true,
   "pages": [
     "getting-started",
+    "react-lifecycle",
     "integrations",
     "---Concepts---",
     "why-generative-a11y",

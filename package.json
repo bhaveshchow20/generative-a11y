@@ -51,7 +51,7 @@
     "test:browser:install": "playwright install chromium firefox webkit",
     "test:coverage": "vitest run --coverage && pnpm --filter @generative-a11y/docs test:unit",
     "test:watch": "vitest",
-    "typecheck": "pnpm --filter './packages/*' typecheck && tsc -p tests/browser/tsconfig.json --noEmit && pnpm --filter @generative-a11y/docs typecheck",
+    "typecheck": "pnpm --filter './packages/*' typecheck && tsc -p tests/browser/tsconfig.json --noEmit && pnpm --filter @generative-a11y/docs typecheck && tsc -p examples/react-lifecycle/tsconfig.json",
     "version-packages": "changeset version"
   },
   "devDependencies": {

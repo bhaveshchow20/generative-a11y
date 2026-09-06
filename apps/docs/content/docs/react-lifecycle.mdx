@@ -1,0 +1,373 @@
+---
+title: "Complete React lifecycle"
+description: "Connect an existing React interface to response, tool and interaction announcements, with ownership and deterministic tests in one recipe."
+publicPath: "/docs/react-lifecycle"
+section: "Getting started"
+related: ["/api/react", "/docs/testing", "/docs/lifecycle/interactions"]
+order: 1
+---
+
+import { ReactLifecycleDemo } from "../../components/react-lifecycle-demo";
+
+export const sourceMetadata = {
+  publicPath: "/docs/react-lifecycle",
+  section: "Getting started",
+  related: ["/api/react", "/docs/testing", "/docs/lifecycle/interactions"],
+  order: 1,
+};
+
+export const searchableText = "Complete React lifecycle. Provider ownership, response streaming, tool progress, confirmation requested and resolved, ManualClock deterministic testing, asynchronous zero gap, body-level live regions, cleanup, direct versus transitive installation.";
+
+Use this recipe when your app owns its response and tool callbacks. If AI SDK or
+assistant-ui owns that state, use the [existing adapter](/docs/integrations) to
+avoid duplicate lifecycle reporting.
+
+The example keeps the host's native input, output and controls. The provider adds
+hidden announcement regions; bindings attach observation refs. The local demo
+makes no network calls and does not save or publish a draft.
+
+## Try the complete lifecycle
+
+Enter a message and send it. The simulated host streams a reply, prepares a draft
+for 2.5 seconds, then requests a decision. Select **Use draft** or **Discard
+draft**. Announcements do not move focus to either control.
+
+<ReactLifecycleDemo />
+
+## Install what you import
+
+```sh
+npm install @generative-a11y/react react react-dom
+```
+
+React's integration installs core and DOM transitively. Add
+`@generative-a11y/core` directly when importing its types, runtime or `ManualClock`
+as the test below does. Add `@generative-a11y/dom` directly only when importing
+its APIs, such as a host-owned attention store. This keeps direct imports explicit
+for package managers with strict dependency resolution.
+
+This recipe is tested with React 19.2.8; the package peer range supports React
+18.2 and React 19. It uses APIs already present in the published React 0.1.2 and
+core 0.3.0 packages. Merged features and npm releases have separate timelines.
+
+## Connect existing host operations
+
+Copy `Chat.tsx` below and supply your existing operations to
+`<App operations={operations} />`. `reply` sends only newly received text and
+resolves on explicit completion. `prepare` reports progress from 0 to 1 and
+resolves on confirmed success. Reject either promise on failure and honor its
+abort signal. These two functions describe this example's host, not a new
+library abstraction. The
+[local demo service](https://github.com/bhaveshchow20/generative-a11y/blob/main/examples/react-lifecycle/Demo.tsx)
+provides a complete offline implementation.
+
+{/* prettier-ignore */}
+```tsx
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  GenerativeA11yProvider,
+  useGenerativeA11yBindings,
+  useGenerativeA11yRuntime,
+} from "@generative-a11y/react";
+
+// These are the example host's existing operations, not a library adapter API.
+export interface HostOperations {
+  reply(
+    prompt: string,
+    options: {
+      signal: AbortSignal;
+      onDelta: (newText: string) => void;
+    },
+  ): Promise<void>;
+  prepare(options: {
+    signal: AbortSignal;
+    onProgress: (fraction: number) => void;
+  }): Promise<void>;
+}
+
+export function HostChat({ operations }: { operations: HostOperations }) {
+  const runtime = useGenerativeA11yRuntime();
+  const bindings = useGenerativeA11yBindings();
+  const scope = useId();
+  const sequence = useRef(0);
+  const active = useRef<AbortController | null>(null);
+  const decision = useRef<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [needsDecision, setNeedsDecision] = useState(false);
+
+  useEffect(
+    () => () => {
+      // Abort host work; the enclosing provider owns runtime/DOM disposal.
+      active.current?.abort();
+      active.current = null;
+    },
+    [],
+  );
+
+  async function send() {
+    if (active.current || decision.current || !prompt.trim()) return;
+    const controller = new AbortController();
+    active.current = controller;
+    const id = `${scope}-${++sequence.current}`;
+    const responseId = `${id}-response`;
+    const toolId = `${id}-tool`;
+    let stage: "response" | "tool" | "done" = "response";
+    const current = () =>
+      active.current === controller && !controller.signal.aborted;
+    setBusy(true);
+    setAnswer("");
+    setStatus("Writing a reply…");
+    runtime.dispatch({ type: "response.started", responseId });
+    try {
+      await operations.reply(prompt, {
+        signal: controller.signal,
+        onDelta: (delta) => {
+          if (!current() || stage !== "response") return;
+          setAnswer((text) => text + delta);
+          runtime.dispatch({ type: "response.text.delta", responseId, delta });
+        },
+      });
+      if (!current()) return;
+      stage = "tool";
+      runtime.dispatch({ type: "response.completed", responseId });
+      setStatus("Preparing draft…");
+      runtime.dispatch({
+        type: "tool.started",
+        toolId,
+        label: "Prepare draft",
+      });
+      await operations.prepare({
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (!current() || stage !== "tool") return;
+          setStatus(`Preparing draft: ${Math.round(progress * 100)}%`);
+          runtime.dispatch({
+            type: "tool.progress",
+            toolId,
+            label: "Prepare draft",
+            progress,
+          });
+        },
+      });
+      if (!current()) return;
+      stage = "done";
+      runtime.dispatch({
+        type: "tool.completed",
+        toolId,
+        label: "Prepare draft",
+      });
+      decision.current = `${id}-decision`;
+      setNeedsDecision(true);
+      setStatus("Use this draft?");
+      runtime.dispatch({
+        type: "interaction.requested",
+        interactionId: decision.current,
+        kind: "confirmation",
+        label: "Use this draft?",
+        urgent: true,
+      });
+    } catch {
+      if (!current()) return;
+      if (stage === "response")
+        runtime.dispatch({ type: "response.failed", responseId });
+      else if (stage === "tool")
+        runtime.dispatch({
+          type: "tool.failed",
+          toolId,
+          label: "Prepare draft",
+        });
+      // Backend exceptions stay out of announcements and visible copy.
+      setStatus("Could not prepare the draft. Try again.");
+    } finally {
+      stage = "done";
+      if (current()) {
+        active.current = null;
+        setBusy(false);
+      }
+    }
+  }
+
+  function decide(outcome: "approved" | "rejected") {
+    const interactionId = decision.current;
+    if (!interactionId) return;
+    decision.current = null;
+    runtime.dispatch({
+      type: "interaction.resolved",
+      interactionId,
+      kind: "confirmation",
+      outcome,
+    });
+    setNeedsDecision(false);
+    setStatus(outcome === "approved" ? "Draft selected." : "Draft discarded.");
+  }
+
+  return (
+    <section aria-label="Draft assistant">
+      <div {...bindings.conversationProps}>
+        <p {...bindings.newestResponseProps}>{answer}</p>
+      </div>
+      <label>
+        Message
+        <textarea
+          {...bindings.composerProps}
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+        />
+      </label>
+      <button
+        disabled={busy || needsDecision || !prompt.trim()}
+        onClick={() => void send()}
+      >
+        Send
+      </button>
+      <p>{status}</p>
+      <button disabled={!needsDecision} onClick={() => decide("approved")}>
+        Use draft
+      </button>
+      <button disabled={!needsDecision} onClick={() => decide("rejected")}>
+        Discard draft
+      </button>
+    </section>
+  );
+}
+
+export function App({ operations }: { operations: HostOperations }) {
+  return (
+    <GenerativeA11yProvider
+      dom={{ mode: "live-region" }}
+      policy={{ tools: { announceProgress: true } }}
+    >
+      <HostChat operations={operations} />
+    </GenerativeA11yProvider>
+  );
+}
+```
+
+The walkthrough explicitly selects `dom={{ mode: "live-region" }}` so its DOM
+updates can be inspected consistently. The default `auto` mode may use the
+browser's `ariaNotify` API instead; an empty fallback region then does not mean
+that runtime delivery failed. Choose the delivery mode your host supports and
+tests, and verify actual speech separately.
+
+## Ownership and lifecycle boundaries
+
+Keep one provider mounted for the chat session. It owns the core runtime,
+live-region delivery, attention observer and preference store. Unmount it with
+the chat when the session ends. React cleanup aborts the host operation; the
+provider discards pending announcements and disposes owned resources. Do not
+unmount immediately after dispatching completion: delivery is scheduled.
+
+Every successful response and tool receives its terminal event. A rejected host
+operation produces the corresponding failure event, using generic catalog copy
+instead of backend exception text. Ending the whole session disposes pending
+work rather than trying to deliver closing announcements to a removed UI.
+
+This example permits one request at a time. Its component scope and increasing
+sequence keep identities distinct between sends. Late callbacks are ignored
+once their operation completes or the chat unmounts. A new send after failure is
+a new response; it does not invent `response.retrying` evidence. For true retries
+and concurrent responses, use the host's stable request/attempt identities and
+[documented identity contract](/docs/lifecycle/identity).
+
+Prefer `interaction.requested` and `interaction.resolved` for host-owned
+confirmations, approvals and input. The approval-specific family remains
+supported for existing integrations. Emit one family per interaction to avoid
+duplicated notices. Here `urgent: true` deliberately requests assertive delivery
+because the workflow is waiting for a decision. Ordinary status updates stay
+polite; no event focuses or activates a host control. The decision selects or
+discards a draft locally. It makes no claim that a backend save succeeded.
+
+The host owns visible copy, labels, native semantics and keyboard navigation.
+Generated tool and response notices use the existing
+[announcement catalog](/docs/localized-announcements). This recipe adds no keys
+or migration requirement. Supply translated host strings through your own
+translation system. Do not place the same streamed updates in another host live
+region unless you deliberately want a second announcement source.
+
+For a borrowed runtime, its creator must dispose it after its consumers are
+disconnected; the provider never disposes it. This recipe uses provider ownership
+so the chat and announcement session end together. See [React API](/api/react)
+for SSR, hydration and Strict Mode resource behavior. The example starts work
+only in an event handler, consistent with
+[React's effect cleanup guidance](https://react.dev/reference/react/useEffect).
+
+## Test scheduled delivery and body-level regions
+
+`minimumGapMs: 0` does **not** make announcements synchronous. The runtime still
+schedules through its clock. Choose a preset that emits the notice under test:
+for example, `verbose` enables response-start notices while `balanced` does not.
+
+```tsx
+import { ManualClock } from "@generative-a11y/core";
+import { GenerativeA11yProvider } from "@generative-a11y/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { HostChat } from "./Chat";
+
+const clock = new ManualClock();
+const view = render(
+  <GenerativeA11yProvider
+    clock={clock}
+    dom={{ mode: "live-region" }}
+    preset="verbose"
+    attention={false}
+    policy={{ minimumGapMs: 0 }}
+  >
+    <HostChat operations={operations} />
+  </GenerativeA11yProvider>,
+);
+fireEvent.change(screen.getByRole("textbox", { name: "Message" }), {
+  target: { value: "Plan a trip" },
+});
+fireEvent.click(screen.getByRole("button", { name: "Send" }));
+// No timer has advanced yet.
+act(() => clock.advanceBy(0));
+const polite = document.body.querySelector('[aria-live="polite"]');
+expect(polite?.textContent).toBe("Assistant is responding.");
+view.unmount();
+```
+
+Here `operations` is a controlled test service whose reply remains pending until
+the test resolves it. The [complete integration tests](https://github.com/bhaveshchow20/generative-a11y/blob/main/examples/react-lifecycle/Chat.test.tsx)
+include that implementation, tool progress, failures, rejection, late callbacks
+and cleanup. They run under Strict Mode. `ManualClock` controls core scheduling;
+it does not resolve host promises or replace browser timers. Flush promise
+continuations with async `act`, and flush the provider's deferred unmount cleanup
+before checking that all owned timers have gone.
+
+After the client commits, the provider's regions live under `document.body`,
+outside Testing Library's returned `container`. Query the document or appropriate
+`baseElement` using public `aria-live` semantics. These regions have no `status`
+or `alert` role, so a role query for either will not find them. Avoid private
+attributes. With multiple providers, scope your queries to the intended session's
+regions or assert through that runtime's `onAnnouncement` callback.
+
+The repository compiles the copyable source against packed ESM, CJS and Bundler
+consumers with strict TypeScript, exact optional properties and unchecked index
+access checks. The unrelated AI SDK package smoke retains its documented,
+narrow upstream json-schema declaration exception.
+
+## Manual assistive-technology check
+
+This is an unexecuted procedure, not a claim of audible speech or conformance.
+Record browser, OS and screen-reader versions for each actual run.
+
+1. Open this page with your supported NVDA/browser or VoiceOver/Safari pair.
+2. Enter a message, select Send and continue reading earlier page content.
+3. Observe whether streamed text and the long-running tool notice are useful,
+   excessively repetitive, interrupted or absent. Confirm focus stays where you
+   put it as progress and completion arrive.
+4. When the draft decision arrives, navigate to the existing buttons and select
+   one. Record the actual request and resolution speech and whether native
+   keyboard operation remains usable.
+5. Start again, then navigate away during generation. Check that the old session
+   stops producing updates. Repeat with your host's failure path and translated
+   labels/catalog.
+
+Automated transcripts, DOM mutation, focus checks, axe and Playwright WebKit do
+not prove real NVDA or VoiceOver behavior. A host with its own adequate status
+region can keep it; [W3C's status technique](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html)
+describes that native semantic approach. This integration is useful when the host
+needs the existing runtime's pacing and lifecycle policy.

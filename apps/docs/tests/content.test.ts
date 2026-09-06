@@ -14,6 +14,7 @@ describe("Fumadocs content", () => {
     expect(manifest).toHaveLength(sourceCount);
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain("/docs/getting-started");
+    expect(paths).toContain("/docs/react-lifecycle");
     expect(paths).toContain("/docs/attention-aware-announcements");
     expect(paths).toContain("/docs/localized-announcements");
     expect(paths).toContain("/docs/project/overview");
@@ -117,4 +118,11 @@ describe("Fumadocs content", () => {
     expect(component).not.toContain("api.github.com");
     expect(component).not.toContain("api.npmjs.org");
   });
+});
+
+// The copyable guide is the same source exercised by integration/packed tests.
+it("keeps the React lifecycle guide synchronized with its tested source", async () => {
+  const guide = await readFile(new URL("../content/docs/react-lifecycle.mdx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../../../examples/react-lifecycle/Chat.tsx", import.meta.url), "utf8");
+  expect(guide).toContain("```tsx\n" + source + "```");
 });

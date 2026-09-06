@@ -14,6 +14,26 @@ React 18.2 and React 19.
 npm install @generative-a11y/core @generative-a11y/dom @generative-a11y/react react react-dom
 ```
 
+The minimum install is `@generative-a11y/react react react-dom`; core and DOM
+are transitive dependencies. Install core or DOM directly when your code imports
+their APIs (for example, `ManualClock` from core or attention stores from DOM).
+
+## Complete lifecycle recipe
+
+The [complete React guide](https://generativea11y.com/docs/react-lifecycle) and
+[copyable example](https://github.com/bhaveshchow20/generative-a11y/tree/main/examples/react-lifecycle)
+connect response start/deltas/terminal events, long-running tool progress and
+completion, and `interaction.requested` / `interaction.resolved` in one existing
+host interface. They cover failures, stable IDs, provider ownership, safe late
+callbacks and cleanup without adding a renderer or changing package APIs.
+
+Testing notes: `minimumGapMs: 0` still schedules delivery; advance a
+`ManualClock` in `act`. Client live regions mount under `document.body`, outside
+Testing Library's render container. Query public `aria-live` attributes on the
+document, not private attributes or nonexistent status/alert roles. Prefer the
+generalized `interaction.*` family for new host-owned decisions. Do not emit
+both interaction and approval events for the same decision.
+
 ## Quick start
 
 Wrap the existing application and dispatch normalized public core events from
