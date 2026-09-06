@@ -2,8 +2,8 @@
 
 `createPreferenceStore()` provides a versioned, frozen preference snapshot and
 optional persistence. Persistence is opt-in; a store without a `persistence`
-option is memory-only. `GenerativeA11yProvider` can own this store and expose it
-through `useGenerativeA11yPreferences()`, or borrow a host-managed store.
+option is memory-only. `A11yProvider` can own this store and expose it through
+`usePreferences()`, or borrow a host-managed store.
 
 ## Version 1 schema
 

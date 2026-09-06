@@ -56,11 +56,11 @@ cleanup.
 import { useEffect, useId } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { bindAgent } from "@generative-a11y/ag-ui";
-import type { GenerativeA11yRuntime } from "@generative-a11y/core";
+import type { Runtime } from "@generative-a11y/core";
 
 interface CopilotKitAccessibilityProps {
   agentId: string;
-  runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  runtime: Pick<Runtime, "dispatch">;
 }
 
 export function CopilotKitAccessibility({

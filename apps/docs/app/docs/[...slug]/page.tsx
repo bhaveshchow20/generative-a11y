@@ -10,10 +10,10 @@ const legacyReferenceRoutes: Readonly<Record<string, string>> = {
   "/docs/packages/dom": "/api/dom",
   "/docs/packages/react": "/api/react",
   "/docs/api/events": "/api/core/events",
-  "/docs/api/runtime": "/api/core/create-generative-a11y",
+  "/docs/api/runtime": "/api/core/create-runtime",
   "/docs/api/policy": "/api/core/policy",
   "/docs/api/diagnostics": "/api/core/diagnostics",
-  "/docs/browser/delivery": "/api/dom/create-dom-announcer",
+  "/docs/browser/delivery": "/api/dom/create-announcer",
   "/docs/browser/preferences": "/api/dom/preferences",
 };
 

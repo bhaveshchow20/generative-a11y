@@ -49,3 +49,12 @@ The publish job requires a clean checkout, runs the full automated checks and
 browser suite, and publishes through a short-lived OIDC identity. Do not add a
 long-lived npm token. Manual assistive-technology evidence informs support
 claims but does not block package publication.
+
+## Public API review
+
+Follow [API conventions](api-conventions.md). Review every export-map entry and
+the [public inventory](api-inventory.json) when changing APIs. Run
+`node scripts/api-inventory.mjs` after an intentional surface change and inspect
+the diff. Typecheck and run the complete consumer examples, then update their
+README and website copies together. A passing inventory check does not replace a
+fresh developer review of naming, ownership, and lifecycle fidelity.

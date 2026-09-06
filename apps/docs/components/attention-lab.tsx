@@ -2,10 +2,10 @@
 
 import { ManualClock, type AnnouncementIntent, type AttentionOverride } from "@generative-a11y/core";
 import {
-  GenerativeA11yProvider,
-  useGenerativeA11yAttentionControl,
-  useGenerativeA11yBindings,
-  useGenerativeA11yRuntime,
+  A11yProvider,
+  useAttentionControl,
+  useAttentionRefs,
+  useRuntime,
 } from "@generative-a11y/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { attentionScenario } from "../lib/attention-scenario";
@@ -17,7 +17,7 @@ const getServerSnapshot = () => false;
 export function AttentionLab() {
   const [clock] = useState(() => new ManualClock());
   return (
-    <GenerativeA11yProvider
+    <A11yProvider
       clock={clock}
       preset="verbose"
       attentionPolicy
@@ -27,18 +27,18 @@ export function AttentionLab() {
         tools: { announceStartAfterMs: 0 },
         minimumGapMs: 0,
       }}
-      dom={{ mode: "live-region" }}
+      delivery={{ mode: "live-region" }}
     >
       <AttentionHost clock={clock} />
-    </GenerativeA11yProvider>
+    </A11yProvider>
   );
 }
 
 function AttentionHost({ clock }: { clock: ManualClock }) {
   const interactive = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
-  const runtime = useGenerativeA11yRuntime();
-  const bindings = useGenerativeA11yBindings();
-  const { state, setOverride } = useGenerativeA11yAttentionControl();
+  const runtime = useRuntime();
+  const { composerRef, conversationRef, newestResponseRef } = useAttentionRefs();
+  const { state, setOverride } = useAttentionControl();
   const [step, setStep] = useState(0);
   const [text, setText] = useState("");
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
@@ -74,12 +74,12 @@ function AttentionHost({ clock }: { clock: ManualClock }) {
       <p data-testid="attention-state">Observed: {state.observed}; override: {state.override}; effective: {state.effective}</p>
       <div className="lab-grid">
         <section className="host-surface" aria-label="Attention example host interface">
-          <div {...bindings.conversationProps} tabIndex={0} aria-label="Conversation history" role="region">
+          <div ref={conversationRef} tabIndex={0} aria-label="Conversation history" role="region">
             <p>Earlier message: prepare a report and ask before publishing.</p>
-            <article {...bindings.newestResponseProps} aria-label="Newest response"><p>{text || "The response will appear here."}</p></article>
+            <article ref={newestResponseRef} aria-label="Newest response"><p>{text || "The response will appear here."}</p></article>
           </div>
           <label htmlFor="attention-composer">Your message</label>
-          <textarea id="attention-composer" {...bindings.composerProps} />
+          <textarea id="attention-composer" ref={composerRef} />
           <p>Next event: <code>{event?.type ?? "Scenario complete"}</code></p>
           <button type="button" disabled={!interactive || !event} onClick={next}>
             {event?.type === "interaction.resolved" ? "Approve publishing" : "Advance scenario"}

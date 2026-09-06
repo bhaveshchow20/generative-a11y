@@ -38,11 +38,11 @@ export const searchableText = [
   "Minimal integration",
   "Create one runtime and connect it to the browser. Send only the new text from each streaming update. Report when the response finishes, fails, or stops. Dispose both resources when the session ends.",
   "typescript",
-  'import { createGenerativeA11y } from "@generative-a11y/core"; import { connectRuntimeToDOM } from "@generative-a11y/dom"; const runtime = createGenerativeA11y({}); const delivery = connectRuntimeToDOM(runtime); runtime.dispatch({ type: "response.started", responseId: "response-1" }); runtime.dispatch({ type: "response.text.delta", responseId: "response-1", delta: "A complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "response-1" }); delivery.dispose(); runtime.dispose();',
+  "Complete provider-owned browser delivery, public SDK callbacks and snapshots, and cleanup on unmount. See the typechecked runnable example below.",
   "Create one runtime",
   "Your runtime tracks responses, prepares useful text, and controls update timing.",
   "Connect the browser",
-  "connectRuntimeToDOM creates and manages the hidden live regions used for screen-reader updates.",
+  "bindRuntime creates and manages the hidden live regions used for screen-reader updates.",
   "Report app events",
   "Tell the runtime when a response starts, receives text, and finishes.",
   "Clean up",
@@ -122,13 +122,14 @@ each streaming update. Report when the response finishes, fails, or stops.
 Dispose both resources when the session ends.
 
 {/* prettier-ignore */}
-```typescript
-import { createGenerativeA11y } from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "@generative-a11y/dom";
+```ts
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({});
-const delivery = connectRuntimeToDOM(runtime);
+const runtime = createRuntime();
+const delivery = bindRuntime(runtime);
 
+// Send these events from your existing response lifecycle callbacks.
 runtime.dispatch({ type: "response.started", responseId: "response-1" });
 runtime.dispatch({
   type: "response.text.delta",
@@ -137,8 +138,11 @@ runtime.dispatch({
 });
 runtime.dispatch({ type: "response.completed", responseId: "response-1" });
 
-delivery.dispose();
-runtime.dispose();
+// Call this when the chat is removed, not when a response finishes.
+export function disposeChat() {
+  delivery.dispose();
+  runtime.dispose();
+}
 ```
 
 ### Walkthrough
@@ -157,7 +161,7 @@ Your runtime tracks responses, prepares useful text, and controls update timing.
 
 ### Connect the browser
 
-connectRuntimeToDOM creates and manages the hidden live regions used for
+bindRuntime creates and manages the hidden live regions used for
 screen&#45;reader updates.
 
 </Step>

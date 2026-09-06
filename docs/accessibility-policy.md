@@ -55,7 +55,7 @@ interactions; routine concurrent updates remain polite and coalesced.
 
 The DOM layer inserts announcement strings as literal text, applies locale
 before delivery, and replaces region content for repeated identical messages. A
-`DOMDeliveryResult` reports an API call or DOM mutation; it is not confirmation
+`DeliveryResult` reports an API call or DOM mutation; it is not confirmation
 that assistive technology produced speech. See
 [browser support and fallbacks](browser-support.md).
 

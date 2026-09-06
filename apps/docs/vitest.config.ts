@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [fumadocsMdx({ forcedConfig: MdxConfig, index: true })],
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./", import.meta.url)),
       "fumadocs-mdx:collections/server": fileURLToPath(
         new URL("./.source/server.ts", import.meta.url),
       ),

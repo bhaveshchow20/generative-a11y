@@ -101,7 +101,7 @@ development without changing production behavior.
 ## Announcement language
 
 Events are unchanged by catalog support. `locale` identifies host-authored text;
-core-generated notices use `announcementCatalog.locale`, defaulting to `en`.
-Explicit user-safe copy retains existing event/entity locale propagation. Labels
-inserted into a catalog sentence must be in that catalog's language. No language
-is inferred from framework metadata, browser state, or generated content.
+core-generated notices use `messages.locale`, defaulting to `en`. Explicit
+user-safe copy retains existing event/entity locale propagation. Labels inserted
+into a catalog sentence must be in that catalog's language. No language is
+inferred from framework metadata, browser state, or generated content.

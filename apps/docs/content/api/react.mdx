@@ -5,7 +5,7 @@ description:
   refs for your existing interface."
 publicPath: "/api/react"
 section: "React"
-keywords: ["React", "GenerativeA11yProvider", "hooks", "bindings"]
+keywords: ["React", "A11yProvider", "hooks", "bindings"]
 related: []
 order: 14
 ---
@@ -18,32 +18,32 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useGenerativeA11yAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
+  "Attention policy attentionPolicy useAttentionControl bindAttention quiet override /docs/attention-aware-announcements",
   "@generative-a11y/react",
   "A React provider and hooks for browser updates, attention, preferences, and refs for your existing interface.",
   "React",
   "React",
-  "GenerativeA11yProvider",
+  "A11yProvider",
   "hooks",
   "bindings",
   "provider",
-  "GenerativeA11yProvider",
-  "GenerativeA11yProvider can own a runtime or borrow one from your app. It renders stable hidden delivery regions and leaves visible UI unchanged.",
+  "A11yProvider",
+  "A11yProvider can own a runtime or borrow one from your app. It renders stable hidden delivery regions and leaves visible UI unchanged.",
   "tsx",
-  'import { GenerativeA11yProvider } from "@generative-a11y/react"; export function App() { return ( <GenerativeA11yProvider preset="balanced" dom={{ mode: "auto" }} > <ExistingChat /> </GenerativeA11yProvider> ); }',
+  'import { A11yProvider } from "@generative-a11y/react"; export function App() { return ( <A11yProvider preset="balanced" delivery={{ mode: "auto" }} > <ExistingChat /> </A11yProvider> ); }',
   "Mount one provider",
   "Wrap the part of your app that sends accessibility events.",
   "Configure browser delivery",
-  "dom controls hidden screen-reader updates without replacing visible components.",
+  "delivery controls hidden screen-reader updates without replacing visible components.",
   "Keep app behavior in the app",
   "ExistingChat still owns its HTML, keyboard behavior, and focus.",
   "runtime",
-  "GenerativeA11yRuntime",
+  "Runtime",
   "Optional",
   "owned runtime",
-  "Borrows an existing runtime when provided. GenerativeA11yProvider never disposes app-supplied runtimes.",
-  "dom",
-  "false | GenerativeA11yDOMOptions",
+  "Borrows an existing runtime when provided. A11yProvider never disposes app-supplied runtimes.",
+  "delivery",
+  "false | DeliveryOptions",
   "Optional",
   "{}",
   "Configures hidden DOM delivery or disables it.",
@@ -69,7 +69,7 @@ export const searchableText = [
   "Borrows an application-supplied preference store.",
   "ownership",
   "Provider ownership",
-  "GenerativeA11yProvider cleans up every runtime, browser connection, store, timer, subscription, and live region it creates. Anything supplied by your app remains under your control.",
+  "A11yProvider cleans up every runtime, browser connection, store, timer, subscription, and live region it creates. Anything supplied by your app remains under your control.",
   "Provider context is unavailable outside the provider.",
   "Server rendering uses stable hidden structure and reports attention as unknown.",
   "Routine announcements never move focus.",
@@ -78,23 +78,23 @@ export const searchableText = [
 
 <span id="provider"></span>
 
-## GenerativeA11yProvider
+## A11yProvider
 
-GenerativeA11yProvider can own a runtime or borrow one from your app. It renders
+A11yProvider can own a runtime or borrow one from your app. It renders
 stable hidden delivery regions and leaves visible UI unchanged.
 
 {/* prettier-ignore */}
 ```tsx
-import { GenerativeA11yProvider } from "@generative-a11y/react";
+import { A11yProvider } from "@generative-a11y/react";
 
 export function App() {
   return (
-    <GenerativeA11yProvider
+    <A11yProvider
       preset="balanced"
-      dom={{ mode: "auto" }}
+      delivery={{ mode: "auto" }}
     >
       <ExistingChat />
-    </GenerativeA11yProvider>
+    </A11yProvider>
   );
 }
 ```
@@ -115,7 +115,7 @@ Wrap the part of your app that sends accessibility events.
 
 ### Configure browser delivery
 
-dom controls hidden screen&#45;reader updates without replacing visible
+delivery controls hidden screen&#45;reader updates without replacing visible
 components.
 
 </Step>
@@ -133,17 +133,17 @@ ExistingChat still owns its HTML, keyboard behavior, and focus.
 <TypeTable
   type={{
     runtime: {
-      type: <>GenerativeA11yRuntime</>,
+      type: <>Runtime</>,
       default: <>owned runtime</>,
       description: (
         <>
-          Borrows an existing runtime when provided. GenerativeA11yProvider
+          Borrows an existing runtime when provided. A11yProvider
           never disposes app&#45;supplied runtimes.
         </>
       ),
     },
-    dom: {
-      type: <>false &#124; GenerativeA11yDOMOptions</>,
+    delivery: {
+      type: <>false &#124; DeliveryOptions</>,
       default: <>&#123;&#125;</>,
       description: <>Configures hidden DOM delivery or disables it.</>,
     },
@@ -179,7 +179,7 @@ ExistingChat still owns its HTML, keyboard behavior, and focus.
 
 ## Provider ownership
 
-GenerativeA11yProvider cleans up every runtime, browser connection, store,
+A11yProvider cleans up every runtime, browser connection, store,
 timer, subscription, and live region it creates. Anything supplied by your app
 remains under your control.
 
@@ -191,12 +191,16 @@ remains under your control.
 
 ## Opt-in attention forwarding
 
-`GenerativeA11yProvider` accepts `attentionPolicy?: boolean` (default `false`). This forwards browser observations to the runtime; independently enable `policy.attention.enabled` for filtering. `useGenerativeA11yAttentionControl` exposes observed, override, and effective state plus `setOverride`. [See the complete attention guide](/docs/attention-aware-announcements).
+`A11yProvider` accepts `attentionPolicy?: boolean` (default `false`). This forwards browser observations to the runtime; independently enable `policy.attention.enabled` for filtering. `useAttentionControl` exposes observed, override, and effective state plus `setOverride`. [See the complete attention guide](/docs/attention-aware-announcements).
 
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/react" />

@@ -9,7 +9,7 @@ keywords:
   [
     "AI SDK",
     "useChat",
-    "createObserver",
+    "createChatObserver",
     "composeChatCallbacks",
     "approval",
     "citation",
@@ -40,7 +40,7 @@ export const searchableText = [
   "Integrations",
   "AI SDK",
   "useChat",
-  "createObserver",
+  "createChatObserver",
   "composeChatCallbacks",
   "approval",
   "citation",
@@ -49,14 +49,14 @@ export const searchableText = [
   "/api/ai-sdk/use-chat-accessibility",
   "installation",
   "Install the AI SDK adapter",
-  "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/ai-sdk beside the AI SDK packages already used by your application. The adapter translates public chat state and callbacks; it does not replace useChat or render a chat interface.",
+  "Install @generative-a11y/core, @generative-a11y/dom, @generative-a11y/react, and @generative-a11y/ai-sdk beside the AI SDK packages already used by your application. The adapter translates public chat state and callbacks; it does not replace useChat or render a chat interface.",
   "Use the React subpath when your application connects through @ai-sdk/react.",
   "Create one accessibility runtime for the chat surface and dispose it when that surface unmounts.",
   "react",
   "React integration",
   "Create the accessibility integration before useChat so composed callbacks are present at construction, then observe its documented snapshot after useChat runs.",
   "tsx",
-  'import { useChat } from "@ai-sdk/react"; import { useChatAccessibility, useObserveChatAccessibility, } from "@generative-a11y/ai-sdk/react"; const accessibility = useChatAccessibility({ runtime, scopeId: "support-thread", onFinish: hostOnFinish, onError: hostOnError, }); const chat = useChat({ id: "support-thread", ...accessibility.chatCallbacks }); useObserveChatAccessibility({ integration: accessibility, snapshot: chat });',
+  "Complete provider-owned browser delivery, public SDK callbacks and snapshots, and cleanup on unmount. See the complete example in the API reference.",
   "Create accessibility first",
   "The hook creates one observer and composed callbacks before useChat captures its initial options.",
   "Keep your callbacks",
@@ -66,7 +66,7 @@ export const searchableText = [
   "Observe public state",
   "The second hook reads only messages, status, and error from the returned useChat helpers.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "none",
   "Receives events from the integration. Your app owns this runtime, so the integration never disposes it.",
@@ -79,7 +79,7 @@ export const searchableText = [
   "number",
   "Optional",
   "1000",
-  "Bounds each identity collection. Invalid values throw and saturation suppresses later unknown identities.",
+  "Bounds each identity collection. Invalid values throw; saturation suppresses all later snapshots and terminal lifecycle callbacks.",
   "getToolLabel",
   "(context) => string",
   "Optional",
@@ -107,7 +107,7 @@ export const searchableText = [
   "The public useChat return object observed after useChat has been invoked.",
   "lifecycle-mapping",
   "Lifecycle mapping",
-  "The observer maps documented message parts and chat status to response, text, tool, approval, and citation events. Composed callbacks confirm completion and failure. Your application must report retry actions because public AI SDK state does not identify every retry request.",
+  "The observer maps documented message parts and chat status to response, text, tool, approval, and citation events. Composed callbacks confirm completion and failure. Automatic retry/regenerate detection is unavailable; do not fabricate adapter-owned response IDs.",
   "messages and status identify active response text and known tool states",
   "onFinish confirms completion or stop details",
   "onError confirms failure without copying raw error text",
@@ -116,8 +116,8 @@ export const searchableText = [
   "Core groups streaming text into paced announcement intents and gives approval, failure, and completion updates suitable priority. The DOM package writes those intents to live regions without moving focus during routine status changes. Browser transcripts confirm DOM delivery; test VoiceOver, NVDA, or another target screen reader before making support claims.",
   "fidelity",
   "What the adapter can report",
-  "Use supplied callbacks so the adapter knows when a response finishes, stops, or fails. Status alone does not provide enough detail. Report regenerate actions from your app when you need retry events. A successful response after an error tells the adapter that the connection returned.",
-  "Exports CHAT_ADAPTER_METADATA, createObserver, composeChatCallbacks",
+  "Use supplied callbacks so the adapter knows when a response finishes, stops, or fails. Status alone does not provide enough detail. Retry/regenerate detection is unavailable; no retry wrapper is exposed. A successful response after an error tells the adapter that the connection returned.",
+  "Exports adapterInfo, createChatObserver, composeChatCallbacks",
   "React subpath exports useChatAccessibility and useObserveChatAccessibility",
   "Tool failure, approvals, and citations use stable public part IDs",
   "troubleshooting",
@@ -132,8 +132,8 @@ export const searchableText = [
 
 ## Install the AI SDK adapter
 
-Install @generative&#45;a11y/core, @generative&#45;a11y/dom, and
-@generative&#45;a11y/ai&#45;sdk beside the AI SDK packages already used by your
+Install @generative&#45;a11y/core, @generative&#45;a11y/dom,
+@generative&#45;a11y/react, and @generative&#45;a11y/ai&#45;sdk beside the AI SDK packages already used by your
 application. The adapter translates public chat state and callbacks; it does not
 replace useChat or render a chat interface.
 
@@ -146,27 +146,46 @@ replace useChat or render a chat interface.
 
 ## React integration
 
-Create the accessibility integration before useChat so composed callbacks are
-present at construction, then observe its documented snapshot after useChat
-runs.
+Add these imports to your existing chat module. In a React Server Components
+application, keep this module behind a `"use client"` boundary.
 
-{/* prettier-ignore */}
 ```tsx
 import { useChat } from "@ai-sdk/react";
+import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
+```
 
-const accessibility = useChatAccessibility({
-  runtime,
-  scopeId: "support-thread",
-  onFinish: hostOnFinish,
-  onError: hostOnError,
-});
-const chat = useChat({ id: "support-thread", ...accessibility.chatCallbacks });
+Wrap your existing `Chat` component once. The provider owns the runtime and
+browser delivery, including cleanup on unmount.
+
+```tsx
+export function App() {
+  return (
+    <A11yProvider>
+      <Chat />
+    </A11yProvider>
+  );
+}
+```
+
+Inside `Chat`, replace your existing `useChat` call with this wiring. Keep your
+transport options, message list, and composer. Create callbacks before `useChat`,
+then observe its returned state.
+
+```tsx
+const runtime = useRuntime();
+const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
+const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
 useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
 ```
+
+The rest of your component keeps using `chat` as before. See the
+[complete example in the API reference](/api/ai-sdk/use-chat-accessibility)
+for the surrounding component and sample host UI. It expects your existing
+`/api/chat` endpoint.
 
 ### Walkthrough
 
@@ -213,7 +232,7 @@ helpers.
 <TypeTable
   type={{
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       default: <>none</>,
       description: (
@@ -304,8 +323,10 @@ helpers.
 
 The observer maps documented message parts and chat status to response, text,
 tool, approval, and citation events. Composed callbacks confirm completion and
-failure. Your application must report retry actions because public AI SDK state
-does not identify every retry request.
+failure. Automatic retry and regenerate events are unavailable. Public AI SDK state
+does not identify every retry request; do not construct adapter-owned response
+IDs or fabricate retry events. The next supported public response lifecycle
+is still observed normally.
 
 - messages and status identify active response text and known tool states
 - onFinish confirms completion or stop details
@@ -326,11 +347,10 @@ target screen reader before making support claims.
 ## What the adapter can report
 
 Use supplied callbacks so the adapter knows when a response finishes, stops, or
-fails. Status alone does not provide enough detail. Report regenerate actions
-from your app when you need retry events. A successful response after an error
+fails. Status alone does not provide enough detail. Retry/regenerate detection is unavailable; the adapter does not expose a retry wrapper. A successful response after an error
 tells the adapter that the connection returned.
 
-- Exports CHAT_ADAPTER_METADATA, createObserver, composeChatCallbacks
+- Exports adapterInfo, createChatObserver, composeChatCallbacks
 - React subpath exports useChatAccessibility and useObserveChatAccessibility
 - Tool failure, approvals, and citations use stable public part IDs
 
@@ -349,8 +369,9 @@ above.
 - Use the lifecycle lab to inspect deterministic browser updates before testing
   assistive technology.
 
-## Related
-
-- [/docs/screen-readers-and-streaming-ai](/docs/screen-readers-and-streaming-ai)
-- [/docs/getting-started](/docs/getting-started)
-- [/api/ai-sdk/use-chat-accessibility](/api/ai-sdk/use-chat-accessibility)
+The example uses your existing AI SDK `/api/chat` endpoint. `A11yProvider`
+owns the runtime and browser delivery; `useChatAccessibility` owns only its
+observer. Both clean up on unmount. Keep your existing transport and UI.
+Add host `onFinish`/`onError` callbacks to `useChatAccessibility` when needed;
+it composes them with its own callbacks. Do not overwrite `chatCallbacks`
+after spreading them into `useChat`.

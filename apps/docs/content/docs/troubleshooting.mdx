@@ -43,7 +43,7 @@ export const searchableText = [
   "Confirm the announcement listener or DOM binding is attached before dispatch.",
   "Complete a sentence or dispatch response.completed so buffered text can flush.",
   "Check for policy-silent, empty-text, unknown-response, or runtime-disposed diagnostics.",
-  "Check DOMDeliveryResult for unavailable or disposed delivery.",
+  "Check DeliveryResult for unavailable or disposed delivery.",
   "A successful page update does not confirm what a screen reader spoke. Test that separately.",
   "repeated-output",
   "Output repeats or arrives too often",
@@ -96,7 +96,7 @@ export const searchableText = [
   "Inspect a redacted trace during development",
   "Use @generative-a11y/devtools when a single diagnostic is not enough to explain the event sequence. Its bounded store connects source events, runtime decisions, snapshots, and optional DOM delivery results without retaining response text, labels, tool data, or page content.",
   "Attach the store to an existing runtime and give that runtime a stable development ID.",
-  "Forward DOMDeliveryResult values to recordDelivery when you need browser correlation.",
+  "Forward DeliveryResult values to recordDelivery when you need browser correlation.",
   "Pause or clear capture without changing runtime scheduling or browser delivery.",
   "Treat the trace as debugging evidence, not proof of screen-reader speech.",
 ].join("\n");
@@ -113,7 +113,7 @@ runtime diagnostics and the browser result separately.
 - Complete a sentence or dispatch response.completed so buffered text can flush.
 - Check for policy&#45;silent, empty&#45;text, unknown&#45;response, or
   runtime&#45;disposed diagnostics.
-- Check DOMDeliveryResult for unavailable or disposed delivery.
+- Check DeliveryResult for unavailable or disposed delivery.
 - A successful page update does not confirm what a screen reader spoke. Test
   that separately.
 
@@ -222,7 +222,7 @@ response text, labels, tool data, or page content.
 
 - Attach the store to an existing runtime and give that runtime a stable
   development ID.
-- Forward DOMDeliveryResult values to recordDelivery when you need browser
+- Forward DeliveryResult values to recordDelivery when you need browser
   correlation.
 - Pause or clear capture without changing runtime scheduling or browser
   delivery.

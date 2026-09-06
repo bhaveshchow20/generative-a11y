@@ -35,7 +35,7 @@ export const searchableText = [
   "Complete useChat integration",
   "Call useChatAccessibility first, pass chatCallbacks into useChat, then observe the documented snapshot.",
   "tsx",
-  'const accessibility = useChatAccessibility({ runtime, scopeId: "support-thread", getToolLabel({ toolName }) { return toolName === "lookupOrder" ? "Look up order" : "A tool"; }, onFinish: hostOnFinish, onError: hostOnError, }); const chat = useChat({ id: "support-thread", ...accessibility.chatCallbacks, }); useObserveChatAccessibility({ integration: accessibility, snapshot: chat, });',
+  "Complete provider-owned browser delivery, public SDK callbacks and snapshots, and cleanup on unmount. See the typechecked runnable example below.",
   "Create callbacks first",
   "useChatAccessibility creates one observer and callback pair for each runtime and scope.",
   "Pass callbacks to useChat",
@@ -45,7 +45,7 @@ export const searchableText = [
   "Let the hook clean up",
   "Unmounting disposes the observer and supports React Strict Mode remounts.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "n/a",
   "Receives adapter events while remaining under your app's control.",
@@ -58,7 +58,7 @@ export const searchableText = [
   "number",
   "Optional",
   "1000",
-  "Bounds adapter identity memory and suppresses new identity after saturation.",
+  "After capacity saturation, all later snapshot and terminal-callback lifecycle events are suppressed.",
   "getToolLabel",
   "(context) => string",
   "Optional",
@@ -103,25 +103,64 @@ the documented snapshot.
 
 {/* prettier-ignore */}
 ```tsx
-const accessibility = useChatAccessibility({
-  runtime,
-  scopeId: "support-thread",
-  getToolLabel({ toolName }) {
-    return toolName === "lookupOrder" ? "Look up order" : "A tool";
-  },
-  onFinish: hostOnFinish,
-  onError: hostOnError,
-});
+"use client";
 
-const chat = useChat({
-  id: "support-thread",
-  ...accessibility.chatCallbacks,
-});
+import { useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { A11yProvider, useRuntime } from "@generative-a11y/react";
+import {
+  useChatAccessibility,
+  useObserveChatAccessibility,
+} from "@generative-a11y/ai-sdk/react";
 
-useObserveChatAccessibility({
-  integration: accessibility,
-  snapshot: chat,
-});
+function Chat() {
+  const runtime = useRuntime();
+  const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
+  const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
+  useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
+  const [input, setInput] = useState("");
+
+  // This is example host UI. Keep your existing message list and composer.
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!input.trim()) return;
+        void chat.sendMessage({ text: input });
+        setInput("");
+      }}
+    >
+      {chat.messages.map((message) => (
+        <p key={message.id}>
+          {message.parts
+            .map((part) => (part.type === "text" ? part.text : ""))
+            .join("")}
+        </p>
+      ))}
+      <label>
+        Message
+        <input
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={chat.status === "streaming" || chat.status === "submitted"}
+      >
+        Send
+      </button>
+    </form>
+  );
+}
+
+export function App() {
+  return (
+    <A11yProvider>
+      <Chat />
+    </A11yProvider>
+  );
+}
 ```
 
 ### Walkthrough
@@ -166,8 +205,13 @@ Unmounting disposes the observer and supports React Strict Mode remounts.
 
 <TypeTable
   type={{
+    copy: {
+      type: <>AdapterCopy</>,
+      default: <>undefined</>,
+      description: <>Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.</>,
+    },
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       description: (
         <>Receives adapter events while remaining under your app's control.</>
@@ -188,8 +232,8 @@ Unmounting disposes the observer and supports React Strict Mode remounts.
       default: <>1000</>,
       description: (
         <>
-          Bounds adapter identity memory and suppresses new identity after
-          saturation.
+          Bounds adapter identity memory. After saturation, all later snapshot and
+          terminal-callback lifecycle events are suppressed, including tracked identities.
         </>
       ),
     },
@@ -250,3 +294,14 @@ useObserveChatAccessibility reads your ChatIntegration without disposing it.
     },
   }}
 />
+
+The example uses your existing AI SDK `/api/chat` endpoint. `A11yProvider`
+owns the runtime and browser delivery; `useChatAccessibility` owns only its
+observer. Both clean up on unmount. Keep your existing transport and UI.
+Add host `onFinish`/`onError` callbacks to `useChatAccessibility` when needed;
+it composes them with its own callbacks. Do not overwrite `chatCallbacks`
+after spreading them into `useChat`.
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/ai-sdk/react" />
