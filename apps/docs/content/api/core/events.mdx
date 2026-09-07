@@ -1,5 +1,5 @@
 ---
-title: "GenerativeA11yEvent"
+title: "RuntimeEvent"
 description:
   "Report runs, steps, responses, tools, interactions, approvals, connection
   changes, and citations with this event union."
@@ -7,7 +7,7 @@ publicPath: "/api/core/events"
 section: "Core"
 keywords:
   [
-    "GenerativeA11yEvent",
+    "RuntimeEvent",
     "response.started",
     "tool.started",
     "interaction.requested",
@@ -24,10 +24,10 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "GenerativeA11yEvent",
+  "RuntimeEvent",
   "Report runs, steps, responses, tools, interactions, approvals, connection changes, and citations with this event union.",
   "Core",
-  "GenerativeA11yEvent",
+  "RuntimeEvent",
   "response.started",
   "tool.started",
   "interaction.requested",
@@ -246,14 +246,10 @@ for users.
   }}
 />
 
-## Related
-
-- [/api/core/workflows](/api/core/workflows)
-
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.

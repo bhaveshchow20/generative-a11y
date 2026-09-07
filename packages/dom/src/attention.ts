@@ -165,7 +165,7 @@ export function createAttentionStore(
     };
   };
 
-  const createObserver = (
+  const createChatObserver = (
     registration: number,
     target: Element,
   ): AttentionIntersectionObserver | undefined => {
@@ -227,7 +227,7 @@ export function createAttentionStore(
       stopObserver(newestTarget);
       newestTarget = element;
       newestResult = "unknown";
-      observer = createObserver(registration, element);
+      observer = createChatObserver(registration, element);
       update();
       let registered = true;
       return () => {

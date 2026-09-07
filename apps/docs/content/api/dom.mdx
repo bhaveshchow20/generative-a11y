@@ -42,11 +42,11 @@ export const searchableText = [
   "Exports",
   "Reference",
   "Delivery",
-  "createDOMAnnouncer",
-  "/api/dom/create-dom-announcer",
+  "createAnnouncer",
+  "/api/dom/create-announcer",
   "Runtime binding",
-  "connectRuntimeToDOM",
-  "/api/dom/connect-runtime-to-dom",
+  "bindRuntime",
+  "/api/dom/bind-runtime",
   "Focus",
   "captureFocus, focusElement, restoreFocus",
   "/api/dom/focus",
@@ -108,13 +108,13 @@ Choose direct announcing or bind an existing runtime.
   <tbody>
     <tr>
       <td>Delivery</td>
-      <td>createDOMAnnouncer</td>
-      <td><a href="/api/dom/create-dom-announcer">/api/dom/create-dom-announcer</a></td>
+      <td>createAnnouncer</td>
+      <td><a href="/api/dom/create-announcer">/api/dom/create-announcer</a></td>
     </tr>
     <tr>
       <td>Runtime binding</td>
-      <td>connectRuntimeToDOM</td>
-      <td><a href="/api/dom/connect-runtime-to-dom">/api/dom/connect-runtime-to-dom</a></td>
+      <td>bindRuntime</td>
+      <td><a href="/api/dom/bind-runtime">/api/dom/bind-runtime</a></td>
     </tr>
     <tr>
       <td>Focus</td>
@@ -133,3 +133,7 @@ Choose direct announcing or bind an existing runtime.
     </tr>
   </tbody>
 </table>
+
+import { ApiReference } from "@/components/api-reference";
+
+<ApiReference entry="@generative-a11y/dom" />

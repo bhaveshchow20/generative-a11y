@@ -7,9 +7,9 @@ publicPath: "/api/react/hooks"
 section: "React"
 keywords:
   [
-    "useGenerativeA11y",
-    "useGenerativeA11yRuntime",
-    "useAttentionTargets",
+    "useA11y",
+    "useRuntime",
+    "useAttentionRefs",
     "hooks",
   ]
 related: []
@@ -24,63 +24,63 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
+  "Attention policy attentionPolicy useAttentionControl bindAttention quiet override /docs/attention-aware-announcements",
   "React hooks",
   "React hooks for the runtime, attention, preferences, and refs for existing app elements.",
   "React",
-  "useGenerativeA11y",
-  "useGenerativeA11yRuntime",
-  "useAttentionTargets",
+  "useA11y",
+  "useRuntime",
+  "useAttentionRefs",
   "hooks",
   "complete-example",
   "Bind an existing chat interface",
-  "Bindings contain refs only. Add them to semantic elements already in your app.",
+  "AttentionRefs contain refs only. Add them to semantic elements already in your app.",
   "tsx",
-  'function ExistingChat() { const runtime = useGenerativeA11yRuntime(); const attention = useGenerativeA11yAttention(); const { preferences, setPreferences } = useGenerativeA11yPreferences(); const { composerProps, conversationProps, newestResponseProps } = useAttentionTargets(); return ( <main {...conversationProps}> <article {...newestResponseProps}>Latest response</article> <textarea {...composerProps} /> <button onClick={() => runtime.dispatch(startEvent)}>Send</button> <output>{attention.mode}</output> <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}> Reduce streaming detail </button> </main> ); }',
+  'function ExistingChat() { const runtime = useRuntime(); const attention = useAttention(); const { preferences, setPreferences } = usePreferences(); const bindings = useAttentionRefs(); return ( <main ref={bindings.conversationRef}> <article ref={bindings.newestResponseRef}>Latest response</article> <textarea ref={bindings.composerRef} /> <button onClick={() => runtime.dispatch(startEvent)}>Send</button> <output>{attention.mode}</output> <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}> Reduce streaming detail </button> </main> ); }',
   "Read the app runtime",
   "Send only events that your app knows happened.",
   "Register existing elements",
   "Ref bindings track focus and visibility without changing markup or styles.",
   "Expose user control",
   "Preference updates remain validated and versioned.",
-  "useGenerativeA11y()",
-  "GenerativeA11yContextValue",
+  "useA11y()",
+  "A11yContextValue",
   "Hook",
   "n/a",
   "Returns runtime, attentionStore, and preferenceStore from the nearest provider.",
-  "useGenerativeA11yRuntime()",
-  "GenerativeA11yRuntime",
+  "useRuntime()",
+  "Runtime",
   "Hook",
   "n/a",
   "Returns the provider runtime.",
-  "useGenerativeA11yAttention()",
+  "useAttention()",
   "AttentionSnapshot",
   "Hook",
   "unknown SSR snapshot",
   "Uses useSyncExternalStore to report browser focus and visibility without guessing missing values.",
-  "useGenerativeA11yPreferences()",
-  "GenerativeA11yPreferencesResult",
+  "usePreferences()",
+  "PreferencesResult",
   "Hook",
   "n/a",
   "Returns validated preferences, setPreferences, and the underlying store.",
-  "useAttentionTargets()",
-  "GenerativeA11yBindings",
+  "useAttentionRefs()",
+  "AttentionRefs",
   "Hook",
   "n/a",
-  "Returns stable composer, conversation, and newest-response ref props.",
+  "Returns stable callback refs for the composer, conversation, and newest response.",
   "binding-contracts",
-  "GenerativeA11yBindings",
-  "Each property contains a React ref for an existing part of your interface.",
+  "AttentionRefs",
+  "Each property is a callback ref for an existing host element. These optional refs observe attention only; they do not add semantics or enable announcement delivery. Compose existing refs with your framework utility when necessary.",
   "Property",
   "Target",
   "Purpose",
-  "composerProps",
-  "HTMLTextAreaElement",
+  "composerRef",
+  "HTMLElement",
   "Detects focus in the composer",
-  "conversationProps",
+  "conversationRef",
   "HTMLElement",
   "Detects focus in conversation history",
-  "newestResponseProps",
+  "newestResponseRef",
   "HTMLElement",
   "Checks whether the newest response is visible",
 ].join("\n");
@@ -89,20 +89,20 @@ export const searchableText = [
 
 ## Bind an existing chat interface
 
-Bindings contain refs only. Add them to semantic elements already in your app.
+AttentionRefs contain refs only. Add them to semantic elements already in your app.
 
 {/* prettier-ignore */}
 ```tsx
 function ExistingChat() {
-  const runtime = useGenerativeA11yRuntime();
-  const attention = useGenerativeA11yAttention();
-  const { preferences, setPreferences } = useGenerativeA11yPreferences();
-  const { composerProps, conversationProps, newestResponseProps } = useAttentionTargets();
+  const runtime = useRuntime();
+  const attention = useAttention();
+  const { preferences, setPreferences } = usePreferences();
+  const bindings = useAttentionRefs();
 
   return (
-    <main {...conversationProps}>
-      <article {...newestResponseProps}>Latest response</article>
-      <textarea {...composerProps} />
+    <main ref={bindings.conversationRef}>
+      <article ref={bindings.newestResponseRef}>Latest response</article>
+      <textarea ref={bindings.composerRef} />
       <button onClick={() => runtime.dispatch(startEvent)}>Send</button>
       <output>{attention.mode}</output>
       <button onClick={() => setPreferences({ ...preferences, streaming: "less" })}>
@@ -145,8 +145,8 @@ Preference updates remain validated and versioned.
 
 <TypeTable
   type={{
-    "useGenerativeA11y()": {
-      type: <>GenerativeA11yContextValue</>,
+    "useA11y()": {
+      type: <>A11yContextValue</>,
       description: (
         <>
           Hook. Returns runtime, attentionStore, and preferenceStore from the
@@ -154,11 +154,11 @@ Preference updates remain validated and versioned.
         </>
       ),
     },
-    "useGenerativeA11yRuntime()": {
-      type: <>GenerativeA11yRuntime</>,
+    "useRuntime()": {
+      type: <>Runtime</>,
       description: <>Hook. Returns the provider runtime.</>,
     },
-    "useGenerativeA11yAttention()": {
+    "useAttention()": {
       type: <>AttentionSnapshot</>,
       default: <>unknown SSR snapshot</>,
       description: (
@@ -168,8 +168,8 @@ Preference updates remain validated and versioned.
         </>
       ),
     },
-    "useGenerativeA11yPreferences()": {
-      type: <>GenerativeA11yPreferencesResult</>,
+    "usePreferences()": {
+      type: <>PreferencesResult</>,
       description: (
         <>
           Hook. Returns validated preferences, setPreferences, and the
@@ -177,8 +177,8 @@ Preference updates remain validated and versioned.
         </>
       ),
     },
-    "useAttentionTargets()": {
-      type: <>GenerativeA11yBindings</>,
+    "useAttentionRefs()": {
+      type: <>AttentionRefs</>,
       description: (
         <>
           Hook. Returns stable composer, conversation, and newest&#45;response
@@ -191,11 +191,13 @@ Preference updates remain validated and versioned.
 
 <span id="binding&#45;contracts"></span>
 
-## GenerativeA11yBindings
+## AttentionRefs
 
-Each property contains a React ref for an existing part of your interface.
+Each property is a callback ref for an existing host element. These optional
+refs observe attention only; they do not add semantics or enable announcement
+delivery. Compose existing refs with your framework utility when necessary.
 
-<table aria-label="GenerativeA11yBindings table">
+<table aria-label="AttentionRefs table">
   <thead>
     <tr>
       <th>Property</th>
@@ -205,17 +207,17 @@ Each property contains a React ref for an existing part of your interface.
   </thead>
   <tbody>
     <tr>
-      <td>composerProps</td>
-      <td>HTMLTextAreaElement</td>
+      <td>composerRef</td>
+      <td>HTMLElement</td>
       <td>Detects focus in the composer</td>
     </tr>
     <tr>
-      <td>conversationProps</td>
+      <td>conversationRef</td>
       <td>HTMLElement</td>
       <td>Detects focus in conversation history</td>
     </tr>
     <tr>
-      <td>newestResponseProps</td>
+      <td>newestResponseRef</td>
       <td>HTMLElement</td>
       <td>Checks whether the newest response is visible</td>
     </tr>
@@ -226,4 +228,4 @@ Each property contains a React ref for an existing part of your interface.
 
 Returns `{ state: { observed, override, effective }, setOverride }`. Call `setOverride("quiet")`, `setOverride("normal")`, or `setOverride("auto")` from controls owned by your host app. The provider adds no visible controls. With attention filtering disabled, effective mode remains normal.
 
-Set the provider's `attentionPolicy` prop to bridge browser observations and independently configure core `policy.attention.enabled`. [See short setup and ref-binding examples](/docs/attention-aware-announcements).
+Set the provider's `attentionPolicy` prop to bridge browser observations and independently configure core `policy.attention.enabled`. [Copy a complete provider and ref-binding example](/docs/attention-aware-announcements).

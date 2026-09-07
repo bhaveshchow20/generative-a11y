@@ -5,22 +5,19 @@ export {
   type ClockTimer,
 } from "./clock.js";
 export { resolvePolicy, presets, type PolicyOverrides } from "./policy.js";
+export { createRecorder, type Recorder } from "./recorder.js";
 export {
-  createAnnouncementRecorder,
-  type AnnouncementRecorder,
-} from "./recorder.js";
-export {
-  createGenerativeA11y,
+  createRuntime,
   type AnnouncementListener,
   type DiagnosticListener,
   type RuntimeDiagnosticListener,
-  type GenerativeA11yOptions,
-  type GenerativeA11yRuntime,
+  type RuntimeOptions,
+  type Runtime,
 } from "./runtime.js";
 export {
-  createAnnouncementScheduler,
-  type AnnouncementScheduler,
-  type AnnouncementSchedulerOptions,
+  createScheduler,
+  type Scheduler,
+  type SchedulerOptions,
   type AnnouncementCapacityPriority,
   type ScheduleAnnouncement,
 } from "./scheduler.js";
@@ -47,7 +44,7 @@ export type {
   DiagnosticRunSnapshot,
   DiagnosticStepSnapshot,
   DiagnosticToolSnapshot,
-  GenerativeA11yEvent,
+  RuntimeEvent,
   InteractionKind,
   PresetName,
   ReadonlyAnnouncementPolicy,
@@ -59,13 +56,3 @@ export type {
   WorkflowContext,
   WorkflowPolicy,
 } from "./types.js";
-
-export {
-  englishAnnouncementCatalog,
-  normalizeAdapterAnnouncementCopy,
-  type AnnouncementCatalog,
-  type AnnouncementMessageParameters,
-  type AnnouncementMessageId,
-  type AnnouncementMessages,
-  type AdapterAnnouncementCopy,
-} from "./messages.js";

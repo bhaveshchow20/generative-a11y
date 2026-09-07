@@ -1,14 +1,12 @@
-import type {
-  AdapterAnnouncementCopy,
-  GenerativeA11yRuntime,
-} from "@generative-a11y/core";
+import type { Runtime } from "@generative-a11y/core";
+import type { AdapterCopy } from "@generative-a11y/core/messages";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ChatOnErrorCallback, ChatOnFinishCallback, UIMessage } from "ai";
 import { useEffect, useMemo, useRef } from "react";
 
 import {
   composeChatCallbacks,
-  createObserver,
+  createChatObserver,
   type ChatObserver,
   type ToolLabelContext,
 } from "./index.js";
@@ -22,10 +20,10 @@ export type UseChatSnapshot<UI_MESSAGE extends UIMessage = UIMessage> = Pick<
 export interface UseChatAccessibilityOptions<
   UI_MESSAGE extends UIMessage = UIMessage,
 > {
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly runtime: Pick<Runtime, "dispatch">;
   readonly scopeId: string;
   /** Captured with the observer; replace its scope/runtime to change language. */
-  readonly copy?: AdapterAnnouncementCopy;
+  readonly copy?: AdapterCopy;
   readonly maxTrackedEntities?: number;
   readonly getToolLabel?: (context: ToolLabelContext) => string;
   readonly onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
@@ -59,7 +57,7 @@ export function useChatAccessibility<UI_MESSAGE extends UIMessage>(
   const integration = useMemo<ChatIntegration<UI_MESSAGE>>(() => {
     const copy = latestOptions.current.copy;
     const defaultLabel = copy?.toolLabel ?? "A tool";
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime: options.runtime,
       scopeId: options.scopeId,
       ...(copy === undefined ? {} : { copy }),

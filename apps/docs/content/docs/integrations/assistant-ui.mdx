@@ -6,12 +6,12 @@ description:
 publicPath: "/docs/integrations/assistant-ui"
 section: "Integrations"
 keywords:
-  ["assistant-ui", "bindThreadRuntime", "ThreadRuntime", "approval", "source"]
+  ["assistant-ui", "bindThread", "ThreadRuntime", "approval", "source"]
 related:
   [
     "/docs/accessible-ai-agents",
     "/docs/getting-started",
-    "/api/assistant-ui/bind-thread-runtime",
+    "/api/assistant-ui/bind-thread",
   ]
 order: 13
 ---
@@ -22,7 +22,7 @@ export const sourceMetadata = {
   related: [
     "/docs/accessible-ai-agents",
     "/docs/getting-started",
-    "/api/assistant-ui/bind-thread-runtime",
+    "/api/assistant-ui/bind-thread",
   ],
   order: 13,
 };
@@ -32,31 +32,31 @@ export const searchableText = [
   "Add paced screen-reader updates to an assistant-ui thread without replaying messages already present in its history.",
   "Integrations",
   "assistant-ui",
-  "bindThreadRuntime",
+  "bindThread",
   "ThreadRuntime",
   "approval",
   "source",
   "/docs/accessible-ai-agents",
   "/docs/getting-started",
-  "/api/assistant-ui/bind-thread-runtime",
+  "/api/assistant-ui/bind-thread",
   "installation",
   "Install the assistant-ui adapter",
   "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/assistant-ui beside assistant-ui. The adapter subscribes to a thread runtime you already own and leaves rendering, actions, and focus behavior with the host application.",
   "bind",
   "Connect an existing thread runtime",
-  "bindThreadRuntime reads only getState and subscribe. It cannot run thread actions, render an interface, or dispose your core runtime.",
+  "bindThread reads only getState and subscribe. It cannot run thread actions, render an interface, or dispose your core runtime.",
   "typescript",
-  'import { bindThreadRuntime } from "@generative-a11y/assistant-ui"; const binding = bindThreadRuntime({ runtime, scopeId: "support-thread", thread, }); // Removes only the subscription it created. binding.dispose();',
+  'import { bindThread } from "@generative-a11y/assistant-ui"; const binding = bindThread({ runtime, scopeId: "support-thread", thread, }); // Removes only the subscription it created. binding.dispose();',
   "Pass the public thread",
   "Your adapter needs only getState and subscribe, so it cannot invoke composer, message, or run actions.",
   "Namespace framework IDs",
   "scopeId prevents identical message and tool IDs from colliding across mounted threads.",
   "Record existing history",
-  "bindThreadRuntime records existing messages at startup and skips old content after hydration.",
+  "bindThread records existing messages at startup and skips old content after hydration.",
   "Dispose the subscription",
   "Returned cleanup stops observation while leaving assistant-ui and core running.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "none",
   "The runtime that receives events from this adapter. Your app owns it.",
@@ -107,14 +107,14 @@ and focus behavior with the host application.
 
 ## Connect an existing thread runtime
 
-bindThreadRuntime reads only getState and subscribe. It cannot run thread
+bindThread reads only getState and subscribe. It cannot run thread
 actions, render an interface, or dispose your core runtime.
 
 {/* prettier-ignore */}
 ```typescript
-import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+import { bindThread } from "@generative-a11y/assistant-ui";
 
-const binding = bindThreadRuntime({
+const binding = bindThread({
   runtime,
   scopeId: "support-thread",
   thread,
@@ -150,7 +150,7 @@ threads.
 
 ### Record existing history
 
-bindThreadRuntime records existing messages at startup and skips old content
+bindThread records existing messages at startup and skips old content
 after hydration.
 
 </Step>
@@ -169,7 +169,7 @@ running.
 <TypeTable
   type={{
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       default: <>none</>,
       description: (
@@ -257,9 +257,3 @@ different scopeId or started before thread hydration settled. Missing updates
 can indicate that the supplied thread does not expose the expected public state.
 Check one active subscription, stable identity, and the documented
 assistant&#45;ui version before changing announcement policy.
-
-## Related
-
-- [/docs/accessible-ai-agents](/docs/accessible-ai-agents)
-- [/docs/getting-started](/docs/getting-started)
-- [/api/assistant-ui/bind-thread-runtime](/api/assistant-ui/bind-thread-runtime)

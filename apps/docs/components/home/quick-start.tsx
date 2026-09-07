@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-const example = `import { createGenerativeA11y } from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "@generative-a11y/dom";
+const example = `import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({});
-const delivery = connectRuntimeToDOM(runtime);
+const runtime = createRuntime({});
+const delivery = bindRuntime(runtime);
 
 runtime.dispatch({ type: "response.started", responseId: "response-1" });
 runtime.dispatch({

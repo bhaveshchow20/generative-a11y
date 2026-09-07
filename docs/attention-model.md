@@ -3,9 +3,9 @@
 `createAttentionStore()` exposes conservative browser observations through an
 `ExternalStore<AttentionSnapshot>`. These are raw signals for a host or the
 React integration. They are not core policy decisions, proof that content was
-read, or a model of user intent. `useGenerativeA11yAttention()` subscribes with
-React's `useSyncExternalStore` and preserves the stable server snapshot during
-SSR and hydration.
+read, or a model of user intent. `useAttention()` subscribes with React's
+`useSyncExternalStore` and preserves the stable server snapshot during SSR and
+hydration.
 
 ## Snapshot fields
 
@@ -83,11 +83,11 @@ borrowed and remains host-owned after unmount.
 
 ## Policy boundary
 
-Core does not inspect browser globals. `bindAttentionToRuntime()` forwards the
-store's initial and changed mode as serializable `attention.changed` events. The
-bridge borrows both objects, rejects competing bridges for one runtime, and
-clears observed attention to unknown on disposal. It never clears a user
-override or disposes a borrowed object. The store stays observation-only.
+Core does not inspect browser globals. `bindAttention()` forwards the store's
+initial and changed mode as serializable `attention.changed` events. The bridge
+borrows both objects, rejects competing bridges for one runtime, and clears
+observed attention to unknown on disposal. It never clears a user override or
+disposes a borrowed object. The store stays observation-only.
 
 Core's optional `policy.attention` is disabled by default. Enabling it uses
 `quietWhen: ["background"]` unless the host supplies another list. `away` and

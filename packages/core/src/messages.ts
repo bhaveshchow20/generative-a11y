@@ -1,7 +1,7 @@
 import type { InteractionKind } from "./types.js";
 
 /** Parameters contain only existing user-safe labels and bounded lifecycle facts. */
-export interface AnnouncementMessageParameters {
+export interface MessageParams {
   "response.started": Record<never, never>;
   "response.completed": Record<never, never>;
   "response.interrupted": Record<never, never>;
@@ -31,19 +31,18 @@ export interface AnnouncementMessageParameters {
   "connection.restored": Record<never, never>;
   "citation.available": { count: number };
 }
-export type AnnouncementMessageId = keyof AnnouncementMessageParameters;
-export type AnnouncementMessages = {
-  readonly [K in AnnouncementMessageId]:
-    | string
-    | ((parameters: Readonly<AnnouncementMessageParameters[K]>) => string);
+export type MessageKey = keyof MessageParams;
+export type MessageMap = {
+  readonly [K in MessageKey]:
+    string | ((parameters: Readonly<MessageParams[K]>) => string);
 };
 /** Construction-time, complete catalog. Callbacks must be pure and synchronous. */
-export interface AnnouncementCatalog {
+export interface Messages {
   readonly id: string;
   readonly locale: string;
-  readonly messages: AnnouncementMessages;
+  readonly messages: MessageMap;
 }
-export interface AdapterAnnouncementCopy {
+export interface AdapterCopy {
   readonly locale: string;
   readonly toolLabel: string;
   readonly approvalRequested: string;
@@ -59,7 +58,7 @@ const progress = ({ label, percent }: { label: string; percent?: number }) =>
   percent === undefined
     ? `${label} in progress.`
     : `${label} ${percent} percent.`;
-export const englishAnnouncementCatalog: AnnouncementCatalog = Object.freeze({
+export const en: Messages = Object.freeze({
   id: "generative-a11y.en.v1",
   locale: "en",
   messages: Object.freeze({
@@ -111,78 +110,115 @@ export const englishAnnouncementCatalog: AnnouncementCatalog = Object.freeze({
     "connection.restored": "Connection restored.",
     "citation.available": ({ count }) =>
       `${count} ${count === 1 ? "source" : "sources"} available.`,
-  } satisfies AnnouncementMessages),
+  } satisfies MessageMap),
 });
-function boundedString(value: unknown, maximum = 4096): string {
+function boundedString(
+  value: unknown,
+  maximum = 4096,
+  field = "message result",
+): string {
   if (typeof value !== "string" || !value.trim() || value.length > maximum)
     throw new TypeError(
-      "Announcement configuration contains an invalid string",
+      `${field} must be a non-empty string of at most ${maximum} characters`,
     );
   return value;
 }
-function localeTag(value: unknown): string {
-  const tag = boundedString(value, 128);
+function localeTag(value: unknown, field: string): string {
+  const tag = boundedString(value, 128, field);
   try {
-    return (
-      Intl.getCanonicalLocales(tag)[0] ??
-      (() => {
-        throw new Error();
-      })()
-    );
+    const canonical = Intl.getCanonicalLocales(tag)[0];
+    if (canonical) return canonical;
   } catch {
-    throw new TypeError(
-      "Announcement configuration contains an invalid language tag",
-    );
+    // Never include a caller-supplied value in configuration errors.
   }
+  throw new TypeError(`${field} must be a valid language tag`);
 }
-export function normalizeAnnouncementCatalog(
-  catalog: AnnouncementCatalog,
-): AnnouncementCatalog {
-  const id = boundedString(catalog.id, 128);
-  const locale = localeTag(catalog.locale);
-  const keys = Object.keys(
-    englishAnnouncementCatalog.messages,
-  ) as AnnouncementMessageId[];
-  if (
-    !catalog.messages ||
-    Reflect.ownKeys(catalog.messages).length !== keys.length ||
-    keys.some((key) => !Object.hasOwn(catalog.messages, key))
-  )
+export function normalizeAnnouncementCatalog(catalog: Messages): Messages {
+  if (typeof catalog !== "object" || catalog === null)
     throw new TypeError(
-      "Announcement catalog must supply exactly all message keys",
+      "messages must be an object with id, locale, and messages",
+    );
+  const id = boundedString(catalog.id, 128, "messages.id");
+  const locale = localeTag(catalog.locale, "messages.locale");
+  const keys = Object.keys(en.messages) as MessageKey[];
+  if (!catalog.messages || typeof catalog.messages !== "object")
+    throw new TypeError(
+      "messages.messages must contain the complete message map",
+    );
+  const missing = keys.filter((key) => !Object.hasOwn(catalog.messages, key));
+  if (missing.length)
+    throw new TypeError(`Missing message keys: ${missing.join(", ")}`);
+  if (Reflect.ownKeys(catalog.messages).length !== keys.length)
+    throw new TypeError(
+      "messages.messages contains unsupported keys; use only the documented message keys",
     );
   const messages = Object.fromEntries(
     keys.map((key) => {
       const value = catalog.messages[key];
-      return [key, typeof value === "function" ? value : boundedString(value)];
+      return [
+        key,
+        typeof value === "function"
+          ? value
+          : boundedString(value, 4096, `messages.messages[${key}]`),
+      ];
     }),
-  ) as unknown as AnnouncementMessages;
+  ) as unknown as MessageMap;
   return Object.freeze({ id, locale, messages: Object.freeze(messages) });
 }
 /** Validate and snapshot shared adapter copy before creating a binding. */
-export function normalizeAdapterAnnouncementCopy(
-  copy: AdapterAnnouncementCopy,
-): AdapterAnnouncementCopy {
+export function normalizeAdapterCopy(copy: AdapterCopy): AdapterCopy {
+  if (typeof copy !== "object" || copy === null)
+    throw new TypeError(
+      "copy must be an object with a locale and all adapter labels",
+    );
   return Object.freeze({
-    locale: localeTag(copy.locale),
-    toolLabel: boundedString(copy.toolLabel),
-    approvalRequested: boundedString(copy.approvalRequested),
+    locale: localeTag(copy.locale, "copy.locale"),
+    toolLabel: boundedString(copy.toolLabel, 4096, "copy.toolLabel"),
+    approvalRequested: boundedString(
+      copy.approvalRequested,
+      4096,
+      "copy.approvalRequested",
+    ),
     approvalResolved: Object.freeze({
-      approved: boundedString(copy.approvalResolved?.approved),
-      rejected: boundedString(copy.approvalResolved?.rejected),
-      cancelled: boundedString(copy.approvalResolved?.cancelled),
+      approved: boundedString(
+        copy.approvalResolved?.approved,
+        4096,
+        "copy.approvalResolved.approved",
+      ),
+      rejected: boundedString(
+        copy.approvalResolved?.rejected,
+        4096,
+        "copy.approvalResolved.rejected",
+      ),
+      cancelled: boundedString(
+        copy.approvalResolved?.cancelled,
+        4096,
+        "copy.approvalResolved.cancelled",
+      ),
     }),
-    inputRequested: boundedString(copy.inputRequested),
+    inputRequested: boundedString(
+      copy.inputRequested,
+      4096,
+      "copy.inputRequested",
+    ),
     inputResolved: Object.freeze({
-      submitted: boundedString(copy.inputResolved?.submitted),
-      cancelled: boundedString(copy.inputResolved?.cancelled),
+      submitted: boundedString(
+        copy.inputResolved?.submitted,
+        4096,
+        "copy.inputResolved.submitted",
+      ),
+      cancelled: boundedString(
+        copy.inputResolved?.cancelled,
+        4096,
+        "copy.inputResolved.cancelled",
+      ),
     }),
   });
 }
-export function formatAnnouncement<K extends AnnouncementMessageId>(
-  catalog: AnnouncementCatalog,
+export function formatAnnouncement<K extends MessageKey>(
+  catalog: Messages,
   id: K,
-  parameters: AnnouncementMessageParameters[K],
+  parameters: MessageParams[K],
 ): string {
   const formatter = catalog.messages[id];
   const result: unknown =

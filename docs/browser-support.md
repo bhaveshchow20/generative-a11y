@@ -7,13 +7,12 @@ Playwright WebKit is not branded Safari.
 
 ## Announcement delivery
 
-`DOMAnnouncementMode` controls one announcer instance:
+`DeliveryMode` controls one announcer instance:
 
-| Mode          | Behavior                                                                 |
-| ------------- | ------------------------------------------------------------------------ |
-| `auto`        | Try callable `ariaNotify()`; otherwise mutate the selected live region   |
-| `aria-notify` | The same progressive behavior; absence still falls back to a live region |
-| `live-region` | Never call `ariaNotify()`; always mutate the selected live region        |
+| Mode          | Behavior                                                               |
+| ------------- | ---------------------------------------------------------------------- |
+| `auto`        | Try callable `ariaNotify()`; otherwise mutate the selected live region |
+| `live-region` | Never call `ariaNotify()`; always mutate the selected live region      |
 
 `ariaNotify()` is a progressive enhancement because MDN marks it
 [limited availability](https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaNotify).

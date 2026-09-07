@@ -1,4 +1,4 @@
-import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +12,7 @@ export function runHierarchicalWorkflowExample() {
   const transcript = [];
   const diagnostics = [];
   const events = [];
-  const runtime = createGenerativeA11y({
+  const runtime = createRuntime({
     clock,
     preset: "verbose",
     policy: {

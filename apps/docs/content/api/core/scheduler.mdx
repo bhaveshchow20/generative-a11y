@@ -1,5 +1,5 @@
 ---
-title: "createAnnouncementScheduler"
+title: "createScheduler"
 description:
   "Low-level scheduler for timing, duplicate removal, merging, cancellation,
   queue priority, and repeatable tests."
@@ -7,7 +7,7 @@ publicPath: "/api/core/scheduler"
 section: "Core"
 keywords:
   [
-    "createAnnouncementScheduler",
+    "createScheduler",
     "ScheduleAnnouncement",
     "capacityPriority",
     "cancelScope",
@@ -24,18 +24,18 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "createAnnouncementScheduler",
+  "createScheduler",
   "Low-level scheduler for timing, duplicate removal, merging, cancellation, queue priority, and repeatable tests.",
   "Core",
-  "createAnnouncementScheduler",
+  "createScheduler",
   "ScheduleAnnouncement",
   "capacityPriority",
   "cancelScope",
   "signature",
   "Signature and cleanup",
-  "Most apps should use createGenerativeA11y. Use the scheduler directly only if your app already decides which events should produce announcements.",
+  "Most apps should use createRuntime. Use the scheduler directly only if your app already decides which events should produce announcements.",
   "typescript",
-  'const scheduler = createAnnouncementScheduler({ clock, minimumGapMs: 750, dedupeWindowMs: 4_000, maxQueueSize: 64, onAnnouncement: deliver, onDiagnostic: recordDiagnostic, }); scheduler.schedule({ channel: "polite", text: "The report is ready.", sourceType: "response.completed", scope: "response:report-1", capacityPriority: "content", });',
+  'const scheduler = createScheduler({ clock, minimumGapMs: 750, dedupeWindowMs: 4_000, maxQueueSize: 64, onAnnouncement: deliver, onDiagnostic: recordDiagnostic, }); scheduler.schedule({ channel: "polite", text: "The report is ready.", sourceType: "response.completed", scope: "response:report-1", capacityPriority: "content", });',
   "Supply a clock",
   "Scheduler timers use your Clock, so tests can control time.",
   "Limit the queue",
@@ -45,12 +45,12 @@ export const searchableText = [
   "Group related work",
   "Use one scope to cancel pending work when a response, tool, run, or step ends.",
   "options",
-  "AnnouncementSchedulerOptions",
+  "SchedulerOptions",
   "Required",
   "n/a",
   "Clock, pacing, capacity, announcement listener, and optional diagnostic callbacks.",
   "return",
-  "AnnouncementScheduler",
+  "Scheduler",
   "Return",
   "n/a",
   "Owned scheduler with schedule, cancelScope, pendingCount, and dispose methods.",
@@ -68,7 +68,7 @@ export const searchableText = [
   "n/a",
   "Translated text with whitespace normalized by the runtime.",
   "sourceType",
-  "GenerativeA11yEvent['type']",
+  "RuntimeEvent['type']",
   "Required",
   "n/a",
   "Identifies the app event that produced this candidate.",
@@ -101,7 +101,7 @@ export const searchableText = [
   '"content"',
   "Allows content to displace status work when bounded capacity is exhausted.",
   "methods",
-  "AnnouncementScheduler methods",
+  "Scheduler methods",
   "Dispose cancels the owned timer and pending queue.",
   "schedule(candidate)",
   "string | undefined",
@@ -132,12 +132,12 @@ export const searchableText = [
 
 ## Signature and cleanup
 
-Most apps should use createGenerativeA11y. Use the scheduler directly only if
+Most apps should use createRuntime. Use the scheduler directly only if
 your app already decides which events should produce announcements.
 
 {/* prettier-ignore */}
 ```typescript
-const scheduler = createAnnouncementScheduler({
+const scheduler = createScheduler({
   clock,
   minimumGapMs: 750,
   dedupeWindowMs: 4_000,
@@ -196,7 +196,7 @@ Use one scope to cancel pending work when a response, tool, run, or step ends.
 <TypeTable
   type={{
     options: {
-      type: <>AnnouncementSchedulerOptions</>,
+      type: <>SchedulerOptions</>,
       required: true,
       description: (
         <>
@@ -206,7 +206,7 @@ Use one scope to cancel pending work when a response, tool, run, or step ends.
       ),
     },
     return: {
-      type: <>AnnouncementScheduler</>,
+      type: <>Scheduler</>,
       description: (
         <>
           Return. Owned scheduler with schedule, cancelScope, pendingCount, and
@@ -239,7 +239,7 @@ backend data.
       ),
     },
     sourceType: {
-      type: <>GenerativeA11yEvent&#91;'type'&#93;</>,
+      type: <>RuntimeEvent&#91;'type'&#93;</>,
       required: true,
       description: <>Identifies the app event that produced this candidate.</>,
     },
@@ -296,7 +296,7 @@ backend data.
 
 <span id="methods"></span>
 
-## AnnouncementScheduler methods
+## Scheduler methods
 
 Dispose cancels the owned timer and pending queue.
 
@@ -338,7 +338,3 @@ Dispose cancels the owned timer and pending queue.
     },
   }}
 />
-
-## Related
-
-- [/api/core/workflows](/api/core/workflows)

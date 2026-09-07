@@ -1,54 +1,54 @@
 ---
-title: "createGenerativeA11y"
+title: "createRuntime"
 description:
   "Create the core runtime that turns app events into well-timed
   AnnouncementIntent objects and useful debugging details."
-publicPath: "/api/core/create-generative-a11y"
+publicPath: "/api/core/create-runtime"
 section: "Core"
 keywords:
-  ["createGenerativeA11y", "GenerativeA11yRuntime", "dispatch", "dispose"]
+  ["createRuntime", "Runtime", "dispatch", "dispose"]
 related: []
 order: 2
 ---
 
 export const sourceMetadata = {
-  publicPath: "/api/core/create-generative-a11y",
+  publicPath: "/api/core/create-runtime",
   section: "Core",
   related: [],
   order: 2,
 };
 
 export const searchableText = [
-  "createGenerativeA11y",
+  "createRuntime",
   "Create the core runtime that turns app events into well-timed AnnouncementIntent objects and useful debugging details.",
   "Core",
-  "createGenerativeA11y",
-  "GenerativeA11yRuntime",
+  "createRuntime",
+  "Runtime",
   "dispatch",
   "dispose",
   "signature",
   "Signature and import",
   "Create one runtime for your app or for each conversation that needs separate settings. Connect delivery before sending events that can produce output.",
   "typescript",
-  'import { createGenerativeA11y } from "@generative-a11y/core"; const runtime = createGenerativeA11y({ preset: "balanced", onAnnouncement(intent) { deliver(intent); }, });',
+  'import { createRuntime } from "@generative-a11y/core"; const runtime = createRuntime({ preset: "balanced", onAnnouncement(intent) { deliver(intent); }, });',
   "Import the constructor",
-  "Import createGenerativeA11y from the package root.",
+  "Import createRuntime from the package root.",
   "Choose a preset",
   "Presets supply default behavior. policy changes only the settings you provide.",
   "Connect output",
-  "onAnnouncement registers the first listener. Browser apps usually use connectRuntimeToDOM instead.",
+  "onAnnouncement registers the first listener. Browser apps usually use bindRuntime instead.",
   "options",
-  "GenerativeA11yOptions",
-  "Required",
-  "{} is not implicit",
+  "RuntimeOptions",
+  "Optional",
+  "{}",
   "Construction options for policy, time, announcement delivery, delivery errors, and diagnostics.",
   "return",
-  "GenerativeA11yRuntime",
+  "Runtime",
   "Return",
   "n/a",
   "An owned runtime with synchronous dispatch, subscriptions, policy inspection, pending work inspection, and disposal.",
   "options",
-  "GenerativeA11yOptions",
+  "RuntimeOptions",
   "Options are read during construction. Nested policy overrides merge with the selected preset.",
   "preset",
   "PresetName",
@@ -81,13 +81,13 @@ export const searchableText = [
   "undefined",
   "Observes queued, merged, suppressed, cancelled, announced, and delivery-error decisions.",
   "runtime-methods",
-  "GenerativeA11yRuntime methods",
+  "Runtime methods",
   "Runtime methods are synchronous. Unsubscribe functions and dispose are idempotent.",
   "dispatch(event)",
   "boolean",
   "Method",
   "n/a",
-  "Processes one serializable GenerativeA11yEvent synchronously. Returns false after disposal or when a nested dispatch transaction reaches capacity.",
+  "Processes one serializable RuntimeEvent synchronously. Returns false after disposal or when a nested dispatch transaction reaches capacity.",
   "getPolicy()",
   "ReadonlyAnnouncementPolicy",
   "Method",
@@ -148,9 +148,9 @@ settings. Connect delivery before sending events that can produce output.
 
 {/* prettier-ignore */}
 ```typescript
-import { createGenerativeA11y } from "@generative-a11y/core";
+import { createRuntime } from "@generative-a11y/core";
 
-const runtime = createGenerativeA11y({
+const runtime = createRuntime({
   preset: "balanced",
   onAnnouncement(intent) {
     deliver(intent);
@@ -166,7 +166,7 @@ const runtime = createGenerativeA11y({
 
 ### Import the constructor
 
-Import createGenerativeA11y from the package root.
+Import createRuntime from the package root.
 
 </Step>
 
@@ -183,7 +183,7 @@ Presets supply default behavior. policy changes only the settings you provide.
 ### Connect output
 
 onAnnouncement registers the first listener. Browser apps usually use
-connectRuntimeToDOM instead.
+bindRuntime instead.
 
 </Step>
 
@@ -192,9 +192,9 @@ connectRuntimeToDOM instead.
 <TypeTable
   type={{
     options: {
-      type: <>GenerativeA11yOptions</>,
-      required: true,
-      default: <>&#123;&#125; is not implicit</>,
+      type: <>RuntimeOptions</>,
+      required: false,
+      default: <>&#123;&#125;</>,
       description: (
         <>
           Construction options for policy, time, announcement delivery, delivery
@@ -203,7 +203,7 @@ connectRuntimeToDOM instead.
       ),
     },
     return: {
-      type: <>GenerativeA11yRuntime</>,
+      type: <>Runtime</>,
       description: (
         <>
           Return. An owned runtime with synchronous dispatch, subscriptions,
@@ -216,7 +216,7 @@ connectRuntimeToDOM instead.
 
 <span id="options"></span>
 
-## GenerativeA11yOptions
+## RuntimeOptions
 
 Options are read during construction. Nested policy overrides merge with the
 selected preset.
@@ -285,7 +285,7 @@ selected preset.
 
 <span id="runtime&#45;methods"></span>
 
-## GenerativeA11yRuntime methods
+## Runtime methods
 
 Runtime methods are synchronous. Unsubscribe functions and dispose are
 idempotent.
@@ -296,7 +296,7 @@ idempotent.
       type: <>boolean</>,
       description: (
         <>
-          Method. Processes one serializable GenerativeA11yEvent synchronously.
+          Method. Processes one serializable RuntimeEvent synchronously.
           Returns false after disposal or when a nested dispatch transaction
           reaches capacity.
         </>
@@ -444,6 +444,6 @@ reader to confirm what it speaks.
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`announcementCatalog` and `copy` options, language ownership, validation,
+`messages` and `copy` options, language ownership, validation,
 construction lifetime, and replay requirements. Existing lifecycle evidence
 and timing remain unchanged.

@@ -11,17 +11,17 @@ npm install --save-dev @generative-a11y/devtools
 ```
 
 ```ts
-import { createDevtoolsStore } from "@generative-a11y/devtools";
-import { THREAD_ADAPTER_METADATA } from "@generative-a11y/assistant-ui";
+import { createStore } from "@generative-a11y/devtools";
+import { adapterInfo } from "@generative-a11y/assistant-ui";
 
-const store = createDevtoolsStore({ maxEntries: 250 });
+const store = createStore({ maxEntries: 250 });
 const detach = store.attachRuntime({
   id: "support",
   runtime,
   source: {
-    adapter: THREAD_ADAPTER_METADATA.name,
-    fidelity: THREAD_ADAPTER_METADATA.fidelity,
-    evidence: THREAD_ADAPTER_METADATA.observedRuntimeMethods,
+    adapter: adapterInfo.name,
+    fidelity: adapterInfo.fidelity,
+    evidence: adapterInfo.observedRuntimeMethods,
   },
 });
 const unsubscribe = store.subscribe(renderDiagnostics);
@@ -39,9 +39,9 @@ store.dispose();
 
 ## Store API
 
-- `createDevtoolsStore({ maxEntries })` creates an isolated store. `maxEntries`
-  defaults to `250`, must be a positive safe integer, and bounds the retained
-  ring buffer. `droppedCount` reports records evicted since the last `clear()`.
+- `createStore({ maxEntries })` creates an isolated store. `maxEntries` defaults
+  to `250`, must be a positive safe integer, and bounds the retained ring
+  buffer. `droppedCount` reports records evicted since the last `clear()`.
 - `attachRuntime({ id, runtime })` validates a non-empty ID, subscribes only to
   public diagnostics, captures an initial safe snapshot, and returns an
   idempotent detach function. Attaching the same ID replaces its subscription
@@ -100,15 +100,30 @@ subscribes to a runtime.
 ## Browser delivery correlation
 
 The store intentionally does not import `@generative-a11y/dom`. Connect the
-announcer's public diagnostic callback yourself to capture a content-free
+active binding's `onDelivery` callback yourself to capture a content-free
 delivery record alongside runtime decisions:
 
 ```ts
-const announcer = createDOMAnnouncer({
-  onDiagnostic(result) {
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
+import { createStore } from "@generative-a11y/devtools";
+
+export const runtime = createRuntime();
+export const store = createStore();
+const detach = store.attachRuntime({ id: "support", runtime });
+const delivery = bindRuntime(runtime, {
+  onDelivery(result) {
     store.recordDelivery({ runtimeId: "support", result });
   },
 });
+
+// Dispatch your host events through runtime. Keep this binding for the session.
+export function disposeChat() {
+  delivery.dispose();
+  detach();
+  store.dispose();
+  runtime.dispose();
+}
 ```
 
 This exposes the browser-level method and status (`aria-notify`, fallback live
@@ -133,10 +148,10 @@ focus. The overlay does not trap focus, create a live region, modify host
 layout, or install global shortcuts.
 
 ```ts
-import { mountDevtoolsOverlay } from "@generative-a11y/devtools/overlay";
+import { mountOverlay } from "@generative-a11y/devtools/overlay";
 
-const overlay = mountDevtoolsOverlay({ store });
-overlay.dispose();
+const overlay = mountOverlay({ store });
+// Call overlay.dispose() when removing the workbench.
 ```
 
 ## Attention decisions
@@ -173,10 +188,14 @@ consumers can ignore the optional fields.
 
 ## Localized announcements
 
-Runtime snapshots include optional `announcementCatalog: { catalogId, locale }`.
-The inspector exposes only these fields and `catalog-format-error`; catalog
+Runtime snapshots include optional `messages: { catalogId, locale }`. The
+inspector exposes only these fields and `catalog-format-error`; catalog
 messages, formatter arguments/functions and error text are not retained. Use a
 non-sensitive catalog ID.
 
 See the
 [localization guide](https://generativea11y.com/docs/localized-announcements).
+
+For React, pass the same callback through
+`<A11yProvider delivery={{ onDelivery }}>`. Do not create another announcer
+beside the provider; its existing delivery path supplies the reports.

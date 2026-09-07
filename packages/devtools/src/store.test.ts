@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
-import { createDevtoolsStore } from "./index.js";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
+import { createStore } from "./index.js";
 
 const workflowFidelity = {
   runs: "unavailable",
@@ -16,10 +16,10 @@ const workflowFidelity = {
 
 describe("devtools store", () => {
   it("exports content-free attention controls and a frozen current state", () => {
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       policy: { attention: { enabled: true } },
     });
-    const store = createDevtoolsStore();
+    const store = createStore();
     store.attachRuntime({ id: "r", runtime });
     runtime.dispatch({ type: "attention.changed", mode: "background" });
     runtime.dispatch({ type: "attention.override", mode: "normal" });
@@ -57,11 +57,11 @@ describe("devtools store", () => {
 
   it("captures bounded redacted records from independent runtimes without changing them", () => {
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
     });
-    const store = createDevtoolsStore({ maxEntries: 2 });
+    const store = createStore({ maxEntries: 2 });
     const detach = store.attachRuntime({ id: "primary", runtime });
 
     runtime.dispatch({
@@ -94,8 +94,8 @@ describe("devtools store", () => {
   });
 
   it("pauses only capture, clears, and isolates subscribers", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     store.attachRuntime({ id: "primary", runtime });
     store.subscribe(() => {
       throw new Error("subscriber failure");
@@ -114,8 +114,8 @@ describe("devtools store", () => {
   });
 
   it("replaces a runtime attachment without allowing a stale detach to remove the new one", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     const first = store.attachRuntime({ id: "primary", runtime });
     const second = store.attachRuntime({ id: "primary", runtime });
 
@@ -131,12 +131,12 @@ describe("devtools store", () => {
   });
 
   it("keeps the current attachment when a replacement cannot subscribe", () => {
-    const current = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const replacement = createGenerativeA11y({
+    const current = createRuntime({ onAnnouncement: () => undefined });
+    const replacement = createRuntime({
       onAnnouncement: () => undefined,
     });
     replacement.dispose();
-    const store = createDevtoolsStore();
+    const store = createStore();
     const detach = store.attachRuntime({ id: "primary", runtime: current });
 
     expect(() =>
@@ -151,12 +151,12 @@ describe("devtools store", () => {
 
   it("retains a current content-free runtime snapshot and exports a bounded trace", () => {
     const clock = new ManualClock(100);
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       policy: { minimumGapMs: 40 },
       onAnnouncement: () => undefined,
     });
-    const store = createDevtoolsStore({ maxEntries: 2 });
+    const store = createStore({ maxEntries: 2 });
     store.attachRuntime({ id: "primary", runtime });
 
     runtime.dispatch({ type: "response.started", responseId: "response-1" });
@@ -186,7 +186,7 @@ describe("devtools store", () => {
   });
 
   it("correlates browser delivery metadata without retaining DOM text or errors", () => {
-    const store = createDevtoolsStore();
+    const store = createStore();
 
     store.recordDelivery({
       runtimeId: "primary",
@@ -225,7 +225,7 @@ describe("devtools store", () => {
   });
 
   it("validates delivery metadata before capture-state guards", () => {
-    const store = createDevtoolsStore();
+    const store = createStore();
     const delivery = {
       runtimeId: "primary",
       result: {
@@ -257,11 +257,11 @@ describe("devtools store", () => {
 
   it("projects safe causal fields and declared adapter evidence without retaining event content", () => {
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
     });
-    const store = createDevtoolsStore();
+    const store = createStore();
     const evidence = ["ThreadRuntime.getState", "ThreadRuntime.subscribe"];
     store.attachRuntime({
       id: "assistant-thread",
@@ -336,13 +336,13 @@ describe("devtools store", () => {
   });
 
   it("retains immutable source revisions referenced by captured records", () => {
-    const firstRuntime = createGenerativeA11y({
+    const firstRuntime = createRuntime({
       onAnnouncement: () => undefined,
     });
-    const secondRuntime = createGenerativeA11y({
+    const secondRuntime = createRuntime({
       onAnnouncement: () => undefined,
     });
-    const store = createDevtoolsStore();
+    const store = createStore();
     const source = (adapter: string) => ({
       adapter,
       evidence: [`${adapter}.subscribe`],
@@ -384,9 +384,9 @@ describe("devtools store", () => {
   });
 
   it("removes source revisions after their last record leaves the ring buffer", () => {
-    const store = createDevtoolsStore({ maxEntries: 1 });
+    const store = createStore({ maxEntries: 1 });
     const attach = (adapter: string) => {
-      const runtime = createGenerativeA11y({
+      const runtime = createRuntime({
         onAnnouncement: () => undefined,
       });
       const detach = store.attachRuntime({
@@ -418,9 +418,9 @@ describe("devtools store", () => {
   });
 
   it("rejects an invalid declared adapter source before subscribing", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
     const subscribe = vi.spyOn(runtime, "subscribeDiagnosticEvents");
-    const store = createDevtoolsStore();
+    const store = createStore();
 
     expect(() =>
       store.attachRuntime({
@@ -443,8 +443,8 @@ describe("devtools store", () => {
   });
 
   it("accepts legacy source fidelity without workflow evidence fields", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     store.attachRuntime({
       id: "primary",
       runtime,
@@ -472,8 +472,8 @@ describe("devtools store", () => {
   });
 
   it("rejects unsupported fidelity declarations and non-public evidence", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
 
     expect(() =>
       store.attachRuntime({
@@ -541,8 +541,8 @@ describe("devtools store", () => {
   });
 
   it("retains an explicit retry transition without retaining event content", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     store.attachRuntime({ id: "primary", runtime });
 
     runtime.dispatch({
@@ -572,8 +572,8 @@ describe("devtools store", () => {
   });
 
   it("projects workflow hierarchy and attempt boundaries as safe metadata", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     store.attachRuntime({ id: "workflow", runtime });
 
     runtime.dispatch({ type: "run.started", runId: "parent" });
@@ -632,8 +632,8 @@ describe("devtools store", () => {
   });
 
   it("keeps snapshot identity stable until captured state changes", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     const empty = store.getSnapshot();
 
     expect(store.getSnapshot()).toBe(empty);
@@ -650,11 +650,11 @@ describe("devtools store", () => {
 
   it("refreshes runtime snapshots only on explicit state-changing paths", () => {
     const clock = new ManualClock(100);
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
     });
-    const store = createDevtoolsStore();
+    const store = createStore();
     store.attachRuntime({ id: "primary", runtime });
     const initial = store.getSnapshot();
 
@@ -668,8 +668,8 @@ describe("devtools store", () => {
   });
 
   it("uses captureSequence as the monotonic order across record kinds", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const store = createDevtoolsStore();
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
+    const store = createStore();
     store.attachRuntime({ id: "primary", runtime });
     runtime.dispatch({ type: "connection.lost" });
     store.recordDelivery({
@@ -692,31 +692,31 @@ describe("devtools store", () => {
 });
 
 it("allowlists catalog identity without retaining catalog payloads", () => {
-  const runtime = createGenerativeA11y({});
+  const runtime = createRuntime({});
   const getSnapshot = runtime.getDiagnosticSnapshot.bind(runtime);
   runtime.getDiagnosticSnapshot = () => ({
     ...getSnapshot(),
-    announcementCatalog: {
+    messages: {
       catalogId: "example-fr-v1",
       locale: "fr",
       messages: { secret: "private-copy" },
     },
   });
-  const store = createDevtoolsStore();
+  const store = createStore();
   store.attachRuntime({ id: "localized", runtime });
   const trace = store.exportTrace();
-  expect(trace.runtimeSnapshots.localized).toHaveProperty(
-    "announcementCatalog",
-    { catalogId: "example-fr-v1", locale: "fr" },
-  );
+  expect(trace.runtimeSnapshots.localized).toHaveProperty("messages", {
+    catalogId: "example-fr-v1",
+    locale: "fr",
+  });
   expect(JSON.stringify(trace)).not.toContain("private-copy");
   expect(
     Object.isFrozen(
       (
         trace.runtimeSnapshots.localized as unknown as {
-          announcementCatalog: object;
+          messages: object;
         }
-      ).announcementCatalog,
+      ).messages,
     ),
   ).toBe(true);
   store.dispose();

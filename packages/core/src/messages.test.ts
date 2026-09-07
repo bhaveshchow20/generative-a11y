@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  createGenerativeA11y,
+  createRuntime,
   ManualClock,
-  englishAnnouncementCatalog,
   type AnnouncementIntent,
 } from "./index.js";
+import { en } from "./messages-entry.js";
 
 describe("announcement catalogs", () => {
   it("uses catalog language independently of response language", () => {
     const clock = new ManualClock();
     const output: AnnouncementIntent[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: (item) => output.push(item),
-      announcementCatalog: {
-        ...englishAnnouncementCatalog,
+      messages: {
+        ...en,
         id: "fr-example",
         locale: "fr",
         messages: {
-          ...englishAnnouncementCatalog.messages,
+          ...en.messages,
           "response.completed": "Réponse terminée.",
         },
       },
@@ -39,30 +39,26 @@ describe("announcement catalogs", () => {
 });
 
 import { vi } from "vitest";
+import { createRecorder, createScheduler, type RuntimeEvent } from "./index.js";
 import {
-  createAnnouncementRecorder,
-  createAnnouncementScheduler,
-  normalizeAdapterAnnouncementCopy,
-  type AnnouncementCatalog,
-  type AnnouncementMessageId,
-  type AnnouncementMessageParameters,
-  type AnnouncementMessages,
-  type GenerativeA11yEvent,
-} from "./index.js";
+  normalizeAdapterCopy,
+  type Messages,
+  type MessageKey,
+  type MessageParams,
+  type MessageMap,
+} from "./messages-entry.js";
 import { recordRuntime, replayEvents } from "./testing.js";
 
-const catalog = (
-  messages: Partial<AnnouncementMessages> = {},
-): AnnouncementCatalog => ({
+const catalog = (messages: Partial<MessageMap> = {}): Messages => ({
   id: "test.fr.v1",
   locale: "fr",
-  messages: { ...englishAnnouncementCatalog.messages, ...messages },
+  messages: { ...en.messages, ...messages },
 });
 
 it("routes all 25 generated message keys through typed callbacks", () => {
   const seen = new Map<string, unknown>();
   const messages = Object.fromEntries(
-    Object.keys(englishAnnouncementCatalog.messages).map((key) => [
+    Object.keys(en.messages).map((key) => [
       key,
       (parameters: unknown) => {
         expect(Object.isFrozen(parameters)).toBe(true);
@@ -70,20 +66,20 @@ it("routes all 25 generated message keys through typed callbacks", () => {
         return key;
       },
     ]),
-  ) as unknown as AnnouncementMessages;
-  const r = createAnnouncementRecorder({
+  ) as unknown as MessageMap;
+  const r = createRecorder({
     preset: "verbose",
-    announcementCatalog: catalog(messages),
+    messages: catalog(messages),
     policy: { minimumGapMs: 0, tools: { announceStartAfterMs: 0 } },
   });
-  const send = (event: GenerativeA11yEvent) => {
+  const send = (event: RuntimeEvent) => {
     r.runtime.dispatch(event);
     r.clock.runUntilIdle();
   };
   for (const end of ["completed", "interrupted", "failed"] as const) {
     send({ type: "response.started", responseId: end });
     send({ type: "response.retrying", responseId: end, attempt: 2 });
-    send({ type: `response.${end}`, responseId: end } as GenerativeA11yEvent);
+    send({ type: `response.${end}`, responseId: end } as RuntimeEvent);
     send({ type: "run.started", runId: end, label: "Workflow" });
     send({ type: "run.retrying", runId: end, attempt: 2 });
     send({ type: "step.started", runId: end, stepId: end, label: "Step" });
@@ -111,7 +107,7 @@ it("routes all 25 generated message keys through typed callbacks", () => {
       type: `tool.${end}`,
       toolId: end,
       label: "Tool",
-    } as GenerativeA11yEvent);
+    } as RuntimeEvent);
   }
   send({
     type: "interaction.resolved",
@@ -123,9 +119,7 @@ it("routes all 25 generated message keys through typed callbacks", () => {
   send({ type: "connection.lost" });
   send({ type: "connection.restored" });
   send({ type: "citation.available", count: 2 });
-  expect([...seen.keys()].sort()).toEqual(
-    Object.keys(englishAnnouncementCatalog.messages).sort(),
-  );
+  expect([...seen.keys()].sort()).toEqual(Object.keys(en.messages).sort());
   expect(seen.get("step.progress")).toEqual({ label: "Step", percent: 50 });
   expect(seen.get("run.completed")).toEqual({
     completedSteps: 1,
@@ -149,8 +143,8 @@ it.each([
 ])(
   "contains invalid formatter output without exposing content",
   (formatter) => {
-    const r = createAnnouncementRecorder({
-      announcementCatalog: catalog({
+    const r = createRecorder({
+      messages: catalog({
         "response.failed": formatter as () => string,
       }),
     });
@@ -185,14 +179,11 @@ it.each([
 it("formats only eligible notices and preserves explicit host copy and locale", () => {
   const format = vi.fn(() => "catalog text");
   const messages = Object.fromEntries(
-    Object.keys(englishAnnouncementCatalog.messages).map((key) => [
-      key,
-      format,
-    ]),
-  ) as unknown as AnnouncementMessages;
-  const r = createAnnouncementRecorder({
+    Object.keys(en.messages).map((key) => [key, format]),
+  ) as unknown as MessageMap;
+  const r = createRecorder({
     preset: "verbose",
-    announcementCatalog: catalog(messages),
+    messages: catalog(messages),
     policy: { attention: { enabled: true }, announceConnections: false },
   });
   r.runtime.dispatch({ type: "attention.override", mode: "quiet" });
@@ -237,16 +228,16 @@ it("validates the complete catalog before allocating a clock timer", () => {
   ];
   for (const value of malformed)
     expect(() =>
-      createGenerativeA11y({
+      createRuntime({
         clock,
-        announcementCatalog: value as AnnouncementCatalog,
+        messages: value as Messages,
       }),
     ).toThrow();
   expect(clock.pendingCount()).toBe(0);
   expect(() =>
-    createGenerativeA11y({
+    createRuntime({
       clock,
-      announcementCatalog: {
+      messages: {
         ...catalog(),
         id: "x".repeat(128),
         messages: {
@@ -263,11 +254,11 @@ it("snapshots catalog configuration and exposes only metadata", () => {
     id: "safe-id",
     locale: "FR",
     messages: {
-      ...englishAnnouncementCatalog.messages,
+      ...en.messages,
       "response.completed": "Original",
     },
   };
-  const r = createAnnouncementRecorder({ announcementCatalog: source });
+  const r = createRecorder({ messages: source });
   source.id = "changed";
   source.locale = "de";
   source.messages["response.completed"] = "Changed";
@@ -275,7 +266,7 @@ it("snapshots catalog configuration and exposes only metadata", () => {
   r.runtime.dispatch({ type: "response.completed", responseId: "r" });
   r.clock.runUntilIdle();
   expect(r.transcript()).toMatchObject([{ text: "Original", locale: "fr" }]);
-  expect(r.runtime.getDiagnosticSnapshot().announcementCatalog).toEqual({
+  expect(r.runtime.getDiagnosticSnapshot().messages).toEqual({
     catalogId: "safe-id",
     locale: "fr",
   });
@@ -288,7 +279,7 @@ it("snapshots catalog configuration and exposes only metadata", () => {
 it.each(["sentence", "completion"] as const)(
   "keeps %s response chunks in their own language",
   (strategy) => {
-    const r = createAnnouncementRecorder({
+    const r = createRecorder({
       policy: {
         text: { strategy, minimumCharacters: 1000 },
         announceResponseCompleted: false,
@@ -330,7 +321,7 @@ it("includes language in both default and explicit scheduler dedupe keys", () =>
   for (const explicit of [false, true]) {
     const clock = new ManualClock();
     const output: AnnouncementIntent[] = [];
-    const scheduler = createAnnouncementScheduler({
+    const scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 1000,
@@ -352,8 +343,8 @@ it("includes language in both default and explicit scheduler dedupe keys", () =>
 });
 
 it("serializes reentrant dispatch and stops safely when formatter disposes", () => {
-  const r = createAnnouncementRecorder({
-    announcementCatalog: catalog({
+  const r = createRecorder({
+    messages: catalog({
       "response.completed": () => {
         r.runtime.dispatch({ type: "connection.restored" });
         return "Done";
@@ -368,8 +359,8 @@ it("serializes reentrant dispatch and stops safely when formatter disposes", () 
     "Connection restored.",
   ]);
   r.runtime.dispose();
-  const stopped = createAnnouncementRecorder({
-    announcementCatalog: catalog({
+  const stopped = createRecorder({
+    messages: catalog({
       "response.completed": () => {
         stopped.runtime.dispose();
         return "must not deliver";
@@ -385,7 +376,7 @@ it("serializes reentrant dispatch and stops safely when formatter disposes", () 
 
 it("replays localized attention and fallback with the same catalog", () => {
   const options = {
-    announcementCatalog: catalog({
+    messages: catalog({
       "response.completed": "Terminée",
       "connection.restored": () => {
         throw new Error("private");
@@ -393,12 +384,12 @@ it("replays localized attention and fallback with the same catalog", () => {
     }),
     policy: { attention: { enabled: true }, minimumGapMs: 0 },
   };
-  const source = createAnnouncementRecorder(options);
+  const source = createRecorder(options);
   const recording = recordRuntime({
     runtime: source.runtime,
     clock: source.clock,
   });
-  const events: GenerativeA11yEvent[] = [
+  const events: RuntimeEvent[] = [
     { type: "response.started", responseId: "r" },
     { type: "attention.override", mode: "quiet" },
     { type: "response.text.delta", responseId: "r", delta: "hidden" },
@@ -410,7 +401,7 @@ it("replays localized attention and fallback with the same catalog", () => {
     recording.runtime.dispatch(event);
   }
   source.clock.runUntilIdle();
-  const target = createAnnouncementRecorder(options);
+  const target = createRecorder(options);
   replayEvents(
     target.runtime,
     target.clock,
@@ -432,7 +423,7 @@ it("validates and copies shared serializable adapter copy", () => {
     inputRequested: "Saisir",
     inputResolved: { submitted: "Envoyé", cancelled: "Annulé" },
   };
-  const copy = normalizeAdapterAnnouncementCopy(original);
+  const copy = normalizeAdapterCopy(original);
   original.approvalResolved.approved = "changed";
   expect(copy.locale).toBe("fr");
   expect(copy.approvalResolved.approved).toBe("Oui");
@@ -440,16 +431,16 @@ it("validates and copies shared serializable adapter copy", () => {
   expect(Object.isFrozen(copy.approvalResolved)).toBe(true);
   expect(Object.isFrozen(copy.inputResolved)).toBe(true);
   expect(() =>
-    normalizeAdapterAnnouncementCopy({
+    normalizeAdapterCopy({
       ...original,
       toolLabel: "x".repeat(4097),
     }),
   ).toThrow();
   expect(() =>
-    normalizeAdapterAnnouncementCopy({ ...original, locale: "bad_tag" }),
+    normalizeAdapterCopy({ ...original, locale: "bad_tag" }),
   ).toThrow();
   expect(() =>
-    normalizeAdapterAnnouncementCopy({
+    normalizeAdapterCopy({
       ...original,
       inputResolved: {},
     } as typeof original),
@@ -457,21 +448,21 @@ it("validates and copies shared serializable adapter copy", () => {
 });
 
 // Compile-time catalog callbacks expose only the declared parameters.
-const typedMessages: AnnouncementMessages = {
-  ...englishAnnouncementCatalog.messages,
+const typedMessages: MessageMap = {
+  ...en.messages,
   "citation.available": (parameters) => {
-    const count: AnnouncementMessageParameters["citation.available"]["count"] =
+    const count: MessageParams["citation.available"]["count"] =
       parameters.count;
     // @ts-expect-error raw event and backend error content is not a formatter input
     void parameters.error;
     return String(count);
   },
 };
-const typedId: AnnouncementMessageId = "citation.available";
+const typedId: MessageKey = "citation.available";
 void typedMessages[typedId];
 
 it("bounds retained completion language chunks and clears them on retry/quiet", () => {
-  const r = createAnnouncementRecorder({
+  const r = createRecorder({
     policy: {
       text: { strategy: "completion" },
       maxQueueSize: 2,
@@ -509,7 +500,7 @@ it("bounds retained completion language chunks and clears them on retry/quiet", 
 it("keeps latest coalesced progress paired with its language", () => {
   const clock = new ManualClock();
   const output: AnnouncementIntent[] = [];
-  const scheduler = createAnnouncementScheduler({
+  const scheduler = createScheduler({
     clock,
     minimumGapMs: 0,
     dedupeWindowMs: 1000,
@@ -539,9 +530,9 @@ it("supports host plural and RTL text without interpreting or altering it", () =
   const formatter = vi.fn(({ count }: Readonly<{ count: number }>) =>
     count === 0 ? "لا مصادر" : count === 2 ? "مصدران" : `${count} مصادر`,
   );
-  const r = createAnnouncementRecorder({
+  const r = createRecorder({
     preset: "verbose",
-    announcementCatalog: {
+    messages: {
       ...catalog({ "citation.available": formatter }),
       locale: "ar",
     },
@@ -563,8 +554,8 @@ it("does not format stale attempts or lose retry lifecycle after formatter failu
   const format = vi.fn(() => {
     throw new Error("private");
   });
-  const r = createAnnouncementRecorder({
-    announcementCatalog: catalog({ "response.retrying": format }),
+  const r = createRecorder({
+    messages: catalog({ "response.retrying": format }),
   });
   r.runtime.dispatch({
     type: "response.started",
@@ -601,7 +592,7 @@ it("does not format stale attempts or lose retry lifecycle after formatter failu
 it.each([undefined, 0, 2])(
   "preserves an explicitly supplied retry attempt %s across English lifecycle notices",
   (attempt) => {
-    const r = createAnnouncementRecorder({ preset: "verbose" });
+    const r = createRecorder({ preset: "verbose" });
     const parameters = attempt === undefined ? {} : { attempt };
     r.runtime.dispatch({ type: "response.started", responseId: "response" });
     r.runtime.dispatch({
@@ -641,3 +632,22 @@ it.each([undefined, 0, 2])(
     r.runtime.dispose();
   },
 );
+
+it("identifies invalid configuration paths without echoing supplied values", () => {
+  expect(() =>
+    createRuntime({ messages: { ...en, locale: "secret_bad_tag" } }),
+  ).toThrow("messages.locale must be a valid language tag");
+  expect(() => createRuntime({ messages: { ...en, id: "" } })).toThrow(
+    "messages.id must be a non-empty string of at most 128 characters",
+  );
+  const { "response.completed": omitted, ...rest } = en.messages;
+  void omitted;
+  expect(() =>
+    createRuntime({ messages: { ...en, messages: rest } as Messages }),
+  ).toThrow("Missing message keys: response.completed");
+  expect(() =>
+    normalizeAdapterCopy({ locale: "en", toolLabel: "" } as never),
+  ).toThrow(
+    "copy.toolLabel must be a non-empty string of at most 4096 characters",
+  );
+});

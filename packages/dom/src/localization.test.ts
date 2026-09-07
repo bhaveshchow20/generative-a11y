@@ -1,11 +1,8 @@
 import { JSDOM } from "jsdom";
 import { expect, it } from "vitest";
-import {
-  createGenerativeA11y,
-  englishAnnouncementCatalog,
-  ManualClock,
-} from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "./index.js";
+import { createRuntime, ManualClock } from "@generative-a11y/core";
+import { en } from "@generative-a11y/core/messages";
+import { bindRuntime } from "./index.js";
 
 it.each(["live-region", "auto"] as const)(
   "delivers catalog language before %s output and preserves borrowed regions",
@@ -23,19 +20,19 @@ it.each(["live-region", "auto"] as const)(
       },
     });
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       policy: { minimumGapMs: 0 },
-      announcementCatalog: {
+      messages: {
         id: "test-fr",
         locale: "fr",
         messages: {
-          ...englishAnnouncementCatalog.messages,
+          ...en.messages,
           "response.completed": "Réponse <terminée>.",
         },
       },
     });
-    const binding = connectRuntimeToDOM(runtime, {
+    const binding = bindRuntime(runtime, {
       document,
       mode,
       regions: { polite, assertive },

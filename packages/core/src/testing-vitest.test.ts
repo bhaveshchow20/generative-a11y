@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
-import { createAnnouncementRecorder } from "./index.js";
+import { createRecorder } from "./index.js";
 import { installVitestMatchers } from "./testing.js";
 
 const accessibilityExpect = installVitestMatchers(expect);
 
 test("the testing entry installs semantic Vitest matchers", () => {
-  const recorder = createAnnouncementRecorder();
+  const recorder = createRecorder();
   recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
   recorder.runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
   recorder.clock.runUntilIdle();

@@ -3,7 +3,7 @@ title: "Attention-aware announcements"
 description: "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls to an existing React interface."
 publicPath: "/docs/attention-aware-announcements"
 section: "Concepts"
-keywords: ["attention", "quiet", "override", "reading-history", "useAttentionControl", "bindAttentionToRuntime"]
+keywords: ["attention", "quiet", "override", "reading-history", "useAttentionControl", "useAttentionRefs", "bindAttention"]
 related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"]
 order: 7
 ---
@@ -15,7 +15,7 @@ export const sourceMetadata = {
   order: 7,
 };
 
-export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useAttentionControl bindAttentionToRuntime. Provider ownership and body-level live regions. Short React setup and control snippets.";
+export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useAttentionControl useAttentionRefs bindAttention. Provider ownership and body-level live regions. Short React setup and control snippets.";
 
 ## Opt in at both layers
 
@@ -35,31 +35,30 @@ Browser attention is a heuristic. The observer checks actual intersection of you
 
 ## Enable attention policy
 
-Import `GenerativeA11yProvider` from `@generative-a11y/react` and wrap your existing interface. Keep the default system clock for production.
+Follow the [React setup](/api/react), then import `A11yProvider` from `@generative-a11y/react` and wrap your existing interface. Keep the default system clock for production.
 
 ```tsx
-<GenerativeA11yProvider
+<A11yProvider
   attentionPolicy
   policy={{ attention: { enabled: true } }}
 >
   <YourExistingInterface />
-</GenerativeA11yProvider>
+</A11yProvider>
 ```
 
 ## Connect your existing elements
 
-Inside a client component under that provider, import `useAttentionTargets` from `@generative-a11y/react`. It registers the composer, conversation, and newest response as attention targets. Attach its props to those existing elements to observe focus and visibility; keep your content and styling.
+In your client module, import `useAttentionRefs` from `@generative-a11y/react`. Call it inside a component under the provider to obtain callback refs for the composer, conversation, and newest response. Attach those refs to your existing elements to observe focus and visibility; keep your content and styling.
 
 ```tsx
-const { composerProps, conversationProps, newestResponseProps } =
-  useAttentionTargets();
+const { composerRef, conversationRef, newestResponseRef } = useAttentionRefs();
 
 return (
   <>
-    <div {...conversationProps}>
-      <article {...newestResponseProps}>{response}</article>
+    <div ref={conversationRef}>
+      <article ref={newestResponseRef}>{response}</article>
     </div>
-    <textarea {...composerProps} />
+    <textarea ref={composerRef} />
   </>
 );
 ```
@@ -68,7 +67,7 @@ Here, `response` is your application's existing response content. These bindings
 
 ## Add controls where they fit
 
-Import `useAttentionControl` from `@generative-a11y/react` inside a client component under the provider. Connect `setOverride` to your own settings or controls. For example, a quiet toggle:
+Import `useAttentionControl` from `@generative-a11y/react` in your client module, then call it inside a component under the provider. Connect `setOverride` to your own settings or controls. For example, a quiet toggle:
 
 ```tsx
 const { state, setOverride } = useAttentionControl();
@@ -92,6 +91,6 @@ The provider owns and disposes its internally created runtime, DOM delivery, and
 
 Provider live regions are placed at body level, outside nested conversation semantics. Keep your existing visible response and composer, and attach the public ref bindings shown above. Do not add another live region around the transcript: the provider handles delivery.
 
-Without React, use `bindAttentionToRuntime({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
+Without React, use `bindAttention({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
 
 Deterministic runtime tests and browser DOM checks establish filtering, cleanup, and focus behavior in those environments. They do not prove actual assistive-technology output. Manually test supported browser and screen-reader combinations, including quiet/resume, background return, history navigation, tool failure, approval, and explicit overrides.

@@ -1,0 +1,894 @@
+{
+  "@generative-a11y/ag-ui": [
+    {
+      "signature": "declare const adapterInfo: AdapterInfo;",
+      "name": "adapterInfo",
+      "kind": "value"
+    },
+    {
+      "signature": "interface AdapterInfo {\n    readonly name: \"ag-ui\";\n    readonly fidelity: Readonly<Omit<AdapterFidelity, \"optionalEvents\">> & {\n        readonly optionalEvents: readonly NonNullable<AdapterFidelity[\"optionalEvents\"]>[number][];\n    };\n    readonly observation: \"agent.subscribe(AgentSubscriber)\";\n    readonly saturation: \"suppress-after-capacity\";\n}",
+      "name": "AdapterInfo",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AgentBinding {\n    dispose(): void;\n}",
+      "name": "AgentBinding",
+      "kind": "type"
+    },
+    {
+      "signature": "type AgentSource = Pick<AbstractAgent, \"subscribe\">;",
+      "name": "AgentSource",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Subscribes through AG-UI's documented AgentSubscriber callbacks. It does not\n * subscribe to the replay-prone protocol observable or own agent/core lifetimes.\n */\ndeclare function bindAgent(options: BindAgentOptions): AgentBinding;",
+      "name": "bindAgent",
+      "kind": "value"
+    },
+    {
+      "signature": "interface BindAgentOptions {\n    /** Host-owned localized copy, captured and validated at construction. */\n    readonly copy?: AdapterCopy;\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    readonly scopeId: string;\n    readonly agent: AgentSource;\n    readonly maxTrackedEntities?: number;\n}",
+      "name": "BindAgentOptions",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/ai-sdk": [
+    {
+      "signature": "declare const adapterInfo: AdapterInfo;",
+      "name": "adapterInfo",
+      "kind": "value"
+    },
+    {
+      "signature": "interface AdapterInfo {\n    readonly name: \"ai-sdk\";\n    readonly fidelity: Readonly<Omit<AdapterFidelity, \"optionalEvents\">> & {\n        readonly optionalEvents: readonly NonNullable<AdapterFidelity[\"optionalEvents\"]>[number][];\n    };\n    readonly observedSnapshotFields: readonly [\n        \"messages\",\n        \"status\",\n        \"error\"\n    ];\n    readonly terminalEvidence: readonly [\n        \"onFinish\",\n        \"onError\"\n    ];\n    readonly saturation: \"suppress-after-baseline-capacity\";\n}",
+      "name": "AdapterInfo",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ChatFinishOutcome {\n    readonly isAbort: boolean;\n    readonly isDisconnect: boolean;\n    readonly isError: boolean;\n}",
+      "name": "ChatFinishOutcome",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ChatObserver {\n    observe(snapshot: ChatSnapshot): void;\n    finish(message: UIMessage, outcome: ChatFinishOutcome): void;\n    failActiveResponse(): void;\n    dispose(): void;\n}",
+      "name": "ChatObserver",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ChatObserverOptions {\n    /** Host-owned localized copy, captured and validated at construction. */\n    readonly copy?: AdapterCopy;\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    readonly scopeId: string;\n    /** Positive cap for each response, tool, approval, and source identity set. */\n    readonly maxTrackedEntities?: number;\n    /** Maps tool identity to localized host copy. The default is deliberately generic. */\n    readonly getToolLabel?: (context: ToolLabelContext) => string;\n}",
+      "name": "ChatObserverOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ChatSnapshot<UI_MESSAGE extends UIMessage = UIMessage> {\n    readonly messages: UI_MESSAGE[];\n    readonly status: \"submitted\" | \"streaming\" | \"ready\" | \"error\";\n    readonly error: Error | undefined;\n}",
+      "name": "ChatSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Composes host callbacks with the exact public AI SDK terminal evidence. */\ndeclare function composeChatCallbacks<UI_MESSAGE extends UIMessage>(options: ComposeChatCallbacksOptions<UI_MESSAGE>): {\n    onFinish: ChatOnFinishCallback<UI_MESSAGE>;\n    onError: ChatOnErrorCallback;\n};",
+      "name": "composeChatCallbacks",
+      "kind": "value"
+    },
+    {
+      "signature": "interface ComposeChatCallbacksOptions<UI_MESSAGE extends UIMessage = UIMessage> {\n    readonly observer: ChatObserver;\n    readonly onFinish?: ChatOnFinishCallback<UI_MESSAGE>;\n    readonly onError?: ChatOnErrorCallback;\n}",
+      "name": "ComposeChatCallbacksOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Creates a bounded, borrowed-runtime observer. The first valid snapshot\n * silently records history; it never interprets `ready` or `error` as a\n * response terminal state.\n */\ndeclare function createChatObserver(options: ChatObserverOptions): ChatObserver;",
+      "name": "createChatObserver",
+      "kind": "value"
+    },
+    {
+      "signature": "interface ToolLabelContext {\n    readonly toolCallId: string;\n    readonly toolName: string;\n    readonly title: string | undefined;\n}",
+      "name": "ToolLabelContext",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/ai-sdk/react": [
+    {
+      "signature": "interface ChatIntegration<UI_MESSAGE extends UIMessage = UIMessage> {\n    readonly observer: ChatObserver;\n    readonly chatCallbacks: {\n        readonly onFinish: ChatOnFinishCallback<UI_MESSAGE>;\n        readonly onError: ChatOnErrorCallback;\n    };\n}",
+      "name": "ChatIntegration",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Creates an observer and the callbacks that must be passed to `useChat()`.\n * Invoke this hook before `useChat()` in the same component.\n */\ndeclare function useChatAccessibility<UI_MESSAGE extends UIMessage>(options: UseChatAccessibilityOptions<UI_MESSAGE>): ChatIntegration<UI_MESSAGE>;",
+      "name": "useChatAccessibility",
+      "kind": "value"
+    },
+    {
+      "signature": "interface UseChatAccessibilityOptions<UI_MESSAGE extends UIMessage = UIMessage> {\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    readonly scopeId: string;\n    /** Captured with the observer; replace its scope/runtime to change language. */\n    readonly copy?: AdapterCopy;\n    readonly maxTrackedEntities?: number;\n    readonly getToolLabel?: (context: ToolLabelContext) => string;\n    readonly onFinish?: ChatOnFinishCallback<UI_MESSAGE>;\n    readonly onError?: ChatOnErrorCallback;\n}",
+      "name": "UseChatAccessibilityOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "/** The documented public state returned from `useChat()` that this hook reads. */\ntype UseChatSnapshot<UI_MESSAGE extends UIMessage = UIMessage> = Pick<UseChatHelpers<UI_MESSAGE>, \"messages\" | \"status\" | \"error\">;",
+      "name": "UseChatSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Observes a public `useChat()` snapshot after `useChat()` has been invoked.\n * It borrows the integration and deliberately never disposes its observer.\n */\ndeclare function useObserveChatAccessibility<UI_MESSAGE extends UIMessage>(options: UseObserveChatAccessibilityOptions<UI_MESSAGE>): void;",
+      "name": "useObserveChatAccessibility",
+      "kind": "value"
+    },
+    {
+      "signature": "interface UseObserveChatAccessibilityOptions<UI_MESSAGE extends UIMessage = UIMessage> {\n    readonly integration: ChatIntegration<UI_MESSAGE>;\n    readonly snapshot: UseChatSnapshot<UI_MESSAGE>;\n}",
+      "name": "UseObserveChatAccessibilityOptions",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/assistant-ui": [
+    {
+      "signature": "declare const adapterInfo: AdapterInfo;",
+      "name": "adapterInfo",
+      "kind": "value"
+    },
+    {
+      "signature": "interface AdapterInfo {\n    readonly name: \"assistant-ui\";\n    readonly fidelity: Readonly<Omit<AdapterFidelity, \"optionalEvents\">> & {\n        readonly optionalEvents: readonly NonNullable<AdapterFidelity[\"optionalEvents\"]>[number][];\n    };\n    readonly observedRuntimeMethods: readonly [\n        \"getState\",\n        \"subscribe\"\n    ];\n}",
+      "name": "AdapterInfo",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Subscribes to the documented public assistant-ui thread runtime. It only\n * reads snapshots; disposing the returned binding never disposes either host runtime.\n */\ndeclare function bindThread(options: BindThreadOptions): ThreadBinding;",
+      "name": "bindThread",
+      "kind": "value"
+    },
+    {
+      "signature": "interface BindThreadOptions {\n    /** Host-owned localized copy, captured and validated at construction. */\n    readonly copy?: AdapterCopy;\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    readonly scopeId: string;\n    readonly thread: ThreadRuntimeSource;\n    readonly maxTrackedEntities?: number;\n}",
+      "name": "BindThreadOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ThreadBinding {\n    dispose(): void;\n}",
+      "name": "ThreadBinding",
+      "kind": "type"
+    },
+    {
+      "signature": "type ThreadRuntimeSource = Pick<ThreadRuntime, \"getState\" | \"subscribe\">;",
+      "name": "ThreadRuntimeSource",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/core": [
+    {
+      "signature": "interface AdapterFidelity {\n    /** Evidence quality for top-level and delegated run lifecycle. */\n    runs: \"exact\" | \"partial\" | \"unavailable\";\n    /** Evidence quality for step lifecycle and stable step identity. */\n    steps: \"exact\" | \"partial\" | \"unavailable\";\n    /** Evidence quality for parent-child relationships. */\n    hierarchy: \"exact\" | \"partial\" | \"unavailable\";\n    /** Evidence quality for tool lifecycle and workflow attribution. */\n    tools: \"exact\" | \"partial\" | \"unavailable\";\n    /** Evidence quality for human-interaction lifecycle and attribution. */\n    interactions: \"exact\" | \"partial\" | \"unavailable\";\n    /** Ability to suppress lifecycle duplicates when historical events replay. */\n    replay: \"exact\" | \"partial\" | \"unavailable\";\n    /** Evidence quality after a transport reconnects. */\n    reconnection: \"exact\" | \"partial\" | \"unavailable\";\n    /** Custom protocol events require a host-supplied explicit mapping. */\n    customEvents: \"explicit-mapping\" | \"unsupported\";\n    interruption: \"exact\" | \"action-wrapper\" | \"unavailable\";\n    retries: \"exact\" | \"action-wrapper\" | \"unavailable\";\n    connection: \"exact\" | \"inferred\" | \"unavailable\";\n    optionalEvents?: Array<\"tool.progress\" | \"tool.failed\" | \"citation.available\" | \"interaction.requested\">;\n}",
+      "name": "AdapterFidelity",
+      "kind": "type"
+    },
+    {
+      "signature": "type AnnouncementCapacityPriority = \"status\" | \"content\";",
+      "name": "AnnouncementCapacityPriority",
+      "kind": "type"
+    },
+    {
+      "signature": "type AnnouncementChannel = \"polite\" | \"assertive\";",
+      "name": "AnnouncementChannel",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AnnouncementDiagnostic {\n    at: number;\n    disposition: DiagnosticDisposition;\n    reason: DiagnosticReason;\n    /** Number of suppressed decisions or events represented by an aggregate. */\n    count?: number;\n    announcement?: AnnouncementIntent;\n    sourceType?: RuntimeEvent[\"type\"];\n    sourceEventId?: string;\n    responseId?: string;\n    toolId?: string;\n    interactionId?: string;\n    /** Stable logical run identity associated with this decision. */\n    runId?: string;\n    /** Stable run attempt identity associated with this decision. */\n    runInstanceId?: string;\n    /** Stable logical step identity associated with this decision. */\n    stepId?: string;\n    /** Stable step attempt identity associated with this decision. */\n    stepInstanceId?: string;\n    scheduledAt?: number;\n    dueAt?: number;\n    delayMs?: number;\n    queueSequence?: number;\n}",
+      "name": "AnnouncementDiagnostic",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AnnouncementIntent {\n    id: string;\n    at: number;\n    channel: AnnouncementChannel;\n    text: string;\n    sourceType: RuntimeEvent[\"type\"];\n    sourceEventId?: string;\n    responseId?: string;\n    toolId?: string;\n    interactionId?: string;\n    /** Stable logical run identity associated with this intent. */\n    runId?: string;\n    /** Stable run attempt identity associated with this intent. */\n    runInstanceId?: string;\n    /** Stable logical step identity associated with this intent. */\n    stepId?: string;\n    /** Stable step attempt identity associated with this intent. */\n    stepInstanceId?: string;\n    locale?: string;\n}",
+      "name": "AnnouncementIntent",
+      "kind": "type"
+    },
+    {
+      "signature": "type AnnouncementListener = (announcement: AnnouncementIntent) => void;",
+      "name": "AnnouncementListener",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AnnouncementPolicy {\n    /** Optional for compatibility with existing caller-authored policies. */\n    attention?: AttentionPolicy;\n    text: TextPolicy;\n    tools: ToolPolicy;\n    workflows: WorkflowPolicy;\n    announceResponseStarted: boolean;\n    announceResponseCompleted: boolean;\n    announceInterruption: boolean;\n    announceRetry: boolean;\n    announceInteractions: boolean;\n    announceConnections: boolean;\n    announceCitations: boolean;\n    errorChannel: AnnouncementChannel;\n    minimumGapMs: number;\n    dedupeWindowMs: number;\n    maxQueueSize: number;\n    maxActiveEntities: number;\n}",
+      "name": "AnnouncementPolicy",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Candidate purpose is independent of its source event and delivery channel. */\ntype AnnouncementPurpose = \"response-text\" | \"routine-status\" | \"notice\";",
+      "name": "AnnouncementPurpose",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Conservative evidence labels, never proof of reading or user intent. */\ntype AttentionMode = \"foreground\" | \"background\" | \"reading-history\" | \"away\" | \"unknown\";",
+      "name": "AttentionMode",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Explicit host/user choice takes precedence over observed evidence. */\ntype AttentionOverride = \"auto\" | \"normal\" | \"quiet\";",
+      "name": "AttentionOverride",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionPolicy {\n    enabled: boolean;\n    quietWhen: readonly Exclude<AttentionMode, \"foreground\" | \"unknown\">[];\n}",
+      "name": "AttentionPolicy",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionState {\n    readonly observed: AttentionMode;\n    readonly override: AttentionOverride;\n    readonly effective: \"normal\" | \"quiet\";\n}",
+      "name": "AttentionState",
+      "kind": "type"
+    },
+    {
+      "signature": "interface Clock {\n    now(): number;\n    setTimeout(callback: () => void, delayMs: number): ClockTimer;\n    clearTimeout(timer: ClockTimer): void;\n}",
+      "name": "Clock",
+      "kind": "type"
+    },
+    {
+      "signature": "type ClockTimer = unknown;",
+      "name": "ClockTimer",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function createRecorder(options?: Omit<RuntimeOptions, \"clock\" | \"onAnnouncement\" | \"onDiagnostic\"> & {\n    startAt?: number;\n}): Recorder;",
+      "name": "createRecorder",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function createRuntime(options?: RuntimeOptions): Runtime;",
+      "name": "createRuntime",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function createScheduler(options: SchedulerOptions): Scheduler;",
+      "name": "createScheduler",
+      "kind": "value"
+    },
+    {
+      "signature": "type DiagnosticDisposition = \"queued\" | \"merged\" | \"suppressed\" | \"cancelled\" | \"announced\";",
+      "name": "DiagnosticDisposition",
+      "kind": "type"
+    },
+    {
+      "signature": "type DiagnosticListener = (diagnostic: AnnouncementDiagnostic) => void;",
+      "name": "DiagnosticListener",
+      "kind": "type"
+    },
+    {
+      "signature": "/** A content-free queued announcement projection for diagnostic consumers. */\ninterface DiagnosticPendingAnnouncement {\n    id: string;\n    channel: AnnouncementChannel;\n    sourceType: RuntimeEvent[\"type\"];\n    sourceEventId?: string;\n    responseId?: string;\n    toolId?: string;\n    interactionId?: string;\n    /** Stable logical run identity associated with this queued intent. */\n    runId?: string;\n    /** Stable run attempt identity associated with this queued intent. */\n    runInstanceId?: string;\n    /** Stable logical step identity associated with this queued intent. */\n    stepId?: string;\n    /** Stable step attempt identity associated with this queued intent. */\n    stepInstanceId?: string;\n    locale?: string;\n    scheduledAt: number;\n    dueAt: number;\n    delayMs: number;\n    sequence: number;\n}",
+      "name": "DiagnosticPendingAnnouncement",
+      "kind": "type"
+    },
+    {
+      "signature": "type DiagnosticReason = \"catalog-format-error\" | \"scheduled\" | \"coalesced\" | \"duplicate\" | \"policy-silent\" | \"attention-quiet\" | \"attention-updated\" | \"unknown-response\" | \"terminal-response\" | \"stale-response\" | \"empty-text\" | \"scope-cancelled\" | \"runtime-disposed\" | \"queue-capacity\" | \"delivery-error\" | \"unknown-tool\" | \"terminal-tool\" | \"stale-tool\" | \"unknown-run\" | \"terminal-run\" | \"stale-run\" | \"unknown-step\" | \"terminal-step\" | \"stale-step\" | \"unknown-parent\" | \"open-children\" | \"partial-identity\" | \"invalid-event\" | \"progress-threshold\" | \"delivered\";",
+      "name": "DiagnosticReason",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DiagnosticResponseSnapshot {\n    responseId: string;\n    epoch: number;\n    instanceId?: string;\n    status: \"active\" | \"completed\" | \"interrupted\" | \"failed\";\n    locale?: string;\n}",
+      "name": "DiagnosticResponseSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Content-free immutable projection of one tracked run attempt. */\ninterface DiagnosticRunSnapshot {\n    /** Stable logical run identity. */\n    runId: string;\n    /** Stable attempt identity when supplied by the source. */\n    instanceId?: string;\n    /** Stable logical parent run identity. */\n    parentRunId?: string;\n    /** Parent attempt identity when supplied by the source. */\n    parentRunInstanceId?: string;\n    /** Tool that delegated to this run, when explicitly exposed. */\n    parentToolId?: string;\n    /** Response that owns this run, when explicitly exposed. */\n    parentResponseId?: string;\n    /** Current lifecycle state for this run attempt. */\n    status: \"active\" | \"completed\" | \"interrupted\" | \"failed\";\n    /** Number of identified steps completed in this attempt. */\n    completedSteps: number;\n    /** Number of identified steps failed in this attempt. */\n    failedSteps: number;\n}",
+      "name": "DiagnosticRunSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Content-free immutable projection of one identified step attempt. */\ninterface DiagnosticStepSnapshot {\n    /** Stable logical owner run identity. */\n    runId: string;\n    /** Owner run attempt identity when supplied by the source. */\n    runInstanceId?: string;\n    /** Stable logical step identity. */\n    stepId: string;\n    /** Stable step attempt identity when supplied by the source. */\n    instanceId?: string;\n    /** Stable logical parent step identity. */\n    parentStepId?: string;\n    /** Parent step attempt identity when supplied by the source. */\n    parentStepInstanceId?: string;\n    /** Current lifecycle state for this step attempt. */\n    status: \"active\" | \"completed\" | \"interrupted\" | \"failed\";\n    /** Injected-clock timestamp when this attempt started. */\n    startedAt: number;\n    /** Last coalesced progress bucket, or -1 before progress. */\n    lastProgressBucket: number;\n}",
+      "name": "DiagnosticStepSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DiagnosticToolSnapshot {\n    toolId: string;\n    instanceId?: string;\n    status: \"active\" | \"completed\" | \"failed\";\n    locale?: string;\n    lastProgressBucket: number;\n}",
+      "name": "DiagnosticToolSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "type InteractionKind = \"approval\" | \"confirmation\" | \"input\" | (string & {});",
+      "name": "InteractionKind",
+      "kind": "type"
+    },
+    {
+      "signature": "declare class ManualClock implements Clock {\n    #private;\n    constructor(startAt?: number);\n    now(): number;\n    setTimeout(callback: () => void, delayMs: number): number;\n    clearTimeout(timer: ClockTimer): void;\n    advanceBy(durationMs: number): void;\n    advanceTo(timestamp: number): void;\n    runNext(): boolean;\n    runUntilIdle(maxTasks?: number): void;\n    pendingCount(): number;\n}",
+      "name": "ManualClock",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function normalizeAnnouncementText(text: string): string;",
+      "name": "normalizeAnnouncementText",
+      "kind": "value"
+    },
+    {
+      "signature": "type PolicyOverrides = Partial<Omit<AnnouncementPolicy, \"text\" | \"tools\" | \"workflows\" | \"attention\">> & {\n    attention?: Partial<NonNullable<AnnouncementPolicy[\"attention\"]>>;\n    text?: Partial<AnnouncementPolicy[\"text\"]>;\n    tools?: Partial<AnnouncementPolicy[\"tools\"]>;\n    workflows?: Partial<AnnouncementPolicy[\"workflows\"]>;\n};",
+      "name": "PolicyOverrides",
+      "kind": "type"
+    },
+    {
+      "signature": "type PresetName = \"minimal\" | \"balanced\" | \"verbose\" | \"completion-only\";",
+      "name": "PresetName",
+      "kind": "type"
+    },
+    {
+      "signature": "declare const presets: Readonly<Record<PresetName, ReadonlyAnnouncementPolicy>>;",
+      "name": "presets",
+      "kind": "value"
+    },
+    {
+      "signature": "type ReadonlyAnnouncementPolicy = Readonly<Omit<AnnouncementPolicy, \"text\" | \"tools\" | \"workflows\" | \"attention\"> & {\n    attention?: Readonly<AttentionPolicy>;\n    text: Readonly<TextPolicy>;\n    tools: Readonly<ToolPolicy>;\n    workflows: Readonly<WorkflowPolicy>;\n}>;",
+      "name": "ReadonlyAnnouncementPolicy",
+      "kind": "type"
+    },
+    {
+      "signature": "interface Recorder {\n    runtime: ReturnType<typeof createRuntime>;\n    clock: ManualClock;\n    transcript(): AnnouncementIntent[];\n    diagnosticTranscript(): AnnouncementDiagnostic[];\n    clear(): void;\n}",
+      "name": "Recorder",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function resolvePolicy(preset?: PresetName, overrides?: PolicyOverrides): ReadonlyAnnouncementPolicy;",
+      "name": "resolvePolicy",
+      "kind": "value"
+    },
+    {
+      "signature": "interface Runtime {\n    dispatch(event: RuntimeEvent): boolean;\n    getPolicy(): ReadonlyAnnouncementPolicy;\n    pendingCount(): number;\n    subscribeAnnouncements(listener: AnnouncementListener): () => void;\n    subscribeDiagnostics(listener: DiagnosticListener): () => void;\n    subscribeDiagnosticEvents(listener: RuntimeDiagnosticListener): () => void;\n    getDiagnosticSnapshot(): RuntimeDiagnosticSnapshotV1;\n    dispose(): void;\n}",
+      "name": "Runtime",
+      "kind": "type"
+    },
+    {
+      "signature": "type RuntimeDiagnosticEventV1 = {\n    schemaVersion: 1;\n    sequence: number;\n    at: number;\n    kind: \"event-observed\";\n    event: RuntimeEvent;\n} | {\n    schemaVersion: 1;\n    sequence: number;\n    at: number;\n    kind: \"decision\";\n    decision: AnnouncementDiagnostic;\n};",
+      "name": "RuntimeDiagnosticEventV1",
+      "kind": "type"
+    },
+    {
+      "signature": "type RuntimeDiagnosticListener = (event: RuntimeDiagnosticEventV1) => void;",
+      "name": "RuntimeDiagnosticListener",
+      "kind": "type"
+    },
+    {
+      "signature": "interface RuntimeDiagnosticSnapshotV1 {\n    readonly messages?: Readonly<{\n        catalogId: string;\n        locale: string;\n    }>;\n    schemaVersion: 1;\n    at: number;\n    policy: ReadonlyAnnouncementPolicy;\n    /** Cached immutable state, present only when attention policy is enabled. */\n    attention?: AttentionState;\n    pending: {\n        announcements: readonly DiagnosticPendingAnnouncement[];\n        flushes: readonly {\n            responseId: string;\n            epoch: number;\n            dueAt: number;\n        }[];\n    };\n    responses: readonly DiagnosticResponseSnapshot[];\n    tools: readonly DiagnosticToolSnapshot[];\n    /** Present when the runtime supports hierarchical workflow diagnostics. */\n    runs?: readonly DiagnosticRunSnapshot[];\n    /** Present when the runtime supports identified step diagnostics. */\n    steps?: readonly DiagnosticStepSnapshot[];\n    pendingCount: number;\n}",
+      "name": "RuntimeDiagnosticSnapshotV1",
+      "kind": "type"
+    },
+    {
+      "signature": "type RuntimeEvent = (EventMetadata & {\n    type: \"attention.changed\";\n    mode: AttentionMode;\n}) | (EventMetadata & {\n    type: \"attention.override\";\n    mode: AttentionOverride;\n}) | (ContextualEventMetadata & {\n    type: \"response.started\";\n    responseId: string;\n    responseInstanceId?: string;\n}) | (ContextualEventMetadata & {\n    type: \"response.text.delta\";\n    responseId: string;\n    responseInstanceId?: string;\n    delta: string;\n}) | (ContextualEventMetadata & {\n    type: \"response.completed\";\n    responseId: string;\n    responseInstanceId?: string;\n}) | (ContextualEventMetadata & {\n    type: \"response.interrupted\";\n    responseId: string;\n    responseInstanceId?: string;\n}) | (ContextualEventMetadata & {\n    type: \"response.failed\";\n    responseId: string;\n    responseInstanceId?: string;\n    error?: string;\n    announcement?: string;\n}) | (ContextualEventMetadata & {\n    type: \"response.retrying\";\n    responseId: string;\n    responseInstanceId?: string;\n    nextResponseInstanceId?: string;\n    attempt?: number;\n}) | (ContextualEventMetadata & {\n    type: \"tool.started\";\n    toolId: string;\n    toolInstanceId?: string;\n    label: string;\n}) | (ContextualEventMetadata & {\n    type: \"tool.progress\";\n    toolId: string;\n    toolInstanceId?: string;\n    label: string;\n    /** Normalized progress from 0 to 1. */\n    progress?: number;\n    message?: string;\n}) | (ContextualEventMetadata & {\n    type: \"tool.completed\";\n    toolId: string;\n    toolInstanceId?: string;\n    label: string;\n    summary?: string;\n}) | (ContextualEventMetadata & {\n    type: \"tool.failed\";\n    toolId: string;\n    toolInstanceId?: string;\n    label: string;\n    error?: string;\n    announcement?: string;\n}) | (ContextualEventMetadata & {\n    type: \"interaction.requested\";\n    interactionId: string;\n    kind: InteractionKind;\n    label: string;\n    urgent?: boolean;\n}) | (ContextualEventMetadata & {\n    type: \"interaction.resolved\";\n    interactionId: string;\n    kind: InteractionKind;\n    outcome: \"approved\" | \"rejected\" | \"submitted\" | \"cancelled\";\n    label?: string;\n}) | (ContextualEventMetadata & {\n    type: \"approval.requested\";\n    approvalId: string;\n    label: string;\n    urgent?: boolean;\n}) | (ContextualEventMetadata & {\n    type: \"approval.resolved\";\n    approvalId: string;\n    outcome: \"approved\" | \"rejected\" | \"cancelled\";\n    label?: string;\n}) | (EventMetadata & {\n    type: \"run.started\";\n    /** Stable logical run identity. */\n    runId: string;\n    /** Stable identity for this run attempt. */\n    runInstanceId?: string;\n    /** Stable logical parent run, when explicitly exposed. */\n    parentRunId?: string;\n    /** Attempt identity of the explicit parent run. */\n    parentRunInstanceId?: string;\n    /** Tool that delegated to this run. */\n    parentToolId?: string;\n    /** Response that owns this run. */\n    parentResponseId?: string;\n    /** Localized display copy; never used as identity. */\n    label?: string;\n}) | (EventMetadata & {\n    type: \"run.completed\" | \"run.interrupted\" | \"run.failed\";\n    /** Stable logical run identity. */\n    runId: string;\n    /** Stable identity for this run attempt. */\n    runInstanceId?: string;\n    /** Diagnostic-only backend detail; never announced automatically. */\n    error?: string;\n    /** Short localized user-safe terminal copy. */\n    announcement?: string;\n}) | (EventMetadata & {\n    type: \"run.retrying\";\n    /** Stable logical run identity. */\n    runId: string;\n    /** Attempt being replaced. */\n    runInstanceId?: string;\n    /** Stable identity of the replacement attempt. */\n    nextRunInstanceId?: string;\n    /** Human-readable one-based attempt number. */\n    attempt?: number;\n}) | (EventMetadata & {\n    type: \"step.started\";\n    /** Stable logical owner run identity. */\n    runId: string;\n    /** Stable owner run attempt identity. */\n    runInstanceId?: string;\n    /** Stable logical step identity; omit for name-only evidence. */\n    stepId?: string;\n    /** Stable identity for this step attempt. */\n    stepInstanceId?: string;\n    /** Stable logical parent step identity. */\n    parentStepId?: string;\n    /** Attempt identity of the explicit parent step. */\n    parentStepInstanceId?: string;\n    /** Localized display copy; never used as identity. */\n    label: string;\n}) | (EventMetadata & {\n    type: \"step.progress\";\n    /** Stable logical owner run identity. */\n    runId: string;\n    /** Stable owner run attempt identity. */\n    runInstanceId?: string;\n    /** Stable logical step identity; omit for name-only evidence. */\n    stepId?: string;\n    /** Stable identity for this step attempt. */\n    stepInstanceId?: string;\n    /** Localized display copy; never used as identity. */\n    label: string;\n    /** Normalized progress from 0 to 1. */\n    progress?: number;\n    /** Optional localized user-safe progress copy. */\n    message?: string;\n}) | (EventMetadata & {\n    type: \"step.completed\" | \"step.interrupted\" | \"step.failed\";\n    /** Stable logical owner run identity. */\n    runId: string;\n    /** Stable owner run attempt identity. */\n    runInstanceId?: string;\n    /** Stable logical step identity; omit for name-only evidence. */\n    stepId?: string;\n    /** Stable identity for this step attempt. */\n    stepInstanceId?: string;\n    /** Localized display copy; never used as identity. */\n    label: string;\n    /** Diagnostic-only backend detail; never announced automatically. */\n    error?: string;\n    /** Short localized user-safe terminal copy. */\n    announcement?: string;\n}) | (EventMetadata & {\n    type: \"step.retrying\";\n    /** Stable logical owner run identity. */\n    runId: string;\n    /** Stable owner run attempt identity. */\n    runInstanceId?: string;\n    /** Stable logical step identity; omit for name-only evidence. */\n    stepId?: string;\n    /** Attempt being replaced. */\n    stepInstanceId?: string;\n    /** Stable identity of the replacement attempt. */\n    nextStepInstanceId?: string;\n    /** Human-readable one-based attempt number. */\n    attempt?: number;\n    /** Localized display copy; never used as identity. */\n    label: string;\n}) | (EventMetadata & {\n    type: \"connection.lost\";\n    label?: string;\n}) | (EventMetadata & {\n    type: \"connection.restored\";\n    label?: string;\n}) | (EventMetadata & {\n    type: \"citation.available\";\n    count: number;\n});",
+      "name": "RuntimeEvent",
+      "kind": "type"
+    },
+    {
+      "signature": "interface RuntimeOptions {\n    messages?: Messages;\n    preset?: PresetName;\n    policy?: PolicyOverrides;\n    clock?: Clock;\n    onAnnouncement?: (announcement: AnnouncementIntent) => void;\n    onDeliveryError?: (error: unknown, announcement: AnnouncementIntent) => void;\n    onDiagnostic?: (diagnostic: AnnouncementDiagnostic) => void;\n}",
+      "name": "RuntimeOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ScheduleAnnouncement {\n    /** Defaults to notice; independent of channel and source event. */\n    purpose?: AnnouncementPurpose;\n    channel: AnnouncementChannel;\n    text: string;\n    sourceType: RuntimeEvent[\"type\"];\n    sourceEventId?: string;\n    responseId?: string;\n    toolId?: string;\n    interactionId?: string;\n    runId?: string;\n    runInstanceId?: string;\n    stepId?: string;\n    stepInstanceId?: string;\n    locale?: string;\n    delayMs?: number;\n    scope?: string;\n    coalesceKey?: string;\n    dedupeKey?: string;\n    capacityPriority?: AnnouncementCapacityPriority;\n}",
+      "name": "ScheduleAnnouncement",
+      "kind": "type"
+    },
+    {
+      "signature": "interface Scheduler {\n    schedule(candidate: ScheduleAnnouncement): string | undefined;\n    cancelScope(scope: string): void;\n    /** Cancel only queued candidates of these purposes; already delivered output cannot be retracted. */\n    cancelPurposes(purposes: readonly AnnouncementPurpose[], reason?: DiagnosticReason): void;\n    dispose(): void;\n    pendingCount(): number;\n    getDiagnosticSnapshot(): readonly DiagnosticPendingAnnouncement[];\n}",
+      "name": "Scheduler",
+      "kind": "type"
+    },
+    {
+      "signature": "interface SchedulerOptions {\n    clock: Clock;\n    minimumGapMs: number;\n    dedupeWindowMs: number;\n    maxQueueSize: number;\n    onAnnouncement: (announcement: AnnouncementIntent) => void;\n    onDeliveryError?: (error: unknown, announcement: AnnouncementIntent) => void;\n    onDiagnostic?: (diagnostic: AnnouncementDiagnostic) => void;\n}",
+      "name": "SchedulerOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface SegmentationResult {\n    complete: string[];\n    remainder: string;\n}",
+      "name": "SegmentationResult",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function segmentText(text: string, strategy: Exclude<TextStrategy, \"silent\" | \"completion\">, locale?: string): SegmentationResult;",
+      "name": "segmentText",
+      "kind": "value"
+    },
+    {
+      "signature": "declare const systemClock: Clock;",
+      "name": "systemClock",
+      "kind": "value"
+    },
+    {
+      "signature": "interface TextPolicy {\n    strategy: TextStrategy;\n    minimumCharacters: number;\n    maximumDelayMs: number;\n}",
+      "name": "TextPolicy",
+      "kind": "type"
+    },
+    {
+      "signature": "type TextStrategy = \"silent\" | \"sentence\" | \"paragraph\" | \"completion\";",
+      "name": "TextStrategy",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ToolPolicy {\n    announceStart: boolean;\n    announceStartAfterMs: number;\n    announceProgress: boolean;\n    progressEveryPercent: number;\n    announceCompletion: boolean;\n    announceFailure: boolean;\n}",
+      "name": "ToolPolicy",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Explicit workflow ownership supplied by a source integration. */\ntype WorkflowContext = {\n    runId?: undefined;\n    runInstanceId?: never;\n    stepId?: never;\n    stepInstanceId?: never;\n} | ({\n    /** Stable logical run identity. */\n    runId: string;\n    /** Stable identity for one attempt of the logical run. */\n    runInstanceId?: string;\n} & ({\n    stepId?: undefined;\n    stepInstanceId?: never;\n} | {\n    /** Stable logical step identity. */\n    stepId: string;\n    /** Stable identity for one attempt of the logical step. */\n    stepInstanceId?: string;\n}));",
+      "name": "WorkflowContext",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Announcement controls for hierarchical run and step lifecycle. */\ninterface WorkflowPolicy {\n    /** Run boundary verbosity. */\n    runs: \"silent\" | \"terminal\" | \"all\";\n    /** Identified step boundary verbosity. */\n    steps: \"silent\" | \"long-running\" | \"all\";\n    /** Delay and duration threshold for long-running step announcements. */\n    announceStepAfterMs: number;\n    /** Whether explicit step progress may be coalesced and announced. */\n    announceProgress: boolean;\n    /** Whether identified nested steps may produce announcements. */\n    announceNestedSteps: boolean;\n}",
+      "name": "WorkflowPolicy",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/core/testing": [
+    {
+      "signature": "interface A11yExpect {\n    (received: unknown): A11yMatchers;\n}",
+      "name": "A11yExpect",
+      "kind": "type"
+    },
+    {
+      "signature": "interface A11yMatchers {\n    toHaveAnnouncementTranscript(expected: readonly Partial<AnnouncementIntent>[]): void;\n    toHaveAnnounced(expected: Partial<AnnouncementIntent>): void;\n    toHaveDiagnostic(expected: Partial<AnnouncementDiagnostic>): void;\n}",
+      "name": "A11yMatchers",
+      "kind": "type"
+    },
+    {
+      "signature": "type AnnouncementExpectation = Partial<AnnouncementIntent>;",
+      "name": "AnnouncementExpectation",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function createReplayFixture(events: readonly RecordedEvent[], options?: ReplayFixtureOptions): ReplayFixtureV1;",
+      "name": "createReplayFixture",
+      "kind": "value"
+    },
+    {
+      "signature": "type DiagnosticExpectation = Partial<AnnouncementDiagnostic>;",
+      "name": "DiagnosticExpectation",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function installVitestMatchers(expect: {\n    extend(matchers: Record<string, unknown>): void;\n}): A11yExpect;",
+      "name": "installVitestMatchers",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function matchesPartial(actual: object, expected: object): boolean;",
+      "name": "matchesPartial",
+      "kind": "value"
+    },
+    {
+      "signature": "interface RecordedEvent {\n    readonly at: number;\n    readonly event: RuntimeEvent;\n}",
+      "name": "RecordedEvent",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function recordRuntime(options: RecordRuntimeOptions): RuntimeRecording;",
+      "name": "recordRuntime",
+      "kind": "value"
+    },
+    {
+      "signature": "interface RecordRuntimeOptions {\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    readonly clock: Pick<Clock, \"now\">;\n}",
+      "name": "RecordRuntimeOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function replayEvents(runtime: Pick<Runtime, \"dispatch\">, clock: ManualClock, fixture: ReplayFixtureV1): void;",
+      "name": "replayEvents",
+      "kind": "value"
+    },
+    {
+      "signature": "interface ReplayFixtureOptions {\n    readonly startAt?: number;\n}",
+      "name": "ReplayFixtureOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ReplayFixtureV1 {\n    readonly format: \"generative-a11y/replay\";\n    readonly version: 1;\n    readonly startAt: number;\n    readonly events: readonly RecordedEvent[];\n}",
+      "name": "ReplayFixtureV1",
+      "kind": "type"
+    },
+    {
+      "signature": "interface RuntimeRecording {\n    readonly runtime: Pick<Runtime, \"dispatch\">;\n    events(): readonly RecordedEvent[];\n    fixture(): ReplayFixtureV1;\n    clear(): void;\n}",
+      "name": "RuntimeRecording",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function toHaveAnnounced(received: unknown, expected: Partial<AnnouncementIntent>): MatcherResult;",
+      "name": "toHaveAnnounced",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function toHaveAnnouncementTranscript(received: unknown, expected: readonly Partial<AnnouncementIntent>[]): MatcherResult;",
+      "name": "toHaveAnnouncementTranscript",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function toHaveDiagnostic(received: unknown, expected: Partial<AnnouncementDiagnostic>): MatcherResult;",
+      "name": "toHaveDiagnostic",
+      "kind": "value"
+    },
+    {
+      "signature": "interface TranscriptRecorder {\n    transcript(): readonly AnnouncementIntent[];\n    diagnosticTranscript(): readonly AnnouncementDiagnostic[];\n}",
+      "name": "TranscriptRecorder",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/core/messages": [
+    {
+      "signature": "interface AdapterCopy {\n    readonly locale: string;\n    readonly toolLabel: string;\n    readonly approvalRequested: string;\n    readonly approvalResolved: Readonly<Record<\"approved\" | \"rejected\" | \"cancelled\", string>>;\n    readonly inputRequested: string;\n    readonly inputResolved: Readonly<Record<\"submitted\" | \"cancelled\", string>>;\n}",
+      "name": "AdapterCopy",
+      "kind": "type"
+    },
+    {
+      "signature": "declare const en: Messages;",
+      "name": "en",
+      "kind": "value"
+    },
+    {
+      "signature": "type MessageKey = keyof MessageParams;",
+      "name": "MessageKey",
+      "kind": "type"
+    },
+    {
+      "signature": "type MessageMap = {\n    readonly [K in MessageKey]: string | ((parameters: Readonly<MessageParams[K]>) => string);\n};",
+      "name": "MessageMap",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Parameters contain only existing user-safe labels and bounded lifecycle facts. */\ninterface MessageParams {\n    \"response.started\": Record<never, never>;\n    \"response.completed\": Record<never, never>;\n    \"response.interrupted\": Record<never, never>;\n    \"response.failed\": Record<never, never>;\n    \"response.retrying\": {\n        attempt?: number;\n    };\n    \"tool.started\": {\n        label: string;\n    };\n    \"tool.progress\": {\n        label: string;\n        percent?: number;\n    };\n    \"tool.completed\": {\n        label: string;\n    };\n    \"tool.failed\": {\n        label: string;\n    };\n    \"run.started\": {\n        label?: string;\n    };\n    \"run.completed\": {\n        completedSteps: number;\n        failedSteps: number;\n    };\n    \"run.interrupted\": Record<never, never>;\n    \"run.failed\": Record<never, never>;\n    \"run.retrying\": {\n        attempt?: number;\n    };\n    \"step.started\": {\n        label: string;\n    };\n    \"step.progress\": {\n        label: string;\n        percent?: number;\n    };\n    \"step.completed\": {\n        label: string;\n    };\n    \"step.interrupted\": {\n        label: string;\n    };\n    \"step.failed\": {\n        label: string;\n    };\n    \"step.retrying\": {\n        label: string;\n        attempt?: number;\n    };\n    \"interaction.resolved\": {\n        kind: InteractionKind;\n        outcome: \"approved\" | \"rejected\" | \"submitted\" | \"cancelled\";\n    };\n    \"approval.resolved\": {\n        outcome: \"approved\" | \"rejected\" | \"cancelled\";\n    };\n    \"connection.lost\": Record<never, never>;\n    \"connection.restored\": Record<never, never>;\n    \"citation.available\": {\n        count: number;\n    };\n}",
+      "name": "MessageParams",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Construction-time, complete catalog. Callbacks must be pure and synchronous. */\ninterface Messages {\n    readonly id: string;\n    readonly locale: string;\n    readonly messages: MessageMap;\n}",
+      "name": "Messages",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Validate and snapshot shared adapter copy before creating a binding. */\ndeclare function normalizeAdapterCopy(copy: AdapterCopy): AdapterCopy;",
+      "name": "normalizeAdapterCopy",
+      "kind": "value"
+    }
+  ],
+  "@generative-a11y/devtools": [
+    {
+      "signature": "interface AttachRuntimeOptions {\n    readonly id: string;\n    readonly runtime: Pick<Runtime, \"subscribeDiagnosticEvents\" | \"getDiagnosticSnapshot\">;\n    readonly source?: DevtoolsRuntimeSource;\n}",
+      "name": "AttachRuntimeOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function createStore(options?: StoreOptions): Store;",
+      "name": "createStore",
+      "kind": "value"
+    },
+    {
+      "signature": "interface DeliveryRecordInput {\n    readonly runtimeId: string;\n    readonly result: {\n        readonly status: \"notified\" | \"mutated\" | \"unavailable\" | \"disposed\";\n        readonly method: \"aria-notify\" | \"live-region\" | \"none\";\n        readonly channel: \"polite\" | \"assertive\";\n        readonly announcementId: string;\n        readonly sourceType: string;\n        readonly at: number;\n        readonly sourceEventId?: string;\n        readonly responseId?: string;\n        readonly toolId?: string;\n        readonly interactionId?: string;\n        /** Stable logical run identity copied from the delivered intent. */\n        readonly runId?: string;\n        /** Stable run attempt identity copied from the delivered intent. */\n        readonly runInstanceId?: string;\n        /** Stable logical step identity copied from the delivered intent. */\n        readonly stepId?: string;\n        /** Stable step attempt identity copied from the delivered intent. */\n        readonly stepInstanceId?: string;\n        readonly error?: {\n            readonly name: string;\n            readonly message?: string;\n        };\n    };\n}",
+      "name": "DeliveryRecordInput",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DevtoolsRecord {\n    readonly attentionMode?: AttentionMode;\n    readonly attentionOverride?: AttentionOverride;\n    readonly runtimeId: string;\n    /** Opaque key for the immutable adapter evidence captured with this record. */\n    readonly runtimeSourceId?: string;\n    readonly sequence?: number;\n    readonly captureSequence: number;\n    readonly at: number;\n    readonly kind: DevtoolsRecordKind;\n    readonly sourceType?: string;\n    readonly sourceEventId?: string;\n    readonly disposition?: string;\n    readonly reason?: string;\n    readonly announcementId?: string;\n    readonly responseId?: string;\n    readonly responseInstanceId?: string;\n    readonly nextResponseInstanceId?: string;\n    readonly attempt?: number;\n    readonly toolId?: string;\n    readonly toolInstanceId?: string;\n    readonly interactionId?: string;\n    readonly approvalId?: string;\n    /** Stable logical run identity retained as content-free correlation data. */\n    readonly runId?: string;\n    /** Stable run attempt identity retained as correlation data. */\n    readonly runInstanceId?: string;\n    /** Replacement run attempt identity on retry evidence. */\n    readonly nextRunInstanceId?: string;\n    /** Explicit logical parent run identity. */\n    readonly parentRunId?: string;\n    /** Explicit parent run attempt identity. */\n    readonly parentRunInstanceId?: string;\n    /** Stable logical step identity retained as content-free correlation data. */\n    readonly stepId?: string;\n    /** Stable step attempt identity retained as correlation data. */\n    readonly stepInstanceId?: string;\n    /** Replacement step attempt identity on retry evidence. */\n    readonly nextStepInstanceId?: string;\n    /** Explicit logical parent step identity. */\n    readonly parentStepId?: string;\n    /** Explicit parent step attempt identity. */\n    readonly parentStepInstanceId?: string;\n    /** Explicit tool that delegated to a child run. */\n    readonly parentToolId?: string;\n    /** Explicit response that owns a child run. */\n    readonly parentResponseId?: string;\n    readonly progress?: number;\n    readonly outcome?: string;\n    readonly count?: number;\n    readonly scheduledAt?: number;\n    readonly dueAt?: number;\n    readonly delayMs?: number;\n    readonly queueSequence?: number;\n    readonly channel?: \"polite\" | \"assertive\";\n    readonly deliveryStatus?: \"notified\" | \"mutated\" | \"unavailable\" | \"disposed\";\n    readonly deliveryMethod?: \"aria-notify\" | \"live-region\" | \"none\";\n    readonly errorName?: string;\n}",
+      "name": "DevtoolsRecord",
+      "kind": "type"
+    },
+    {
+      "signature": "type DevtoolsRecordKind = RuntimeDiagnosticEventV1[\"kind\"] | \"dom-delivery\";",
+      "name": "DevtoolsRecordKind",
+      "kind": "type"
+    },
+    {
+      "signature": "/**\n * Explicit, serializable evidence declared by an integration. Devtools never\n * detects framework state or infers fidelity on its own.\n */\ninterface DevtoolsRuntimeSource {\n    readonly adapter: string;\n    readonly evidence: readonly string[];\n    readonly fidelity: Readonly<Pick<AdapterFidelity, \"interruption\" | \"retries\" | \"connection\"> & Partial<Pick<AdapterFidelity, \"runs\" | \"steps\" | \"hierarchy\" | \"tools\" | \"interactions\" | \"replay\" | \"reconnection\" | \"customEvents\">> & {\n        readonly optionalEvents?: readonly NonNullable<AdapterFidelity[\"optionalEvents\"]>[number][];\n    }>;\n}",
+      "name": "DevtoolsRuntimeSource",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DevtoolsSnapshot {\n    readonly paused: boolean;\n    readonly droppedCount: number;\n    readonly records: readonly DevtoolsRecord[];\n    readonly runtimeIds: readonly string[];\n    readonly runtimeSnapshots: Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>;\n    readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;\n}",
+      "name": "DevtoolsSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DevtoolsTraceExportV1 {\n    readonly schemaVersion: 1;\n    readonly kind: \"generative-a11y/devtools-trace\";\n    readonly paused: boolean;\n    readonly droppedCount: number;\n    readonly records: readonly DevtoolsRecord[];\n    readonly runtimeSnapshots: Readonly<Record<string, RuntimeDiagnosticSnapshotV1>>;\n    readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;\n}",
+      "name": "DevtoolsTraceExportV1",
+      "kind": "type"
+    },
+    {
+      "signature": "interface Store {\n    attachRuntime(options: AttachRuntimeOptions): () => void;\n    getSnapshot(): DevtoolsSnapshot;\n    subscribe(listener: () => void): () => void;\n    pauseCapture(): void;\n    resumeCapture(): void;\n    refreshSnapshots(): void;\n    recordDelivery(input: DeliveryRecordInput): void;\n    clear(): void;\n    exportTrace(): DevtoolsTraceExportV1;\n    dispose(): void;\n}",
+      "name": "Store",
+      "kind": "type"
+    },
+    {
+      "signature": "interface StoreOptions {\n    readonly maxEntries?: number;\n}",
+      "name": "StoreOptions",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/devtools/overlay": [
+    {
+      "signature": "declare function mountOverlay(options: OverlayOptions): Overlay;",
+      "name": "mountOverlay",
+      "kind": "value"
+    },
+    {
+      "signature": "interface Overlay {\n    readonly host: HTMLElement;\n    dispose(): void;\n}",
+      "name": "Overlay",
+      "kind": "type"
+    },
+    {
+      "signature": "interface OverlayOptions {\n    readonly store: Store;\n    readonly document?: Document;\n    readonly copyText?: (value: string) => void | Promise<void>;\n}",
+      "name": "OverlayOptions",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/dom": [
+    {
+      "signature": "interface Announcer {\n    announce(intent: AnnouncementIntent): DeliveryResult;\n    getRegions(): LiveRegions | undefined;\n    dispose(): void;\n}",
+      "name": "Announcer",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AnnouncerOptions {\n    document?: Document;\n    mode?: DeliveryMode;\n    regions?: LiveRegions;\n    onDelivery?: (result: DeliveryResult) => void;\n}",
+      "name": "AnnouncerOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionBinding {\n    dispose(): void;\n}",
+      "name": "AttentionBinding",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionBindingOptions {\n    readonly runtime: Runtime;\n    readonly attentionStore: AttentionStore;\n}",
+      "name": "AttentionBindingOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionIntersectionObserver {\n    observe(target: Element): void;\n    unobserve(target: Element): void;\n    disconnect(): void;\n}",
+      "name": "AttentionIntersectionObserver",
+      "kind": "type"
+    },
+    {
+      "signature": "type AttentionIntersectionObserverFactory = (callback: IntersectionObserverCallback, options?: IntersectionObserverInit) => AttentionIntersectionObserver;",
+      "name": "AttentionIntersectionObserverFactory",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionSnapshot {\n    readonly visibility: \"visible\" | \"hidden\" | \"unknown\";\n    readonly windowFocus: \"focused\" | \"blurred\" | \"unknown\";\n    readonly focusArea: \"composer\" | \"conversation\" | \"elsewhere\" | \"none\" | \"unknown\";\n    readonly newestResponse: \"visible\" | \"outside\" | \"unobserved\" | \"unknown\";\n    readonly mode: \"foreground\" | \"background\" | \"reading-history\" | \"away\" | \"unknown\";\n}",
+      "name": "AttentionSnapshot",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionStore extends ExternalStore<AttentionSnapshot> {\n    registerComposer(element: Element): () => void;\n    registerConversation(element: Element): () => void;\n    registerNewestResponse(element: Element): () => void;\n    dispose(): void;\n}",
+      "name": "AttentionStore",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionStoreOptions {\n    document?: Document;\n    createIntersectionObserver?: AttentionIntersectionObserverFactory;\n    intersectionObserverInit?: IntersectionObserverInit;\n}",
+      "name": "AttentionStoreOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Borrow a store and runtime, forwarding observations without changing overrides. */\ndeclare function bindAttention({ runtime, attentionStore, }: AttentionBindingOptions): AttentionBinding;",
+      "name": "bindAttention",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function bindRuntime(runtime: Runtime, options?: AnnouncerOptions): RuntimeBinding;",
+      "name": "bindRuntime",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function captureFocus(selectedDocument?: Document): FocusCapture;",
+      "name": "captureFocus",
+      "kind": "value"
+    },
+    {
+      "signature": "interface CorePreferenceConfiguration {\n    readonly preset: PresetName;\n    readonly policy?: PolicyOverrides;\n}",
+      "name": "CorePreferenceConfiguration",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function createAnnouncer(options?: AnnouncerOptions): Announcer;",
+      "name": "createAnnouncer",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function createAttentionStore(options?: AttentionStoreOptions): AttentionStore;",
+      "name": "createAttentionStore",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function createPreferenceStore(options?: PreferenceStoreOptions): PreferenceStore;",
+      "name": "createPreferenceStore",
+      "kind": "value"
+    },
+    {
+      "signature": "declare const defaultPreferences: PreferenceSchemaV1;",
+      "name": "defaultPreferences",
+      "kind": "value"
+    },
+    {
+      "signature": "type DeliveryMode = \"auto\" | \"live-region\";",
+      "name": "DeliveryMode",
+      "kind": "type"
+    },
+    {
+      "signature": "interface DeliveryResult {\n    status: \"notified\" | \"mutated\" | \"unavailable\" | \"disposed\";\n    method: \"aria-notify\" | \"live-region\" | \"none\";\n    channel: AnnouncementIntent[\"channel\"];\n    announcementId: string;\n    sourceType: AnnouncementIntent[\"sourceType\"];\n    at: number;\n    sourceEventId?: string;\n    responseId?: string;\n    toolId?: string;\n    interactionId?: string;\n    /** Stable logical run identity associated with the delivered intent. */\n    runId?: string;\n    /** Stable run attempt identity associated with the delivered intent. */\n    runInstanceId?: string;\n    /** Stable logical step identity associated with the delivered intent. */\n    stepId?: string;\n    /** Stable step attempt identity associated with the delivered intent. */\n    stepInstanceId?: string;\n    error?: {\n        name: string;\n        message: string;\n    };\n}",
+      "name": "DeliveryResult",
+      "kind": "type"
+    },
+    {
+      "signature": "interface ExternalStore<T> {\n    subscribe(listener: () => void): () => void;\n    getSnapshot(): T;\n    getServerSnapshot(): T;\n}",
+      "name": "ExternalStore",
+      "kind": "type"
+    },
+    {
+      "signature": "interface FocusCapture {\n    readonly document: Document | null;\n    readonly target: Element | null;\n}",
+      "name": "FocusCapture",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function focusElement(target: Element, options?: FocusElementOptions): FocusResult;",
+      "name": "focusElement",
+      "kind": "value"
+    },
+    {
+      "signature": "interface FocusElementOptions {\n    preventScroll?: boolean;\n}",
+      "name": "FocusElementOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "type FocusResult = {\n    readonly status: \"focused\";\n    readonly target: Element;\n} | {\n    readonly status: \"skipped\";\n    readonly reason: FocusSkippedReason;\n    readonly target: Element | null;\n};",
+      "name": "FocusResult",
+      "kind": "type"
+    },
+    {
+      "signature": "type FocusSkippedReason = \"unavailable\" | \"cross-document\" | \"disconnected\" | \"disabled\" | \"hidden\" | \"aria-hidden\" | \"inert\" | \"missing-focus\" | \"guard-mismatch\" | \"focus-error\" | \"focus-not-applied\";",
+      "name": "FocusSkippedReason",
+      "kind": "type"
+    },
+    {
+      "signature": "interface LiveRegions {\n    polite: HTMLElement;\n    assertive: HTMLElement;\n}",
+      "name": "LiveRegions",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function normalizePreferences(value: PreferenceSchemaV1): PreferenceSchemaV1;",
+      "name": "normalizePreferences",
+      "kind": "value"
+    },
+    {
+      "signature": "interface PreferenceDiagnostic {\n    readonly source: PreferenceDiagnosticSource;\n    readonly code: PreferenceDiagnosticCode;\n    readonly error?: Readonly<{\n        name: string;\n        message: string;\n    }>;\n}",
+      "name": "PreferenceDiagnostic",
+      "kind": "type"
+    },
+    {
+      "signature": "type PreferenceDiagnosticCode = \"operation-failed\" | \"invalid-json\" | \"invalid-preference\" | \"unsupported-version\";",
+      "name": "PreferenceDiagnosticCode",
+      "kind": "type"
+    },
+    {
+      "signature": "type PreferenceDiagnosticSource = \"storage-read\" | \"storage-write\" | \"storage-event\" | \"event-subscribe\" | \"event-unsubscribe\";",
+      "name": "PreferenceDiagnosticSource",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferencePersistence {\n    readonly key: string;\n    readonly storage?: PreferenceStorage;\n    readonly events?: PreferenceStorageEventSource;\n}",
+      "name": "PreferencePersistence",
+      "kind": "type"
+    },
+    {
+      "signature": "type PreferenceSchemaV1 = Readonly<{\n    version: 1;\n    preset: \"completion-only\";\n}> | Readonly<{\n    version: 1;\n    preset: \"minimal\" | \"balanced\" | \"verbose\";\n    streaming: StreamingVerbosity;\n    tools: ToolVerbosity;\n}>;",
+      "name": "PreferenceSchemaV1",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function preferencesToCoreConfiguration(value: PreferenceSchemaV1): CorePreferenceConfiguration;",
+      "name": "preferencesToCoreConfiguration",
+      "kind": "value"
+    },
+    {
+      "signature": "interface PreferenceStorage {\n    getItem(key: string): string | null;\n    setItem(key: string, value: string): void;\n}",
+      "name": "PreferenceStorage",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferenceStorageEvent {\n    readonly key: string | null;\n    readonly newValue: string | null;\n    readonly storageArea?: PreferenceStorage | null;\n}",
+      "name": "PreferenceStorageEvent",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferenceStorageEventSource {\n    subscribe(listener: (event: PreferenceStorageEvent) => void): () => void;\n}",
+      "name": "PreferenceStorageEventSource",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferenceStore extends ExternalStore<PreferenceSchemaV1> {\n    setPreferences(value: PreferenceSchemaV1): void;\n    dispose(): void;\n}",
+      "name": "PreferenceStore",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferenceStoreOptions {\n    readonly defaultValue?: PreferenceSchemaV1;\n    readonly persistence?: PreferencePersistence;\n    readonly onDiagnostic?: (diagnostic: PreferenceDiagnostic) => void;\n}",
+      "name": "PreferenceStoreOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function restoreFocus(capture: FocusCapture, options?: RestoreFocusOptions): FocusResult;",
+      "name": "restoreFocus",
+      "kind": "value"
+    },
+    {
+      "signature": "interface RestoreFocusOptions extends FocusElementOptions {\n    onlyIfFocusWithin?: Element;\n}",
+      "name": "RestoreFocusOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface RuntimeBinding {\n    announcer: Announcer;\n    dispose(): void;\n}",
+      "name": "RuntimeBinding",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function samePreferences(left: PreferenceSchemaV1, right: PreferenceSchemaV1): boolean;",
+      "name": "samePreferences",
+      "kind": "value"
+    },
+    {
+      "signature": "type StreamingVerbosity = \"preset\" | \"off\" | \"completion\" | \"paragraph\" | \"sentence\";",
+      "name": "StreamingVerbosity",
+      "kind": "type"
+    },
+    {
+      "signature": "type ToolVerbosity = \"preset\" | \"off\" | \"failures\" | \"status\" | \"progress\";",
+      "name": "ToolVerbosity",
+      "kind": "type"
+    }
+  ],
+  "@generative-a11y/react": [
+    {
+      "signature": "interface A11yContextValue {\n    readonly runtime: Runtime;\n    readonly attentionStore: AttentionStore;\n    readonly preferenceStore: PreferenceStore;\n}",
+      "name": "A11yContextValue",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function A11yProvider({ children, runtime: suppliedRuntime, delivery, attention, attentionStore: suppliedAttentionStore, attentionPolicy, preferences, preferenceStore: suppliedPreferenceStore, ...runtimeOptions }: A11yProviderProps): react.JSX.Element;",
+      "name": "A11yProvider",
+      "kind": "value"
+    },
+    {
+      "signature": "interface A11yProviderProps extends RuntimeOptions {\n    readonly children?: ReactNode;\n    readonly runtime?: Runtime;\n    readonly delivery?: false | DeliveryOptions;\n    readonly attention?: false | AttentionStoreOptions;\n    readonly attentionStore?: AttentionStore;\n    /** Opt into forwarding observations; configure runtime policy.attention separately. */\n    readonly attentionPolicy?: boolean;\n    readonly preferences?: PreferenceStoreOptions;\n    readonly preferenceStore?: PreferenceStore;\n}",
+      "name": "A11yProviderProps",
+      "kind": "type"
+    },
+    {
+      "signature": "interface AttentionControl {\n    readonly state: AttentionState;\n    readonly setOverride: (mode: AttentionOverride) => void;\n}",
+      "name": "AttentionControl",
+      "kind": "type"
+    },
+    {
+      "signature": "/** Optional refs that register host elements for attention observations only. */\ninterface AttentionRefs {\n    readonly composerRef: RefCallback<HTMLElement>;\n    readonly conversationRef: RefCallback<HTMLElement>;\n    readonly newestResponseRef: RefCallback<HTMLElement>;\n}",
+      "name": "AttentionRefs",
+      "kind": "type"
+    },
+    {
+      "signature": "type DeliveryOptions = Omit<AnnouncerOptions, \"document\" | \"regions\">;",
+      "name": "DeliveryOptions",
+      "kind": "type"
+    },
+    {
+      "signature": "interface PreferencesResult {\n    readonly preferences: PreferenceSchemaV1;\n    readonly setPreferences: (preferences: PreferenceSchemaV1) => void;\n    readonly store: PreferenceStore;\n}",
+      "name": "PreferencesResult",
+      "kind": "type"
+    },
+    {
+      "signature": "declare function useA11y(): A11yContextValue;",
+      "name": "useA11y",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function useAttention(): AttentionSnapshot;",
+      "name": "useAttention",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function useAttentionControl(): AttentionControl;",
+      "name": "useAttentionControl",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function useAttentionRefs(): AttentionRefs;",
+      "name": "useAttentionRefs",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function usePreferences(): PreferencesResult;",
+      "name": "usePreferences",
+      "kind": "value"
+    },
+    {
+      "signature": "declare function useRuntime(): Runtime;",
+      "name": "useRuntime",
+      "kind": "value"
+    }
+  ]
+}

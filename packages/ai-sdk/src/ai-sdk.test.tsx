@@ -1,10 +1,7 @@
 // @vitest-environment jsdom
 
-import type {
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
-} from "@generative-a11y/core";
-import { createAnnouncementRecorder } from "@generative-a11y/core";
+import type { RuntimeEvent, Runtime } from "@generative-a11y/core";
+import { createRecorder } from "@generative-a11y/core";
 import { renderHook } from "@testing-library/react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
@@ -12,22 +9,22 @@ import { StrictMode, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
 import {
-  CHAT_ADAPTER_METADATA,
+  adapterInfo,
   composeChatCallbacks,
-  createObserver,
+  createChatObserver,
 } from "./index.js";
 import { useChatAccessibility, useObserveChatAccessibility } from "./react.js";
 
 function createRuntime() {
-  const events: GenerativeA11yEvent[] = [];
+  const events: RuntimeEvent[] = [];
   return {
     events,
     runtime: {
-      dispatch(event: GenerativeA11yEvent) {
+      dispatch(event: RuntimeEvent) {
         events.push(event);
         return true;
       },
-    } satisfies Pick<GenerativeA11yRuntime, "dispatch">,
+    } satisfies Pick<Runtime, "dispatch">,
   };
 }
 
@@ -62,20 +59,18 @@ function tool(
 
 describe("AI SDK observer", () => {
   it("exports immutable public metadata without requiring browser globals", () => {
-    expect(Object.isFrozen(CHAT_ADAPTER_METADATA)).toBe(true);
-    expect(CHAT_ADAPTER_METADATA.fidelity.interruption).toBe("exact");
-    expect(CHAT_ADAPTER_METADATA.fidelity.retries).toBe("unavailable");
-    expect(CHAT_ADAPTER_METADATA.fidelity.runs).toBe("unavailable");
-    expect(CHAT_ADAPTER_METADATA.fidelity.steps).toBe("unavailable");
-    expect(CHAT_ADAPTER_METADATA.fidelity.hierarchy).toBe("unavailable");
-    expect(CHAT_ADAPTER_METADATA.saturation).toBe(
-      "suppress-after-baseline-capacity",
-    );
+    expect(Object.isFrozen(adapterInfo)).toBe(true);
+    expect(adapterInfo.fidelity.interruption).toBe("exact");
+    expect(adapterInfo.fidelity.retries).toBe("unavailable");
+    expect(adapterInfo.fidelity.runs).toBe("unavailable");
+    expect(adapterInfo.fidelity.steps).toBe("unavailable");
+    expect(adapterInfo.fidelity.hierarchy).toBe("unavailable");
+    expect(adapterInfo.saturation).toBe("suppress-after-baseline-capacity");
   });
 
   it("silently baselines history then streams only append-only text suffixes once", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "chat-a" });
+    const observer = createChatObserver({ runtime, scopeId: "chat-a" });
     const history = assistantMessage("history", [text("already rendered")]);
     const response = assistantMessage("response-1", [text("Hi")]);
 
@@ -122,7 +117,7 @@ describe("AI SDK observer", () => {
 
   it("starts a baselined assistant identity only when it later gains a suffix", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "hydrated" });
+    const observer = createChatObserver({ runtime, scopeId: "hydrated" });
 
     observer.observe({
       messages: [assistantMessage("response", [text("partial")])],
@@ -147,7 +142,7 @@ describe("AI SDK observer", () => {
 
   it("fails closed when one response exceeds its tracked text-part cap", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "text-parts",
       maxTrackedEntities: 1,
@@ -184,7 +179,7 @@ describe("AI SDK observer", () => {
 
   it("fails closed when label mapping throws without escaping snapshot observation", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "throwing-label",
       getToolLabel: () => {
@@ -210,7 +205,7 @@ describe("AI SDK observer", () => {
   });
 
   it("keeps host terminal callbacks running when runtime dispatch throws", () => {
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime: {
         dispatch() {
           throw new Error("delivery failure");
@@ -241,7 +236,7 @@ describe("AI SDK observer", () => {
 
   it("permanently suppresses a rewritten text part until its message identity changes", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "rewrite" });
+    const observer = createChatObserver({ runtime, scopeId: "rewrite" });
     observer.observe({ messages: [], status: "ready", error: undefined });
     observer.observe({
       messages: [assistantMessage("m", [text("first")])],
@@ -271,7 +266,7 @@ describe("AI SDK observer", () => {
 
   it("baselines tool, approval, and source identifiers without replaying history", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "history" });
+    const observer = createChatObserver({ runtime, scopeId: "history" });
     const history = assistantMessage("m", [
       tool("complete", "output-available"),
       tool("approval", "approval-requested", { id: "approval-id" }),
@@ -304,7 +299,7 @@ describe("AI SDK observer", () => {
 
   it("bounds tracked entities without evicting an active response", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "bound",
       maxTrackedEntities: 1,
@@ -338,7 +333,7 @@ describe("AI SDK observer", () => {
 
   it("suppresses all later snapshots when baseline history exceeds its tracking cap", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "saturated-history",
       maxTrackedEntities: 1,
@@ -368,7 +363,7 @@ describe("AI SDK observer", () => {
 
   it("does not replay bounded baseline history after a later live terminal response", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "bounded-history-live",
       maxTrackedEntities: 1,
@@ -402,7 +397,7 @@ describe("AI SDK observer", () => {
 
   it("does not fabricate tool lifecycle events from output-only states", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "output-only" });
+    const observer = createChatObserver({ runtime, scopeId: "output-only" });
     observer.observe({ messages: [], status: "ready", error: undefined });
     observer.observe({
       messages: [assistantMessage("m", [text("live")])],
@@ -459,7 +454,7 @@ describe("AI SDK observer", () => {
 
   it("bounds tool, approval, and source identity collections", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime,
       scopeId: "bounded-parts",
       maxTrackedEntities: 1,
@@ -503,20 +498,20 @@ describe("AI SDK observer", () => {
 
   it("rejects malformed scopes and ignores malformed snapshots", () => {
     const { events, runtime } = createRuntime();
-    expect(() => createObserver({ runtime, scopeId: "   " })).toThrow(
+    expect(() => createChatObserver({ runtime, scopeId: "   " })).toThrow(
       "scopeId",
     );
     expect(() =>
-      createObserver({ runtime, scopeId: "ok", maxTrackedEntities: 0 }),
+      createChatObserver({ runtime, scopeId: "ok", maxTrackedEntities: 0 }),
     ).toThrow("maxTrackedEntities");
-    const observer = createObserver({ runtime, scopeId: "ok" });
+    const observer = createChatObserver({ runtime, scopeId: "ok" });
     expect(() => observer.observe(null as never)).not.toThrow();
     expect(events).toEqual([]);
   });
 
   it("dispatches observer events through a real core runtime", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
-    const observer = createObserver({
+    const recorder = createRecorder({ preset: "verbose" });
+    const observer = createChatObserver({
       runtime: recorder.runtime,
       scopeId: "core",
     });
@@ -535,12 +530,12 @@ describe("AI SDK observer", () => {
   it("keeps same-name tools, approvals, sources, and scopes independent", () => {
     const first = createRuntime();
     const second = createRuntime();
-    const observer = createObserver({
+    const observer = createChatObserver({
       runtime: first.runtime,
       scopeId: "one",
       getToolLabel: ({ toolName }) => `Use ${toolName}`,
     });
-    const other = createObserver({
+    const other = createChatObserver({
       runtime: second.runtime,
       scopeId: "two",
     });
@@ -630,7 +625,7 @@ describe("AI SDK observer", () => {
 
   it("composes terminal callbacks once without exposing backend error text", () => {
     const { events, runtime } = createRuntime();
-    const observer = createObserver({ runtime, scopeId: "chat" });
+    const observer = createChatObserver({ runtime, scopeId: "chat" });
     observer.observe({ messages: [], status: "ready", error: undefined });
     observer.observe({
       messages: [assistantMessage("complete", [text("done")])],
@@ -836,7 +831,7 @@ describe("AI SDK observer", () => {
   it("does not infer terminals from ready or error snapshots and ignores stale observer input", () => {
     const { events, runtime } = createRuntime();
     const response = assistantMessage("response", [text("one")]);
-    const observer = createObserver({ runtime, scopeId: "hook" });
+    const observer = createChatObserver({ runtime, scopeId: "hook" });
     observer.observe({ messages: [], status: "ready", error: undefined });
     observer.observe({
       messages: [response],
@@ -882,7 +877,7 @@ const frenchCopy = () => ({
 it("copies localized adapter messages without assigning response language", () => {
   const { events, runtime } = createRuntime();
   const copy = frenchCopy();
-  const observer = createObserver({ runtime, scopeId: "fr", copy });
+  const observer = createChatObserver({ runtime, scopeId: "fr", copy });
   copy.toolLabel = "mutated";
   observer.observe({ messages: [], status: "ready", error: undefined });
   const observe = (parts: unknown[]) =>

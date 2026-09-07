@@ -2,7 +2,7 @@ import type {
   AdapterFidelity,
   AttentionMode,
   AttentionOverride,
-  GenerativeA11yRuntime,
+  Runtime,
   RuntimeDiagnosticEventV1,
   RuntimeDiagnosticSnapshotV1,
 } from "@generative-a11y/core";
@@ -147,20 +147,20 @@ export interface DevtoolsTraceExportV1 {
   readonly runtimeSources: Readonly<Record<string, DevtoolsRuntimeSource>>;
 }
 
-export interface DevtoolsStoreOptions {
+export interface StoreOptions {
   readonly maxEntries?: number;
 }
 
 export interface AttachRuntimeOptions {
   readonly id: string;
   readonly runtime: Pick<
-    GenerativeA11yRuntime,
+    Runtime,
     "subscribeDiagnosticEvents" | "getDiagnosticSnapshot"
   >;
   readonly source?: DevtoolsRuntimeSource;
 }
 
-export interface DevtoolsStore {
+export interface Store {
   attachRuntime(options: AttachRuntimeOptions): () => void;
   getSnapshot(): DevtoolsSnapshot;
   subscribe(listener: () => void): () => void;
@@ -465,11 +465,11 @@ function copyRuntimeSnapshot(
           }
         : {}),
     }),
-    ...(source.announcementCatalog
+    ...(source.messages
       ? {
-          announcementCatalog: Object.freeze({
-            catalogId: source.announcementCatalog.catalogId,
-            locale: source.announcementCatalog.locale,
+          messages: Object.freeze({
+            catalogId: source.messages.catalogId,
+            locale: source.messages.locale,
           }),
         }
       : {}),
@@ -514,9 +514,7 @@ function copyRuntimeSnapshot(
   });
 }
 
-export function createDevtoolsStore(
-  options: DevtoolsStoreOptions = {},
-): DevtoolsStore {
+export function createStore(options: StoreOptions = {}): Store {
   const maxEntries = options.maxEntries ?? 250;
   if (!Number.isSafeInteger(maxEntries) || maxEntries <= 0)
     throw new RangeError("maxEntries must be a positive safe integer");

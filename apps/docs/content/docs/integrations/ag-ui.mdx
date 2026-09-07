@@ -55,7 +55,7 @@ export const searchableText = [
   "Clean up locally",
   "dispose removes this subscriber without disposing the AG-UI agent or accessibility runtime.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "none",
   "Receives events translated from documented protocol callbacks.",
@@ -168,7 +168,7 @@ accessibility runtime.
 <TypeTable
   type={{
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       default: <>none</>,
       description: (
@@ -257,9 +257,3 @@ Missing interaction updates usually trace to an agent that was bound before
 readiness or callbacks that omit stable IDs. Duplicate updates can come from
 multiple subscribers. Confirm one binding per agent, a stable scopeId, and
 documented callbacks before adding custom event inference.
-
-## Related
-
-- [/docs/accessible-ai-agents](/docs/accessible-ai-agents)
-- [/docs/getting-started](/docs/getting-started)
-- [/api/ag-ui/bind-agent](/api/ag-ui/bind-agent)

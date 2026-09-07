@@ -21,41 +21,19 @@ the host's existing lifecycle. The provider's only rendered infrastructure is
 one visually hidden polite region and one visually hidden assertive region.
 
 ```tsx
-import {
-  GenerativeA11yProvider,
-  useAttentionTargets,
-  useGenerativeA11yRuntime,
-} from "@generative-a11y/react";
+import type { ReactNode } from "react";
+import { A11yProvider } from "@generative-a11y/react";
 
-function ExistingChat() {
-  const runtime = useGenerativeA11yRuntime();
-  const { composerProps, conversationProps, newestResponseProps } =
-    useAttentionTargets();
-
-  return (
-    <div {...conversationProps}>
-      {/* Existing messages remain unchanged. */}
-      <div {...newestResponseProps}>Latest response</div>
-      <textarea {...composerProps} />
-      <button
-        onClick={() =>
-          runtime.dispatch({ type: "response.started", responseId: "r1" })
-        }
-      >
-        Send
-      </button>
-    </div>
-  );
-}
-
-export function App() {
-  return (
-    <GenerativeA11yProvider>
-      <ExistingChat />
-    </GenerativeA11yProvider>
-  );
+export function AccessibleChat({ children }: { children: ReactNode }) {
+  return <A11yProvider>{children}</A11yProvider>;
 }
 ```
+
+Place the existing chat inside `AccessibleChat`. The provider supplies runtime
+and delivery ownership; the host or an adapter still supplies lifecycle events.
+For a complete example with an existing AI SDK chat, see the
+[AI SDK integration](https://generativea11y.com/docs/integrations/ai-sdk) and
+the [typechecked consumer example](../../examples/consumer-journeys/chat.tsx).
 
 Dispatching or mutating a live region is deterministic and testable. It does not
 prove that a screen reader spoke the text; browser and assistive-technology
@@ -63,20 +41,19 @@ verification remains necessary.
 
 ## Provider
 
-`GenerativeA11yProvider` creates and owns a `GenerativeA11yRuntime` by default.
-Pass `runtime` to borrow an existing runtime. A borrowed runtime is never
-disposed by React. An owned runtime is disposed after a real unmount.
+`A11yProvider` creates and owns a `Runtime` by default. Pass `runtime` to borrow
+an existing runtime. A borrowed runtime is never disposed by React. An owned
+runtime is disposed after a real unmount.
 
-`GenerativeA11yProviderProps` extends the core `GenerativeA11yOptions`, so the
-initial `preset`, `policy`, `clock`, `onAnnouncement`, `onDeliveryError`, and
-`onDiagnostic` values are forwarded when the provider owns the runtime. It also
-accepts:
+`A11yProviderProps` extends the core `RuntimeOptions`, so the initial `preset`,
+`policy`, `clock`, `onAnnouncement`, `onDeliveryError`, and `onDiagnostic`
+values are forwarded when the provider owns the runtime. It also accepts:
 
 - `children`: the unchanged host React tree.
 - `runtime`: a borrowed runtime.
-- `dom`: `false` to omit delivery infrastructure, or `GenerativeA11yDOMOptions`
-  to set the DOM delivery mode and diagnostic callback. React owns the document
-  and supplied regions, so those two DOM options are intentionally unavailable.
+- `delivery`: `false` to omit delivery infrastructure, or `DeliveryOptions` to
+  set the DOM delivery mode and diagnostic callback. React owns the document and
+  supplied regions, so those two DOM options are intentionally unavailable.
 - `attention`: `false` for a stable all-unknown inert store, or
   `AttentionStoreOptions` for the owned browser observer.
 - `attentionStore`: a borrowed `AttentionStore`, useful for a host-managed
@@ -108,43 +85,41 @@ apply it to a future deliberate runtime replacement.
 
 ## Hooks
 
-Every hook throws a clear error outside `GenerativeA11yProvider`.
+Every hook throws a clear error outside `A11yProvider`.
 
-- `useGenerativeA11y()` returns the stable `GenerativeA11yContextValue` with
-  `runtime`, `attentionStore`, and `preferenceStore`.
-- `useGenerativeA11yRuntime()` returns the current `GenerativeA11yRuntime`.
-- `useGenerativeA11yAttention()` subscribes with `useSyncExternalStore` and
-  returns the current `AttentionSnapshot` using the store's exact server
-  snapshot during SSR and hydration.
-- `useGenerativeA11yPreferences()` subscribes with `useSyncExternalStore` and
-  returns a `GenerativeA11yPreferencesResult`: the frozen `preferences`
-  snapshot, stable `setPreferences` callback, and underlying `store`.
-- `useAttentionTargets()` returns stable, ref-only `GenerativeA11yBindings` for
-  the host's existing elements.
+- `useA11y()` returns the stable `A11yContextValue` with `runtime`,
+  `attentionStore`, and `preferenceStore`.
+- `useRuntime()` returns the current `Runtime`.
+- `useAttention()` subscribes with `useSyncExternalStore` and returns the
+  current `AttentionSnapshot` using the store's exact server snapshot during SSR
+  and hydration.
+- `usePreferences()` subscribes with `useSyncExternalStore` and returns a
+  `PreferencesResult`: the frozen `preferences` snapshot, stable
+  `setPreferences` callback, and underlying `store`.
+- `useAttentionRefs()` returns stable, ref-only `AttentionRefs` for the host's
+  existing elements.
 
-## Attention targets
+## AttentionRefs
 
-`GenerativeA11yBindings` contains:
+`useAttentionRefs()` is optional. It registers browser attention observations;
+it is not required for announcement delivery and adds no roles or labels. Each
+field is a stable callback ref accepting an existing `HTMLElement`:
 
-- `composerProps`, typed as `GenerativeA11yComposerProps`, for an existing
-  textarea.
-- `conversationProps`, typed as `GenerativeA11yConversationProps`, for the
-  existing conversation container.
-- `newestResponseProps`, typed as `GenerativeA11yNewestResponseProps`, for the
-  newest response or sentinel.
+- `composerRef`: the textarea, input, or editable element used to compose a
+  message.
+- `conversationRef`: the existing conversation container.
+- `newestResponseRef`: the newest response element or visibility sentinel.
 
-These objects only contain stable callback refs. They register raw attention
-observations and clean up when a ref is replaced, cleared, or unmounted. They do
-not add roles, infer stop/retry/approval lifecycle events, focus elements, or
-scroll the application.
+The refs unregister when replaced, cleared, or unmounted. They never focus or
+scroll an element. Keep host accessibility semantics and existing refs intact;
+compose refs using your framework's existing utility when an element needs both.
 
 ```tsx
-const { composerProps, conversationProps, newestResponseProps } =
-  useAttentionTargets();
+const { composerRef, conversationRef, newestResponseRef } = useAttentionRefs();
 
-<textarea {...composerProps} />;
-<div {...conversationProps}>...</div>;
-<div {...newestResponseProps} />;
+<textarea ref={composerRef} />;
+<div ref={conversationRef}>...</div>;
+<div ref={newestResponseRef} />;
 ```
 
 ## SSR and hydration
@@ -171,7 +146,7 @@ persistence configuration supplies only storage or only an event source, React
 preserves it and derives just the missing counterpart from the committed realm.
 Derived native events normalize their `storageArea` to the effective storage
 adapter after rejecting events from a different native storage area. With
-`dom={false}`, no region exists from which to discover a realm. A provider
+`delivery={false}`, no region exists from which to discover a realm. A provider
 rendered into a non-global document in that mode must inject
 `attention.document` and preference persistence adapters. This does not require
 an extra visible or wrapper element.
@@ -191,12 +166,10 @@ disposes owned resources after the cleanup boundary.
 
 ## Public supporting types
 
-The package exports `GenerativeA11yProviderProps`, `GenerativeA11yDOMOptions`,
-`GenerativeA11yContextValue`, `GenerativeA11yPreferencesResult`,
-`GenerativeA11yBindings`, `GenerativeA11yComposerProps`,
-`GenerativeA11yConversationProps`, and `GenerativeA11yNewestResponseProps` for
-typed host integrations. Framework-independent runtime, DOM, attention, and
-preference types continue to come from their owning packages.
+The package exports `A11yProviderProps`, `DeliveryOptions`, `A11yContextValue`,
+`PreferencesResult`, `AttentionControl`, and `AttentionRefs` for typed host
+integrations. Framework-independent runtime, DOM, attention, and preference
+types continue to come from their owning packages.
 
 ## Limitations
 
@@ -223,21 +196,21 @@ preference types continue to come from their owning packages.
 
 ### Attention-aware announcement controls
 
-`GenerativeA11yProvider` observes attention by default. Set `attentionPolicy` to
-opt into forwarding those observations to its runtime, and configure
+`A11yProvider` observes attention by default. Set `attentionPolicy` to opt into
+forwarding those observations to its runtime, and configure
 `policy={{ attention: { enabled: true } }}` to enable the core policy. These are
 separate choices. With a borrowed `runtime`, configure that runtime directly;
 provider policy props do not reconfigure borrowed resources. Like the other
 provider resource options, `attentionPolicy` is captured on mount; use a keyed
 remount to change it. Only one attention bridge can own a runtime at a time.
 
-`useAttentionControl()` returns `GenerativeA11yAttentionControlResult`:
-`{ state, setOverride }`. `state` contains `observed`, `override`, and
-`effective`; `setOverride("auto" | "normal" | "quiet")` changes the explicit
-user preference. Call it from an event handler or effect. An explicit override
-takes precedence over observations. The hook requires a provider and follows the
-runtime even when observation forwarding is disabled. When the runtime policy is
-disabled, it returns a stable frozen
+`useAttentionControl()` returns `AttentionControl`: `{ state, setOverride }`.
+`state` contains `observed`, `override`, and `effective`;
+`setOverride("auto" | "normal" | "quiet")` changes the explicit user preference.
+Call it from an event handler or effect. An explicit override takes precedence
+over observations. The hook requires a provider and follows the runtime even
+when observation forwarding is disabled. When the runtime policy is disabled, it
+returns a stable frozen
 `{ observed: "unknown", override: "auto", effective: "normal" }` default. Server
 rendering always uses that inert default, with current runtime state read after
 hydration. The bridge dispatches only after commit and releases its subscription
@@ -245,10 +218,10 @@ before owned stores and runtime; borrowed resources are not disposed.
 
 ## Localized announcements
 
-The provider accepts `announcementCatalog` at construction. Supplied runtimes
-must already have their catalog configured; provider options never reconfigure a
-borrowed runtime. Replacement is explicit; no language hot-swapping or
-persistence is added.
+The provider accepts `messages` at construction. Supplied runtimes must already
+have their catalog configured; provider options never reconfigure a borrowed
+runtime. Replacement is explicit; no language hot-swapping or persistence is
+added.
 
 See the
 [localization guide](https://generativea11y.com/docs/localized-announcements).

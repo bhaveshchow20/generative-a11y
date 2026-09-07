@@ -19,7 +19,7 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useAttentionControl bindAttentionToRuntime quiet override /docs/attention-aware-announcements",
+  "Attention policy attentionPolicy useAttentionControl bindAttention quiet override /docs/attention-aware-announcements",
   "Policy and presets",
   "Settings for streaming text, tools, workflow runs and steps, announcement channels, timing, and queue limits.",
   "Core",
@@ -54,7 +54,7 @@ export const searchableText = [
   "PolicyOverrides",
   "Nested overrides merge with the selected preset. Unspecified values remain controlled by that preset.",
   "typescript",
-  'const runtime = createGenerativeA11y({ preset: "balanced", policy: { text: { minimumCharacters: 48, maximumDelayMs: 1_800 }, tools: { announceProgress: false }, minimumGapMs: 900, maxQueueSize: 64, }, });',
+  'const runtime = createRuntime({ preset: "balanced", policy: { text: { minimumCharacters: 48, maximumDelayMs: 1_800 }, tools: { announceProgress: false }, minimumGapMs: 900, maxQueueSize: 64, }, });',
   "Keep a tested baseline",
   "balanced continues to supply every property not shown.",
   "Tune useful differences",
@@ -155,7 +155,7 @@ controlled by that preset.
 
 {/* prettier-ignore */}
 ```typescript
-const runtime = createGenerativeA11y({
+const runtime = createRuntime({
   preset: "balanced",
   policy: {
     text: { minimumCharacters: 48, maximumDelayMs: 1_800 },
@@ -288,10 +288,6 @@ output.
     },
   }}
 />
-
-## Related
-
-- [/api/core/workflows](/api/core/workflows)
 
 ## Attention policy
 

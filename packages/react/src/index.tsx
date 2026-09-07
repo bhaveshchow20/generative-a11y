@@ -1,14 +1,14 @@
 import {
-  createGenerativeA11y,
+  createRuntime,
   type AttentionState,
   type AttentionOverride,
-  type GenerativeA11yOptions,
-  type GenerativeA11yRuntime,
+  type RuntimeOptions,
+  type Runtime,
 } from "@generative-a11y/core";
 import {
-  connectRuntimeToDOM,
-  bindAttentionToRuntime,
-  type AttentionRuntimeBinding,
+  bindRuntime,
+  bindAttention,
+  type AttentionBinding,
   createAttentionStore,
   createPreferenceStore,
   defaultPreferences,
@@ -18,8 +18,8 @@ import {
   type AttentionSnapshot,
   type AttentionStore,
   type AttentionStoreOptions,
-  type DOMAnnouncerOptions,
-  type DOMRuntimeBinding,
+  type AnnouncerOptions,
+  type RuntimeBinding,
   type PreferenceSchemaV1,
   type PreferenceStorage,
   type PreferenceStorageEventSource,
@@ -43,15 +43,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-export type GenerativeA11yDOMOptions = Omit<
-  DOMAnnouncerOptions,
-  "document" | "regions"
->;
+export type DeliveryOptions = Omit<AnnouncerOptions, "document" | "regions">;
 
-export interface GenerativeA11yProviderProps extends GenerativeA11yOptions {
+export interface A11yProviderProps extends RuntimeOptions {
   readonly children?: ReactNode;
-  readonly runtime?: GenerativeA11yRuntime;
-  readonly dom?: false | GenerativeA11yDOMOptions;
+  readonly runtime?: Runtime;
+  readonly delivery?: false | DeliveryOptions;
   readonly attention?: false | AttentionStoreOptions;
   readonly attentionStore?: AttentionStore;
   /** Opt into forwarding observations; configure runtime policy.attention separately. */
@@ -60,39 +57,28 @@ export interface GenerativeA11yProviderProps extends GenerativeA11yOptions {
   readonly preferenceStore?: PreferenceStore;
 }
 
-export interface GenerativeA11yContextValue {
-  readonly runtime: GenerativeA11yRuntime;
+export interface A11yContextValue {
+  readonly runtime: Runtime;
   readonly attentionStore: AttentionStore;
   readonly preferenceStore: PreferenceStore;
 }
 
-export interface GenerativeA11yAttentionControlResult {
+export interface AttentionControl {
   readonly state: AttentionState;
   readonly setOverride: (mode: AttentionOverride) => void;
 }
 
-export interface GenerativeA11yPreferencesResult {
+export interface PreferencesResult {
   readonly preferences: PreferenceSchemaV1;
   readonly setPreferences: (preferences: PreferenceSchemaV1) => void;
   readonly store: PreferenceStore;
 }
 
-export interface GenerativeA11yComposerProps {
-  readonly ref: RefCallback<HTMLTextAreaElement>;
-}
-
-export interface GenerativeA11yConversationProps {
-  readonly ref: RefCallback<HTMLElement>;
-}
-
-export interface GenerativeA11yNewestResponseProps {
-  readonly ref: RefCallback<HTMLElement>;
-}
-
-export interface GenerativeA11yBindings {
-  readonly composerProps: GenerativeA11yComposerProps;
-  readonly conversationProps: GenerativeA11yConversationProps;
-  readonly newestResponseProps: GenerativeA11yNewestResponseProps;
+/** Optional refs that register host elements for attention observations only. */
+export interface AttentionRefs {
+  readonly composerRef: RefCallback<HTMLElement>;
+  readonly conversationRef: RefCallback<HTMLElement>;
+  readonly newestResponseRef: RefCallback<HTMLElement>;
 }
 
 const UNKNOWN_ATTENTION: AttentionSnapshot = Object.freeze({
@@ -507,18 +493,16 @@ class ProviderResourceLifetime extends Component<{
   }
 }
 
-const GenerativeA11yContext = createContext<GenerativeA11yContextValue | null>(
-  null,
-);
+const A11yContext = createContext<A11yContextValue | null>(null);
 
 const subscribeInertly = (): (() => void) => () => undefined;
 const getDefaultPreferences = (): PreferenceSchemaV1 => defaultPreferences;
 
 interface ProviderResources {
-  readonly suppliedRuntime: GenerativeA11yRuntime | undefined;
+  readonly suppliedRuntime: Runtime | undefined;
   readonly ownsRuntime: boolean;
-  readonly runtime: GenerativeA11yRuntime;
-  readonly dom: false | GenerativeA11yDOMOptions;
+  readonly runtime: Runtime;
+  readonly delivery: false | DeliveryOptions;
   readonly attentionPolicy: boolean;
   readonly ownsAttention: boolean;
   readonly attentionStore: AttentionStore;
@@ -526,17 +510,17 @@ interface ProviderResources {
   readonly preferenceStore: PreferenceStore;
 }
 
-export function GenerativeA11yProvider({
+export function A11yProvider({
   children,
   runtime: suppliedRuntime,
-  dom,
+  delivery,
   attention,
   attentionStore: suppliedAttentionStore,
   attentionPolicy = false,
   preferences,
   preferenceStore: suppliedPreferenceStore,
   ...runtimeOptions
-}: GenerativeA11yProviderProps) {
+}: A11yProviderProps) {
   const [preferenceResource] = useState(() => ({
     configuresRuntime:
       suppliedRuntime === undefined &&
@@ -573,12 +557,11 @@ export function GenerativeA11yProvider({
     const preferenceConfiguration = preferencesToCoreConfiguration(
       initialPreferenceSnapshot,
     );
-    const ownedRuntimeOptions: GenerativeA11yOptions = {
+    const ownedRuntimeOptions: RuntimeOptions = {
       ...runtimeOptions,
       ...(preferenceResource.configuresRuntime ? preferenceConfiguration : {}),
     };
-    const runtime =
-      suppliedRuntime ?? createGenerativeA11y(ownedRuntimeOptions);
+    const runtime = suppliedRuntime ?? createRuntime(ownedRuntimeOptions);
     const attentionStore =
       suppliedAttentionStore ??
       (attention === false
@@ -588,7 +571,7 @@ export function GenerativeA11yProvider({
       suppliedRuntime,
       ownsRuntime: suppliedRuntime === undefined,
       runtime,
-      dom: dom ?? {},
+      delivery: delivery ?? {},
       attentionPolicy,
       ownsAttention:
         suppliedAttentionStore === undefined && attention !== false,
@@ -599,11 +582,11 @@ export function GenerativeA11yProvider({
   });
   if (suppliedRuntime !== resources.suppliedRuntime) {
     throw new Error(
-      "GenerativeA11yProvider runtime cannot change without a keyed remount",
+      "A11yProvider runtime cannot change without a keyed remount",
     );
   }
 
-  const context = useMemo<GenerativeA11yContextValue>(
+  const context = useMemo<A11yContextValue>(
     () =>
       Object.freeze({
         runtime: resources.runtime,
@@ -615,21 +598,19 @@ export function GenerativeA11yProvider({
 
   const politeRegion = useRef<HTMLElement | null>(null);
   const assertiveRegion = useRef<HTMLElement | null>(null);
-  const binding = useRef<DOMRuntimeBinding | undefined>(undefined);
-  const attentionBinding = useRef<AttentionRuntimeBinding | undefined>(
-    undefined,
-  );
+  const binding = useRef<RuntimeBinding | undefined>(undefined);
+  const attentionBinding = useRef<AttentionBinding | undefined>(undefined);
   const committedDocument = useRef<Document | undefined>(undefined);
   const reconcileBinding = useCallback(() => {
     disposeSafely(binding.current);
     binding.current = undefined;
     if (
-      resources.dom !== false &&
+      resources.delivery !== false &&
       politeRegion.current &&
       assertiveRegion.current
     ) {
-      binding.current = connectRuntimeToDOM(resources.runtime, {
-        ...resources.dom,
+      binding.current = bindRuntime(resources.runtime, {
+        ...resources.delivery,
         regions: {
           polite: politeRegion.current,
           assertive: assertiveRegion.current,
@@ -657,7 +638,7 @@ export function GenerativeA11yProvider({
 
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    if (resources.dom === false || portalHost) return;
+    if (resources.delivery === false || portalHost) return;
     const ownerDocument = committedDocument.current;
     if (!ownerDocument) return;
     const parent = ownerDocument.body ?? ownerDocument.documentElement;
@@ -681,7 +662,7 @@ export function GenerativeA11yProvider({
           committedDocument.current,
         );
       if (resources.attentionPolicy && !attentionBinding.current)
-        attentionBinding.current = bindAttentionToRuntime({
+        attentionBinding.current = bindAttention({
           runtime: resources.runtime,
           attentionStore: resources.attentionStore,
         });
@@ -732,7 +713,7 @@ export function GenerativeA11yProvider({
   }, [portalHost, resources]);
 
   const regionMarkup =
-    resources.dom === false ? null : (
+    resources.delivery === false ? null : (
       <>
         <div
           ref={setPoliteRegion}
@@ -753,32 +734,30 @@ export function GenerativeA11yProvider({
 
   return (
     <ProviderResourceLifetime onUnmount={disposeOwnedResources}>
-      <GenerativeA11yContext.Provider value={context}>
+      <A11yContext.Provider value={context}>
         {portalHost && regionMarkup
           ? createPortal(regionMarkup, portalHost)
           : regionMarkup}
         {children}
-      </GenerativeA11yContext.Provider>
+      </A11yContext.Provider>
     </ProviderResourceLifetime>
   );
 }
 
-export function useGenerativeA11y(): GenerativeA11yContextValue {
-  const value = useContext(GenerativeA11yContext);
+export function useA11y(): A11yContextValue {
+  const value = useContext(A11yContext);
   if (!value) {
-    throw new Error(
-      "useGenerativeA11y must be used within GenerativeA11yProvider",
-    );
+    throw new Error("useA11y must be used within A11yProvider");
   }
   return value;
 }
 
-export function useGenerativeA11yRuntime(): GenerativeA11yRuntime {
-  return useGenerativeA11y().runtime;
+export function useRuntime(): Runtime {
+  return useA11y().runtime;
 }
 
-export function useGenerativeA11yAttention(): AttentionSnapshot {
-  const { attentionStore } = useGenerativeA11y();
+export function useAttention(): AttentionSnapshot {
+  const { attentionStore } = useA11y();
   const subscribe = useCallback(
     (listener: () => void) => attentionStore.subscribe(listener),
     [attentionStore],
@@ -794,8 +773,8 @@ export function useGenerativeA11yAttention(): AttentionSnapshot {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export function useAttentionControl(): GenerativeA11yAttentionControlResult {
-  const { runtime } = useGenerativeA11y();
+export function useAttentionControl(): AttentionControl {
+  const { runtime } = useA11y();
   const subscribe = useCallback(
     (listener: () => void) => runtime.subscribeDiagnostics(listener),
     [runtime],
@@ -817,8 +796,8 @@ export function useAttentionControl(): GenerativeA11yAttentionControlResult {
   return useMemo(() => ({ state, setOverride }), [state, setOverride]);
 }
 
-export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult {
-  const { preferenceStore } = useGenerativeA11y();
+export function usePreferences(): PreferencesResult {
+  const { preferenceStore } = useA11y();
   const subscribe = useCallback(
     (listener: () => void) => preferenceStore.subscribe(listener),
     [preferenceStore],
@@ -846,8 +825,8 @@ export function useGenerativeA11yPreferences(): GenerativeA11yPreferencesResult 
   );
 }
 
-export function useAttentionTargets(): GenerativeA11yBindings {
-  const { attentionStore } = useGenerativeA11y();
+export function useAttentionRefs(): AttentionRefs {
+  const { attentionStore } = useA11y();
   const registerComposer = useCallback(
     (element: Element) => attentionStore.registerComposer(element),
     [attentionStore],
@@ -860,8 +839,7 @@ export function useAttentionTargets(): GenerativeA11yBindings {
     (element: Element) => attentionStore.registerNewestResponse(element),
     [attentionStore],
   );
-  const composerRef =
-    useAttentionRegistration<HTMLTextAreaElement>(registerComposer);
+  const composerRef = useAttentionRegistration<HTMLElement>(registerComposer);
   const conversationRef =
     useAttentionRegistration<HTMLElement>(registerConversation);
   const newestResponseRef = useAttentionRegistration<HTMLElement>(
@@ -869,9 +847,9 @@ export function useAttentionTargets(): GenerativeA11yBindings {
   );
   return useMemo(
     () => ({
-      composerProps: { ref: composerRef },
-      conversationProps: { ref: conversationRef },
-      newestResponseProps: { ref: newestResponseRef },
+      composerRef,
+      conversationRef,
+      newestResponseRef,
     }),
     [composerRef, conversationRef, newestResponseRef],
   );

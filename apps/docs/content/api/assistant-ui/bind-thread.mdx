@@ -1,34 +1,34 @@
 ---
-title: "bindThreadRuntime"
+title: "bindThread"
 description:
   "Connect one assistant-ui ThreadRuntime and send its public events to a core
   runtime supplied by your app."
-publicPath: "/api/assistant-ui/bind-thread-runtime"
+publicPath: "/api/assistant-ui/bind-thread"
 section: "assistant-ui"
-keywords: ["bindThreadRuntime", "BindThreadRuntimeOptions", "ThreadBinding"]
+keywords: ["bindThread", "BindThreadOptions", "ThreadBinding"]
 related: []
 order: 19
 ---
 
 export const sourceMetadata = {
-  publicPath: "/api/assistant-ui/bind-thread-runtime",
+  publicPath: "/api/assistant-ui/bind-thread",
   section: "assistant-ui",
   related: [],
   order: 19,
 };
 
 export const searchableText = [
-  "bindThreadRuntime",
+  "bindThread",
   "Connect one assistant-ui ThreadRuntime and send its public events to a core runtime supplied by your app.",
   "assistant-ui",
-  "bindThreadRuntime",
-  "BindThreadRuntimeOptions",
+  "bindThread",
+  "BindThreadOptions",
   "ThreadBinding",
   "signature",
   "Signature and import",
   "Create one binding per thread scope and dispose it when that subscription owner unmounts.",
   "typescript",
-  'import { bindThreadRuntime } from "@generative-a11y/assistant-ui"; const binding = bindThreadRuntime({ runtime, scopeId: "support-thread", thread, maxTrackedEntities: 1_000, }); // Removes only the subscription and adapter state. binding.dispose();',
+  'import { bindThread } from "@generative-a11y/assistant-ui"; const binding = bindThread({ runtime, scopeId: "support-thread", thread, maxTrackedEntities: 1_000, }); // Removes only the subscription and adapter state. binding.dispose();',
   "Use the app runtime",
   "ThreadBinding sends events to core without disposing your runtime.",
   "Separate thread IDs",
@@ -38,7 +38,7 @@ export const searchableText = [
   "Dispose the binding",
   "dispose removes the subscription without changing the thread runtime.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "n/a",
   "Receives adapter events while remaining under your app's control.",
@@ -97,9 +97,9 @@ unmounts.
 
 {/* prettier-ignore */}
 ```typescript
-import { bindThreadRuntime } from "@generative-a11y/assistant-ui";
+import { bindThread } from "@generative-a11y/assistant-ui";
 
-const binding = bindThreadRuntime({
+const binding = bindThread({
   runtime,
   scopeId: "support-thread",
   thread,
@@ -150,8 +150,13 @@ dispose removes the subscription without changing the thread runtime.
 
 <TypeTable
   type={{
+    copy: {
+      type: <>AdapterCopy</>,
+      default: <>undefined</>,
+      description: <>Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.</>,
+    },
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       description: (
         <>Receives adapter events while remaining under your app's control.</>
