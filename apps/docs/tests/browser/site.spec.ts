@@ -830,7 +830,7 @@ test("lifecycle lab uses the available documentation width", async ({ page }) =>
   const pageBox = await pageShell.boundingBox();
   expect(pageBox?.width).toBeGreaterThan(1_100);
   const labGrids = page.locator(".lab-grid");
-  await expect(labGrids).toHaveCount(2);
+  await expect(labGrids).toHaveCount(1);
   for (const labGrid of await labGrids.all()) {
     await expect(labGrid).toBeVisible();
     const labBox = await labGrid.boundingBox();

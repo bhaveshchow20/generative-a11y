@@ -3,7 +3,6 @@ import Link from "next/link";
 import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import { DocumentationHeader } from "../../../components/docs/docs-header";
 
-import { AttentionLab } from "../../../components/attention-lab";
 import { LifecycleLab } from "../../../components/lifecycle-lab";
 import { FrameworkShowcaseLoader } from "../../../components/framework-showcase-loader";
 import { JsonLd } from "../../../components/json-ld";
@@ -71,7 +70,6 @@ export default function LifecycleLabPage() {
         </DocsBody>
         <div className="examples-content">
           <LifecycleLab />
-          <AttentionLab />
           <FrameworkShowcaseLoader />
         </div>
       </DocsPage>
