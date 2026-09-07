@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { ManualClock, createGenerativeA11y } from "@generative-a11y/core";
+import { ManualClock, createRuntime } from "@generative-a11y/core";
 import {
   createAttentionStore,
   createPreferenceStore,
@@ -18,12 +18,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  GenerativeA11yProvider,
-  useGenerativeA11y,
-  useGenerativeA11yAttention,
-  useGenerativeA11yBindings,
-  useGenerativeA11yPreferences,
-  useGenerativeA11yRuntime,
+  A11yProvider,
+  useA11y,
+  useAttention,
+  useAttentionRefs,
+  usePreferences,
+  useRuntime,
 } from "./index.js";
 
 type ActivityComponent = (props: {
@@ -85,7 +85,7 @@ function createRealmStorageEvent(
   return event;
 }
 
-describe("GenerativeA11yProvider", () => {
+describe("A11yProvider", () => {
   it("uses an external preference server snapshot during SSR", () => {
     const store: PreferenceStore = {
       subscribe: () => () => undefined,
@@ -97,21 +97,19 @@ describe("GenerativeA11yProvider", () => {
       dispose: () => undefined,
     };
     function Policy() {
-      return (
-        <span>{useGenerativeA11yRuntime().getPolicy().text.strategy}</span>
-      );
+      return <span>{useRuntime().getPolicy().text.strategy}</span>;
     }
     expect(
       renderToString(
-        <GenerativeA11yProvider preferenceStore={store} dom={false}>
+        <A11yProvider preferenceStore={store} delivery={false}>
           <Policy />
-        </GenerativeA11yProvider>,
+        </A11yProvider>,
       ),
     ).toContain("completion");
   });
 
   it("does not read an irrelevant hostile preference store", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
     const store: PreferenceStore = {
       subscribe: () => {
         throw new Error("irrelevant subscribe");
@@ -127,25 +125,21 @@ describe("GenerativeA11yProvider", () => {
     };
     expect(() =>
       renderToString(
-        <GenerativeA11yProvider
+        <A11yProvider
           runtime={runtime}
           preferenceStore={store}
-          dom={false}
+          delivery={false}
         >
           <span />
-        </GenerativeA11yProvider>,
+        </A11yProvider>,
       ),
     ).not.toThrow();
     runtime.dispose();
 
     const view = render(
-      <GenerativeA11yProvider
-        preset="verbose"
-        preferenceStore={store}
-        dom={false}
-      >
+      <A11yProvider preset="verbose" preferenceStore={store} delivery={false}>
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(view.container.querySelector("span")).toBeTruthy();
     view.unmount();
@@ -154,32 +148,32 @@ describe("GenerativeA11yProvider", () => {
   it("creates a runtime and exposes a stable context", () => {
     const values: unknown[] = [];
     function Probe() {
-      const value = useGenerativeA11y();
+      const value = useA11y();
       values.push(value);
       return <span>{value.runtime.getPolicy().text.strategy}</span>;
     }
     const view = render(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <Probe />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     view.rerender(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <Probe />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(screen.getByText("sentence")).toBeTruthy();
     expect(values[0]).toBe(values[1]);
   });
 
   it("uses but never disposes an external runtime", async () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
     const dispose = vi.spyOn(runtime, "dispose");
-    const { result, unmount } = renderHook(() => useGenerativeA11yRuntime(), {
+    const { result, unmount } = renderHook(() => useRuntime(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider runtime={runtime} dom={false}>
+        <A11yProvider runtime={runtime} delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current).toBe(runtime);
@@ -190,16 +184,16 @@ describe("GenerativeA11yProvider", () => {
   });
 
   it("does not dispose an owned runtime during a Strict Mode probe", async () => {
-    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    let runtime: ReturnType<typeof useRuntime> | undefined;
     function Probe() {
-      runtime = useGenerativeA11yRuntime();
+      runtime = useRuntime();
       return null;
     }
     const view = render(
       <StrictMode>
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </StrictMode>,
     );
     await flushCleanup();
@@ -214,16 +208,16 @@ describe("GenerativeA11yProvider", () => {
   });
 
   it("disposes owned attention and preference stores after a real unmount", async () => {
-    let context: ReturnType<typeof useGenerativeA11y> | undefined;
+    let context: ReturnType<typeof useA11y> | undefined;
     function Probe() {
-      context = useGenerativeA11y();
+      context = useA11y();
       return null;
     }
     const view = render(
       <StrictMode>
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </StrictMode>,
     );
     await flushCleanup();
@@ -244,18 +238,18 @@ describe("GenerativeA11yProvider", () => {
   });
 
   it("rejects changing runtime identity without a keyed remount", () => {
-    const first = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const second = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const first = createRuntime({ onAnnouncement: () => undefined });
+    const second = createRuntime({ onAnnouncement: () => undefined });
     const view = render(
-      <GenerativeA11yProvider runtime={first} dom={false}>
+      <A11yProvider runtime={first} delivery={false}>
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(() =>
       view.rerender(
-        <GenerativeA11yProvider runtime={second} dom={false}>
+        <A11yProvider runtime={second} delivery={false}>
           <span />
-        </GenerativeA11yProvider>,
+        </A11yProvider>,
       ),
     ).toThrow("runtime cannot change");
     first.dispose();
@@ -264,24 +258,24 @@ describe("GenerativeA11yProvider", () => {
 
   it("keeps the provider outside a disconnected Activity boundary", async () => {
     if (!Activity) return;
-    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    let runtime: ReturnType<typeof useRuntime> | undefined;
     function Probe() {
-      runtime = useGenerativeA11yRuntime();
+      runtime = useRuntime();
       return null;
     }
     const view = render(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <Activity mode="visible">
           <Probe />
         </Activity>
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     view.rerender(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <Activity mode="hidden">
           <Probe />
         </Activity>
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     await flushCleanup();
     expect(() =>
@@ -291,30 +285,30 @@ describe("GenerativeA11yProvider", () => {
 
   it("restarts owned resources when Activity hides and shows the provider", async () => {
     if (!Activity) return;
-    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    let runtime: ReturnType<typeof useRuntime> | undefined;
     function Probe() {
-      runtime = useGenerativeA11yRuntime();
+      runtime = useRuntime();
       return null;
     }
     const view = render(
       <Activity mode="visible">
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </Activity>,
     );
     view.rerender(
       <Activity mode="hidden">
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </Activity>,
     );
     view.rerender(
       <Activity mode="visible">
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </Activity>,
     );
     await flushCleanup();
@@ -324,20 +318,20 @@ describe("GenerativeA11yProvider", () => {
   });
 
   it("supports isolated nested providers and nearest context", () => {
-    const outer = createGenerativeA11y({ onAnnouncement: () => undefined });
-    const inner = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const outer = createRuntime({ onAnnouncement: () => undefined });
+    const inner = createRuntime({ onAnnouncement: () => undefined });
     const seen: unknown[] = [];
     function Probe() {
-      seen.push(useGenerativeA11yRuntime());
+      seen.push(useRuntime());
       return null;
     }
     render(
-      <GenerativeA11yProvider runtime={outer} dom={false}>
+      <A11yProvider runtime={outer} delivery={false}>
         <Probe />
-        <GenerativeA11yProvider runtime={inner} dom={false}>
+        <A11yProvider runtime={inner} delivery={false}>
           <Probe />
-        </GenerativeA11yProvider>
-      </GenerativeA11yProvider>,
+        </A11yProvider>
+      </A11yProvider>,
     );
     expect(seen).toEqual([outer, inner]);
     outer.dispose();
@@ -346,20 +340,20 @@ describe("GenerativeA11yProvider", () => {
 
   it("captures initial construction and DOM configuration", () => {
     const view = render(
-      <GenerativeA11yProvider preset="minimal" dom={false}>
+      <A11yProvider preset="minimal" delivery={false}>
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     view.rerender(
-      <GenerativeA11yProvider preset="verbose">
+      <A11yProvider preset="verbose">
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(document.querySelector("[aria-live]")).toBeNull();
   });
 
   it("rolls back transactional startup when a managed store fails", () => {
-    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    let runtime: ReturnType<typeof useRuntime> | undefined;
     const preferenceOptions = {} as PreferenceStoreOptions;
     Object.defineProperty(preferenceOptions, "persistence", {
       enumerable: true,
@@ -372,14 +366,14 @@ describe("GenerativeA11yProvider", () => {
     const windowAdded = vi.spyOn(window, "addEventListener");
     const windowRemoved = vi.spyOn(window, "removeEventListener");
     function Probe() {
-      runtime = useGenerativeA11yRuntime();
+      runtime = useRuntime();
       return null;
     }
     expect(() =>
       render(
-        <GenerativeA11yProvider preferences={preferenceOptions}>
+        <A11yProvider preferences={preferenceOptions}>
           <Probe />
-        </GenerativeA11yProvider>,
+        </A11yProvider>,
       ),
     ).toThrow("startup failed");
     const observedEvents = new Set(["visibilitychange", "focusin", "focusout"]);
@@ -409,14 +403,14 @@ describe("GenerativeA11yProvider", () => {
 
   it("throws clear errors for every hook outside a provider", () => {
     for (const hook of [
-      useGenerativeA11y,
-      useGenerativeA11yRuntime,
-      useGenerativeA11yAttention,
-      useGenerativeA11yBindings,
-      useGenerativeA11yPreferences,
+      useA11y,
+      useRuntime,
+      useAttention,
+      useAttentionRefs,
+      usePreferences,
     ]) {
       expect(() => renderHook(() => hook())).toThrow(
-        "must be used within GenerativeA11yProvider",
+        "must be used within A11yProvider",
       );
     }
   });
@@ -427,9 +421,9 @@ describe("DOM delivery", () => {
     const host = document.createElement("section");
     document.body.append(host);
     const view = render(
-      <GenerativeA11yProvider>
+      <A11yProvider>
         <span>Host UI</span>
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
       { container: host },
     );
 
@@ -440,9 +434,9 @@ describe("DOM delivery", () => {
 
   it("server-renders stable hidden regions without announcements", () => {
     const html = renderToString(
-      <GenerativeA11yProvider>
+      <A11yProvider>
         <main>Host UI</main>
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('aria-live="assertive"');
@@ -455,16 +449,16 @@ describe("DOM delivery", () => {
   it("pre-mounts regions before a child layout effect dispatches", async () => {
     const clock = new ManualClock();
     function Dispatch() {
-      const runtime = useGenerativeA11yRuntime();
+      const runtime = useRuntime();
       useLayoutEffect(() => {
         runtime.dispatch({ type: "response.started", responseId: "r" });
       }, [runtime]);
       return null;
     }
     render(
-      <GenerativeA11yProvider clock={clock} preset="verbose">
+      <A11yProvider clock={clock} preset="verbose">
         <Dispatch />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     await act(async () => {
       clock.runUntilIdle();
@@ -476,20 +470,20 @@ describe("DOM delivery", () => {
 
   it("does not render or install regions when DOM delivery is disabled", () => {
     render(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <main>Host UI</main>
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(document.querySelector("[aria-live]")).toBeNull();
   });
 
   it("hydrates without duplicate bindings or announcements", async () => {
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({ preset: "verbose", clock });
+    const runtime = createRuntime({ preset: "verbose", clock });
     const app = (
-      <GenerativeA11yProvider runtime={runtime}>
+      <A11yProvider runtime={runtime}>
         <main>Host UI</main>
-      </GenerativeA11yProvider>
+      </A11yProvider>
     );
     const container = document.createElement("div");
     container.innerHTML = renderToString(app);
@@ -513,16 +507,13 @@ describe("DOM delivery", () => {
 
   it("keeps one active binding through Strict Mode probes and rerenders", () => {
     const clock = new ManualClock();
-    const runtime = createGenerativeA11y({ preset: "verbose", clock });
+    const runtime = createRuntime({ preset: "verbose", clock });
     const diagnostics = vi.fn();
     const app = (label: string) => (
       <StrictMode>
-        <GenerativeA11yProvider
-          runtime={runtime}
-          dom={{ onDiagnostic: diagnostics }}
-        >
+        <A11yProvider runtime={runtime} delivery={{ onDelivery: diagnostics }}>
           <main>{label}</main>
-        </GenerativeA11yProvider>
+        </A11yProvider>
       </StrictMode>
     );
     const view = render(app("first"));
@@ -542,25 +533,25 @@ describe("DOM delivery", () => {
   it("isolates live regions for multiple runtimes", () => {
     const firstClock = new ManualClock();
     const secondClock = new ManualClock();
-    const first = createGenerativeA11y({
+    const first = createRuntime({
       preset: "verbose",
       clock: firstClock,
     });
-    const second = createGenerativeA11y({
+    const second = createRuntime({
       preset: "verbose",
       clock: secondClock,
     });
     render(
       <>
         <section data-testid="first-provider">
-          <GenerativeA11yProvider runtime={first}>
+          <A11yProvider runtime={first}>
             <span />
-          </GenerativeA11yProvider>
+          </A11yProvider>
         </section>
         <section data-testid="second-provider">
-          <GenerativeA11yProvider runtime={second}>
+          <A11yProvider runtime={second}>
             <span />
-          </GenerativeA11yProvider>
+          </A11yProvider>
         </section>
       </>,
     );
@@ -594,14 +585,14 @@ describe("preferences", () => {
         return descriptor;
       },
     });
-    const { result } = renderHook(() => useGenerativeA11yRuntime(), {
+    const { result } = renderHook(() => useRuntime(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider
+        <A11yProvider
           preferences={{ defaultValue: preference }}
-          dom={false}
+          delivery={false}
         >
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current.getPolicy().text.strategy).toBe("completion");
@@ -609,13 +600,13 @@ describe("preferences", () => {
   });
 
   it("observes defaults and updates without resetting the active runtime", () => {
-    let runtime: ReturnType<typeof useGenerativeA11yRuntime> | undefined;
+    let runtime: ReturnType<typeof useRuntime> | undefined;
     const { result } = renderHook(
       () => {
-        runtime = useGenerativeA11yRuntime();
-        return useGenerativeA11yPreferences();
+        runtime = useRuntime();
+        return usePreferences();
       },
-      { wrapper: GenerativeA11yProvider },
+      { wrapper: A11yProvider },
     );
     expect(result.current.preferences.preset).toBe("balanced");
     const before = runtime;
@@ -633,7 +624,7 @@ describe("preferences", () => {
 
   it("validates updates made before the owned store installs", () => {
     function InvalidUpdate() {
-      const { setPreferences } = useGenerativeA11yPreferences();
+      const { setPreferences } = usePreferences();
       useLayoutEffect(() => {
         setPreferences({ version: 1, preset: "invalid" } as never);
       }, [setPreferences]);
@@ -641,9 +632,9 @@ describe("preferences", () => {
     }
     expect(() =>
       render(
-        <GenerativeA11yProvider dom={false}>
+        <A11yProvider delivery={false}>
           <InvalidUpdate />
-        </GenerativeA11yProvider>,
+        </A11yProvider>,
       ),
     ).toThrow("Invalid preference preset");
   });
@@ -654,14 +645,14 @@ describe("preferences", () => {
     });
     const { result, unmount } = renderHook(
       () => ({
-        policy: useGenerativeA11yRuntime().getPolicy(),
-        preferences: useGenerativeA11yPreferences(),
+        policy: useRuntime().getPolicy(),
+        preferences: usePreferences(),
       }),
       {
         wrapper: ({ children }: { children: ReactNode }) => (
-          <GenerativeA11yProvider preferenceStore={store} dom={false}>
+          <A11yProvider preferenceStore={store} delivery={false}>
             {children}
-          </GenerativeA11yProvider>
+          </A11yProvider>
         ),
       },
     );
@@ -693,11 +684,11 @@ describe("preferences", () => {
       setPreferences: () => undefined,
       dispose: () => undefined,
     };
-    const { result } = renderHook(() => useGenerativeA11yRuntime(), {
+    const { result } = renderHook(() => useRuntime(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider preferenceStore={store} dom={false}>
+        <A11yProvider preferenceStore={store} delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(getSnapshot).toHaveBeenCalled();
@@ -708,15 +699,11 @@ describe("preferences", () => {
     const store = createPreferenceStore({
       defaultValue: { version: 1, preset: "completion-only" },
     });
-    const { result } = renderHook(() => useGenerativeA11yRuntime(), {
+    const { result } = renderHook(() => useRuntime(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider
-          preferenceStore={store}
-          preset="verbose"
-          dom={false}
-        >
+        <A11yProvider preferenceStore={store} preset="verbose" delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current.getPolicy().announceResponseStarted).toBe(true);
@@ -732,17 +719,17 @@ describe("preferences", () => {
     };
     const { result } = renderHook(
       () => ({
-        policy: useGenerativeA11yRuntime().getPolicy(),
-        preference: useGenerativeA11yPreferences(),
+        policy: useRuntime().getPolicy(),
+        preference: usePreferences(),
       }),
       {
         wrapper: ({ children }: { children: ReactNode }) => (
-          <GenerativeA11yProvider
+          <A11yProvider
             preferences={{ persistence: { key: "test", storage } }}
-            dom={false}
+            delivery={false}
           >
             {children}
-          </GenerativeA11yProvider>
+          </A11yProvider>
         ),
       },
     );
@@ -769,9 +756,9 @@ describe("preferences", () => {
       ),
       setItem: vi.fn(),
     };
-    let current: ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    let current: ReturnType<typeof usePreferences> | undefined;
     function SetBeforePassiveStart() {
-      current = useGenerativeA11yPreferences();
+      current = usePreferences();
       useLayoutEffect(() => {
         current?.setPreferences({
           version: 1,
@@ -783,12 +770,12 @@ describe("preferences", () => {
       return null;
     }
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         preferences={{ persistence: { key: "pre-start", storage } }}
-        dom={false}
+        delivery={false}
       >
         <SetBeforePassiveStart />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(current?.preferences.preset).toBe("minimal");
     expect(storage.setItem).toHaveBeenCalledWith(
@@ -812,17 +799,17 @@ describe("preferences", () => {
       }),
     };
     const diagnostics = vi.fn();
-    const { result } = renderHook(() => useGenerativeA11yPreferences(), {
+    const { result } = renderHook(() => usePreferences(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider
+        <A11yProvider
           preferences={{
             persistence: { key: "test", storage },
             onDiagnostic: diagnostics,
           }}
-          dom={false}
+          delivery={false}
         >
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     act(() =>
@@ -838,13 +825,13 @@ describe("preferences", () => {
     const preferenceDispose = vi.spyOn(preferenceStore, "dispose");
     const attentionDispose = vi.spyOn(attentionStore, "dispose");
     const view = render(
-      <GenerativeA11yProvider
+      <A11yProvider
         preferenceStore={preferenceStore}
         attentionStore={attentionStore}
-        dom={false}
+        delivery={false}
       >
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     view.unmount();
     await flushCleanup();
@@ -917,8 +904,8 @@ describe("attention and bindings", () => {
     const attentionStore = new ReceiverAttentionStore();
     const preferenceStore = new ReceiverPreferenceStore();
     function Probe() {
-      const attention = useGenerativeA11yAttention();
-      const preferences = useGenerativeA11yPreferences();
+      const attention = useAttention();
+      const preferences = usePreferences();
       return (
         <output>
           {attention.visibility}:{preferences.preferences.preset}
@@ -926,13 +913,13 @@ describe("attention and bindings", () => {
       );
     }
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         attentionStore={attentionStore}
         preferenceStore={preferenceStore}
-        dom={false}
+        delivery={false}
       >
         <Probe />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(screen.getByText("visible:completion-only")).toBeTruthy();
   });
@@ -945,13 +932,13 @@ describe("attention and bindings", () => {
       subscribe: vi.fn(() => () => undefined),
     };
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         preferences={{
           persistence: { key: "events-only", events: suppliedEvents },
         }}
       >
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
       { container, baseElement: realmDocument.body },
     );
     expect(realmStorage.getItem).toHaveBeenCalledWith("events-only");
@@ -969,20 +956,19 @@ describe("attention and bindings", () => {
       setItem: vi.fn(),
     };
     const realmEvents = vi.spyOn(realmWindow, "addEventListener");
-    let preferenceSnapshot:
-      ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    let preferenceSnapshot: ReturnType<typeof usePreferences> | undefined;
     function Probe() {
-      preferenceSnapshot = useGenerativeA11yPreferences();
+      preferenceSnapshot = usePreferences();
       return null;
     }
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         preferences={{
           persistence: { key: "storage-only", storage: suppliedStorage },
         }}
       >
         <Probe />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
       { container, baseElement: realmDocument.body },
     );
     expect(suppliedStorage.getItem).toHaveBeenCalledWith("storage-only");
@@ -1014,7 +1000,7 @@ describe("attention and bindings", () => {
     };
     const realmEvents = vi.spyOn(realmWindow, "addEventListener");
     render(
-      <GenerativeA11yProvider
+      <A11yProvider
         preferences={{
           persistence: {
             key: "both",
@@ -1024,7 +1010,7 @@ describe("attention and bindings", () => {
         }}
       >
         <span />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
       { container, baseElement: realmDocument.body },
     );
     expect(suppliedStorage.getItem).toHaveBeenCalledWith("both");
@@ -1060,20 +1046,19 @@ describe("attention and bindings", () => {
     });
     const realmEvents = vi.spyOn(realmWindow, "addEventListener");
     const parentEvents = vi.spyOn(window, "addEventListener");
-    let snapshot: ReturnType<typeof useGenerativeA11yAttention> | undefined;
-    let preferenceSnapshot:
-      ReturnType<typeof useGenerativeA11yPreferences> | undefined;
+    let snapshot: ReturnType<typeof useAttention> | undefined;
+    let preferenceSnapshot: ReturnType<typeof usePreferences> | undefined;
     function Probe() {
-      snapshot = useGenerativeA11yAttention();
-      preferenceSnapshot = useGenerativeA11yPreferences();
+      snapshot = useAttention();
+      preferenceSnapshot = usePreferences();
       return null;
     }
     const container = realmDocument.createElement("div");
     realmDocument.body.append(container);
     render(
-      <GenerativeA11yProvider preferences={{ persistence: { key: "realm" } }}>
+      <A11yProvider preferences={{ persistence: { key: "realm" } }}>
         <Probe />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
       { container, baseElement: realmDocument.body },
     );
     expect(snapshot?.visibility).toBe("visible");
@@ -1100,11 +1085,11 @@ describe("attention and bindings", () => {
   });
 
   it("keeps observation inert when attention is disabled", () => {
-    const { result } = renderHook(() => useGenerativeA11yAttention(), {
+    const { result } = renderHook(() => useAttention(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider attention={false} dom={false}>
+        <A11yProvider attention={false} delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current).toEqual({
@@ -1118,11 +1103,11 @@ describe("attention and bindings", () => {
 
   it("forwards attention snapshots through useSyncExternalStore", () => {
     const store = createAttentionStore({ document });
-    const { result } = renderHook(() => useGenerativeA11yAttention(), {
+    const { result } = renderHook(() => useAttention(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider attentionStore={store} dom={false}>
+        <A11yProvider attentionStore={store} delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current.visibility).toBe("visible");
@@ -1142,11 +1127,11 @@ describe("attention and bindings", () => {
       configurable: true,
       value: "hidden",
     });
-    const { result } = renderHook(() => useGenerativeA11yAttention(), {
+    const { result } = renderHook(() => useAttention(), {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <GenerativeA11yProvider attention={{ document }} dom={false}>
+        <A11yProvider attention={{ document }} delivery={false}>
           {children}
-        </GenerativeA11yProvider>
+        </A11yProvider>
       ),
     });
     expect(result.current.visibility).toBe("hidden");
@@ -1156,34 +1141,34 @@ describe("attention and bindings", () => {
   it("registers, replaces, and unregisters binding refs", () => {
     const store = createAttentionStore({ document });
     function Fixture({ alternate = false }: { alternate?: boolean }) {
-      const bindings = useGenerativeA11yBindings();
-      const attention = useGenerativeA11yAttention();
+      const bindings = useAttentionRefs();
+      const attention = useAttention();
       return (
         <>
           {alternate ? (
-            <textarea data-testid="alternate" {...bindings.composerProps} />
+            <textarea data-testid="alternate" ref={bindings.composerRef} />
           ) : (
-            <textarea data-testid="composer" {...bindings.composerProps} />
+            <textarea data-testid="composer" ref={bindings.composerRef} />
           )}
-          <div {...bindings.conversationProps}>
+          <div ref={bindings.conversationRef}>
             <span data-testid="history" />
           </div>
-          <div {...bindings.newestResponseProps} />
+          <div ref={bindings.newestResponseRef} />
           <output>{attention.focusArea}</output>
         </>
       );
     }
     const view = render(
-      <GenerativeA11yProvider attentionStore={store} dom={false}>
+      <A11yProvider attentionStore={store} delivery={false}>
         <Fixture />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     act(() => screen.getByTestId("composer").focus());
     expect(screen.getByText("composer")).toBeTruthy();
     view.rerender(
-      <GenerativeA11yProvider attentionStore={store} dom={false}>
+      <A11yProvider attentionStore={store} delivery={false}>
         <Fixture alternate />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     act(() => screen.getByTestId("alternate").focus());
     expect(screen.getByText("composer")).toBeTruthy();
@@ -1193,19 +1178,19 @@ describe("attention and bindings", () => {
 
   it("replays binding refs registered before owned attention installation", () => {
     function Fixture() {
-      const bindings = useGenerativeA11yBindings();
-      const attention = useGenerativeA11yAttention();
+      const bindings = useAttentionRefs();
+      const attention = useAttention();
       return (
         <>
-          <textarea data-testid="owned-composer" {...bindings.composerProps} />
+          <textarea data-testid="owned-composer" ref={bindings.composerRef} />
           <output>{attention.focusArea}</output>
         </>
       );
     }
     render(
-      <GenerativeA11yProvider attention={{ document }} dom={false}>
+      <A11yProvider attention={{ document }} delivery={false}>
         <Fixture />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     const composer = screen.getByTestId("owned-composer");
     act(() => composer.focus());
@@ -1216,13 +1201,13 @@ describe("attention and bindings", () => {
     const before = document.activeElement;
     const focus = vi.spyOn(HTMLElement.prototype, "focus");
     function Fixture() {
-      const bindings = useGenerativeA11yBindings();
-      return <textarea {...bindings.composerProps} />;
+      const bindings = useAttentionRefs();
+      return <textarea ref={bindings.composerRef} />;
     }
     render(
-      <GenerativeA11yProvider dom={false}>
+      <A11yProvider delivery={false}>
         <Fixture />
-      </GenerativeA11yProvider>,
+      </A11yProvider>,
     );
     expect(document.activeElement).toBe(before);
     expect(focus).not.toHaveBeenCalled();

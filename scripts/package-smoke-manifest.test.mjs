@@ -42,6 +42,14 @@ describe("isolated packed consumer scenarios", () => {
         internalPackages: [],
       }),
       expect.objectContaining({
+        id: "core-messages",
+        packageName: "@generative-a11y/core",
+        specifier: "@generative-a11y/core/messages",
+        expectedExport: "normalizeAdapterCopy",
+        fixtures: [],
+        internalPackages: [],
+      }),
+      expect.objectContaining({
         id: "core-testing",
         packageName: "@generative-a11y/core",
         specifier: "@generative-a11y/core/testing",
@@ -58,7 +66,7 @@ describe("isolated packed consumer scenarios", () => {
       expect.objectContaining({
         id: "devtools",
         specifier: "@generative-a11y/devtools",
-        expectedExport: "createDevtoolsStore",
+        expectedExport: "createStore",
         fixtures: [],
         internalPackages: ["@generative-a11y/core"],
       }),

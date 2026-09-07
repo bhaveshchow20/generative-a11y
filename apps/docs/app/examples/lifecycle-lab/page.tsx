@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from "fumadocs-ui/page";
+import { DocsBody, DocsPage } from "fumadocs-ui/page";
+import { DocumentationHeader } from "../../../components/docs/docs-header";
 
 import { AttentionLab } from "../../../components/attention-lab";
 import { LifecycleLab } from "../../../components/lifecycle-lab";
@@ -32,11 +28,10 @@ export default function LifecycleLabPage() {
         })}
       />
       <DocsPage toc={[]} full>
-        <DocsTitle>See the library at work</DocsTitle>
-        <DocsDescription>
-          Run response, tool, retry, and approval scenarios through the real
-          runtime and DOM packages.
-        </DocsDescription>
+        <DocumentationHeader
+          title="See the library at work"
+          description="Run response, tool, retry, and approval scenarios through the real runtime and DOM packages."
+        />
         <DocsBody>
           <p>
             Follow each app event, runtime update, and browser result. The

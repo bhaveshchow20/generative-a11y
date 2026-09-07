@@ -29,31 +29,63 @@ callbacks are present when AI SDK creates the chat. Then observe the documented
 public snapshot returned from `useChat()`.
 
 ```tsx
+"use client";
+
+import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import type { GenerativeA11yRuntime } from "@generative-a11y/core";
+import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
 
-function Chat({
-  runtime,
-}: {
-  runtime: Pick<GenerativeA11yRuntime, "dispatch">;
-}) {
-  const accessibility = useChatAccessibility({
-    runtime,
-    scopeId: "support-thread",
-    onFinish: hostOnFinish,
-    onError: hostOnError,
-  });
-  const chat = useChat({
-    id: "support-thread",
-    ...accessibility.chatCallbacks,
-  });
+function Chat() {
+  const runtime = useRuntime();
+  const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
+  const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
+  const [input, setInput] = useState("");
 
-  // Render the existing host interface unchanged.
+  // This is example host UI. Keep your existing message list and composer.
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!input.trim()) return;
+        void chat.sendMessage({ text: input });
+        setInput("");
+      }}
+    >
+      {chat.messages.map((message) => (
+        <p key={message.id}>
+          {message.parts
+            .map((part) => (part.type === "text" ? part.text : ""))
+            .join("")}
+        </p>
+      ))}
+      <label>
+        Message
+        <input
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={chat.status === "streaming" || chat.status === "submitted"}
+      >
+        Send
+      </button>
+    </form>
+  );
+}
+
+export function App() {
+  return (
+    <A11yProvider>
+      <Chat />
+    </A11yProvider>
+  );
 }
 ```
 
@@ -65,10 +97,10 @@ disposes the borrowed integration. Keep only observer-owning `runtime`,
 `onError`, and the optional label mapper may change identity across renders; the
 integration always uses their latest values.
 
-For a non-React integration, use `createObserver()` and `composeChatCallbacks()`
-from the root entry before initializing the public AI SDK chat. `runtime` is a
-borrowed `Pick<GenerativeA11yRuntime, "dispatch">`; disposing an observer never
-disposes it.
+For a non-React integration, use `createChatObserver()` and
+`composeChatCallbacks()` from the root entry before initializing the public AI
+SDK chat. `runtime` is a borrowed `Pick<Runtime, "dispatch">`; disposing an
+observer never disposes it.
 
 ## Event mapping and limits
 
@@ -93,9 +125,9 @@ prior request event.
 
 `status: "ready"`, `status: "error"`, and a call to `regenerate()` are not
 terminal or retry evidence. Retry fidelity is therefore `unavailable` in frozen
-`CHAT_ADAPTER_METADATA`; this package exports no retry wrapper. Disconnect
-recovery is reported only after a later successful `onFinish`, so connection
-fidelity is `inferred`.
+`adapterInfo`; this package exports no retry wrapper. Disconnect recovery is
+reported only after a later successful `onFinish`, so connection fidelity is
+`inferred`.
 
 The public chat snapshot does not expose stable run, step, or hierarchy
 lifecycles, so those fidelity fields remain `unavailable` rather than inferred.
@@ -133,19 +165,20 @@ assistive-technology speech.
 
 ## Host-owned localized copy
 
-The binding/observer accepts optional `copy: AdapterAnnouncementCopy` from
-`@generative-a11y/core`. Supply a complete object with `locale`, `toolLabel`,
-`approvalRequested`, `approvalResolved` (approved/rejected/cancelled),
-`inputRequested`, and `inputResolved` (submitted/cancelled). It is validated and
-copied at construction; each adapter uses only copy for events it already
-observes. Copy-bearing events carry its locale; response text is never assigned
-a language from this option. No lifecycle fidelity changes.
+The binding/observer accepts optional `copy: AdapterCopy` from
+`@generative-a11y/core/messages`. Supply a complete object with `locale`,
+`toolLabel`, `approvalRequested`, `approvalResolved`
+(approved/rejected/cancelled), `inputRequested`, and `inputResolved`
+(submitted/cancelled). It is validated and copied at construction; each adapter
+uses only copy for events it already observes. Copy-bearing events carry its
+locale; response text is never assigned a language from this option. No
+lifecycle fidelity changes.
 
-Pair this with core's `announcementCatalog` for generated notices. Reuse your
-existing i18n system; no translation engine is added. Copy strings are nonempty
-and at most 4,096 UTF-16 code units; locale is a valid language tag of at
-most 128. Invalid configuration throws before subscribing. Omitted copy
-preserves existing generic English labels.
+Pair this with core's `messages` for generated notices. Reuse your existing i18n
+system; no translation engine is added. Copy strings are nonempty and at most
+4,096 UTF-16 code units; locale is a valid language tag of at most 128. Invalid
+configuration throws before subscribing. Omitted copy preserves existing generic
+English labels.
 
 See the
 [complete localization guide](https://generativea11y.com/docs/localized-announcements)
@@ -156,3 +189,91 @@ example.
 language. `useChatAccessibility` forwards `copy`, captured when its observer is
 created. Change runtime/scope or remount intentionally to replace it; callbacks
 remain current without recreating the observer on ordinary renders.
+
+The example uses your existing AI SDK `/api/chat` endpoint. `A11yProvider` owns
+the runtime and browser delivery; `useChatAccessibility` owns only its observer.
+Both clean up on unmount. Keep your existing transport and UI. Add host
+`onFinish`/`onError` callbacks to `useChatAccessibility` when needed; it
+composes them with its own callbacks. Do not overwrite `chatCallbacks` after
+spreading them into `useChat`.
+
+## Non-React observer API
+
+`createChatObserver(options)` returns a `ChatObserver` and never owns the core
+runtime. `ChatObserverOptions` requires a non-empty `scopeId` and a runtime with
+`dispatch`. Optional `copy` comes from `core/messages`; `getToolLabel` receives
+`ToolLabelContext` (`toolCallId`, `toolName`, and optional-value `title`). Its
+safe label overrides the generic copy. `maxTrackedEntities` defaults to 1,000
+and must be a positive safe integer.
+
+| Method                     | Contract                                                                                                                                                                                                                                      |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `observe(snapshot)`        | Accepts `ChatSnapshot`: public `messages`, `status`, and `error`. The first valid snapshot establishes a silent baseline. Later append-only parts produce events; it does not subscribe to a framework for you.                               |
+| `finish(message, outcome)` | Accepts an SDK assistant `UIMessage` and `ChatFinishOutcome` with `isAbort`, `isDisconnect`, and `isError`. Disconnect emits connection loss rather than completion; error precedes abort, and ordinary finish completes the active response. |
+| `failActiveResponse()`     | Reports failure for the last observed active response. No active response means no output; raw error text is never copied.                                                                                                                    |
+| `dispose()`                | Clears observer state and makes later observations/callbacks inert. It does not dispose the runtime.                                                                                                                                          |
+
+`composeChatCallbacks({ observer, onFinish?, onError? })` accepts
+`ComposeChatCallbacksOptions` and returns the SDK-compatible callbacks. It calls
+the observer first, then the host callback in a `finally` block so host handling
+still runs if observer dispatch throws. Install these callbacks before creating
+the SDK chat; observe its public snapshots separately.
+
+After identity capacity is exhausted, **all later snapshot and terminal-callback
+lifecycle events are suppressed**, including known identities. Create a fresh
+observer at an intentional session boundary. A non-prefix text rewrite is also
+suppressed for that part until its message ID changes. These conservative limits
+prevent guessed lifecycle events.
+
+The following complete deterministic example exercises the public observer
+contract without a React component or backend. In a live application, use the
+SDK's real snapshots and callbacks, a browser delivery binding, and cleanup when
+the surface is removed. Do not recreate the adapter's private scoped IDs.
+
+```ts
+import {
+  createRuntime,
+  ManualClock,
+  type AnnouncementIntent,
+} from "@generative-a11y/core";
+import {
+  createChatObserver,
+  composeChatCallbacks,
+} from "@generative-a11y/ai-sdk";
+import type { UIMessage } from "ai";
+
+// A deterministic demonstration of the non-React API, using public SDK data.
+export const announcements: AnnouncementIntent[] = [];
+const clock = new ManualClock();
+const runtime = createRuntime({
+  clock,
+  onAnnouncement: (intent) => announcements.push(intent),
+});
+const observer = createChatObserver({ runtime, scopeId: "support" });
+const callbacks = composeChatCallbacks({ observer });
+
+// Supply the initial public snapshot first; historical content is not replayed.
+observer.observe({ messages: [], status: "ready", error: undefined });
+const message: UIMessage = {
+  id: "assistant-1",
+  role: "assistant",
+  parts: [{ type: "text", text: "Your answer is ready." }],
+};
+observer.observe({
+  messages: [message],
+  status: "streaming",
+  error: undefined,
+});
+// In an application, pass callbacks to the SDK when constructing its chat.
+callbacks.onFinish({
+  message,
+  messages: [message],
+  isAbort: false,
+  isDisconnect: false,
+  isError: false,
+  finishReason: "stop",
+});
+clock.runUntilIdle();
+observer.dispose();
+runtime.dispose();
+```

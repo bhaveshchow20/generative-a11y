@@ -1,16 +1,16 @@
 "use client";
 
 import {
-  createGenerativeA11y,
+  createRuntime,
   type AnnouncementDiagnostic,
   type AnnouncementIntent,
-  type GenerativeA11yEvent,
-  type GenerativeA11yRuntime,
+  type RuntimeEvent,
+  type Runtime,
 } from "@generative-a11y/core";
 import {
-  connectRuntimeToDOM,
-  type DOMDeliveryResult,
-  type DOMRuntimeBinding,
+  bindRuntime,
+  type DeliveryResult,
+  type RuntimeBinding,
 } from "@generative-a11y/dom";
 import {
   useCallback,
@@ -27,7 +27,7 @@ import { createScenarioSteps, type ScenarioName } from "../lib/scenarios";
 interface ObservedEvent {
   readonly index: number;
   readonly at: number;
-  readonly event: GenerativeA11yEvent;
+  readonly event: RuntimeEvent;
   readonly label: string;
 }
 
@@ -47,7 +47,7 @@ export function LifecycleLab() {
   const [events, setEvents] = useState<ObservedEvent[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
   const [diagnostics, setDiagnostics] = useState<AnnouncementDiagnostic[]>([]);
-  const [deliveries, setDeliveries] = useState<DOMDeliveryResult[]>([]);
+  const [deliveries, setDeliveries] = useState<DeliveryResult[]>([]);
   const [visibleText, setVisibleText] = useState("");
   const [toolState, setToolState] = useState("Idle");
   const [running, setRunning] = useState(false);
@@ -57,8 +57,8 @@ export function LifecycleLab() {
     getClientSnapshot,
     getServerSnapshot,
   );
-  const runtimeRef = useRef<GenerativeA11yRuntime | null>(null);
-  const bindingRef = useRef<DOMRuntimeBinding | null>(null);
+  const runtimeRef = useRef<Runtime | null>(null);
+  const bindingRef = useRef<RuntimeBinding | null>(null);
   const timersRef = useRef<number[]>([]);
   const eventIndexRef = useRef(0);
 
@@ -89,9 +89,9 @@ export function LifecycleLab() {
   }, [disposeSession]);
 
   function createSession(localized = false) {
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       preset: "verbose",
-      ...(localized ? {announcementCatalog: frenchCatalog} : {}),
+      ...(localized ? {messages: frenchCatalog} : {}),
       policy: {
         text: { minimumCharacters: 1, maximumDelayMs: 0 },
         tools: { announceStartAfterMs: 0, announceProgress: true },
@@ -104,9 +104,9 @@ export function LifecycleLab() {
     runtime.subscribeAnnouncements((announcement) => {
       setAnnouncements((current) => [...current, announcement].slice(-10));
     });
-    const binding = connectRuntimeToDOM(runtime, {
+    const binding = bindRuntime(runtime, {
       mode: "live-region",
-      onDiagnostic(result) {
+      onDelivery(result) {
         setDeliveries((current) => [...current, result].slice(-10));
       },
     });
@@ -115,7 +115,7 @@ export function LifecycleLab() {
     return runtime;
   }
 
-  function updateHostState(event: GenerativeA11yEvent, appendedText?: string) {
+  function updateHostState(event: RuntimeEvent, appendedText?: string) {
     if (appendedText) setVisibleText((current) => current + appendedText);
     if (event.type === "tool.started") setToolState("Running");
     if (event.type === "tool.progress") {
@@ -135,8 +135,8 @@ export function LifecycleLab() {
   }
 
   function dispatchObserved(
-    runtime: GenerativeA11yRuntime,
-    event: GenerativeA11yEvent,
+    runtime: Runtime,
+    event: RuntimeEvent,
     label: string,
     at: number,
     appendedText?: string,
@@ -225,7 +225,7 @@ export function LifecycleLab() {
             {scenario.label}
           </button>
         ))}
-        <button type="button" onClick={() => runScenario("stream", true)} disabled={!interactive || running}>Stream with French notices</button>
+        <button type="button" onClick={() => runScenario("stream", true)} disabled={!interactive || running}>Try localized announcements</button>
         <button className="danger-control" type="button" onClick={stop} disabled={!interactive}>Stop response</button>
         <button className="quiet-control" type="button" onClick={reset} disabled={!interactive}>Reset</button>
       </div>
@@ -299,7 +299,7 @@ export function LifecycleLab() {
   );
 }
 
-function eventIdentity(event: GenerativeA11yEvent): string {
+function eventIdentity(event: RuntimeEvent): string {
   if ("responseId" in event) return `${event.responseId}${event.responseInstanceId ? ` / ${event.responseInstanceId}` : ""}`;
   if ("toolId" in event) return `${event.toolId}${event.toolInstanceId ? ` / ${event.toolInstanceId}` : ""}`;
   if ("interactionId" in event) return event.interactionId;

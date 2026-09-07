@@ -2,8 +2,8 @@ import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
   Clock,
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
+  RuntimeEvent,
+  Runtime,
   ManualClock,
 } from "./index.js";
 import {
@@ -14,7 +14,7 @@ import {
 
 export interface RecordedEvent {
   readonly at: number;
-  readonly event: GenerativeA11yEvent;
+  readonly event: RuntimeEvent;
 }
 
 export interface ReplayFixtureV1 {
@@ -25,14 +25,14 @@ export interface ReplayFixtureV1 {
 }
 
 export interface RuntimeRecording {
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly runtime: Pick<Runtime, "dispatch">;
   events(): readonly RecordedEvent[];
   fixture(): ReplayFixtureV1;
   clear(): void;
 }
 
 export interface RecordRuntimeOptions {
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly runtime: Pick<Runtime, "dispatch">;
   readonly clock: Pick<Clock, "now">;
 }
 
@@ -51,7 +51,7 @@ export interface TranscriptRecorder {
 
 type MatcherResult = { pass: boolean; message: () => string };
 
-export interface GenerativeA11yMatchers {
+export interface A11yMatchers {
   toHaveAnnouncementTranscript(
     expected: readonly Partial<AnnouncementIntent>[],
   ): void;
@@ -59,11 +59,11 @@ export interface GenerativeA11yMatchers {
   toHaveDiagnostic(expected: Partial<AnnouncementDiagnostic>): void;
 }
 
-export interface GenerativeA11yExpect {
-  (received: unknown): GenerativeA11yMatchers;
+export interface A11yExpect {
+  (received: unknown): A11yMatchers;
 }
 
-const EVENT_TYPES = new Set<GenerativeA11yEvent["type"]>([
+const EVENT_TYPES = new Set<RuntimeEvent["type"]>([
   "attention.changed",
   "attention.override",
   "response.started",
@@ -96,15 +96,15 @@ const EVENT_TYPES = new Set<GenerativeA11yEvent["type"]>([
   "citation.available",
 ]);
 
-function copyEvent(event: GenerativeA11yEvent): GenerativeA11yEvent {
-  return Object.freeze({ ...event }) as GenerativeA11yEvent;
+function copyEvent(event: RuntimeEvent): RuntimeEvent {
+  return Object.freeze({ ...event }) as RuntimeEvent;
 }
 
 function copyRecordedEvent(entry: RecordedEvent): RecordedEvent {
   return Object.freeze({ at: entry.at, event: copyEvent(entry.event) });
 }
 
-function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
+function validateEvent(event: unknown): asserts event is RuntimeEvent {
   if (!event || typeof event !== "object")
     throw new TypeError("Replay fixture event must be an object");
   const candidate = event as {
@@ -118,7 +118,7 @@ function validateEvent(event: unknown): asserts event is GenerativeA11yEvent {
   };
   if (
     typeof candidate.type !== "string" ||
-    !EVENT_TYPES.has(candidate.type as GenerativeA11yEvent["type"])
+    !EVENT_TYPES.has(candidate.type as RuntimeEvent["type"])
   )
     throw new TypeError("Replay fixture event has an unsupported type");
   if (
@@ -250,7 +250,7 @@ export function createReplayFixture(
 }
 
 export function replayEvents(
-  runtime: Pick<GenerativeA11yRuntime, "dispatch">,
+  runtime: Pick<Runtime, "dispatch">,
   clock: ManualClock,
   fixture: ReplayFixtureV1,
 ): void {
@@ -311,11 +311,11 @@ export function toHaveDiagnostic(
 
 export function installVitestMatchers(expect: {
   extend(matchers: Record<string, unknown>): void;
-}): GenerativeA11yExpect {
+}): A11yExpect {
   expect.extend({
     toHaveAnnouncementTranscript,
     toHaveAnnounced,
     toHaveDiagnostic,
   });
-  return expect as unknown as GenerativeA11yExpect;
+  return expect as unknown as A11yExpect;
 }

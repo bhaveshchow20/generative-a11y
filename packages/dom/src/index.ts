@@ -1,13 +1,10 @@
 export {
-  bindAttentionToRuntime,
-  type AttentionRuntimeBinding,
-  type AttentionRuntimeBindingOptions,
+  bindAttention,
+  type AttentionBinding,
+  type AttentionBindingOptions,
 } from "./attention-binding.js";
 
-import type {
-  AnnouncementIntent,
-  GenerativeA11yRuntime,
-} from "@generative-a11y/core";
+import type { AnnouncementIntent, Runtime } from "@generative-a11y/core";
 
 export {
   createAttentionStore,
@@ -51,14 +48,14 @@ export {
   type ToolVerbosity,
 } from "./preferences.js";
 
-export type DOMAnnouncementMode = "auto" | "aria-notify" | "live-region";
+export type DeliveryMode = "auto" | "live-region";
 
-export interface DOMLiveRegions {
+export interface LiveRegions {
   polite: HTMLElement;
   assertive: HTMLElement;
 }
 
-export interface DOMDeliveryResult {
+export interface DeliveryResult {
   status: "notified" | "mutated" | "unavailable" | "disposed";
   method: "aria-notify" | "live-region" | "none";
   channel: AnnouncementIntent["channel"];
@@ -80,27 +77,31 @@ export interface DOMDeliveryResult {
   error?: { name: string; message: string };
 }
 
-export interface DOMAnnouncerOptions {
+export interface AnnouncerOptions {
   document?: Document;
-  mode?: DOMAnnouncementMode;
-  regions?: DOMLiveRegions;
-  onDiagnostic?: (result: DOMDeliveryResult) => void;
+  mode?: DeliveryMode;
+  regions?: LiveRegions;
+  onDelivery?: (result: DeliveryResult) => void;
 }
 
-export interface DOMAnnouncer {
-  announce(intent: AnnouncementIntent): DOMDeliveryResult;
-  getRegions(): DOMLiveRegions | undefined;
+export interface Announcer {
+  announce(intent: AnnouncementIntent): DeliveryResult;
+  getRegions(): LiveRegions | undefined;
   dispose(): void;
 }
 
-export interface DOMRuntimeBinding {
-  announcer: DOMAnnouncer;
+export interface RuntimeBinding {
+  announcer: Announcer;
   dispose(): void;
 }
 
-export function createDOMAnnouncer(
-  options: DOMAnnouncerOptions = {},
-): DOMAnnouncer {
+export function createAnnouncer(options: AnnouncerOptions = {}): Announcer {
+  if (
+    options.mode !== undefined &&
+    options.mode !== "auto" &&
+    options.mode !== "live-region"
+  )
+    throw new TypeError('mode must be "auto" or "live-region"');
   validateSuppliedRegions(options);
   const selectedDocument =
     options.document ??
@@ -116,9 +117,9 @@ export function createDOMAnnouncer(
   let notifierEnabled = true;
   let disposed = false;
 
-  const report = (result: DOMDeliveryResult): DOMDeliveryResult => {
+  const report = (result: DeliveryResult): DeliveryResult => {
     try {
-      options.onDiagnostic?.(result);
+      options.onDelivery?.(result);
     } catch {
       // Diagnostics are observational and cannot affect delivery.
     }
@@ -138,7 +139,7 @@ export function createDOMAnnouncer(
       if (regions) {
         const region = regions[intent.channel];
         applyLocale(region, intent.locale);
-        let error: DOMDeliveryResult["error"];
+        let error: DeliveryResult["error"];
         if (notifierEnabled && options.mode !== "live-region") {
           let notified = false;
           try {
@@ -195,7 +196,7 @@ export function createDOMAnnouncer(
 function deliveryContext(
   intent: AnnouncementIntent,
 ): Pick<
-  DOMDeliveryResult,
+  DeliveryResult,
   | "announcementId"
   | "sourceType"
   | "at"
@@ -233,7 +234,7 @@ function deliveryContext(
   };
 }
 
-function validateSuppliedRegions(options: DOMAnnouncerOptions): void {
+function validateSuppliedRegions(options: AnnouncerOptions): void {
   if (options.regions === undefined) return;
   const { polite, assertive } = options.regions;
   if (polite === assertive) {
@@ -265,9 +266,7 @@ function validateSuppliedRegions(options: DOMAnnouncerOptions): void {
   }
 }
 
-function serializeError(
-  error: unknown,
-): NonNullable<DOMDeliveryResult["error"]> {
+function serializeError(error: unknown): NonNullable<DeliveryResult["error"]> {
   try {
     if (error instanceof Error) {
       return {
@@ -310,7 +309,7 @@ interface AriaNotifyRegion extends HTMLElement {
 
 function createLiveRegions(
   selectedDocument: Document | undefined,
-): DOMLiveRegions | undefined {
+): LiveRegions | undefined {
   const parent = selectedDocument?.body ?? selectedDocument?.documentElement;
   if (!selectedDocument || !parent) return undefined;
 
@@ -356,11 +355,11 @@ function applyLocale(region: HTMLElement, locale: string | undefined): void {
   else region.setAttribute("lang", locale);
 }
 
-export function connectRuntimeToDOM(
-  runtime: GenerativeA11yRuntime,
-  options: DOMAnnouncerOptions = {},
-): DOMRuntimeBinding {
-  const announcer = createDOMAnnouncer(options);
+export function bindRuntime(
+  runtime: Runtime,
+  options: AnnouncerOptions = {},
+): RuntimeBinding {
+  const announcer = createAnnouncer(options);
   let disposed = false;
   let unsubscribe: () => void;
   try {

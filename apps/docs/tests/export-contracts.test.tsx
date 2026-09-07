@@ -40,6 +40,6 @@ describe("docs application export contracts", () => {
       mode: "light-dark-system",
     });
     expect(docsLayoutOptions.sidebar).toMatchObject({ collapsible: true });
-    expect(docsLayoutOptions.tabs).toHaveLength(3);
+    expect(docsLayoutOptions.tabs).toHaveLength(2);
   });
 });

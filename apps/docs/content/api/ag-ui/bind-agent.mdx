@@ -39,7 +39,7 @@ export const searchableText = [
   "Dispose the subscription",
   "Your app still owns the runtime and agent after the binding is disposed.",
   "runtime",
-  "Pick<GenerativeA11yRuntime, 'dispatch'>",
+  "Pick<Runtime, 'dispatch'>",
   "Required",
   "n/a",
   "Receives adapter events while remaining under your app's control.",
@@ -159,8 +159,13 @@ Your app still owns the runtime and agent after the binding is disposed.
 
 <TypeTable
   type={{
+    copy: {
+      type: <>AdapterCopy</>,
+      default: <>undefined</>,
+      description: <>Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.</>,
+    },
     runtime: {
-      type: <>Pick&lt;GenerativeA11yRuntime, 'dispatch'&#62;</>,
+      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
       required: true,
       description: (
         <>Receives adapter events while remaining under your app's control.</>
@@ -266,8 +271,3 @@ Replay and reconnection are partial, retry support is unavailable, and custom
 events require an explicit host mapping.
 
 </Callout>
-
-## Related
-
-- [/docs/integrations/ag-ui](/docs/integrations/ag-ui)
-- [/api/core/workflows](/api/core/workflows)

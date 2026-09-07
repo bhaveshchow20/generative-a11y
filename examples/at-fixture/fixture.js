@@ -1,15 +1,12 @@
+import { en } from "../../packages/core/dist/messages-entry.js";
 /* global document, queueMicrotask, window */
 
-import {
-  ManualClock,
-  englishAnnouncementCatalog,
-  createGenerativeA11y,
-} from "../../packages/core/dist/index.js";
+import { ManualClock, createRuntime } from "../../packages/core/dist/index.js";
 import {
   captureFocus,
-  bindAttentionToRuntime,
+  bindAttention,
   createAttentionStore,
-  createDOMAnnouncer,
+  createAnnouncer,
   focusElement,
   restoreFocus,
 } from "../../packages/dom/dist/index.js";
@@ -118,7 +115,7 @@ function selectDeliveryMode(mode, notifier = "native") {
       throw new Error("Fixture ariaNotify failure");
     });
   }
-  announcer = createDOMAnnouncer({
+  announcer = createAnnouncer({
     document,
     mode,
     regions: { polite: elements.polite, assertive: elements.assertive },
@@ -127,21 +124,18 @@ function selectDeliveryMode(mode, notifier = "native") {
     notifier === "native" ? mode : `${mode} / ${notifier}`;
 }
 
-function createRuntime(attentionEnabled = false, syntheticCatalog = false) {
+function resetRuntime(attentionEnabled = false, syntheticCatalog = false) {
   clock = new ManualClock();
-  runtime = createGenerativeA11y({
+  runtime = createRuntime({
     clock,
     preset: "verbose",
     ...(syntheticCatalog
       ? {
-          announcementCatalog: {
+          messages: {
             id: "synthetic-ar-v1",
             locale: "ar",
             messages: Object.fromEntries(
-              Object.keys(englishAnnouncementCatalog.messages).map((key) => [
-                key,
-                "إشعار تجريبي.",
-              ]),
+              Object.keys(en.messages).map((key) => [key, "إشعار تجريبي."]),
             ),
           },
         }
@@ -176,7 +170,7 @@ function createRuntime(attentionEnabled = false, syntheticCatalog = false) {
       document.querySelector("#conversation"),
     );
     attentionStore.registerNewestResponse(elements.responseCopy);
-    attentionBinding = bindAttentionToRuntime({ runtime, attentionStore });
+    attentionBinding = bindAttention({ runtime, attentionStore });
   }
 }
 
@@ -402,7 +396,7 @@ function reset({ attention = false, syntheticCatalog = false } = {}) {
   capturedFocus = undefined;
   nextIdentity = 1;
   selectDeliveryMode("auto");
-  createRuntime(attention, syntheticCatalog);
+  resetRuntime(attention, syntheticCatalog);
   updateClock();
   updateFocus();
 }

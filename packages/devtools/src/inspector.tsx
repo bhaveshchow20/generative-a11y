@@ -10,14 +10,10 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type {
-  DevtoolsRecord,
-  DevtoolsSnapshot,
-  DevtoolsStore,
-} from "./index.js";
+import type { DevtoolsRecord, DevtoolsSnapshot, Store } from "./index.js";
 
-export interface DevtoolsInspectorProps {
-  readonly store: DevtoolsStore;
+export interface InspectorProps {
+  readonly store: Store;
   readonly onClose: () => void;
   readonly onCopy?: (value: string) => void | Promise<void>;
 }
@@ -139,7 +135,7 @@ function explain(record: DevtoolsRecord) {
     )[record.reason ?? ""] ?? "The runtime recorded this policy decision."
   );
 }
-function useSnapshot(store: DevtoolsStore) {
+function useSnapshot(store: Store) {
   return React.useSyncExternalStore(
     React.useCallback((listener) => store.subscribe(listener), [store]),
     React.useCallback(() => store.getSnapshot(), [store]),
@@ -326,15 +322,15 @@ function Detail({
         <h4>Policy and scheduling</h4>
         {runtime ? (
           <dl className="ga-key-values">
-            {runtime.announcementCatalog && (
+            {runtime.messages && (
               <>
                 <div>
                   <dt>Announcement catalog</dt>
-                  <dd>{runtime.announcementCatalog.catalogId}</dd>
+                  <dd>{runtime.messages.catalogId}</dd>
                 </div>
                 <div>
                   <dt>Notice language</dt>
-                  <dd>{runtime.announcementCatalog.locale}</dd>
+                  <dd>{runtime.messages.locale}</dd>
                 </div>
               </>
             )}
@@ -469,11 +465,7 @@ function List({
   );
 }
 
-export function DevtoolsInspector({
-  store,
-  onClose,
-  onCopy,
-}: DevtoolsInspectorProps) {
+export function Inspector({ store, onClose, onCopy }: InspectorProps) {
   const snapshot = useSnapshot(store);
   const reduceMotion = useReducedMotion();
   const [query, setQuery] = React.useState("");

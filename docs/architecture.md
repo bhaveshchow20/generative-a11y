@@ -15,9 +15,10 @@ custom JavaScript ------------------> core
 In package terms, the Phase 2 stack is `core <- dom <- react`. The
 framework-adapter roots depend only on core; the optional AI SDK React subpath
 also has React as a peer and uses the AI SDK adapter. React depends directly on
-both `core` and `dom`: it needs the runtime's public types and ownership APIs as
-well as the DOM stores and delivery binding. Core never imports DOM or React
-code, DOM never imports React, and no package may create a dependency circle.
+both `core` and `delivery`: it needs the runtime's public types and ownership
+APIs as well as the DOM stores and delivery binding. Core never imports DOM or
+React code, DOM never imports React, and no package may create a dependency
+circle.
 
 ## Package responsibilities
 
@@ -46,8 +47,8 @@ See [DOM integration decisions](dom-integration-decisions.md), the
 Core decides _whether_, _when_, and _what_ to announce. It owns lifecycle
 validation, segmentation, coalescing, prioritization, cancellation, and timing.
 DOM receives an already prepared intent and attempts delivery; it does not
-reschedule, rewrite, deduplicate, or infer events. A `DOMDeliveryResult` records
-a DOM/API action, not confirmed speech.
+reschedule, rewrite, deduplicate, or infer events. A `DeliveryResult` records a
+DOM/API action, not confirmed speech.
 
 Attention stores remain observation-only. An explicit DOM bridge or React
 `attentionPolicy` opt-in forwards observations as core control events. Core's
@@ -76,10 +77,10 @@ browser evidence.
 
 ## Lifecycle ownership
 
-- A `DOMRuntimeBinding` borrows its core runtime. Disposing the binding removes
-  its subscription and disposes its announcer; it never disposes the runtime.
-- A `DOMAnnouncer` removes regions it created. Supplied regions remain owned by
-  the host and stay mounted after disposal.
+- A `RuntimeBinding` borrows its core runtime. Disposing the binding removes its
+  subscription and disposes its announcer; it never disposes the runtime.
+- A `Announcer` removes regions it created. Supplied regions remain owned by the
+  host and stay mounted after disposal.
 - Attention and preference stores own their listeners and observers. Their
   creator must dispose them; cleanup is idempotent and stale callbacks cannot
   resume delivery or state updates.
@@ -123,9 +124,9 @@ and assistive-technology support is published only from dated test results; see
 
 ## Host translation boundary
 
-Core accepts a complete typed `announcementCatalog` at construction. Strings or
-pure synchronous callbacks reuse host translations and pluralization; core does
-not parse ICU, fetch translations, or detect language. It formats only eligible
+Core accepts a complete typed `messages` at construction. Strings or pure
+synchronous callbacks reuse host translations and pluralization; core does not
+parse ICU, fetch translations, or detect language. It formats only eligible
 candidates before scheduling. Adapters accept copied safe labels/outcomes
 without adding lifecycle inference. DOM receives final text and its actual
 language; React forwards construction options. Catalog code/text stays out of

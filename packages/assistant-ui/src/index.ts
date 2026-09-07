@@ -1,15 +1,15 @@
 import {
-  normalizeAdapterAnnouncementCopy,
-  type AdapterAnnouncementCopy,
-} from "@generative-a11y/core";
+  normalizeAdapterCopy,
+  type AdapterCopy,
+} from "@generative-a11y/core/messages";
 import type {
   AdapterFidelity,
-  GenerativeA11yEvent,
-  GenerativeA11yRuntime,
+  RuntimeEvent,
+  Runtime,
 } from "@generative-a11y/core";
 import type { ThreadRuntime } from "@assistant-ui/core";
 
-export interface ThreadAdapterMetadata {
+export interface AdapterInfo {
   readonly name: "assistant-ui";
   readonly fidelity: Readonly<Omit<AdapterFidelity, "optionalEvents">> & {
     readonly optionalEvents: readonly NonNullable<
@@ -20,7 +20,7 @@ export interface ThreadAdapterMetadata {
 }
 
 /** Frozen public-evidence declaration for the assistant-ui adapter. */
-export const THREAD_ADAPTER_METADATA: ThreadAdapterMetadata = Object.freeze({
+export const adapterInfo: AdapterInfo = Object.freeze({
   name: "assistant-ui",
   fidelity: Object.freeze({
     runs: "unavailable",
@@ -43,10 +43,10 @@ export const THREAD_ADAPTER_METADATA: ThreadAdapterMetadata = Object.freeze({
 });
 
 export type ThreadRuntimeSource = Pick<ThreadRuntime, "getState" | "subscribe">;
-export interface BindThreadRuntimeOptions {
+export interface BindThreadOptions {
   /** Host-owned localized copy, captured and validated at construction. */
-  readonly copy?: AdapterAnnouncementCopy;
-  readonly runtime: Pick<GenerativeA11yRuntime, "dispatch">;
+  readonly copy?: AdapterCopy;
+  readonly runtime: Pick<Runtime, "dispatch">;
   readonly scopeId: string;
   readonly thread: ThreadRuntimeSource;
   readonly maxTrackedEntities?: number;
@@ -142,18 +142,14 @@ function terminal(
  * Subscribes to the documented public assistant-ui thread runtime. It only
  * reads snapshots; disposing the returned binding never disposes either host runtime.
  */
-export function bindThreadRuntime(
-  options: BindThreadRuntimeOptions,
-): ThreadBinding {
+export function bindThread(options: BindThreadOptions): ThreadBinding {
   if (typeof options.scopeId !== "string" || options.scopeId.trim() === "")
     throw new TypeError("scopeId must be a non-empty string");
   const maxTrackedEntities = options.maxTrackedEntities ?? 1_000;
   if (!Number.isSafeInteger(maxTrackedEntities) || maxTrackedEntities <= 0)
     throw new TypeError("maxTrackedEntities must be a positive safe integer");
   const copy =
-    options.copy === undefined
-      ? undefined
-      : normalizeAdapterAnnouncementCopy(options.copy);
+    options.copy === undefined ? undefined : normalizeAdapterCopy(options.copy);
   const scopeId = options.scopeId.trim();
   const records = new Map<string, Record>();
   const tools = new Map<string, Tool>();
@@ -162,7 +158,7 @@ export function bindThreadRuntime(
   let baseline = false;
   let disposed = false;
   let saturated = false;
-  const dispatch = (event: GenerativeA11yEvent) => {
+  const dispatch = (event: RuntimeEvent) => {
     if (!disposed && !saturated) {
       try {
         options.runtime.dispatch(
@@ -330,9 +326,9 @@ export function bindThreadRuntime(
       if (!historical && outcome && !record.terminal && record.active) {
         record.terminal = true;
         dispatch({
-          type: `response.${outcome}` as GenerativeA11yEvent["type"],
+          type: `response.${outcome}` as RuntimeEvent["type"],
           responseId: responseId(scopeId, value.id),
-        } as GenerativeA11yEvent);
+        } as RuntimeEvent);
       }
     }
     baseline = true;

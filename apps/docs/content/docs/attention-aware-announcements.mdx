@@ -3,7 +3,7 @@ title: "Attention-aware announcements"
 description: "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls to an existing React interface."
 publicPath: "/docs/attention-aware-announcements"
 section: "Concepts"
-keywords: ["attention", "quiet", "override", "reading-history", "useGenerativeA11yAttentionControl", "bindAttentionToRuntime"]
+keywords: ["attention", "quiet", "override", "reading-history", "useAttentionControl", "bindAttention"]
 related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"]
 order: 7
 ---
@@ -15,7 +15,7 @@ export const sourceMetadata = {
   order: 7,
 };
 
-export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useGenerativeA11yAttentionControl bindAttentionToRuntime. Provider ownership and body-level live regions. ManualClock zero gap scheduled.";
+export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useAttentionControl bindAttention. Provider ownership and body-level live regions. ManualClock zero gap scheduled.";
 
 ## Opt in at both layers
 
@@ -23,7 +23,7 @@ Core attention filtering is disabled by default. Set `policy.attention.enabled: 
 
 The React provider's separate `attentionPolicy` prop opts into forwarding browser observations to the runtime. It does not enable core filtering by itself. A runtime supplied through `runtime` must already have its policy configured; provider policy props do not reconfigure a borrowed runtime.
 
-The provider renders no visible controls. The example below adds host-owned buttons using `useGenerativeA11yAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
+The provider renders no visible controls. The example below adds host-owned buttons using `useAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
 
 ## Understand what quiet suppresses
 
@@ -44,12 +44,12 @@ The example deliberately uses `ManualClock`: each action drains scheduled work d
 ```tsx
 "use client";
 
-import { ManualClock, type AnnouncementIntent, type AttentionOverride, type GenerativeA11yEvent } from "@generative-a11y/core";
+import { ManualClock, type AnnouncementIntent, type AttentionOverride, type RuntimeEvent } from "@generative-a11y/core";
 import {
-  GenerativeA11yProvider,
-  useGenerativeA11yAttentionControl,
-  useGenerativeA11yBindings,
-  useGenerativeA11yRuntime,
+  A11yProvider,
+  useAttentionControl,
+  useAttentionRefs,
+  useRuntime,
 } from "@generative-a11y/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
@@ -61,7 +61,7 @@ const getServerSnapshot = () => false;
 export function AttentionLab() {
   const [clock] = useState(() => new ManualClock());
   return (
-    <GenerativeA11yProvider
+    <A11yProvider
       clock={clock}
       preset="verbose"
       attentionPolicy
@@ -71,18 +71,18 @@ export function AttentionLab() {
         tools: { announceStartAfterMs: 0 },
         minimumGapMs: 0,
       }}
-      dom={{ mode: "live-region" }}
+      delivery={{ mode: "live-region" }}
     >
       <AttentionHost clock={clock} />
-    </GenerativeA11yProvider>
+    </A11yProvider>
   );
 }
 
 function AttentionHost({ clock }: { clock: ManualClock }) {
   const interactive = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
-  const runtime = useGenerativeA11yRuntime();
-  const bindings = useGenerativeA11yBindings();
-  const { state, setOverride } = useGenerativeA11yAttentionControl();
+  const runtime = useRuntime();
+  const bindings = useAttentionRefs();
+  const { state, setOverride } = useAttentionControl();
   const [step, setStep] = useState(0);
   const [text, setText] = useState("");
   const [announcements, setAnnouncements] = useState<AnnouncementIntent[]>([]);
@@ -118,12 +118,12 @@ function AttentionHost({ clock }: { clock: ManualClock }) {
       <p data-testid="attention-state">Observed: {state.observed}; override: {state.override}; effective: {state.effective}</p>
       <div className="lab-grid">
         <section className="host-surface" aria-label="Attention example host interface">
-          <div {...bindings.conversationProps} tabIndex={0} aria-label="Conversation history" role="region">
+          <div ref={bindings.conversationRef} tabIndex={0} aria-label="Conversation history" role="region">
             <p>Earlier message: prepare a report and ask before publishing.</p>
-            <article {...bindings.newestResponseProps} aria-label="Newest response"><p>{text || "The response will appear here."}</p></article>
+            <article ref={bindings.newestResponseRef} aria-label="Newest response"><p>{text || "The response will appear here."}</p></article>
           </div>
           <label htmlFor="attention-composer">Your message</label>
-          <textarea id="attention-composer" {...bindings.composerProps} />
+          <textarea id="attention-composer" ref={bindings.composerRef} />
           <p>Next event: <code>{event?.type ?? "Scenario complete"}</code></p>
           <button type="button" disabled={!interactive || !event} onClick={next}>
             {event?.type === "interaction.resolved" ? "Approve publishing" : "Advance scenario"}
@@ -145,7 +145,7 @@ const response = { responseId: "attention-report", responseInstanceId: "attempt-
 const tool = { toolId: "prepare-report", toolInstanceId: "tool-run-1", label: "Prepare report" };
 
 /** Host-controlled steps: each action reports a confirmed lifecycle event. */
-const attentionScenario: readonly GenerativeA11yEvent[] = [
+const attentionScenario: readonly RuntimeEvent[] = [
   { type: "response.started", ...response },
   { type: "response.text.delta", ...response, delta: "The report is ready. " },
   { type: "response.text.delta", ...response, delta: "This sentence crosses " },
@@ -165,6 +165,6 @@ The provider owns and disposes its internally created runtime, DOM delivery, and
 
 Provider live regions are placed at body level, outside nested conversation semantics. Keep your existing visible response and composer, and attach the public ref bindings shown above. Do not add another live region around the transcript: the provider handles delivery.
 
-Without React, use `bindAttentionToRuntime({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
+Without React, use `bindAttention({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
 
 Deterministic runtime tests and browser DOM checks establish filtering, cleanup, and focus behavior in those environments. They do not prove actual assistive-technology output. Manually test supported browser and screen-reader combinations, including quiet/resume, background return, history navigation, tool failure, approval, and explicit overrides.

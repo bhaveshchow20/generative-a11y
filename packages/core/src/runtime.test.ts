@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { ManualClock } from "./clock.js";
-import { createGenerativeA11y } from "./index.js";
-import { createAnnouncementRecorder } from "./recorder.js";
+import { createRuntime } from "./index.js";
+import { createRecorder } from "./recorder.js";
 import type {
   AnnouncementDiagnostic,
   AnnouncementIntent,
-  GenerativeA11yEvent,
+  RuntimeEvent,
   PresetName,
 } from "./types.js";
 
-function spoken(recorder: ReturnType<typeof createAnnouncementRecorder>) {
+function spoken(recorder: ReturnType<typeof createRecorder>) {
   return recorder.transcript().map(({ channel, text }) => ({ channel, text }));
 }
 
@@ -18,7 +18,7 @@ describe("generative accessibility runtime", () => {
   it("produces the same completed sentence across every chunk split", () => {
     const text = "Dr. Smith measured 3.14 units. A fragment";
     for (let split = 0; split <= text.length; split += 1) {
-      const recorder = createAnnouncementRecorder({
+      const recorder = createRecorder({
         policy: { text: { minimumCharacters: 1, maximumDelayMs: 10_000 } },
       });
       recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
@@ -42,7 +42,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("flushes one unfinished fragment and completion status", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 10_000 } },
     });
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
@@ -62,7 +62,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("retains a final content flush over completion status at queue capacity", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: {
         maxQueueSize: 1,
         text: { minimumCharacters: 1, maximumDelayMs: 10_000 },
@@ -83,7 +83,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("cancels buffered and queued text when interrupted", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 500 } },
     });
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
@@ -104,7 +104,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("rejects late events from a replaced response instance", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({
       type: "response.started",
       responseId: "r1",
@@ -128,7 +128,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("suppresses a fast tool start and announces completion", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({
       type: "tool.started",
       toolId: "t1",
@@ -149,7 +149,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("announces a slow tool start once without doubled punctuation", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({
       type: "tool.started",
       toolId: "t1",
@@ -163,7 +163,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("coalesces verbose progress into configured buckets", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { tools: { announceStart: false } },
     });
@@ -198,7 +198,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("uses maximum delay from the first pending delta instead of debouncing", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 100, maximumDelayMs: 100 } },
     });
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
@@ -219,7 +219,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("isolates identical announcements from concurrent responses", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 10_000 } },
     });
     for (const responseId of ["r1", "r2"]) {
@@ -241,7 +241,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("rotates response identity on retry and rejects old-attempt deltas", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 10_000 } },
     });
     recorder.runtime.dispatch({
@@ -282,7 +282,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("cancels queued terminal work when a response ID is reused", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
     recorder.runtime.dispatch({
       type: "response.text.delta",
@@ -310,8 +310,8 @@ describe("generative accessibility runtime", () => {
     const announcements: string[] = [];
     const diagnostics: Array<{ sourceType?: string; reason: string }> = [];
     let restarted = false;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       clock,
       policy: {
         maxQueueSize: 1,
@@ -387,8 +387,8 @@ describe("generative accessibility runtime", () => {
     const diagnostics: AnnouncementDiagnostic[] = [];
     const nestedResults: boolean[] = [];
     let queuedBurst = false;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       policy: { maxQueueSize: 2 },
       onAnnouncement: () => undefined,
       onDiagnostic: (diagnostic) => {
@@ -443,8 +443,8 @@ describe("generative accessibility runtime", () => {
   it("bounds a one-in one-out nested dispatch generation", () => {
     const diagnostics: AnnouncementDiagnostic[] = [];
     let nextEvent = 1;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       policy: { maxQueueSize: 2 },
       onAnnouncement: () => undefined,
       onDiagnostic: (diagnostic) => {
@@ -485,15 +485,15 @@ describe("generative accessibility runtime", () => {
     const overflowResults: boolean[] = [];
     let dispatchedBurst = false;
     let overflowCallbackDispatches = 0;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       policy: { maxQueueSize: 2 },
       onAnnouncement: () => undefined,
       onDiagnostic: (diagnostic) => {
         diagnostics.push(diagnostic);
         if (!dispatchedBurst && diagnostic.sourceEventId === "e0") {
           dispatchedBurst = true;
-          const burst: GenerativeA11yEvent[] = [
+          const burst: RuntimeEvent[] = [
             { type: "response.started", responseId: "r1", eventId: "e1" },
             { type: "response.started", responseId: "r2", eventId: "e2" },
             { type: "response.started", responseId: "r3", eventId: "e3" },
@@ -597,9 +597,9 @@ describe("generative accessibility runtime", () => {
   it("does not retain terminal response state after diagnostic disposal", () => {
     const mapSet = vi.spyOn(Map.prototype, "set");
     let setCountAfterDispose: number | undefined;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
+    let runtime: ReturnType<typeof createRuntime>;
     try {
-      runtime = createGenerativeA11y({
+      runtime = createRuntime({
         policy: { text: { minimumCharacters: 1 } },
         onAnnouncement: () => undefined,
         onDiagnostic: (diagnostic) => {
@@ -630,8 +630,8 @@ describe("generative accessibility runtime", () => {
 
   it("clears nested dispatch work when disposed during a diagnostic", () => {
     const seenSourceTypes: string[] = [];
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       onAnnouncement: () => undefined,
       onDiagnostic: (diagnostic) => {
         if (diagnostic.sourceType) seenSourceTypes.push(diagnostic.sourceType);
@@ -648,7 +648,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("inherits the response locale and tolerates malformed locales", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1 } },
     });
     recorder.runtime.dispatch({
@@ -680,7 +680,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("propagates locale metadata introduced by later response and tool events", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { text: { minimumCharacters: 1 } },
     });
@@ -725,7 +725,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("does not let stale tool events overwrite the active locale", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "tool.started",
       toolId: "t1",
@@ -755,7 +755,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("does not adopt the locale from invalid tool progress", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "tool.started",
       toolId: "t1",
@@ -791,7 +791,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("enforces tool lifecycle ordering and safe failure announcements", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "tool.completed",
       toolId: "unknown",
@@ -829,7 +829,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("reports policy suppression and counts owned flush timers", () => {
-    const recorder = createAnnouncementRecorder({ preset: "completion-only" });
+    const recorder = createRecorder({ preset: "completion-only" });
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
     recorder.runtime.dispatch({ type: "connection.lost" });
     expect(
@@ -838,7 +838,7 @@ describe("generative accessibility runtime", () => {
         .some(({ reason }) => reason === "policy-silent"),
     ).toBe(true);
 
-    const buffered = createAnnouncementRecorder();
+    const buffered = createRecorder();
     buffered.runtime.dispatch({ type: "response.started", responseId: "r1" });
     buffered.runtime.dispatch({
       type: "response.text.delta",
@@ -849,7 +849,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("announces safe response failures, connection changes, and citations", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "response.started",
       responseId: "r1",
@@ -878,7 +878,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("rejects invalid progress and bounds active entity tracking", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { maxActiveEntities: 1 },
     });
@@ -904,7 +904,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("shares the active entity ceiling across responses and tools", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { maxActiveEntities: 1 },
     });
@@ -931,7 +931,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("allows active response and tool identities to be replaced at the ceiling", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       preset: "verbose",
       policy: { maxActiveEntities: 1 },
     });
@@ -971,7 +971,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("prioritizes an urgent interaction over queued polite output", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { text: { minimumCharacters: 1, maximumDelayMs: 10_000 } },
     });
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
@@ -1006,7 +1006,7 @@ describe("generative accessibility runtime", () => {
   ] satisfies Array<[PresetName, string[]]>)(
     'matches the "%s" preset transcript',
     (preset, expected) => {
-      const recorder = createAnnouncementRecorder({ preset });
+      const recorder = createRecorder({ preset });
       recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
       recorder.runtime.dispatch({
         type: "response.text.delta",
@@ -1024,7 +1024,7 @@ describe("generative accessibility runtime", () => {
   );
 
   it("cleans all timers and returns false for dispatch after disposal", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
     recorder.runtime.dispatch({
       type: "response.text.delta",
@@ -1043,7 +1043,7 @@ describe("generative accessibility runtime", () => {
     const clock = new ManualClock();
     const initial: AnnouncementIntent[] = [];
     const subscribed: AnnouncementIntent[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: (announcement) => initial.push(announcement),
     });
@@ -1077,7 +1077,7 @@ describe("generative accessibility runtime", () => {
     const clock = new ManualClock();
     const diagnostics: AnnouncementDiagnostic[] = [];
     const delivered: string[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
     });
@@ -1108,7 +1108,7 @@ describe("generative accessibility runtime", () => {
     const clock = new ManualClock();
     const delivered: string[] = [];
     const listener = ({ text }: AnnouncementIntent) => delivered.push(text);
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: listener,
     });
@@ -1132,7 +1132,7 @@ describe("generative accessibility runtime", () => {
   it("uses a listener snapshot when subscriptions change during delivery", () => {
     const clock = new ManualClock();
     const delivered: string[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
       policy: { tools: { announceStartAfterMs: 500 } },
@@ -1160,7 +1160,7 @@ describe("generative accessibility runtime", () => {
     const clock = new ManualClock();
     const delivered: string[] = [];
     const errors: Array<{ error: unknown; text: string }> = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => {
         throw new Error("initial listener failed");
@@ -1188,7 +1188,7 @@ describe("generative accessibility runtime", () => {
   it("keeps the delivery-error diagnostic when every listener fails", () => {
     const clock = new ManualClock();
     const reasons: string[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => {
         throw new Error("delivery failed");
@@ -1207,7 +1207,7 @@ describe("generative accessibility runtime", () => {
   it("keeps the delivery-error diagnostic when a listener throws undefined", () => {
     const clock = new ManualClock();
     const reasons: string[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => {
         throw undefined;
@@ -1226,8 +1226,8 @@ describe("generative accessibility runtime", () => {
   it("emits the terminal delivery diagnostic when an error observer disposes reentrantly", () => {
     const clock = new ManualClock();
     const reasons: string[] = [];
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       clock,
       onAnnouncement: () => {
         throw new Error("delivery failed");
@@ -1251,8 +1251,8 @@ describe("generative accessibility runtime", () => {
   it("preserves the outer terminal diagnostic across nested delivery and disposal", () => {
     const clock = new ManualClock();
     const terminalDiagnostics: string[] = [];
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       clock,
       onAnnouncement: ({ text }) => {
         if (text !== "Response stopped.") return;
@@ -1283,8 +1283,8 @@ describe("generative accessibility runtime", () => {
   it("preserves the outer terminal diagnostic when nested delivery disposes", () => {
     const clock = new ManualClock();
     const terminalDiagnostics: string[] = [];
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       clock,
       onAnnouncement: ({ text }) => {
         if (text !== "Response stopped.") return;
@@ -1315,7 +1315,7 @@ describe("generative accessibility runtime", () => {
   it("subscribes to diagnostics and rejects new subscriptions after disposal", () => {
     const clock = new ManualClock();
     const diagnostics: AnnouncementDiagnostic[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
     });
@@ -1347,7 +1347,7 @@ describe("generative accessibility runtime", () => {
   it("isolates diagnostic failures and emits disposal cancellations before clearing listeners", () => {
     const clock = new ManualClock();
     const diagnostics: AnnouncementDiagnostic[] = [];
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
       onDiagnostic: () => {
@@ -1370,7 +1370,7 @@ describe("generative accessibility runtime", () => {
 
   it("emits a versioned source event before decisions and exposes a content-free snapshot", () => {
     const clock = new ManualClock(100);
-    const runtime = createGenerativeA11y({
+    const runtime = createRuntime({
       clock,
       onAnnouncement: () => undefined,
       policy: { tools: { announceStartAfterMs: 500 } },
@@ -1423,8 +1423,8 @@ describe("generative accessibility runtime", () => {
   it("does not report source evidence for a rejected reentrant dispatch", () => {
     const sourceEventIds: string[] = [];
     let nested = false;
-    let runtime: ReturnType<typeof createGenerativeA11y>;
-    runtime = createGenerativeA11y({
+    let runtime: ReturnType<typeof createRuntime>;
+    runtime = createRuntime({
       onAnnouncement: () => undefined,
       policy: { maxQueueSize: 1 },
       onDiagnostic: (diagnostic) => {
@@ -1456,7 +1456,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("isolates diagnostic-event listeners and rejects subscriptions after disposal", () => {
-    const runtime = createGenerativeA11y({ onAnnouncement: () => undefined });
+    const runtime = createRuntime({ onAnnouncement: () => undefined });
     runtime.subscribeDiagnosticEvents(() => {
       throw new Error("observer failed");
     });
@@ -1472,7 +1472,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("tracks nested and concurrent workflow entities without announcing internal churn", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({
       type: "run.started",
       runId: "run-1",
@@ -1528,7 +1528,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("announces only long-running top-level steps and summarizes a completed run", () => {
-    const recorder = createAnnouncementRecorder({
+    const recorder = createRecorder({
       policy: { workflows: { announceStepAfterMs: 100 } },
     });
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
@@ -1569,7 +1569,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("does not repeat a completed response boundary as an empty run summary", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
     recorder.runtime.dispatch({
       type: "response.started",
@@ -1596,7 +1596,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("keeps concurrent siblings active when one step fails", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
     for (const stepId of ["one", "two"]) {
       recorder.runtime.dispatch({
@@ -1628,7 +1628,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("rejects stale child events after a step retry", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "run.started",
       runId: "run-1",
@@ -1672,7 +1672,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("refuses successful run completion while identified child work remains open", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
     recorder.runtime.dispatch({
       type: "step.started",
@@ -1692,7 +1692,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("observes anonymous step evidence without manufacturing identity", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
     recorder.runtime.dispatch({
       type: "step.started",
@@ -1708,7 +1708,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("cancels direct and nested child output when a run attempt is replaced", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "run.started",
       runId: "run-1",
@@ -1752,7 +1752,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("isolates descendants when a new run.started replaces an active attempt", () => {
-    const recorder = createAnnouncementRecorder({ preset: "verbose" });
+    const recorder = createRecorder({ preset: "verbose" });
     recorder.runtime.dispatch({
       type: "run.started",
       runId: "run-1",
@@ -1820,7 +1820,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("does not complete a parent step while an identified nested step is active", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({ type: "run.started", runId: "run-1" });
     recorder.runtime.dispatch({
       type: "step.started",
@@ -1855,7 +1855,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("diagnoses malformed workflow identities without throwing", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     expect(() =>
       recorder.runtime.dispatch({
         type: "run.started",
@@ -1868,7 +1868,7 @@ describe("generative accessibility runtime", () => {
   });
 
   it("rejects attempt identities without their logical owners", () => {
-    const recorder = createAnnouncementRecorder();
+    const recorder = createRecorder();
     recorder.runtime.dispatch({
       type: "response.started",
       responseId: "response",
@@ -1893,4 +1893,14 @@ describe("generative accessibility runtime", () => {
       runId: "run",
     });
   });
+});
+
+it("creates and disposes a runtime with default options", () => {
+  const runtime = createRuntime();
+  expect(runtime.pendingCount()).toBe(0);
+  expect(runtime.getDiagnosticSnapshot().messages).toEqual({
+    catalogId: "generative-a11y.en.v1",
+    locale: "en",
+  });
+  runtime.dispose();
 });

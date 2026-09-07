@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { ManualClock } from "./clock.js";
-import { createAnnouncementScheduler } from "./scheduler.js";
+import { createScheduler } from "./scheduler.js";
 import type { AnnouncementDiagnostic, AnnouncementIntent } from "./types.js";
 
 function setup(maxQueueSize = 10) {
   const clock = new ManualClock();
   const announcements: AnnouncementIntent[] = [];
   const diagnostics: AnnouncementDiagnostic[] = [];
-  const scheduler = createAnnouncementScheduler({
+  const scheduler = createScheduler({
     clock,
     minimumGapMs: 100,
     dedupeWindowMs: 1_000,
@@ -231,8 +231,8 @@ describe("announcement scheduler", () => {
       [];
     const announcements: string[] = [];
     let nested = false;
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -311,8 +311,8 @@ describe("announcement scheduler", () => {
     const diagnostics: Array<{ reason: string; text?: string }> = [];
     const announcements: string[] = [];
     let nestedId: string | undefined;
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -373,8 +373,8 @@ describe("announcement scheduler", () => {
   it("returns an accepted coalesced ID before reentrant eviction", () => {
     const clock = new ManualClock();
     let nestedId: string | undefined;
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -419,8 +419,8 @@ describe("announcement scheduler", () => {
     const clock = new ManualClock();
     const diagnostics: Array<{ reason: string; text?: string }> = [];
     let nestedId: string | undefined;
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -488,8 +488,8 @@ describe("announcement scheduler", () => {
     const clock = new ManualClock();
     const diagnostics: Array<{ reason: string; text?: string }> = [];
     let nestedId: string | undefined;
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -533,8 +533,8 @@ describe("announcement scheduler", () => {
   it("returns an accepted ID when a scheduled observer delivers it", () => {
     const clock = new ManualClock();
     const reasons: string[] = [];
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -560,8 +560,8 @@ describe("announcement scheduler", () => {
   it("bounds diagnostic observer self-chains", () => {
     const clock = new ManualClock();
     const diagnostics: AnnouncementDiagnostic[] = [];
-    let scheduler: ReturnType<typeof createAnnouncementScheduler>;
-    scheduler = createAnnouncementScheduler({
+    let scheduler: ReturnType<typeof createScheduler>;
+    scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -601,7 +601,7 @@ describe("announcement scheduler", () => {
     const announcements: string[] = [];
     const errors: unknown[] = [];
     let first = true;
-    const scheduler = createAnnouncementScheduler({
+    const scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,
@@ -635,7 +635,7 @@ describe("announcement scheduler", () => {
   it("isolates throwing diagnostic observers", () => {
     const clock = new ManualClock();
     const announcements: string[] = [];
-    const scheduler = createAnnouncementScheduler({
+    const scheduler = createScheduler({
       clock,
       minimumGapMs: 0,
       dedupeWindowMs: 0,

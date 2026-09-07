@@ -13,63 +13,63 @@ npm install @generative-a11y/core @generative-a11y/dom
 
 ## Connect a runtime
 
-`connectRuntimeToDOM(runtime, options?)` creates a `DOMAnnouncer`, subscribes it
-to a `GenerativeA11yRuntime`, and returns a `DOMRuntimeBinding`. Disposing the
-binding unsubscribes and disposes the announcer, but never disposes the borrowed
-runtime.
+`bindRuntime(runtime, options?)` creates an `Announcer`, subscribes it to a
+`Runtime`, and returns a `RuntimeBinding`. Disposing the binding unsubscribes
+and disposes the announcer, but never disposes the borrowed runtime.
 
 ```ts
-import { createGenerativeA11y } from "@generative-a11y/core";
-import { connectRuntimeToDOM } from "@generative-a11y/dom";
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
 
-const runtime = createGenerativeA11y({});
-const binding = connectRuntimeToDOM(runtime);
+const runtime = createRuntime();
+const binding = bindRuntime(runtime);
 
-// Later:
-binding.dispose();
-runtime.dispose();
+// Call when the chat surface is removed.
+export function disposeChat() {
+  binding.dispose();
+  runtime.dispose();
+}
 ```
 
-`DOMRuntimeBinding` exposes the connected `announcer` and an idempotent
-`dispose()` method. Once disposed, the binding cannot mutate its regions even if
-the runtime was already delivering an event. If subscription fails, any regions
-created for the attempted binding are removed before the error is rethrown.
+`RuntimeBinding` exposes the connected `announcer` and an idempotent `dispose()`
+method. Once disposed, the binding cannot mutate its regions even if the runtime
+was already delivering an event. If subscription fails, any regions created for
+the attempted binding are removed before the error is rethrown.
 
 ## Create an announcer directly
 
-`createDOMAnnouncer(options?)` returns a `DOMAnnouncer`. When a document is
+`createAnnouncer(options?)` returns an `Announcer`. When a document is
 available, it synchronously mounts one polite and one assertive region before
 returning. Each announcer owns an isolated pair. Without an injected or global
 document it remains inert, so the module and constructor are safe in server
 environments.
 
 ```ts
-import { createDOMAnnouncer } from "@generative-a11y/dom";
+import { createAnnouncer } from "@generative-a11y/dom";
 
-const announcer = createDOMAnnouncer({ mode: "auto" });
+const announcer = createAnnouncer({ mode: "auto" });
 const result = announcer.announce(intent);
-announcer.dispose();
+// Call announcer.dispose() when its owning surface is removed.
 ```
 
-`DOMAnnouncer` provides:
+`Announcer` provides:
 
-- `announce(intent)`, which returns a `DOMDeliveryResult`.
-- `getRegions()`, which returns the `DOMLiveRegions` pair or `undefined` when
-  the DOM is unavailable.
+- `announce(intent)`, which returns a `DeliveryResult`.
+- `getRegions()`, which returns the `LiveRegions` pair or `undefined` when the
+  DOM is unavailable.
 - An idempotent `dispose()`. It removes regions created by the announcer and
   leaves supplied regions mounted. Later announcements report `disposed`.
 
 ## Options and modes
 
-`DOMAnnouncerOptions` accepts:
+`AnnouncerOptions` accepts:
 
 - `document`: an injected `Document`. If omitted, creation uses a supplied
   region's owner document and then the current global document, when available.
-- `mode`: a `DOMAnnouncementMode` of `"auto"`, `"aria-notify"`, or
-  `"live-region"`. Both progressive-enhancement modes try a callable
-  `ariaNotify` on the selected region and fall back when it is absent.
+- `mode`: a `DeliveryMode` of `"auto"` or `"live-region"`. `"auto"` tries a
+  callable `ariaNotify` on the selected region and falls back when it is absent.
   `"live-region"` always uses text mutation.
-- `regions`: a pre-mounted `DOMLiveRegions` pair with `polite` and `assertive`
+- `regions`: a pre-mounted `LiveRegions` pair with `polite` and `assertive`
   elements. Supply dedicated, connected, empty elements in the same document;
   neither element may contain the other, and an explicitly supplied `document`
   must be their owner document. The driver normalizes direct hiding attributes
@@ -77,8 +77,8 @@ announcer.dispose();
   required live-region attributes and visually hidden inline styles. The caller
   must ensure ancestors and external CSS keep both regions in the accessibility
   tree. Supplied elements remain owned by the caller.
-- `onDiagnostic`: a callback invoked with the `DOMDeliveryResult` for each
-  attempted announcement. Callback errors are isolated from delivery.
+- `onDelivery`: a callback invoked with the `DeliveryResult` for each attempted
+  announcement. Callback errors are isolated from delivery.
 
 If `ariaNotify` throws, that notifier is disabled for the announcer. The same
 intent is delivered once through live-region mutation, and later intents remain
@@ -86,7 +86,7 @@ on that fallback path.
 
 ## Delivery results
 
-`DOMDeliveryResult` is serializable and contains:
+`DeliveryResult` is serializable and contains:
 
 - `status`: `"notified"`, `"mutated"`, `"unavailable"`, or `"disposed"`.
 - `method`: `"aria-notify"`, `"live-region"`, or `"none"`.
@@ -98,7 +98,7 @@ on that fallback path.
 - `error`, when notifier invocation failed, with serializable `name` and
   `message` strings.
 
-`DOMLiveRegions` contains the stable outer `polite` and `assertive` elements.
+`LiveRegions` contains the stable outer `polite` and `assertive` elements.
 Live-region delivery sets or clears `lang` from the intent locale and replaces
 the region's text content on every delivery, including repeated identical text.
 Announcement strings are inserted as literal text, never HTML. The result
@@ -338,19 +338,19 @@ preference returns that preset without granular policy overrides.
 
 ### Attention policy binding
 
-`bindAttentionToRuntime({ runtime, attentionStore })` forwards the store's
-initial mode and subsequent mode changes as `attention.changed` events. It is
-opt-in: creating an attention store alone remains observational. Configure the
-runtime with `policy: { attention: { enabled: true } }` to apply those
-observations to announcement policy. Native observations are evidence about
-visibility and focus, not proof of assistive-technology activity.
+`bindAttention({ runtime, attentionStore })` forwards the store's initial mode
+and subsequent mode changes as `attention.changed` events. It is opt-in:
+creating an attention store alone remains observational. Configure the runtime
+with `policy: { attention: { enabled: true } }` to apply those observations to
+announcement policy. Native observations are evidence about visibility and
+focus, not proof of assistive-technology activity.
 
-The returned `AttentionRuntimeBinding` has an idempotent `dispose()` method. It
+The returned `AttentionBinding` has an idempotent `dispose()` method. It
 unsubscribes and resets the observed mode to `unknown`, preserving explicit user
 overrides. Both inputs are borrowed and remain usable after cleanup. A second
 binding for the same runtime throws, including bindings created by React.
-`AttentionRuntimeBindingOptions` describes the two required inputs. Construction
-rolls back on store failures; unsubscribe failures cannot prevent the reset.
+`AttentionBindingOptions` describes the two required inputs. Construction rolls
+back on store failures; unsubscribe failures cannot prevent the reset.
 
 ## Localized announcements
 
