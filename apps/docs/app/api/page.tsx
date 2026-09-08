@@ -22,6 +22,7 @@ export default function APIIndexPage() {
       body={apiPage.data.body}
       description={apiPage.data.description}
       path={apiPage.url}
+      sourcePath={apiPage.path}
       title={apiPage.data.title}
       toc={apiPage.data.toc}
     />

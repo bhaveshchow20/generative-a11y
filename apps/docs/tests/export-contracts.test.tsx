@@ -18,6 +18,7 @@ describe("docs application export contracts", () => {
       body: () => <p>Body</p>,
       description: "Description",
       path: "/docs/example",
+      sourcePath: "example.mdx",
       title: "Title",
       toc: [],
     });

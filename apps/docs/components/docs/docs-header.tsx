@@ -4,14 +4,17 @@ import type { ReactNode } from "react";
 export function DocumentationHeader({
   title,
   description,
+  children,
 }: {
   title: ReactNode;
   description?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="docs-page-header">
       <DocsTitle>{title}</DocsTitle>
       {description && <DocsDescription>{description}</DocsDescription>}
+      {children}
     </div>
   );
 }
