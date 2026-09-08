@@ -1,7 +1,7 @@
 ---
 title: "Vercel AI SDK accessibility"
 description:
-  "Add paced screen-reader updates to AI SDK 7 and @ai-sdk/react 4 through
+  "Add paced screen-reader updates to AI SDK through
   documented state, finish callbacks, and error callbacks."
 publicPath: "/docs/integrations/ai-sdk"
 section: "Integrations"
@@ -244,14 +244,3 @@ exact mappings and limits.
 - **Repeated output:** keep `scopeId` stable and attach only one observer per chat.
 - **Existing messages are silent:** the first snapshot establishes a history
   baseline. The adapter observes subsequent updates without replaying history.
-
-## Next steps
-
-<Cards>
-  <Card title="React hook reference" href="/api/ai-sdk/use-chat-accessibility">
-    Explore options, return values, and the complete component.
-  </Card>
-  <Card title="Observer API" href="/api/ai-sdk">
-    Connect public snapshots when your application owns the runtime.
-  </Card>
-</Cards>
