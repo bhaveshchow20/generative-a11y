@@ -1,6 +1,6 @@
 {
   "name": "@generative-a11y/assistant-ui",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "assistant-ui accessibility adapter for messages, tools, approvals, and paced screen-reader announcements in AI interfaces.",
   "keywords": [
     "accessibility",
