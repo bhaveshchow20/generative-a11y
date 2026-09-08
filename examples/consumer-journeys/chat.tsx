@@ -1,17 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { useChat, type UseChatOptions } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
 
-function Chat() {
+// Keep your existing transport and options here (or pass them to App).
+const defaultOptions = {
+  id: "support",
+  transport: new DefaultChatTransport({ api: "/api/chat" }),
+};
+
+// This recipe lets useChat construct the chat; an existing Chat needs callbacks
+// composed at its own construction boundary instead.
+type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
+
+function Chat({ options }: { options: ChatOptions }) {
   const runtime = useRuntime();
-  const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
-  const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
+  const accessibility = useChatAccessibility({
+    runtime,
+    scopeId: "support",
+    onFinish: (event) => options.onFinish?.(event),
+    onError: (error) => options.onError?.(error),
+  });
+  // Spread composed callbacks last so host options cannot overwrite them.
+  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
   const [input, setInput] = useState("");
 
@@ -49,10 +67,10 @@ function Chat() {
   );
 }
 
-export function App() {
+export function App({ options = defaultOptions }: { options?: ChatOptions }) {
   return (
     <A11yProvider>
-      <Chat />
+      <Chat options={options} />
     </A11yProvider>
   );
 }

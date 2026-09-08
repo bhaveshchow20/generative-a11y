@@ -24,6 +24,9 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Start here: npm install @generative-a11y/react @generative-a11y/ai-sdk for an existing compatible React + AI SDK app.",
+  "See the integration guide for peer prerequisites, preserved transport and callbacks, provider-owned delivery, and preconstructed Chat guidance.",
+  "The root observer alone does not provide browser delivery.",
   "useChatAccessibility",
   "Create the AI SDK observer and completion callbacks before calling useChat in the same React component.",
   "AI SDK",
@@ -94,6 +97,18 @@ export const searchableText = [
   "Observation occurs in an effect after the snapshot commits.",
 ].join("\n");
 
+## Start here
+
+For an existing compatible React + AI SDK app:
+
+```shell
+npm install @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+See the [integration guide](/docs/integrations/ai-sdk) for peer versions,
+provider placement, preserved host options, and the preconstructed `Chat` case.
+The root observer alone does not provide browser delivery.
+
 <span id="complete&#45;example"></span>
 
 ## Complete useChat integration
@@ -106,17 +121,35 @@ the documented snapshot.
 "use client";
 
 import { useState } from "react";
-import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { useChat, type UseChatOptions } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
 
-function Chat() {
+// Keep your existing transport and options here (or pass them to App).
+const defaultOptions = {
+  id: "support",
+  transport: new DefaultChatTransport({ api: "/api/chat" }),
+};
+
+// This recipe lets useChat construct the chat; an existing Chat needs callbacks
+// composed at its own construction boundary instead.
+type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
+
+function Chat({ options }: { options: ChatOptions }) {
   const runtime = useRuntime();
-  const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
-  const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
+  const accessibility = useChatAccessibility({
+    runtime,
+    scopeId: "support",
+    onFinish: (event) => options.onFinish?.(event),
+    onError: (error) => options.onError?.(error),
+  });
+  // Spread composed callbacks last so host options cannot overwrite them.
+  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
   const [input, setInput] = useState("");
 
@@ -154,10 +187,10 @@ function Chat() {
   );
 }
 
-export function App() {
+export function App({ options = defaultOptions }: { options?: ChatOptions }) {
   return (
     <A11yProvider>
-      <Chat />
+      <Chat options={options} />
     </A11yProvider>
   );
 }

@@ -8,41 +8,62 @@ own a chat, invoke `regenerate()`, or inspect private chat state.
 The root entry is SSR-safe. The React integration is available only from
 `@generative-a11y/ai-sdk/react`.
 
-## Install
-
-For the framework-independent observer:
+## Install for an existing React + AI SDK app
 
 ```sh
-npm install @generative-a11y/core @generative-a11y/ai-sdk ai
+npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-For the React integration, also install the optional React peers:
+Your existing AI SDK setup must also satisfy its `zod` peer
+(`^3.25.76 || ^4.1.8` for the checked SDK version).
 
-```sh
-npm install @ai-sdk/react react
-```
+These are the two direct library dependencies used below. Core and DOM are
+installed transitively; declare them directly only if your own code imports
+them. Prerequisites: Node.js 22+, `ai@7.0.x`, `@ai-sdk/react@4.0.x`, and
+compatible `react` / `react-dom` versions (`^18.2.0 || ^19.0.0`). Keep your
+working backend, transport, and host UI. The test matrix uses ai 7.0.77,
+@ai-sdk/react 4.0.80, and React / React DOM 19.2.8.
 
 ## React quick start
 
 Create the accessibility integration before `useChat()` so its composed
-callbacks are present when AI SDK creates the chat. Then observe the documented
-public snapshot returned from `useChat()`.
+callbacks are present when AI SDK creates the chat. Pass existing options,
+including transport and callbacks, to `App`; the default uses `/api/chat`. Then
+observe the documented public snapshot returned from `useChat()`.
 
 ```tsx
 "use client";
 
 import { useState } from "react";
-import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { useChat, type UseChatOptions } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
 
-function Chat() {
+// Keep your existing transport and options here (or pass them to App).
+const defaultOptions = {
+  id: "support",
+  transport: new DefaultChatTransport({ api: "/api/chat" }),
+};
+
+// This recipe lets useChat construct the chat; an existing Chat needs callbacks
+// composed at its own construction boundary instead.
+type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
+
+function Chat({ options }: { options: ChatOptions }) {
   const runtime = useRuntime();
-  const accessibility = useChatAccessibility({ runtime, scopeId: "support" });
-  const chat = useChat({ id: "support", ...accessibility.chatCallbacks });
+  const accessibility = useChatAccessibility({
+    runtime,
+    scopeId: "support",
+    onFinish: (event) => options.onFinish?.(event),
+    onError: (error) => options.onError?.(error),
+  });
+  // Spread composed callbacks last so host options cannot overwrite them.
+  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
   const [input, setInput] = useState("");
 
@@ -80,14 +101,27 @@ function Chat() {
   );
 }
 
-export function App() {
+export function App({ options = defaultOptions }: { options?: ChatOptions }) {
   return (
     <A11yProvider>
-      <Chat />
+      <Chat options={options} />
     </A11yProvider>
   );
 }
 ```
+
+`A11yProvider` owns one runtime and browser delivery for the mounted chat
+surface and cleans them up on unmount. Keep it mounted across responses. Keep
+`scopeId` stable; remount the chat deliberately when switching sessions. The
+adapter supplies paced live-region updates without changing the visible UI or
+moving focus for ordinary streaming. Your host still owns semantic structure,
+keyboard controls, accessible message content, and any approval UI. DOM delivery
+does not establish what a real screen reader speaks.
+
+If you pass an already constructed `Chat` to `useChat`, its other initialization
+options are ignored. Compose callbacks at that chat's construction boundary
+using the [observer API](https://generativea11y.com/api/ai-sdk); do not add
+`chatCallbacks` beside an existing `chat` and expect them to attach.
 
 `useChatAccessibility()` owns an observer and its delayed, cancellation-safe
 unmount cleanup; that avoids disposing it during React Strict Mode’s effect
@@ -96,6 +130,16 @@ disposes the borrowed integration. Keep only observer-owning `runtime`,
 `scopeId`, and `maxTrackedEntities` stable for one mounted chat. `onFinish`,
 `onError`, and the optional label mapper may change identity across renders; the
 integration always uses their latest values.
+
+### Advanced: observer without React
+
+```sh
+npm install @generative-a11y/core @generative-a11y/ai-sdk "ai@~7.0.0"
+```
+
+This installs an observer and runtime, not browser delivery. For a browser
+integration that imports `bindRuntime`, also install `@generative-a11y/dom`,
+connect delivery once, and dispose delivery before the runtime on teardown.
 
 For a non-React integration, use `createChatObserver()` and
 `composeChatCallbacks()` from the root entry before initializing the public AI

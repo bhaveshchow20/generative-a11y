@@ -11,8 +11,13 @@ React 18.2 and React 19.
 ## Install
 
 ```sh
-npm install @generative-a11y/core @generative-a11y/dom @generative-a11y/react react react-dom
+npm install @generative-a11y/react
 ```
+
+This assumes an existing React app with Node.js 22+ and compatible `react` and
+`react-dom` peers (`^18.2.0 || ^19.0.0`). Core and DOM are package dependencies;
+install them directly only when your own code imports their APIs. For AI SDK
+chats, also install `@generative-a11y/ai-sdk`.
 
 ## Quick start
 
@@ -21,6 +26,8 @@ the host's existing lifecycle. The provider's only rendered infrastructure is
 one visually hidden polite region and one visually hidden assertive region.
 
 ```tsx
+"use client";
+
 import type { ReactNode } from "react";
 import { A11yProvider } from "@generative-a11y/react";
 

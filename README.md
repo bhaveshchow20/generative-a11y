@@ -26,8 +26,20 @@ rebuild their UI.
 [npm](https://www.npmjs.com/org/generative-a11y) · [MIT license](LICENSE)
 
 ```sh
-npm install @generative-a11y/core @generative-a11y/dom
+npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
+
+Your existing AI SDK setup must also satisfy its `zod` peer
+(`^3.25.76 || ^4.1.8` for the checked SDK version).
+
+For an existing React + AI SDK app, these two library packages provide lifecycle
+observation and browser delivery. Requires Node.js 22+, `ai@7.0.x`,
+`@ai-sdk/react@4.0.x`, and React / React DOM 18.2+ within major 18, or major 19.
+Follow the
+[complete React integration](https://generativea11y.com/docs/integrations/ai-sdk)
+to wrap the chat once, preserve transport and callbacks, and observe public
+state. For a custom application, use the
+[core and DOM example](#core-and-dom-example).
 
 > [!IMPORTANT] This project is in pre-1.0 development. Packages use the
 > `@generative-a11y` npm scope. External assistive-technology validation remains
@@ -59,8 +71,11 @@ behavior stay under application control.
 
 ## Packages
 
-Install the package that matches your integration. Package dependencies such as
-`@generative-a11y/core` are installed automatically.
+The commands below install individual layers. Adapters translate lifecycle
+state; they also need a runtime and browser delivery for a complete integration.
+For React + AI SDK, use the two-package command above. Package dependencies are
+installed automatically, but every package your own code imports must be a
+direct dependency.
 
 | Package                                                                                        | Version                                                                                                                                         | Use it for                                                           | Install                                     |
 | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- |

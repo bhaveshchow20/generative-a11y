@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const examples = [
@@ -103,6 +111,90 @@ describe("first-time developer journeys", () => {
     });
     expect(document.querySelectorAll("[aria-live]")).toHaveLength(0);
   });
+
+  it.each(["finish", "error"] as const)(
+    "preserves host transport and callbacks through a real SDK %s request",
+    async (outcome) => {
+      const { App } = await import("../../examples/consumer-journeys/chat.js");
+      let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+      const sendMessages = vi.fn<ChatTransport<UIMessage>["sendMessages"]>(() =>
+        Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(value) {
+              controller = value;
+            },
+          }),
+        ),
+      );
+      const transport: ChatTransport<UIMessage> = {
+        sendMessages,
+        reconnectToStream: async () => null,
+      };
+      const onFinish = vi.fn();
+      const onError = vi.fn();
+      const onData = vi.fn();
+      const view = render(
+        <App
+          options={{ id: "host-chat", transport, onFinish, onError, onData }}
+        />,
+      );
+      const input = screen.getByRole("textbox", { name: "Message" });
+      input.focus();
+      fireEvent.change(input, { target: { value: "Hello" } });
+      fireEvent.submit(
+        screen.getByRole("button", { name: "Send" }).closest("form")!,
+      );
+      await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(1));
+      expect(sendMessages.mock.calls[0]?.[0].chatId).toBe("host-chat");
+      await act(async () => {
+        controller.enqueue({ type: "start", messageId: "response-1" });
+        controller.enqueue({ type: "text-start", id: "text-1" });
+        controller.enqueue({
+          type: "text-delta",
+          id: "text-1",
+          delta: "A streamed answer.",
+        });
+        controller.enqueue({
+          type: "data-notice",
+          data: "host-data",
+          transient: true,
+        });
+      });
+      await waitFor(() =>
+        expect(screen.getByText("A streamed answer.")).toBeDefined(),
+      );
+      expect(onData).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        if (outcome === "finish") {
+          controller.enqueue({ type: "text-end", id: "text-1" });
+          controller.enqueue({ type: "finish", finishReason: "stop" });
+          controller.close();
+        } else {
+          controller.error(new Error("private backend details"));
+        }
+      });
+      await waitFor(() =>
+        expect(outcome === "finish" ? onFinish : onError).toHaveBeenCalledTimes(
+          1,
+        ),
+      );
+      await waitFor(
+        () => {
+          const delivered = [...document.querySelectorAll("[aria-live]")]
+            .map((region) => region.textContent)
+            .join(" ");
+          expect(delivered).toContain(
+            outcome === "finish" ? "Response complete." : "failed",
+          );
+          expect(delivered).not.toContain("private backend details");
+        },
+        { timeout: 4000 },
+      );
+      expect(document.activeElement).toBe(input);
+      await act(async () => view.unmount());
+      expect(document.querySelectorAll("[aria-live]")).toHaveLength(0);
+    },
+  );
 
   it("records delivery from the active binding in the devtools example", async () => {
     vi.useFakeTimers();
