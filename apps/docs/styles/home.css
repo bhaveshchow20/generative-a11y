@@ -869,6 +869,7 @@
 }
 .home-project-stats .project-stat-icon { font-size: .65rem; }
 .home-package-list { margin: 0; padding: 24px; list-style: none; background: rgba(232,242,238,.82); }
+.dark .home-site .home-package-list { background: var(--home-surface-soft); }
 .home-package-list li { display: grid; min-height: 65px; align-items: center; border-bottom: 1px solid var(--home-line); gap: 10px; grid-template-columns: 28px minmax(170px,.9fr) 1fr; }
 .home-package-list span { color: var(--home-orange-dark); font: .58rem var(--font-home-mono), monospace; }
 .home-package-list a { color: var(--home-olive-dark); font: 650 .65rem var(--font-home-mono), monospace; text-decoration: none; }
