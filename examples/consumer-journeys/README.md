@@ -7,11 +7,14 @@ For an existing React + AI SDK application, the complete browser journey in
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-Prerequisites: Node.js 22+, `ai@7.0.x`, `@ai-sdk/react@4.0.x`, compatible
-`react` and `react-dom` (`^18.2.0 || ^19.0.0`), and the SDK's `zod` peer
-(`^3.25.76 || ^4.1.8` for the checked version). Your backend and transport must
-already work. Pass your existing `useChat` options to `App`; it preserves
-transport, composes finish/error callbacks, and retains other options.
+Requires AI SDK 7 / `@ai-sdk/react` 4 and React 18.2+ or 19; see
+[Compatibility](https://generativea11y.com/docs/integrations/ai-sdk#compatibility)
+for exact ranges and peers. Keep your existing backend, transport, and UI. The
+primary example has no options-forwarding abstraction. The
+[callback recipe](https://generativea11y.com/docs/integrations/ai-sdk#existing-callbacks)
+explains how to preserve existing finish/error handlers. The arbitrary-options
+harness in `tests/consumer/chat-with-options.tsx` retains deeper regression
+coverage separately from the first example.
 
 `A11yProvider` owns runtime and browser delivery across responses. Its chat
 child owns the adapter observer. Both clean up on unmount. The client directive
@@ -49,6 +52,6 @@ declaration (TS7016) is reported separately. Declaration checks use TypeScript
 `strict`; `exactOptionalPropertyTypes` is disabled there because the checked
 upstream SDK declarations fail with that additional option. Repository consumer
 checks still enable it with `skipLibCheck` as configured in the base tsconfig.
-The runtime tests send public SDK transport streams through the complete example
-and check callbacks, DOM delivery, focus preservation and unmount cleanup. These
-checks do not establish real assistive-technology output.
+The runtime tests send public SDK transport streams through the host-options
+harness and check callbacks, DOM delivery, focus preservation and unmount
+cleanup. These checks do not establish real assistive-technology output.

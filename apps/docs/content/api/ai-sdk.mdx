@@ -57,9 +57,41 @@ export const searchableText = [
 
 For an existing compatible React + AI SDK app:
 
-```shell
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
 
 See the [integration guide](/docs/integrations/ai-sdk) for peer versions,
 provider placement, preserved host options, and the preconstructed `Chat` case.
@@ -166,7 +198,7 @@ contract without a React component or backend. In a live application, use the
 SDK's real snapshots and callbacks, a browser delivery binding, and cleanup when
 the surface is removed. Do not recreate the adapter's private scoped IDs.
 
-```ts
+```ts title="chat-accessibility.ts"
 import {
   createRuntime,
   ManualClock,

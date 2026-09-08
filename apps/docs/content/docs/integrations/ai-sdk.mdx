@@ -35,6 +35,8 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Simple Chat() integration with provider wrapper. Existing callbacks: pass onFinish and onError to useChatAccessibility.",
+  "Compatibility lists exact minor versions and host peers. Advanced: preconstructed Chat requires construction-time callbacks.",
   "Vercel AI SDK accessibility",
   "Install @generative-a11y/react and @generative-a11y/ai-sdk beside compatible host dependencies.",
   "Node.js 22+, ai 7.0.x, @ai-sdk/react 4.0.x, React and React DOM 18.2 or 19, zod.",
@@ -51,198 +53,205 @@ export const searchableText = [
 
 ## Install for your existing app
 
-```shell
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-Your existing AI SDK setup must also satisfy its `zod` peer
-(`^3.25.76 || ^4.1.8` for the checked SDK version).
+</Tab>
 
-These are the only two direct library dependencies for this recipe. The React
-package installs core and DOM as dependencies. If you later import either
-package yourself, declare it directly too.
+<Tab value="pnpm">
 
-Your app must already have Node.js 22+, `ai@7.0.x`, `@ai-sdk/react@4.0.x`, and
-compatible `react` and `react-dom` peers (`^18.2.0 || ^19.0.0`). The checked
-versions are ai 7.0.77, @ai-sdk/react 4.0.80, and React / React DOM 19.2.8.
-Keep your existing backend and transport; this library does not create them.
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
+
+Requires AI SDK 7 / `@ai-sdk/react` 4 and React 18.2+ or 19.
+See [Compatibility](#compatibility) for the supported minor versions and peers.
 
 <span id="react"></span>
 
 ## React integration
 
-Add these imports and keep your existing options in `defaultOptions`. The
-example transport uses `/api/chat`; retain your endpoint, authentication, and
-other transport configuration. Keep this module behind a `"use client"`
-boundary in a React Server Components app.
+<Steps>
+<Step>
 
-```tsx
+### Import the hooks
+
+Add these imports to your chat module. In a React Server Components app, keep
+it behind a `"use client"` boundary.
+
+```tsx title="components/chat.tsx"
 "use client";
 
-import { useState } from "react";
-import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
-import { useChat, type UseChatOptions } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
-
-// Keep your existing transport and options here (or pass them to App).
-const defaultOptions = {
-  id: "support",
-  transport: new DefaultChatTransport({ api: "/api/chat" }),
-};
-
-// This recipe lets useChat construct the chat; an existing Chat needs callbacks
-// composed at its own construction boundary instead.
-type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
 ```
 
-Wrap your existing `Chat` once and accept its options as props:
+</Step>
+<Step>
 
-```tsx
-export function App({ options = defaultOptions }: { options?: ChatOptions }) {
+### Connect your chat
+
+Inside your existing `Chat()`, create accessibility before `useChat`, then
+observe the returned state. Keep your transport and other chat options; the
+example below uses `/api/chat`.
+
+```tsx title="components/chat.tsx"
+const runtime = useRuntime();
+const accessibility = useChatAccessibility({
+  runtime,
+  scopeId: "support",
+});
+const chat = useChat({
+  id: "support",
+  transport: new DefaultChatTransport({ api: "/api/chat" }),
+  ...accessibility.chatCallbacks,
+});
+useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
+```
+
+</Step>
+<Step>
+
+### Add the provider
+
+Wrap your chat once:
+
+```tsx title="components/chat.tsx"
+export function App() {
   return (
     <A11yProvider>
-      <Chat options={options} />
+      <Chat />
     </A11yProvider>
   );
 }
 ```
 
-Inside `function Chat({ options }: { options: ChatOptions })`, replace the
-existing `useChat` call with this wiring. It preserves all options and composes
-your finish/error callbacks. Keep using `chat` in your existing UI.
-
-```tsx
-const runtime = useRuntime();
-  const accessibility = useChatAccessibility({
-    runtime,
-    scopeId: "support",
-    onFinish: (event) => options.onFinish?.(event),
-    onError: (error) => options.onError?.(error),
-  });
-  // Spread composed callbacks last so host options cannot overwrite them.
-  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
-  useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
-```
-
-See the [complete copyable component](/api/ai-sdk/use-chat-accessibility) for a
-minimal message list and composer. The provider owns runtime and live-region
-delivery, with cleanup on unmount. Keep it mounted across responses. The adapter
-owns only its observer; keep `scopeId` stable for that mounted session and
-remount deliberately when switching chats.
-
-This recipe lets `useChat` construct the chat. With `useChat({ chat: existingChat })`,
-other initialization options, including callbacks, are ignored. Compose callbacks
-when constructing that chat using the [observer API](/api/ai-sdk), and manage
-its subscription and cleanup at that boundary.
-
-The result is paced live-region updates for supported response and tool events.
-Your visible interface stays intact, and ordinary streaming never moves focus.
-Your app still supplies semantic structure, usable keyboard controls, accessible
-message content, and approval UI. DOM checks do not prove screen-reader output.
-
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Create accessibility first
-
-The hook creates one observer and composed callbacks before useChat captures its
-initial options.
-
 </Step>
-
-<Step>
-
-### Keep your callbacks
-
-The integration observes onFinish and onError, then calls the callbacks supplied
-by your app.
-
-</Step>
-
-<Step>
-
-### Construct useChat
-
-Spreading chatCallbacks tells the adapter when a response completes, stops, or
-fails.
-
-</Step>
-
-<Step>
-
-### Observe public state
-
-The second hook reads only messages, status, and error from the returned useChat
-helpers.
-
-</Step>
-
 </Steps>
 
-See the [hook reference](/api/ai-sdk/use-chat-accessibility) for configuration options.
+Keep using `chat` in your existing UI. See the
+[complete copyable component](/api/ai-sdk/use-chat-accessibility) for a minimal
+message list and composer.
+
+### Existing callbacks
+
+Already use `onFinish` or `onError`? Pass your existing functions to
+`useChatAccessibility` so they are composed rather than replaced. Keep the rest
+of your options, including transport, in `existingOptions`, and spread the
+composed callbacks last. Omit either callback if your app does not use it.
+
+```tsx title="components/chat.tsx"
+const accessibility = useChatAccessibility({
+  runtime,
+  scopeId: "support",
+  onFinish,
+  onError,
+});
+const chat = useChat({ ...existingOptions, ...accessibility.chatCallbacks });
+```
+
+### Ownership and behavior
+
+<Callout title="One provider per chat surface">
+
+`A11yProvider` owns runtime and browser delivery. The adapter owns observer
+cleanup. Both clean up on unmount; keep the provider mounted across responses
+and `scopeId` stable for that session.
+
+</Callout>
+
+This adds paced live-region updates without changing your visible UI or moving
+focus during ordinary streaming. Your app still owns semantic structure,
+keyboard controls, and accessible content. DOM checks do not prove screen-reader
+output.
+
+## Advanced: preconstructed Chat
+
+With `useChat({ chat: existingChat })`, other initialization options, including
+callbacks, are ignored. Compose callbacks when constructing that chat using the
+[observer API](/api/ai-sdk), and manage its subscription and cleanup at that
+boundary.
+
+## Compatibility
+
+| Dependency | Supported range | Checked version |
+| --- | --- | --- |
+| Node.js | 22+ | 22.16.0 |
+| `ai` | `>=7.0.0 <7.1.0` | 7.0.77 |
+| `@ai-sdk/react` | `>=4.0.0 <4.1.0` | 4.0.80 |
+| `react` / `react-dom` | 18.2+ within major 18, or 19.x | 19.2.8 |
+| `zod` (host SDK peer) | 3.25.76+ within major 3, or 4.1.8+ within major 4 | 4.4.3 |
+
+Your existing AI SDK app supplies these dependencies and a working backend.
+Core and DOM install transitively; declare them directly only if your own code
+imports them. The React hooks live at `@generative-a11y/ai-sdk/react`; the root
+observer entry remains usable without React.
 
 <span id="lifecycle&#45;mapping"></span>
+<span id="fidelity"></span>
 
 ## Lifecycle mapping
 
-The observer maps documented message parts and chat status to response, text,
-tool, approval, and citation events. Composed callbacks confirm completion and
-failure. Automatic retry and regenerate events are unavailable. Public AI SDK state
-does not identify every retry request; do not construct adapter-owned response
-IDs or fabricate retry events. The next supported public response lifecycle
-is still observed normally.
+The adapter translates confirmed public SDK evidence:
 
-- messages and status identify active response text and known tool states
-- onFinish confirms completion or stop details
-- onError confirms failure without copying raw error text
+| Evidence | Reports |
+| --- | --- |
+| Append-only assistant text | Response text updates |
+| Tool parts, approval IDs, and source IDs | Tools, approvals, and citations |
+| Composed `onFinish` / `onError` callbacks | Completion, cancellation, failure, and connection loss |
+
+Retry and regenerate detection are unavailable. A successful finish after a
+disconnection reports recovery. See the [observer reference](/api/ai-sdk) for
+exact mappings and limits.
 
 <span id="screen&#45;reader&#45;behavior"></span>
-
-## Expected screen&#45;reader behavior
-
-Core groups streaming text into paced announcement intents and gives approval,
-failure, and completion updates suitable priority. The DOM package writes those
-intents to live regions without moving focus during routine status changes.
-Browser transcripts confirm DOM delivery; test VoiceOver, NVDA, or another
-target screen reader before making support claims.
-
-<span id="fidelity"></span>
-
-## What the adapter can report
-
-Use supplied callbacks so the adapter knows when a response finishes, stops, or
-fails. Status alone does not provide enough detail. Retry/regenerate detection is unavailable; the adapter does not expose a retry wrapper. A successful finish after a disconnection reports recovery.
-
-- Exports adapterInfo, createChatObserver, composeChatCallbacks
-- React subpath exports useChatAccessibility and useObserveChatAccessibility
-- Tool failure, approvals, and citations use stable public part IDs
-
 <span id="troubleshooting"></span>
 
 ## Troubleshooting
 
-Missing completion updates often mean useChat captured callbacks before the
-accessibility integration created them. Repeated output can indicate an unstable
-scopeId or more than one observer attached to the same chat. Inspect runtime
-diagnostics, then compare the observed public state with the lifecycle mapping
-above.
+- **Missing completion updates:** create accessibility before `useChat` and spread
+  its composed callbacks last.
+- **Repeated output:** keep `scopeId` stable and attach only one observer per chat.
+- **Existing messages are silent:** the first snapshot establishes a history
+  baseline. The adapter observes subsequent updates without replaying history.
 
-- Create the integration before constructing useChat.
-- Keep scopeId stable for the lifetime of one chat instance.
-- Use the lifecycle lab to inspect deterministic browser updates before testing
-  assistive technology.
+## Next steps
 
-The example uses your existing AI SDK `/api/chat` endpoint. `A11yProvider`
-owns the runtime and browser delivery; `useChatAccessibility` owns only its
-observer. Both clean up on unmount. Keep your existing transport and UI.
-Add host `onFinish`/`onError` callbacks to `useChatAccessibility` when needed;
-it composes them with its own callbacks. Do not overwrite `chatCallbacks`
-after spreading them into `useChat`.
+<Cards>
+  <Card title="React hook reference" href="/api/ai-sdk/use-chat-accessibility">
+    Explore options, return values, and the complete component.
+  </Card>
+  <Card title="Observer API" href="/api/ai-sdk">
+    Connect public snapshots when your application owns the runtime.
+  </Card>
+</Cards>

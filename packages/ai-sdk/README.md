@@ -14,56 +14,37 @@ The root entry is SSR-safe. The React integration is available only from
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-Your existing AI SDK setup must also satisfy its `zod` peer
-(`^3.25.76 || ^4.1.8` for the checked SDK version).
-
-These are the two direct library dependencies used below. Core and DOM are
-installed transitively; declare them directly only if your own code imports
-them. Prerequisites: Node.js 22+, `ai@7.0.x`, `@ai-sdk/react@4.0.x`, and
-compatible `react` / `react-dom` versions (`^18.2.0 || ^19.0.0`). Keep your
-working backend, transport, and host UI. The test matrix uses ai 7.0.77,
-@ai-sdk/react 4.0.80, and React / React DOM 19.2.8.
+Requires AI SDK 7 / `@ai-sdk/react` 4 and React 18.2+ or 19. See
+[Compatibility](#compatibility) for the supported minor versions and peers.
 
 ## React quick start
 
-Create the accessibility integration before `useChat()` so its composed
-callbacks are present when AI SDK creates the chat. Pass existing options,
-including transport and callbacks, to `App`; the default uses `/api/chat`. Then
-observe the documented public snapshot returned from `useChat()`.
+Create accessibility before `useChat`, then observe its returned state. Keep
+your existing transport and UI; this complete example uses `/api/chat`.
 
 ```tsx
 "use client";
 
-import { useState } from "react";
-import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
-import { useChat, type UseChatOptions } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
+import { useState } from "react";
 
-// Keep your existing transport and options here (or pass them to App).
-const defaultOptions = {
-  id: "support",
-  transport: new DefaultChatTransport({ api: "/api/chat" }),
-};
-
-// This recipe lets useChat construct the chat; an existing Chat needs callbacks
-// composed at its own construction boundary instead.
-type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
-
-function Chat({ options }: { options: ChatOptions }) {
+function Chat() {
   const runtime = useRuntime();
   const accessibility = useChatAccessibility({
     runtime,
     scopeId: "support",
-    onFinish: (event) => options.onFinish?.(event),
-    onError: (error) => options.onError?.(error),
   });
-  // Spread composed callbacks last so host options cannot overwrite them.
-  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
+  const chat = useChat({
+    id: "support",
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    ...accessibility.chatCallbacks,
+  });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
   const [input, setInput] = useState("");
 
@@ -101,13 +82,30 @@ function Chat({ options }: { options: ChatOptions }) {
   );
 }
 
-export function App({ options = defaultOptions }: { options?: ChatOptions }) {
+export function App() {
   return (
     <A11yProvider>
-      <Chat options={options} />
+      <Chat />
     </A11yProvider>
   );
 }
+```
+
+### Existing callbacks
+
+Already use `onFinish` or `onError`? Pass your existing functions to
+`useChatAccessibility` so they are composed rather than replaced. Keep the rest
+of your options, including transport, in `existingOptions`, and spread the
+composed callbacks last. Omit either callback if your app does not use it.
+
+```tsx
+const accessibility = useChatAccessibility({
+  runtime,
+  scopeId: "support",
+  onFinish,
+  onError,
+});
+const chat = useChat({ ...existingOptions, ...accessibility.chatCallbacks });
 ```
 
 `A11yProvider` owns one runtime and browser delivery for the mounted chat
@@ -117,6 +115,8 @@ adapter supplies paced live-region updates without changing the visible UI or
 moving focus for ordinary streaming. Your host still owns semantic structure,
 keyboard controls, accessible message content, and any approval UI. DOM delivery
 does not establish what a real screen reader speaks.
+
+### Advanced: preconstructed Chat
 
 If you pass an already constructed `Chat` to `useChat`, its other initialization
 options are ignored. Compose callbacks at that chat's construction boundary
@@ -145,6 +145,21 @@ For a non-React integration, use `createChatObserver()` and
 `composeChatCallbacks()` from the root entry before initializing the public AI
 SDK chat. `runtime` is a borrowed `Pick<Runtime, "dispatch">`; disposing an
 observer never disposes it.
+
+## Compatibility
+
+| Dependency            | Supported range                                   | Checked version |
+| --------------------- | ------------------------------------------------- | --------------- |
+| Node.js               | 22+                                               | 22.16.0         |
+| `ai`                  | `>=7.0.0 <7.1.0`                                  | 7.0.77          |
+| `@ai-sdk/react`       | `>=4.0.0 <4.1.0`                                  | 4.0.80          |
+| `react` / `react-dom` | 18.2+ within major 18, or 19.x                    | 19.2.8          |
+| `zod` (host SDK peer) | 3.25.76+ within major 3, or 4.1.8+ within major 4 | 4.4.3           |
+
+Your existing AI SDK app supplies these dependencies and a working backend. Core
+and DOM install transitively; declare them directly only if your own code
+imports them. The React hooks live at `@generative-a11y/ai-sdk/react`; the root
+observer entry remains usable without React.
 
 ## Event mapping and limits
 

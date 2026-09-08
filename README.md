@@ -29,12 +29,11 @@ rebuild their UI.
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-Your existing AI SDK setup must also satisfy its `zod` peer
-(`^3.25.76 || ^4.1.8` for the checked SDK version).
+For an existing React + AI SDK app. Requires AI SDK 7 / `@ai-sdk/react` 4 and
+React 18.2+ or 19. See
+[Compatibility](https://generativea11y.com/docs/integrations/ai-sdk#compatibility)
+for supported minor versions and peers.
 
-For an existing React + AI SDK app, these two library packages provide lifecycle
-observation and browser delivery. Requires Node.js 22+, `ai@7.0.x`,
-`@ai-sdk/react@4.0.x`, and React / React DOM 18.2+ within major 18, or major 19.
 Follow the
 [complete React integration](https://generativea11y.com/docs/integrations/ai-sdk)
 to wrap the chat once, preserve transport and callbacks, and observe public

@@ -114,11 +114,19 @@ try {
   assert.ok(source.startsWith('"use client";'));
   const filename = join(temporary, "chat.tsx");
   await writeFile(filename, source);
+  const harnessFilename = join(temporary, "chat-with-options.tsx");
+  await writeFile(
+    harnessFilename,
+    await readFile(
+      new URL("tests/consumer/chat-with-options.tsx", root),
+      "utf8",
+    ),
+  );
   for (const [module, moduleResolution] of [
     [ts.ModuleKind.NodeNext, ts.ModuleResolutionKind.NodeNext],
     [ts.ModuleKind.ESNext, ts.ModuleResolutionKind.Bundler],
   ]) {
-    const program = ts.createProgram([filename], {
+    const program = ts.createProgram([filename, harnessFilename], {
       module,
       moduleResolution,
       strict: true,

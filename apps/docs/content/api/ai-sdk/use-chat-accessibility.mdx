@@ -24,86 +24,55 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Start here: npm install @generative-a11y/react @generative-a11y/ai-sdk for an existing compatible React + AI SDK app.",
-  "See the integration guide for peer prerequisites, preserved transport and callbacks, provider-owned delivery, and preconstructed Chat guidance.",
-  "The root observer alone does not provide browser delivery.",
   "useChatAccessibility",
-  "Create the AI SDK observer and completion callbacks before calling useChat in the same React component.",
-  "AI SDK",
-  "useChatAccessibility",
-  "useObserveChatAccessibility",
-  "ChatIntegration",
-  "useChat",
-  "complete-example",
-  "Complete useChat integration",
-  "Call useChatAccessibility first, pass chatCallbacks into useChat, then observe the documented snapshot.",
-  "tsx",
-  "Complete provider-owned browser delivery, public SDK callbacks and snapshots, and cleanup on unmount. See the typechecked runnable example below.",
-  "Create callbacks first",
-  "useChatAccessibility creates one observer and callback pair for each runtime and scope.",
-  "Pass callbacks to useChat",
-  "Completion and error details reach the adapter and your existing callbacks.",
-  "Observe public state",
-  "useObserveChatAccessibility reads messages, status, and error after useChat returns.",
-  "Let the hook clean up",
-  "Unmounting disposes the observer and supports React Strict Mode remounts.",
-  "runtime",
-  "Pick<Runtime, 'dispatch'>",
-  "Required",
-  "n/a",
-  "Receives adapter events while remaining under your app's control.",
-  "scopeId",
-  "string",
-  "Required",
-  "n/a",
-  "Stable non-empty namespace for messages, tools, approvals, and citations.",
-  "maxTrackedEntities",
-  "number",
-  "Optional",
-  "1000",
-  "After capacity saturation, all later snapshot and terminal-callback lifecycle events are suppressed.",
-  "getToolLabel",
-  "(context) => string",
-  "Optional",
-  '"A tool"',
-  "Maps public tool context to short localized copy without exposing arguments.",
-  "onFinish / onError",
-  "AI SDK callbacks",
-  "Optional",
-  "undefined",
-  "Your existing callbacks. chatCallbacks calls them after the adapter records the result.",
-  "return",
-  "ChatIntegration",
-  "Return",
-  "n/a",
-  "Observer plus onFinish and onError callbacks for useChat.",
-  "observe",
-  "useObserveChatAccessibility",
-  "useObserveChatAccessibility reads your ChatIntegration without disposing it.",
-  "integration",
-  "ChatIntegration",
-  "Required",
-  "n/a",
-  "Value returned by useChatAccessibility.",
-  "snapshot",
-  "UseChatSnapshot",
-  "Required",
-  "n/a",
-  "Documented messages, status, and error fields from useChat.",
-  "return",
-  "void",
-  "Return",
-  "n/a",
-  "Observation occurs in an effect after the snapshot commits.",
+  "Start here: install @generative-a11y/react and @generative-a11y/ai-sdk. See the integration guide for compatibility.",
+  "Complete useChat integration: simple Chat() component and A11yProvider wrapper.",
+  "Existing callbacks: pass onFinish and onError to useChatAccessibility; preserve transport and spread composed callbacks last.",
+  "Options: runtime, scopeId, maxTrackedEntities, getToolLabel, copy, onFinish, onError. Returns ChatIntegration.",
+  "useObserveChatAccessibility: observe public messages, status and error after useChat; accepts integration and snapshot.",
+  "A11yProvider owns runtime and browser delivery; useChatAccessibility owns observer cleanup.",
+  "Preconstructed Chat needs callbacks at construction; see the integration guide."
 ].join("\n");
 
 ## Start here
 
 For an existing compatible React + AI SDK app:
 
-```shell
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
 
 See the [integration guide](/docs/integrations/ai-sdk) for peer versions,
 provider placement, preserved host options, and the preconstructed `Chat` case.
@@ -117,39 +86,29 @@ Call useChatAccessibility first, pass chatCallbacks into useChat, then observe
 the documented snapshot.
 
 {/* prettier-ignore */}
-```tsx
+```tsx title="components/chat.tsx"
 "use client";
 
-import { useState } from "react";
-import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
-import { useChat, type UseChatOptions } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { A11yProvider, useRuntime } from "@generative-a11y/react";
 import {
   useChatAccessibility,
   useObserveChatAccessibility,
 } from "@generative-a11y/ai-sdk/react";
+import { useState } from "react";
 
-// Keep your existing transport and options here (or pass them to App).
-const defaultOptions = {
-  id: "support",
-  transport: new DefaultChatTransport({ api: "/api/chat" }),
-};
-
-// This recipe lets useChat construct the chat; an existing Chat needs callbacks
-// composed at its own construction boundary instead.
-type ChatOptions = Exclude<UseChatOptions<UIMessage>, { chat: unknown }>;
-
-function Chat({ options }: { options: ChatOptions }) {
+function Chat() {
   const runtime = useRuntime();
   const accessibility = useChatAccessibility({
     runtime,
     scopeId: "support",
-    onFinish: (event) => options.onFinish?.(event),
-    onError: (error) => options.onError?.(error),
   });
-  // Spread composed callbacks last so host options cannot overwrite them.
-  const chat = useChat({ ...options, ...accessibility.chatCallbacks });
+  const chat = useChat({
+    id: "support",
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    ...accessibility.chatCallbacks,
+  });
   useObserveChatAccessibility({ integration: accessibility, snapshot: chat });
   const [input, setInput] = useState("");
 
@@ -187,54 +146,37 @@ function Chat({ options }: { options: ChatOptions }) {
   );
 }
 
-export function App({ options = defaultOptions }: { options?: ChatOptions }) {
+export function App() {
   return (
     <A11yProvider>
-      <Chat options={options} />
+      <Chat />
     </A11yProvider>
   );
 }
 ```
 
-### Walkthrough
+### Existing callbacks
 
-<Steps>
+Already use `onFinish` or `onError`? Pass your existing functions to
+`useChatAccessibility` so they are composed rather than replaced. Keep the rest
+of your options, including transport, in `existingOptions`, and spread the
+composed callbacks last. Omit either callback if your app does not use it.
 
-<Step>
+```tsx title="components/chat.tsx"
+const accessibility = useChatAccessibility({
+  runtime,
+  scopeId: "support",
+  onFinish,
+  onError,
+});
+const chat = useChat({ ...existingOptions, ...accessibility.chatCallbacks });
+```
 
-### Create callbacks first
 
-useChatAccessibility creates one observer and callback pair for each runtime and
-scope.
+## Options
 
-</Step>
-
-<Step>
-
-### Pass callbacks to useChat
-
-Completion and error details reach the adapter and your existing callbacks.
-
-</Step>
-
-<Step>
-
-### Observe public state
-
-useObserveChatAccessibility reads messages, status, and error after useChat
-returns.
-
-</Step>
-
-<Step>
-
-### Let the hook clean up
-
-Unmounting disposes the observer and supports React Strict Mode remounts.
-
-</Step>
-
-</Steps>
+Pass these options to `useChatAccessibility`. The provider supplies `runtime`;
+keep `scopeId` stable for the mounted chat.
 
 <TypeTable
   type={{

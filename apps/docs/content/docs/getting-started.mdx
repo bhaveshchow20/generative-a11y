@@ -32,22 +32,54 @@ export const searchableText = [
 
 ## Start with your existing React + AI SDK app
 
-```shell
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
 npm install @generative-a11y/react @generative-a11y/ai-sdk
 ```
 
-Your existing AI SDK setup must also satisfy its `zod` peer
-(`^3.25.76 || ^4.1.8` for the checked SDK version).
+</Tab>
 
-Requires Node.js 22+, `ai@7.0.x`, `@ai-sdk/react@4.0.x`, and compatible React /
-React DOM peers (`^18.2.0 || ^19.0.0`). These are existing app prerequisites;
-core and DOM install transitively. Declare a package directly if you import it.
+<Tab value="pnpm">
 
-Follow the [React + AI SDK integration](/docs/integrations/ai-sdk):
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
 
-1. Wrap your chat once with `A11yProvider` to own runtime, browser delivery, and cleanup.
-2. Create accessibility callbacks before `useChat`, preserving your transport and existing callbacks.
-3. Observe the returned public state and keep your existing message list and composer.
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
+
+For an existing React + AI SDK app. Requires AI SDK 7 / `@ai-sdk/react` 4 and
+React 18.2+ or 19. See [Compatibility](/docs/integrations/ai-sdk#compatibility)
+for supported minor versions and peers.
+
+<Cards>
+  <Card title="Connect React + AI SDK" href="/docs/integrations/ai-sdk">
+    Add the provider and hooks to your existing chat.
+  </Card>
+  <Card title="Use React with your own events" href="/api/react">
+    Report confirmed lifecycle events from your application.
+  </Card>
+</Cards>
 
 This adds paced live-region updates for supported lifecycle events without
 changing the visual UI or moving focus during ordinary streaming. Your host
@@ -76,7 +108,7 @@ each streaming update. Report when the response finishes, fails, or stops.
 Dispose both resources when the session ends.
 
 {/* prettier-ignore */}
-```ts
+```ts title="chat-accessibility.ts"
 import { createRuntime } from "@generative-a11y/core";
 import { bindRuntime } from "@generative-a11y/dom";
 
@@ -99,45 +131,8 @@ export function disposeChat() {
 }
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Create one runtime
-
-Your runtime tracks responses, prepares useful text, and controls update timing.
-
-</Step>
-
-<Step>
-
-### Connect the browser
-
-bindRuntime creates and manages the hidden live regions used for
-screen&#45;reader updates.
-
-</Step>
-
-<Step>
-
-### Report app events
-
-Tell the runtime when a response starts, receives text, and finishes.
-
-</Step>
-
-<Step>
-
-### Clean up
-
-Dispose the browser connection first, then dispose the runtime when the session
-ends.
-
-</Step>
-
-</Steps>
+Keep the binding alive across responses. When the chat is removed, dispose
+browser delivery before the runtime.
 
 <Callout title="Evidence and testing note">
 
@@ -199,3 +194,12 @@ app, send events directly to the core runtime.
     </tr>
   </tbody>
 </table>
+
+<Cards>
+  <Card title="assistant-ui" href="/docs/integrations/assistant-ui">
+    Observe public runtime and message state.
+  </Card>
+  <Card title="AG-UI / CopilotKit" href="/docs/integrations/ag-ui">
+    Translate confirmed protocol events.
+  </Card>
+</Cards>
