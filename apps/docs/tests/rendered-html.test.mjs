@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-async function render(pathname = "/") {
+async function render(pathname = "/", accept = "text/html") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
     new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html" },
+      headers: { accept },
     }),
     {
       ASSETS: {
@@ -33,13 +33,19 @@ test("server-renders the generative-a11y homepage", async () => {
   assert.match(html, /without rebuilding your interface/i);
   assert.match(html, /Built for asynchronous AI/i);
   assert.match(html, /Add accessibility without starting over/i);
-  assert.match(html, /Debug accessibility behavior before users find the problem/i);
+  assert.match(
+    html,
+    /Debug accessibility behavior before users find the problem/i,
+  );
   assert.match(html, /href="\/api"[^>]*>API</i);
   assert.match(html, /npm install @generative-a11y\/core/i);
   assert.match(html, /aria-label="Package"/i);
   assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/examples\/lifecycle-lab"/i);
-  assert.match(html, /<nav class="home-hero-actions" aria-label="Get started">/i);
+  assert.match(
+    html,
+    /<nav class="home-hero-actions" aria-label="Get started">/i,
+  );
   assert.match(
     html,
     /<div class="hero-trace" role="group" aria-label="Example normalized event trace">/i,
@@ -132,7 +138,10 @@ test("adds defensive response headers without blocking indexing", async () => {
     response.headers.get("referrer-policy"),
     "strict-origin-when-cross-origin",
   );
-  assert.match(response.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/i);
+  assert.match(
+    response.headers.get("content-security-policy") ?? "",
+    /frame-ancestors 'none'/i,
+  );
 });
 
 test("serves crawler and AI discovery resources", async () => {
@@ -175,8 +184,8 @@ test("serves crawler and AI discovery resources", async () => {
   assert.match(llmsFull.headers.get("content-type") ?? "", /^text\/plain\b/i);
   const llmsFullText = await llmsFull.text();
   assert.match(llmsFullText, /^# generative-a11y full documentation/m);
-  assert.match(llmsFullText, /## Accessible streaming AI for screen readers/i);
-  assert.match(llmsFullText, /## createRuntime/i);
+  assert.match(llmsFullText, /^# Accessible streaming AI for screen readers/m);
+  assert.match(llmsFullText, /^# createRuntime/m);
 });
 
 test("documentation pages expose article and breadcrumb structured data", async () => {
@@ -298,4 +307,51 @@ test("renders a useful, non-indexable 404 page", async () => {
   assert.match(html, /href="\/docs\/getting-started"/i);
   assert.match(html, /href="\/api"/i);
   assert.match(html, /<meta name="robots" content="noindex"/i);
+});
+
+test("exports Markdown through built routes without negotiating HTML", async () => {
+  for (const path of ["/docs/integrations/ai-sdk", "/api", "/api/core"]) {
+    for (const accept of ["text/html", "text/markdown", "*/*"]) {
+      const html = await render(path, accept);
+      assert.equal(html.status, 200);
+      assert.match(html.headers.get("content-type"), /^text\/html/);
+      await html.text();
+      const markdown = await render(`/markdown${path}`, accept);
+      assert.equal(markdown.status, 200);
+      assert.equal(
+        markdown.headers.get("content-type"),
+        "text/markdown; charset=utf-8",
+      );
+      assert.equal(
+        markdown.headers.get("cache-control"),
+        "public, max-age=300, s-maxage=3600",
+      );
+      assert.equal(
+        markdown.headers.get("link"),
+        `<https://generativea11y.com${path}>; rel="canonical"`,
+      );
+      const body = await markdown.text();
+      assert.ok(body.includes(`Canonical: https://generativea11y.com${path}`));
+      assert.match(body, /may include unreleased APIs/);
+      assert.doesNotMatch(body, /<ApiReference|<TypeTable/);
+    }
+  }
+  for (const path of [
+    "/markdown/api/missing",
+    "/markdown/docs/missing",
+    "/markdown/llms.txt",
+  ]) {
+    const response = await render(path);
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  }
+  for (const path of ["/llms-docs.txt", "/llms-api.txt"]) {
+    const response = await render(path);
+    assert.equal(response.status, 200);
+    assert.equal(
+      response.headers.get("content-type"),
+      "text/plain; charset=utf-8",
+    );
+    assert.match(await response.text(), /^Canonical:/m);
+  }
 });

@@ -62,6 +62,7 @@ export default async function DocumentationPage({
       body={page.data.body}
       description={page.data.description}
       path={page.url}
+      sourcePath={page.path}
       title={page.data.title}
       toc={page.data.toc}
     />

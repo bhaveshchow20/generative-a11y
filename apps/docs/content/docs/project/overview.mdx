@@ -121,3 +121,45 @@ different questions. Keeping them separate prevents anyone from mistaking an
 automated transcript for what a person heard.
 
 Maintained by [Bhavesh Chowdhury](https://github.com/bhaveshchow20).
+
+## Read documentation from tools
+
+Use **Copy Markdown** below a guide or API page description to copy its content.
+The **Open** dropdown links to Markdown, the GitHub source, and external AI
+tools.
+
+Start with [/llms.txt](/llms.txt) for guide and API Markdown links. Each export
+includes its canonical HTML URL and source checkout context. For example,
+[/markdown/docs/integrations/ai-sdk](/markdown/docs/integrations/ai-sdk) exports
+the AI SDK recipe, and [/markdown/api/core](/markdown/api/core) includes
+generated public declarations. Prefix any canonical `/docs/...` or `/api/...`
+path with `/markdown`; the API landing page is `/markdown/api`. Unknown pages
+return 404.
+
+```shell
+curl -fsS https://generativea11y.com/llms.txt
+curl -fsS https://generativea11y.com/markdown/docs/integrations/ai-sdk
+npm view @generative-a11y/ai-sdk version peerDependencies --json
+```
+
+These docs track source, which can contain APIs awaiting publication even when
+package manifest versions match npm. Check
+[stability and migrations](/docs/stability) and the release tag for your
+installed version. The
+[typechecked consumer journeys](https://github.com/bhaveshchow20/generative-a11y/tree/main/examples/consumer-journeys)
+provide fuller integration examples for the source checkout.
+
+Prefer individual pages. For offline retrieval, use
+[/llms-docs.txt](/llms-docs.txt) for guides, [/llms-api.txt](/llms-api.txt) for
+references, or [/llms-full.txt](/llms-full.txt) for both. All share the same
+compiled content; Markdown exports retain code and replace custom reference
+components with text. HTML URLs continue to return HTML regardless of the
+`Accept` header.
+
+The existing [search endpoint](/api/search?query=useChatAccessibility) returns
+Fumadocs search JSON with page and section URLs. Its response follows the
+installed Fumadocs UI contract, with no package-version filter. Fetch the
+matching page's Markdown URL for the full context; a search excerpt alone is not
+an integration contract. These retrieval formats do not guarantee model
+discovery or correct integration, and deterministic tests do not prove real
+screen-reader behavior.

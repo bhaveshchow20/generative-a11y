@@ -1,3 +1,4 @@
+import { getDocsBuildContext } from "./lib/docs-build-context.ts";
 import { sites } from "@openai/sites-vite-plugin";
 import { fumadocsMdx } from "fumadocs-mdx/vite";
 import vinext from "vinext";
@@ -46,6 +47,7 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    define: { __DOCS_BUILD_CONTEXT__: JSON.stringify(getDocsBuildContext()) },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
