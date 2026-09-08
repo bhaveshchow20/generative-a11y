@@ -191,7 +191,9 @@ test("documentation route families use native Fumadocs title typography", async 
     await expect(header.locator("p")).not.toBeEmpty();
     await expect(header).toHaveCSS("border-bottom-width", "1px");
     await expect(header).toHaveCSS("border-bottom-style", "solid");
-    await expect(header.locator("button")).toHaveCount(0);
+    await expect(header.locator("button")).toHaveCount(
+      path.startsWith("/examples") ? 0 : 2,
+    );
 
   }
 });

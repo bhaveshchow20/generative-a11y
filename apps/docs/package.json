@@ -57,6 +57,7 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.11.0",
+    "mdast-util-from-markdown": "2.0.3",
     "prettier": "3.9.6",
     "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.3.3",

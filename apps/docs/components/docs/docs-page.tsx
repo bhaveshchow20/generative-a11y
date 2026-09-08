@@ -1,3 +1,6 @@
+import { PageViewOptions } from "./page-view-options";
+import { MarkdownCopyButton } from "fumadocs-ui/layouts/docs/page";
+import { REPOSITORY_URL } from "../../lib/site";
 import type { TOCItemType } from "fumadocs-core/toc";
 import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import type { MDXComponents } from "mdx/types";
@@ -15,6 +18,8 @@ export interface DocumentationPageProps {
   body: MdxBody;
   description?: string;
   path: string;
+  /** File path relative to apps/docs/content/docs or apps/docs/content/api. */
+  sourcePath: string;
   title: string;
   toc: TOCItemType[];
 }
@@ -24,6 +29,7 @@ export function DocumentationPage({
   body: Body,
   description,
   path,
+  sourcePath,
   title,
   toc,
 }: DocumentationPageProps) {
@@ -37,7 +43,19 @@ export function DocumentationPage({
         })}
       />
       <DocsPage toc={toc}>
-        <DocumentationHeader title={title} description={description} />
+        <DocumentationHeader title={title} description={description}>
+          <div
+            role="group"
+            aria-label="Page actions"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <MarkdownCopyButton markdownUrl={`/markdown${path}`} />
+            <PageViewOptions
+              path={path}
+              githubUrl={`${REPOSITORY_URL}/blob/main/apps/docs/content/${path.startsWith("/api") ? "api" : "docs"}/${sourcePath}`}
+            />
+          </div>
+        </DocumentationHeader>
         <DocsBody>
           <Body components={useMDXComponents({})} />
         </DocsBody>

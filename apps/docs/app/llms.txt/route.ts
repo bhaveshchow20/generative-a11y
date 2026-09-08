@@ -1,87 +1,29 @@
 import { getSourceManifest } from "../../lib/source-manifest";
 import {
-  absoluteUrl,
-  NPM_SCOPE_URL,
-  PROJECT_AUTHOR_NAME,
-  PROJECT_AUTHOR_URL,
-  REPOSITORY_URL,
-  SITE_DESCRIPTION,
-} from "../../lib/site";
-
-const importantPages = [
-  "/docs/getting-started",
-  "/docs/why-generative-a11y",
-  "/docs/screen-readers-and-streaming-ai",
-  "/docs/aria-live-and-generative-ai",
-  "/docs/accessible-ai-agents",
-  "/docs/architecture",
-  "/docs/integrations/ai-sdk",
-  "/docs/integrations/assistant-ui",
-  "/docs/integrations/ag-ui",
-  "/docs/integrations/custom",
-  "/docs/devtools",
-  "/docs/testing/replay",
-  "/docs/testing",
-  "/api",
-  "/api/devtools",
-  "/api/core/testing",
-] as const;
+  markdownResponse,
+  markdownUrl,
+  sourceContext,
+} from "../../lib/markdown";
+import { absoluteUrl, REPOSITORY_URL, SITE_DESCRIPTION } from "../../lib/site";
 
 export async function GET() {
   const manifest = await getSourceManifest();
-  const pages = new Map(manifest.map((page) => [page.publicPath, page]));
-  const links = importantPages
-    .map((path) => {
-      const page = pages.get(path);
-      return page
-        ? `- [${page.title}](${absoluteUrl(path)}): ${page.description}`
-        : undefined;
-    })
-    .filter((entry): entry is string => Boolean(entry))
-    .join("\n");
-
-  const body = `# generative-a11y
-
-> ${SITE_DESCRIPTION}
-
-generative-a11y is an open-source TypeScript accessibility runtime for streaming AI responses and agent lifecycle events. It converts documented application and framework state into paced announcement intents and browser live-region updates. It does not replace semantic HTML, keyboard support, focus design, or testing with real assistive technology.
-
-## Key facts
-
-- Author and maintainer: [${PROJECT_AUTHOR_NAME}](${PROJECT_AUTHOR_URL})
-- License: MIT
-- Maturity: pre-1.0; package stability is documented per package
-- Evidence boundary: deterministic runtime and DOM tests do not prove what assistive technology spoke
-
-## Documentation
-
-${links}
-
-## Complete documentation corpus
-
-- [Full documentation as plain text](${absoluteUrl("/llms-full.txt")}): Server-rendered guides and API reference content in one machine-readable document.
-
-## Supported integrations
-
-- React applications
-- Vercel AI SDK accessibility through @generative-a11y/ai-sdk
-- assistant-ui through @generative-a11y/assistant-ui
-- AG-UI and compatible CopilotKit v2 agents through @generative-a11y/ag-ui
-- Framework-neutral JavaScript and TypeScript through @generative-a11y/core and @generative-a11y/dom
-
-## Development tools
-
-- Bounded redacted runtime diagnostics and the Accessibility Trace Explorer through @generative-a11y/devtools
-- Versioned event recording, ManualClock replay, and opt-in Vitest matchers through @generative-a11y/core/testing
-
-## Project links
-
-- [GitHub repository](${REPOSITORY_URL})
-- [npm packages](${NPM_SCOPE_URL})
-- [Interactive lifecycle examples](${absoluteUrl("/examples/lifecycle-lab")})
-`;
-
-  return new Response(body, {
-    headers: { "content-type": "text/plain; charset=utf-8" },
-  });
+  const sections = ["docs", "api"].map(
+    (section) =>
+      `## ${section === "docs" ? "Guides" : "API reference"}\n\n${manifest
+        .filter(
+          (page) =>
+            page.publicPath === `/${section}` ||
+            page.publicPath.startsWith(`/${section}/`),
+        )
+        .map(
+          (page) =>
+            `- [${page.title}](${markdownUrl(page.publicPath)}): ${page.description}`,
+        )
+        .join("\n")}`,
+  );
+  return markdownResponse(
+    `# generative-a11y\n\n> ${SITE_DESCRIPTION}\n\nChoose an adapter, check compatible versions, follow lifecycle and ownership guidance, then verify your integration. Vercel AI SDK accessibility, assistant-ui, AG-UI, React and framework-neutral integrations preserve the host interface. Deterministic tests do not prove real assistive-technology behavior.\n\n${sourceContext}\n\nPrefer individual Markdown pages below. Each includes its canonical HTML URL and source context.\n\n${sections.join("\n\n")}\n\n## Retrieval\n\n- [Full documentation](${absoluteUrl("/llms-full.txt")}): all guides and generated API declarations.\n- [Guides corpus](${absoluteUrl("/llms-docs.txt")})\n- [API corpus](${absoluteUrl("/llms-api.txt")})\n- [HTML API reference](${absoluteUrl("/api")})\n- [Search](${absoluteUrl("/api/search?query=useChatAccessibility")}): existing Fumadocs UI search JSON; URLs identify canonical pages or sections. This is not a version-filtered public search API.\n- [Repository and runnable examples](${REPOSITORY_URL})\n`,
+    "text/plain",
+  );
 }
