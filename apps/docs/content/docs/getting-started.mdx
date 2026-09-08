@@ -19,99 +19,85 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Getting started",
-  "Install the core and DOM packages, connect one runtime, and tell it when responses and tools change.",
-  "Getting started",
-  "install",
-  "quick start",
-  "framework neutral",
-  "TypeScript",
-  "install",
-  "Install the core and browser packages",
-  "Core decides what to announce and when. DOM adds those announcements to the page. Add a framework adapter only when your app needs one.",
-  "shell",
-  "npm install @generative-a11y/core @generative-a11y/dom",
-  "Add the core runtime",
-  "@generative-a11y/core turns app events into useful screen-reader updates and controls their timing.",
-  "Add browser delivery",
-  "@generative-a11y/dom adds those updates to the page without changing the visible interface.",
-  "minimal-integration",
-  "Minimal integration",
-  "Create one runtime and connect it to the browser. Send only the new text from each streaming update. Report when the response finishes, fails, or stops. Dispose both resources when the session ends.",
-  "typescript",
-  "Complete provider-owned browser delivery, public SDK callbacks and snapshots, and cleanup on unmount. See the typechecked runnable example below.",
-  "Create one runtime",
-  "Your runtime tracks responses, prepares useful text, and controls update timing.",
-  "Connect the browser",
-  "bindRuntime creates and manages the hidden live regions used for screen-reader updates.",
-  "Report app events",
-  "Tell the runtime when a response starts, receives text, and finishes.",
-  "Clean up",
-  "Dispose the browser connection first, then dispose the runtime when the session ends.",
-  "generative-a11y can confirm when it adds an announcement to the page. Test with real screen readers to confirm what people hear.",
-  "choose-an-integration",
-  "Choose the package that matches your app",
-  "Use a framework adapter when your app already uses that framework. For a custom app, send events directly to the core runtime.",
-  "Application",
-  "Package",
-  "What it reports",
-  "Framework-neutral",
-  "@generative-a11y/core + /dom",
-  "All standard library events",
-  "React",
-  "@generative-a11y/react",
-  "Provider, delivery, attention, preferences",
-  "AI SDK useChat",
-  "@generative-a11y/ai-sdk/react",
-  "Streaming, terminals, tools, approvals, citations",
-  "assistant-ui",
-  "@generative-a11y/assistant-ui",
-  "Messages, tools, approvals, sources",
-  "AG-UI / CopilotKit v2",
-  "@generative-a11y/ag-ui",
-  "Protocol text, tools, interrupts",
-  "Development diagnostics",
-  "@generative-a11y/devtools",
-  "Redacted runtime and DOM delivery traces",
-  "Deterministic tests",
-  "@generative-a11y/core/testing",
-  "Event recording, replay, and semantic assertions",
+  "Install @generative-a11y/react and @generative-a11y/ai-sdk for an existing React + AI SDK app.",
+  "Requires Node.js 22+, ai 7.0.x, @ai-sdk/react 4.0.x, React and React DOM 18.2 or 19, and compatible zod.",
+  "Provider-owned runtime and browser delivery; compose callbacks before useChat and observe public state.",
+  "Preserve transport, host options, semantic structure, keyboard controls and accessible content.",
+  "Advanced custom browser integration: install @generative-a11y/core and @generative-a11y/dom; bindRuntime and dispose delivery before runtime.",
+  "Choose an integration: React, AI SDK, assistant-ui, AG-UI / CopilotKit, devtools.",
+  "Retry detection unavailable; DOM delivery is not screen-reader output."
 ].join("\n");
 
 <span id="install"></span>
 
-## Install the core and browser packages
+## Start with your existing React + AI SDK app
 
-Core decides what to announce and when. DOM adds those announcements to the
-page. Add a framework adapter only when your app needs one.
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
 
-{/* prettier-ignore */}
+<Tab value="npm">
+
+```shell title="Terminal"
+npm install @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
+
+For an existing React + AI SDK app. Requires AI SDK 7 / `@ai-sdk/react` 4 and
+React 18.2+ or 19. See [Compatibility](/docs/integrations/ai-sdk#compatibility)
+for supported minor versions and peers.
+
+<Cards>
+  <Card title="Connect React + AI SDK" href="/docs/integrations/ai-sdk">
+    Add the provider and hooks to your existing chat.
+  </Card>
+  <Card title="Use React with your own events" href="/api/react">
+    Report confirmed lifecycle events from your application.
+  </Card>
+</Cards>
+
+This adds paced live-region updates for supported lifecycle events without
+changing the visual UI or moving focus during ordinary streaming. Your host
+still owns semantic structure, keyboard controls, and accessible content.
+Retry detection is unavailable in the AI SDK adapter. Browser delivery does not
+prove what a real screen reader speaks.
+
+For React without AI SDK, install `@generative-a11y/react` and supply confirmed
+lifecycle events from your app. See the [React API](/api/react).
+For other frameworks, [choose an integration](#choose-an-integration).
+
+## Advanced: custom browser integration
+
+Use core and DOM directly when your app owns lifecycle reporting:
+
 ```shell
 npm install @generative-a11y/core @generative-a11y/dom
 ```
-
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Add the core runtime
-
-@generative&#45;a11y/core turns app events into useful screen&#45;reader updates
-and controls their timing.
-
-</Step>
-
-<Step>
-
-### Add browser delivery
-
-@generative&#45;a11y/dom adds those updates to the page without changing the
-visible interface.
-
-</Step>
-
-</Steps>
 
 <span id="minimal&#45;integration"></span>
 
@@ -122,7 +108,7 @@ each streaming update. Report when the response finishes, fails, or stops.
 Dispose both resources when the session ends.
 
 {/* prettier-ignore */}
-```ts
+```ts title="chat-accessibility.ts"
 import { createRuntime } from "@generative-a11y/core";
 import { bindRuntime } from "@generative-a11y/dom";
 
@@ -145,45 +131,8 @@ export function disposeChat() {
 }
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Create one runtime
-
-Your runtime tracks responses, prepares useful text, and controls update timing.
-
-</Step>
-
-<Step>
-
-### Connect the browser
-
-bindRuntime creates and manages the hidden live regions used for
-screen&#45;reader updates.
-
-</Step>
-
-<Step>
-
-### Report app events
-
-Tell the runtime when a response starts, receives text, and finishes.
-
-</Step>
-
-<Step>
-
-### Clean up
-
-Dispose the browser connection first, then dispose the runtime when the session
-ends.
-
-</Step>
-
-</Steps>
+Keep the binding alive across responses. When the chat is removed, dispose
+browser delivery before the runtime.
 
 <Callout title="Evidence and testing note">
 
@@ -220,7 +169,7 @@ app, send events directly to the core runtime.
     </tr>
     <tr>
       <td>AI SDK useChat</td>
-      <td>@generative&#45;a11y/ai&#45;sdk/react</td>
+      <td>@generative&#45;a11y/react + @generative&#45;a11y/ai&#45;sdk</td>
       <td>Streaming, terminals, tools, approvals, citations</td>
     </tr>
     <tr>
@@ -245,3 +194,12 @@ app, send events directly to the core runtime.
     </tr>
   </tbody>
 </table>
+
+<Cards>
+  <Card title="assistant-ui" href="/docs/integrations/assistant-ui">
+    Observe public runtime and message state.
+  </Card>
+  <Card title="AG-UI / CopilotKit" href="/docs/integrations/ag-ui">
+    Translate confirmed protocol events.
+  </Card>
+</Cards>

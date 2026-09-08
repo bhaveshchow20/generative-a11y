@@ -18,6 +18,10 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
+  "Start here: npm install @generative-a11y/react @generative-a11y/ai-sdk for an existing compatible React + AI SDK app.",
+  "See the integration guide for peer prerequisites, preserved transport and callbacks, provider-owned delivery, and preconstructed Chat guidance.",
+  "The root observer alone does not provide browser delivery.",
+  "Non-React observer example: install @generative-a11y/core, @generative-a11y/ai-sdk and compatible ai; add DOM for browser delivery.",
   "@generative-a11y/ai-sdk",
   "Turn documented AI SDK useChat state and callbacks into generative-a11y events.",
   "AI SDK",
@@ -48,6 +52,50 @@ export const searchableText = [
   "Your onFinish and onError callbacks remain intact.",
   "Disposing the observer clears only records created by the adapter.",
 ].join("\n");
+
+## Start here
+
+For an existing compatible React + AI SDK app:
+
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
+npm install @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ai-sdk
+```
+
+</Tab>
+
+</Tabs>
+
+See the [integration guide](/docs/integrations/ai-sdk) for peer versions,
+provider placement, preserved host options, and the preconstructed `Chat` case.
+The root observer alone does not provide browser delivery.
 
 <span id="surface"></span>
 
@@ -109,6 +157,16 @@ import { ApiReference } from "@/components/api-reference";
 
 ## Non-React observer API
 
+For the observer example below, declare the packages it imports directly:
+
+```shell
+npm install @generative-a11y/core @generative-a11y/ai-sdk "ai@~7.0.0"
+```
+
+The example records intents only. A live browser integration also needs a direct
+`@generative-a11y/dom` dependency when importing `bindRuntime`, a delivery
+binding, and cleanup of that binding before disposing the runtime.
+
 `createChatObserver(options)` returns a `ChatObserver` and never owns the core
 runtime. `ChatObserverOptions` requires a non-empty `scopeId` and a runtime
 with `dispatch`. Optional `copy` comes from `core/messages`; `getToolLabel`
@@ -140,7 +198,7 @@ contract without a React component or backend. In a live application, use the
 SDK's real snapshots and callbacks, a browser delivery binding, and cleanup when
 the surface is removed. Do not recreate the adapter's private scoped IDs.
 
-```ts
+```ts title="chat-accessibility.ts"
 import {
   createRuntime,
   ManualClock,

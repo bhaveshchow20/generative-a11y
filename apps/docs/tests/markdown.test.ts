@@ -60,13 +60,13 @@ describe("machine-readable documentation", () => {
 
   it("renders property tables, native tables, links and callout content", async () => {
     const ai = await getPageMarkdown(
-      pages.find((page) => page.url === "/docs/integrations/ai-sdk")!,
+      pages.find((page) => page.url === "/api/ai-sdk/use-chat-accessibility")!,
     );
     expect(ai).toContain(
       "| Property | Type | Required | Default | Description |",
     );
     expect(ai).toContain("Pick<Runtime, 'dispatch'>");
-    expect(ai).toContain("the integration never disposes it");
+    expect(ai).toContain("Receives adapter events while remaining under your app's control.");
     const core = await getPageMarkdown(
       pages.find((page) => page.url === "/api/core")!,
     );
