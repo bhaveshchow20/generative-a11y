@@ -18,6 +18,7 @@ export interface DocumentationPageProps {
   body: MdxBody;
   description?: string;
   path: string;
+  /** File path relative to apps/docs/content/docs or apps/docs/content/api. */
   sourcePath: string;
   title: string;
   toc: TOCItemType[];

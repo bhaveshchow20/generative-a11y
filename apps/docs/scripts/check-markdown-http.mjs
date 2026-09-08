@@ -15,7 +15,8 @@ const { body: index } = await get("/llms.txt");
 const exports = [
   ...index.matchAll(/\]\(https:\/\/generativea11y\.com(\/markdown\/[^)]+)\)/g),
 ].map((match) => match[1]);
-assert.ok(exports.length > 40);
+assert.equal(exports.length, 53);
+assert.equal(new Set(exports).size, exports.length);
 let bytes = 0;
 for (const path of exports) {
   const { response, body } = await get(path);
