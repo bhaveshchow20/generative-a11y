@@ -1,8 +1,7 @@
 ---
 title: "Getting started"
 description:
-  "Install generative-a11y and add paced screen-reader announcements to
-  streaming AI responses and agent tools with framework-independent TypeScript packages."
+  "Add paced screen-reader announcements to your existing AI interface."
 publicPath: "/docs/getting-started"
 section: "Getting started"
 keywords: ["install", "quick start", "framework neutral", "TypeScript"]
@@ -20,13 +19,17 @@ export const sourceMetadata = {
 export const searchableText = [
   "Getting started",
   "Install @generative-a11y/react and @generative-a11y/ai-sdk for an existing React + AI SDK app.",
-  "Requires Node.js 22+, ai 7.0.x, @ai-sdk/react 4.0.x, React and React DOM 18.2 or 19, and compatible zod.",
-  "Provider-owned runtime and browser delivery; compose callbacks before useChat and observe public state.",
-  "Preserve transport, host options, semantic structure, keyboard controls and accessible content.",
+  "Check supported versions and peers in the AI SDK compatibility section before installing.",
+  "Follow the AI SDK integration guide to add the provider and hooks to your chat.",
+  "Keep the visible UI, ordinary focus, semantic structure, keyboard controls and accessible content.",
   "Advanced custom browser integration: install @generative-a11y/core and @generative-a11y/dom; bindRuntime and dispose delivery before runtime.",
   "Choose an integration: React, AI SDK, assistant-ui, AG-UI / CopilotKit, devtools.",
-  "Retry detection unavailable; DOM delivery is not screen-reader output."
+  "Retry detection unavailable; DOM delivery is not screen-reader output.",
 ].join("\n");
+
+Choose the [integration that matches your app](#choose-an-integration). The
+React + AI SDK setup below is one starting point; other adapters connect the
+same runtime to the lifecycle events your framework exposes.
 
 <span id="install"></span>
 
@@ -68,40 +71,34 @@ bun add @generative-a11y/react @generative-a11y/ai-sdk
 
 </Tabs>
 
-For an existing React + AI SDK app. Requires AI SDK 7 / `@ai-sdk/react` 4 and
-React 18.2+ or 19. See [Compatibility](/docs/integrations/ai-sdk#compatibility)
-for supported minor versions and peers.
+Use this with an existing React + AI SDK app. Check the
+[supported versions and peers](/docs/integrations/ai-sdk#compatibility) before
+installing.
 
-<Cards>
-  <Card title="Connect React + AI SDK" href="/docs/integrations/ai-sdk">
-    Add the provider and hooks to your existing chat.
-  </Card>
-  <Card title="Use React with your own events" href="/api/react">
-    Report confirmed lifecycle events from your application.
-  </Card>
-</Cards>
+Follow the [AI SDK integration guide](/docs/integrations/ai-sdk) to add the
+provider and hooks to your chat.
 
 This adds paced live-region updates for supported lifecycle events without
 changing the visual UI or moving focus during ordinary streaming. Your host
-still owns semantic structure, keyboard controls, and accessible content.
-Retry detection is unavailable in the AI SDK adapter. Browser delivery does not
-prove what a real screen reader speaks.
+still owns semantic structure, keyboard controls, and accessible content. Retry
+detection is unavailable in the AI SDK adapter. Browser delivery does not prove
+what a real screen reader speaks.
 
 For React without AI SDK, install `@generative-a11y/react` and supply confirmed
-lifecycle events from your app. See the [React API](/api/react).
-For other frameworks, [choose an integration](#choose-an-integration).
+lifecycle events from your app. See the [React API](/api/react). For other
+frameworks, [choose an integration](#choose-an-integration).
 
 ## Advanced: custom browser integration
 
 Use core and DOM directly when your app owns lifecycle reporting:
 
-```shell
+```shell title="Terminal"
 npm install @generative-a11y/core @generative-a11y/dom
 ```
 
 <span id="minimal&#45;integration"></span>
 
-## Minimal integration
+### Connect the runtime
 
 Create one runtime and connect it to the browser. Send only the new text from
 each streaming update. Report when the response finishes, fails, or stops.
@@ -195,11 +192,6 @@ app, send events directly to the core runtime.
   </tbody>
 </table>
 
-<Cards>
-  <Card title="assistant-ui" href="/docs/integrations/assistant-ui">
-    Observe public runtime and message state.
-  </Card>
-  <Card title="AG-UI / CopilotKit" href="/docs/integrations/ag-ui">
-    Translate confirmed protocol events.
-  </Card>
-</Cards>
+For adapter setup, see [assistant-ui](/docs/integrations/assistant-ui),
+[AG-UI](/docs/integrations/ag-ui), or
+[CopilotKit](/docs/integrations/copilotkit).

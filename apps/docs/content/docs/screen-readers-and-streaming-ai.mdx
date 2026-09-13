@@ -34,43 +34,19 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Accessible streaming AI for screen readers",
-  "Make streaming AI responses understandable to screen-reader users by announcing meaningful text segments instead of tokens or repeated transcripts.",
-  "Concepts",
-  "accessible streaming AI",
-  "screen reader streaming text",
-  "streaming chat accessibility",
-  "screen reader AI responses",
-  "/docs/aria-live-and-generative-ai",
-  "/docs/integrations/ai-sdk",
-  "/docs/lifecycle/streaming",
-  "problem",
   "A visual stream and an audible stream need different pacing",
-  "A sighted reader can ignore the cursor and scan completed text at their own speed. A screen-reader user may receive every live-region mutation in sequence. Token-by-token changes can split words, repeat phrases, and keep the announcement channel busy after the useful information has arrived.",
+  "Token-by-token streaming is difficult for screen readers because each visual update can become a separate accessibility-tree change. Partial words, repeated accumulated text, and a long queue of low-value changes make the audible stream hard to follow. A better pattern keeps the visible transcript current while announcing only confirmed, meaningful phrases and lifecycle boundaries.",
   "The visible response should still update normally. The accessible announcement stream is a separate representation of the same confirmed lifecycle, optimized for useful listening rather than visual immediacy.",
-  "naive-example",
+  "WAI-ARIA defines live-region semantics, but those semantics are hints to user agents; they do not segment generative text or model response, retry, and tool lifecycles. That policy belongs in application logic or an accessibility runtime.",
   "Avoid announcing the growing transcript",
   "This pattern makes the live region contain the entire accumulated response after every token. Depending on the browser and assistive technology, users may hear fragments, repeated content, or inconsistent results.",
-  "tsx",
-  'function StreamingMessage({ text }: { text: string }) { return <div aria-live="polite">{text}</div>; }',
-  "Every render mutates the live region",
-  "The full response changes whenever another token arrives.",
-  "The browser receives no lifecycle boundary",
-  "The region cannot tell whether text is partial, complete, retried, or obsolete.",
-  "runtime-example",
   "Send append-only deltas and an explicit terminal event",
   "Dispatch response.started once, send only newly arrived text in response.text.delta, and finish with the terminal event the application actually observed. Core buffers partial text and emits meaningful segments according to the selected policy.",
-  "typescript",
-  'runtime.dispatch({ type: "response.started", responseId: "r1" }); runtime.dispatch({ type: "response.text.delta", responseId: "r1", delta: "The migration completed successfully. ", }); runtime.dispatch({ type: "response.completed", responseId: "r1" });',
-  "Start a response instance",
-  "The runtime can separate this stream from earlier or retried work.",
-  "Send new text only",
-  "Append-only deltas prevent the application from re-submitting the accumulated transcript.",
-  "Close the lifecycle explicitly",
-  "Completion flushes useful buffered text; failure or interruption discards text that should no longer be announced.",
-  "expected-behavior",
   "Expected behavior and test boundaries",
   "With the balanced policy, complete phrases can be announced without waiting for every token or repeating earlier text. Higher-priority failures and approval requests can take precedence over routine progress. Ordinary streaming never moves focus.",
   "Use deterministic tests to verify events, announcement intents, queue bounds, and DOM delivery. Then test the integrated application with representative browser and screen-reader combinations because spoken output is controlled by software outside the library.",
+  "Sources and evidence",
+  "WAI-ARIA 1.2 live-region roles and properties - WCAG 2.2: Understanding Status Messages - Manual assistive-technology test plan",
 ].join("\n");
 
 <span id="problem"></span>
@@ -82,11 +58,6 @@ update can become a separate accessibility-tree change. Partial words, repeated
 accumulated text, and a long queue of low-value changes make the audible stream
 hard to follow. A better pattern keeps the visible transcript current while
 announcing only confirmed, meaningful phrases and lifecycle boundaries.
-
-A sighted reader can ignore the cursor and scan completed text at their own
-speed. A screen&#45;reader user may receive every live&#45;region mutation in
-sequence. Token&#45;by&#45;token changes can split words, repeat phrases, and
-keep the announcement channel busy after the useful information has arrived.
 
 The visible response should still update normally. The accessible announcement
 stream is a separate representation of the same confirmed lifecycle, optimized
@@ -105,34 +76,15 @@ This pattern makes the live region contain the entire accumulated response after
 every token. Depending on the browser and assistive technology, users may hear
 fragments, repeated content, or inconsistent results.
 
-{/* prettier-ignore */}
-```tsx
+```tsx title="Avoid: live region around accumulated text"
 function StreamingMessage({ text }: { text: string }) {
   return <div aria-live="polite">{text}</div>;
 }
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Every render mutates the live region
-
-The full response changes whenever another token arrives.
-
-</Step>
-
-<Step>
-
-### The browser receives no lifecycle boundary
-
-The region cannot tell whether text is partial, complete, retried, or obsolete.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="every-render-mutates-the-live-region"></span>
+<span id="the-browser-receives-no-lifecycle-boundary"></span>
 
 <span id="runtime&#45;example"></span>
 
@@ -143,8 +95,7 @@ response.text.delta, and finish with the terminal event the application actually
 observed. Core buffers partial text and emits meaningful segments according to
 the selected policy.
 
-{/* prettier-ignore */}
-```typescript
+```typescript title="Dispatch confirmed response events"
 runtime.dispatch({ type: "response.started", responseId: "r1" });
 runtime.dispatch({
   type: "response.text.delta",
@@ -154,37 +105,10 @@ runtime.dispatch({
 runtime.dispatch({ type: "response.completed", responseId: "r1" });
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Start a response instance
-
-The runtime can separate this stream from earlier or retried work.
-
-</Step>
-
-<Step>
-
-### Send new text only
-
-Append&#45;only deltas prevent the application from re&#45;submitting the
-accumulated transcript.
-
-</Step>
-
-<Step>
-
-### Close the lifecycle explicitly
-
-Completion flushes useful buffered text; failure or interruption discards text
-that should no longer be announced.
-
-</Step>
-
-</Steps>
+<span id="walkthrough-1"></span>
+<span id="start-a-response-instance"></span>
+<span id="send-new-text-only"></span>
+<span id="close-the-lifecycle-explicitly"></span>
 
 <span id="expected&#45;behavior"></span>
 

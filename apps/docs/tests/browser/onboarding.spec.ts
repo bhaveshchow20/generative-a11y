@@ -93,3 +93,43 @@ test("native onboarding blocks support keyboard selection and narrow screens", a
   }));
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.width + 1);
 });
+
+for (const [integration, packages] of [
+  [
+    "assistant-ui",
+    "@generative-a11y/core @generative-a11y/dom @generative-a11y/assistant-ui",
+  ],
+  [
+    "ag-ui",
+    "@generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui",
+  ],
+  ["copilotkit", "@generative-a11y/react @generative-a11y/ag-ui"],
+  ["custom", "@generative-a11y/core @generative-a11y/dom"],
+]) {
+  test(`${integration} guide offers keyboard-operable installation alternatives`, async ({
+    page,
+  }) => {
+    await page.goto(`/docs/integrations/${integration}`);
+    await page
+      .getByRole("tab", { name: "npm", exact: true })
+      .press("ArrowRight");
+    const pnpm = page.getByRole("tab", { name: "pnpm", exact: true });
+    await expect(pnpm).toBeFocused();
+    await pnpm.press("Enter");
+    const panel = page.getByRole("tabpanel", { name: "pnpm", exact: true });
+    await expect(panel).toContainText(`pnpm add ${packages}`);
+    await expect(
+      panel.getByRole("button", { name: "Copy Text", exact: true }),
+    ).toBeEnabled();
+    await expect(
+      page.locator("article figure").filter({ hasText: "dispose" }).first(),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+}

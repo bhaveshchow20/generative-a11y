@@ -34,45 +34,23 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Why generative AI needs an accessibility runtime",
-  "Learn why streaming responses, tool calls, approvals, retries, and failures need more than ordinary chat accessibility patterns.",
-  "Concepts",
-  "AI accessibility",
-  "generative AI accessibility",
-  "accessible AI interfaces",
-  "AI accessibility library",
-  "/docs/architecture",
-  "/docs/screen-readers-and-streaming-ai",
-  "/docs/integrations",
-  "the-gap",
   "AI interfaces change after the user acts",
+  "An accessibility runtime is the behavior layer between confirmed AI lifecycle events and browser delivery. It decides which asynchronous changes deserve an announcement, groups noisy updates into useful units, prioritizes states that need attention, and cancels obsolete work without replacing the application’s visible interface or taking focus from the user.",
   "A conventional form usually has a short, predictable transition: submit, validate, and show a result. An AI interface can stream a response for many seconds, start tools, pause for approval, reconnect, retry, and finish long after focus has moved elsewhere.",
   "Semantic HTML, keyboard access, visible status, and sensible focus remain required. They do not by themselves decide which asynchronous changes deserve an announcement, how repeated changes should be grouped, or when lower-priority updates should wait.",
-  "failure-modes",
+  "This complements, rather than replaces, the requirement in WCAG 2.2 status messages that important changes be programmatically determinable without receiving focus. The application still owns the semantic HTML and interaction design.",
   "Naive announcements create new barriers",
   "Putting a changing transcript in an ARIA live region can announce partial tokens, repeat the growing response, interrupt more important information, or leave stale work queued after a retry. Moving focus for routine streaming and status changes is more disruptive because it changes the user's reading position.",
-  "Partial words and token-sized updates are difficult to understand.",
-  "Re-announcing the full accumulated response repeats content.",
-  "Tool progress can overwhelm the response the user asked for.",
-  "Approval and failure states can arrive behind low-priority updates.",
-  "Retries can make announcements from an obsolete response misleading.",
-  "runtime-role",
+  "Partial words and token-sized updates are difficult to understand. - Re-announcing the full accumulated response repeats content. - Tool progress can overwhelm the response the user asked for. - Approval and failure states can arrive behind low-priority updates. - Retries can make announcements from an obsolete response misleading.",
   "Put policy between lifecycle state and browser delivery",
   "generative-a11y accepts confirmed lifecycle events from the application or a thin framework adapter. Core segments response text, prioritizes important states, removes duplicates, coalesces updates, bounds queued work, and produces announcement intents. The DOM package then performs browser delivery without altering the visible interface.",
   "This boundary keeps framework state, accessibility policy, and DOM behavior independently testable. It also makes fidelity explicit: when an adapter cannot observe a retry or connection event through a documented public API, it reports that limitation instead of guessing.",
   "Deterministic runtime transcripts and DOM tests show what the library prepared or added to the page. They do not prove what a particular screen reader spoke.",
-  "start",
   "Choose the smallest supported integration",
   "Start with the framework-neutral core and DOM packages when your application already owns lifecycle state. Use the React layer for provider and element bindings. Add the AI SDK, assistant-ui, or AG-UI adapter only when the application uses that framework's documented public lifecycle surface.",
-  "Need",
-  "Read next",
-  "Install a custom integration",
-  "Getting started",
-  "Understand streaming announcements",
-  "Screen readers and streaming AI",
-  "Choose a framework adapter",
-  "Choose an integration",
-  "Test browser and assistive-technology behavior",
-  "Testing",
+  "Need | Read next | | --- | --- | | Install a custom integration | Getting started | | Understand streaming announcements | Screen readers and streaming AI | | Choose a framework adapter | Choose an integration | | Test browser and assistive-technology behavior | Testing",
+  "Sources and evidence",
+  "WAI-ARIA 1.2 live-region roles and properties - WCAG 2.2: Understanding Status Messages - generative-a11y testing boundaries",
 ].join("\n");
 
 <span id="the&#45;gap"></span>
@@ -97,8 +75,8 @@ updates should wait.
 
 This complements, rather than replaces, the requirement in
 [WCAG 2.2 status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
-that important changes be programmatically determinable without receiving
-focus. The application still owns the semantic HTML and interaction design.
+that important changes be programmatically determinable without receiving focus.
+The application still owns the semantic HTML and interaction design.
 
 <span id="failure&#45;modes"></span>
 
@@ -147,32 +125,12 @@ already owns lifecycle state. Use the React layer for provider and element
 bindings. Add the AI SDK, assistant&#45;ui, or AG&#45;UI adapter only when the
 application uses that framework's documented public lifecycle surface.
 
-<table aria-label="Choose the smallest supported integration table">
-  <thead>
-    <tr>
-      <th>Need</th>
-      <th>Read next</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Install a custom integration</td>
-      <td>Getting started</td>
-    </tr>
-    <tr>
-      <td>Understand streaming announcements</td>
-      <td>Screen readers and streaming AI</td>
-    </tr>
-    <tr>
-      <td>Choose a framework adapter</td>
-      <td>Choose an integration</td>
-    </tr>
-    <tr>
-      <td>Test browser and assistive&#45;technology behavior</td>
-      <td>Testing</td>
-    </tr>
-  </tbody>
-</table>
+| Need                                           | Read next                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------ |
+| Install a custom integration                   | [Getting started](/docs/getting-started)                                 |
+| Understand streaming announcements             | [Screen readers and streaming AI](/docs/screen-readers-and-streaming-ai) |
+| Choose a framework adapter                     | [Choose an integration](/docs/integrations)                              |
+| Test browser and assistive-technology behavior | [Testing](/docs/testing)                                                 |
 
 ## Sources and evidence
 

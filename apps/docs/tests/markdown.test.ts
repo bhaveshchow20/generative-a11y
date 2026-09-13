@@ -74,7 +74,7 @@ describe("machine-readable documentation", () => {
       /\| Category \| Exports \| Reference \|\n\| --- \| --- \| --- \|/,
     );
     expect(core).toContain(
-      "| Runtime | createRuntime, Runtime | /api/core/create-runtime |",
+      "| Runtime | createRuntime, Runtime | [/api/core/create-runtime](/api/core/create-runtime) |",
     );
     const landing = await getPageMarkdown(
       pages.find((page) => page.url === "/api")!,

@@ -1,8 +1,7 @@
 ---
 title: "@generative-a11y/core"
 description:
-  "Core events, workflow lifecycle, announcement rules, scheduling,
-  diagnostics, test clocks, and recorders."
+  "Turn application events into scheduled accessibility announcements."
 publicPath: "/api/core"
 section: "Core"
 keywords: ["core", "exports", "runtime", "events", "scheduler"]
@@ -19,49 +18,35 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "@generative-a11y/core",
-  "Core events, announcement rules, streaming text, scheduling, diagnostics, test clocks, and recorders.",
-  "Core",
-  "core",
-  "exports",
-  "runtime",
-  "events",
-  "scheduler",
-  "install",
+  "Turn application events into scheduled accessibility announcements.",
   "Install and import",
   "Core does not depend on the DOM, React, or an AI framework. Your app sends it RuntimeEvent objects, and it creates AnnouncementIntent objects when there is something useful to announce.",
-  "shell",
   "npm install @generative-a11y/core",
-  "Install core",
-  "Use core in any JavaScript runtime, including tests that do not have a document.",
-  "Add browser delivery",
-  "Browser apps pair core with @generative-a11y/dom or @generative-a11y/react.",
-  "exports",
+  "Use core in any JavaScript runtime, including tests without a document. Browser apps add DOM /api/dom or React /api/react for delivery.",
+  'import { createRuntime } from "@generative-a11y/core";',
+  "const runtime = createRuntime({ onAnnouncement: (intent) => console.log(intent.text), });",
+  "// Call runtime.dispose() when its owner ends.",
+  "This listener records prepared output. Connect browser delivery before sending lifecycle events in a web app.",
   "Public export map",
   "Use the narrowest public export for the behavior you own.",
-  "Category",
-  "Exports",
-  "Reference",
-  "Runtime",
-  "createRuntime, Runtime",
+  "Category Exports Reference",
+  "Runtime createRuntime, Runtime",
   "/api/core/create-runtime",
-  "Events",
-  "RuntimeEvent and event family types",
+  "Events RuntimeEvent and event family types",
   "/api/core/events",
-  "Workflows",
-  "WorkflowContext, run and step lifecycle types",
+  "Workflows WorkflowContext, run and step lifecycle types",
   "/api/core/workflows",
-  "Policy",
-  "presets, resolvePolicy, PolicyOverrides, WorkflowPolicy",
+  "Policy presets, resolvePolicy, PolicyOverrides, WorkflowPolicy",
   "/api/core/policy",
-  "Scheduler",
-  "createScheduler and scheduler types",
+  "Scheduler createScheduler and scheduler types",
   "/api/core/scheduler",
-  "Testing",
-  "ManualClock, createRecorder",
+  "Testing ManualClock, createRecorder",
   "/api/core/testing",
-  "Diagnostics",
-  "AnnouncementIntent, AnnouncementDiagnostic",
+  "Diagnostics AnnouncementIntent, AnnouncementDiagnostic",
   "/api/core/diagnostics",
+  "Messages",
+  "English notices work without configuration. For custom copy, import en and Messages from @generative-a11y/core/messages and pass messages to createRuntime. This entry point also exports MessageMap, MessageParams, MessageKey, AdapterCopy, and normalizeAdapterCopy. These exports are not available from the core root.",
+  "See localized announcements /docs/localized-announcements for examples and API naming changes /docs/stabilitypublic-api-naming-update for the breaking rename reference.",
 ].join("\n");
 
 <span id="install"></span>
@@ -69,38 +54,37 @@ export const searchableText = [
 ## Install and import
 
 Core does not depend on the DOM, React, or an AI framework. Your app sends it
-RuntimeEvent objects, and it creates AnnouncementIntent objects when
-there is something useful to announce.
+RuntimeEvent objects, and it creates AnnouncementIntent objects when there is
+something useful to announce.
 
 {/* prettier-ignore */}
-```shell
+```shell title="Terminal"
 npm install @generative-a11y/core
 ```
 
-### Walkthrough
+Use core in any JavaScript runtime, including tests without a document. Browser
+apps add [DOM](/api/dom) or [React](/api/react) for delivery.
 
-<Steps>
+```ts title="accessibility-runtime.ts"
+import { createRuntime } from "@generative-a11y/core";
 
-<Step>
+const runtime = createRuntime({
+  onAnnouncement: (intent) => console.log(intent.text),
+});
 
-### Install core
+// Call runtime.dispose() when its owner ends.
+```
 
-Use core in any JavaScript runtime, including tests that do not have a document.
-
-</Step>
-
-<Step>
-
-### Add browser delivery
-
-Browser apps pair core with @generative&#45;a11y/dom or
-@generative&#45;a11y/react.
-
-</Step>
-
-</Steps>
+This listener records prepared output. Connect browser delivery before sending
+lifecycle events in a web app.
 
 <span id="exports"></span>
+
+<span id="walkthrough"></span>
+
+<span id="install-core"></span>
+
+<span id="add-browser-delivery"></span>
 
 ## Public export map
 
@@ -118,37 +102,51 @@ Use the narrowest public export for the behavior you own.
     <tr>
       <td>Runtime</td>
       <td>createRuntime, Runtime</td>
-      <td>/api/core/create&#45;runtime</td>
+      <td>
+        <a href="/api/core/create-runtime">/api/core/create&#45;runtime</a>
+      </td>
     </tr>
     <tr>
       <td>Events</td>
       <td>RuntimeEvent and event family types</td>
-      <td>/api/core/events</td>
+      <td>
+        <a href="/api/core/events">/api/core/events</a>
+      </td>
     </tr>
     <tr>
       <td>Workflows</td>
       <td>WorkflowContext, run and step lifecycle types</td>
-      <td>/api/core/workflows</td>
+      <td>
+        <a href="/api/core/workflows">/api/core/workflows</a>
+      </td>
     </tr>
     <tr>
       <td>Policy</td>
       <td>presets, resolvePolicy, PolicyOverrides, WorkflowPolicy</td>
-      <td>/api/core/policy</td>
+      <td>
+        <a href="/api/core/policy">/api/core/policy</a>
+      </td>
     </tr>
     <tr>
       <td>Scheduler</td>
       <td>createScheduler and scheduler types</td>
-      <td>/api/core/scheduler</td>
+      <td>
+        <a href="/api/core/scheduler">/api/core/scheduler</a>
+      </td>
     </tr>
     <tr>
       <td>Testing</td>
       <td>ManualClock, createRecorder</td>
-      <td>/api/core/testing</td>
+      <td>
+        <a href="/api/core/testing">/api/core/testing</a>
+      </td>
     </tr>
     <tr>
       <td>Diagnostics</td>
       <td>AnnouncementIntent, AnnouncementDiagnostic</td>
-      <td>/api/core/diagnostics</td>
+      <td>
+        <a href="/api/core/diagnostics">/api/core/diagnostics</a>
+      </td>
     </tr>
   </tbody>
 </table>

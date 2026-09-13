@@ -1,17 +1,11 @@
 ---
 title: "RuntimeEvent"
 description:
-  "Report runs, steps, responses, tools, interactions, approvals, connection
-  changes, and citations with this event union."
+  "Report confirmed lifecycle changes with serializable runtime events."
 publicPath: "/api/core/events"
 section: "Core"
 keywords:
-  [
-    "RuntimeEvent",
-    "response.started",
-    "tool.started",
-    "interaction.requested",
-  ]
+  ["RuntimeEvent", "response.started", "tool.started", "interaction.requested"]
 related: ["/api/core/workflows"]
 order: 3
 ---
@@ -25,76 +19,56 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "RuntimeEvent",
-  "Report runs, steps, responses, tools, interactions, approvals, connection changes, and citations with this event union.",
-  "Core",
-  "RuntimeEvent",
-  "response.started",
-  "tool.started",
-  "interaction.requested",
-  "families",
+  "Report confirmed lifecycle changes with serializable runtime events.",
+  "Dispatch an event",
+  "Use the same response ID for its start, appended text, and terminal event.",
+  'import type { RuntimeEvent } from "@generative-a11y/core";',
+  'const event: RuntimeEvent = { type: "response.started", responseId: "report", }; runtime.dispatch(event);',
+  "See the complete response lifecycle /api/core/create-runtimecomplete-lifecycle for text deltas and completion.",
   "Event families",
   "Events describe actions and changes your app can confirm. They contain serializable data, not rendered components or private framework state.",
-  "Family",
-  "Events",
-  "Required identity",
-  "Run",
-  "started, completed, interrupted, failed, retrying",
-  "runId",
-  "Step",
-  "started, progress, completed, interrupted, failed, retrying",
-  "runId; stepId when stable identity exists",
-  "Response",
-  "started, text.delta, completed, interrupted, failed, retrying",
-  "responseId",
-  "Tool",
-  "started, progress, completed, failed",
-  "toolId",
-  "Interaction",
-  "requested, resolved",
-  "interactionId",
-  "Approval",
-  "requested, resolved",
-  "approvalId",
-  "Connection",
-  "lost, restored",
-  "none",
-  "Citation",
-  "available",
-  "responseId",
-  "response-example",
+  "Family Events Required identity",
+  "Run started, completed, interrupted, failed, retrying runId",
+  "Step started, progress, completed, interrupted, failed, retrying runId; stepId when stable identity exists",
+  "Response started, text.delta, completed, interrupted, failed, retrying responseId",
+  "Tool started, progress, completed, failed toolId",
+  "Interaction requested, resolved interactionId",
+  "Approval requested, resolved approvalId",
+  "Connection lost, restored none",
+  "Citation available responseId",
   "Response replacement example",
   "Use responseInstanceId when one logical response can be replaced. Late events from the old instance are suppressed as stale.",
-  "typescript",
   'runtime.dispatch({ type: "response.retrying", responseId: "report", responseInstanceId: "attempt-1", nextResponseInstanceId: "attempt-2", attempt: 2, });',
-  "Keep logical identity",
-  "responseId continues to identify the answer being regenerated.",
-  "Replace the epoch",
-  "nextResponseInstanceId becomes the accepted attempt for later deltas and terminals.",
-  "A later response.started with the same responseId also replaces the active attempt and makes older instance events stale.",
-  "common-fields",
+  "Keep responseId stable across regeneration and use the replacement nextResponseInstanceId on later deltas and terminal events. A later response.started with the same responseId also replaces the active attempt and makes events from older instance IDs stale.",
   "Common fields",
   "ID fields connect related events. Labels and messages contain translated text for users.",
-  "type",
-  "string literal",
-  "Required",
-  "n/a",
-  "Selects one member of the discriminated event union.",
-  "eventId",
-  "string",
-  "Optional",
-  "undefined",
-  "Connects an event to your app's logs without being used as the ID for a response, tool, or interaction.",
-  "locale",
-  "string",
-  "Optional",
-  "undefined",
+  'type eventId locale "label / message / announcement" string literal Selects one member of the discriminated event union. string undefined',
+  "Connects an event to your app's logs without being used as the ID for a response, tool, interaction, run, or step.",
+  "string undefined",
   "Carries the language for user-facing text into intents and DOM delivery.",
-  "label / message / announcement",
-  "string",
-  "Event-specific",
-  "undefined",
-  "Short, translated text supplied by your app. Do not pass raw arguments, results, or backend errors.",
+  "string undefined",
+  "Event-specific. Short, translated text supplied by your app. Do not pass raw arguments, results, or backend errors.",
+  "Localized announcements",
+  "See catalogs and adapter copy /docs/localized-announcements for the typed messages and copy options, language ownership, validation, construction lifetime, and replay requirements. Existing lifecycle evidence and timing remain unchanged.",
 ].join("\n");
+
+## Dispatch an event
+
+Use the same response ID for its start, appended text, and terminal event.
+
+```ts title="Start a response"
+import type { RuntimeEvent } from "@generative-a11y/core";
+
+const event: RuntimeEvent = {
+  type: "response.started",
+  responseId: "report",
+};
+runtime.dispatch(event);
+```
+
+See
+[the complete response lifecycle](/api/core/create-runtime#complete-lifecycle)
+for text deltas and completion.
 
 <span id="families"></span>
 
@@ -163,7 +137,7 @@ Use responseInstanceId when one logical response can be replaced. Late events
 from the old instance are suppressed as stale.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="Replace a response attempt"
 runtime.dispatch({
   type: "response.retrying",
   responseId: "report",
@@ -173,33 +147,16 @@ runtime.dispatch({
 });
 ```
 
-### Walkthrough
+Keep `responseId` stable across regeneration and use the replacement
+`nextResponseInstanceId` on later deltas and terminal events. A later
+`response.started` with the same `responseId` also replaces the active attempt
+and makes events from older instance IDs stale.
 
-<Steps>
+<span id="walkthrough"></span>
 
-<Step>
+<span id="keep-logical-identity"></span>
 
-### Keep logical identity
-
-responseId continues to identify the answer being regenerated.
-
-</Step>
-
-<Step>
-
-### Replace the epoch
-
-nextResponseInstanceId becomes the accepted attempt for later deltas and
-terminals.
-
-A later `response.started` with the same `responseId` also replaces the active
-attempt and makes events from older instance IDs stale.
-
-</Step>
-
-</Steps>
-
-<span id="common&#45;fields"></span>
+<span id="replace-the-epoch"></span>
 
 ## Common fields
 
@@ -246,10 +203,9 @@ for users.
   }}
 />
 
-
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`messages` and `copy` options, language ownership, validation,
-construction lifetime, and replay requirements. Existing lifecycle evidence
-and timing remain unchanged.
+`messages` and `copy` options, language ownership, validation, construction
+lifetime, and replay requirements. Existing lifecycle evidence and timing remain
+unchanged.

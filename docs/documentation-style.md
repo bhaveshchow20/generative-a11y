@@ -3,14 +3,19 @@
 Lead with what the reader can do, then show the smallest working example. Use
 the native Fumadocs components already registered in
 `apps/docs/mdx-components.tsx`. Keep the site’s existing layout and typography.
+Do not add “Next steps” card sections; use ordinary contextual links and the
+built-in page navigation.
 
 ## Page structure
 
+Descriptions should explain the outcome in one short sentence. Keep exact
+framework versions in compatibility sections instead of the opening description.
+
 Integration guides should present installation, working integration, optional
-recipes, compatibility, and next steps in that order. Keep prerequisites short
-at the top and link to exact version ranges later. Put required instructions in
-visible content; reserve accordions for optional explanations or
-troubleshooting.
+recipes, and compatibility in that order. Link to related guides in context.
+Keep prerequisites short at the top and link to exact version ranges later. Put
+required instructions in visible content; reserve accordions for optional
+explanations or troubleshooting.
 
 Reference pages should name the API, state its purpose in one sentence, and show
 a minimal example. Document each option with its meaning, default, and a small
@@ -29,7 +34,6 @@ answer the next integration question. Use concrete verbs such as “Import”,
 | `Tabs` / `Tab`                                | Offer equivalent alternatives, such as package-manager commands. Use explicit values and a shared `groupId` for the same choice across pages. |
 | `Steps` / `Step`                              | Present a real sequence, with the relevant code inside each step. Do not add a second walkthrough repeating those steps.                      |
 | `Callout`                                     | Surface one consequential constraint near the relevant example, such as runtime ownership. Avoid stacking caveats before the first example.   |
-| `Cards` / `Card`                              | Offer a small set of useful next destinations, with descriptive titles.                                                                       |
 | Native table or `TypeTable`                   | Compare supported versions, option defaults, or lifecycle evidence.                                                                           |
 
 For example:
