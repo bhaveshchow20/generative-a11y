@@ -24,8 +24,10 @@ export const searchableText = [
   "Workflow lifecycle",
   "Start and complete a run",
   "Give each run a logical ID and each attempt its own instance ID.",
+  'import { createRuntime } from "@generative-a11y/core"; const runtime = createRuntime();',
   'runtime.dispatch({ type: "run.started", runId: "report", runInstanceId: "report-1", });',
   '// Complete after the run’s work and identified children have ended. runtime.dispatch({ type: "run.completed", runId: "report", runInstanceId: "report-1", });',
+  "Dispose the owned runtime when its surface is removed, not after each run. disposeWorkflowAccessibility calls runtime.dispose().",
   "Workflow identity",
   "runId and stepId identify logical work. runInstanceId and stepInstanceId identify one attempt. A step always belongs to a run, and an attempt ID cannot be supplied without its logical ID.",
   "Field Meaning Constraint",
@@ -55,6 +57,10 @@ export const searchableText = [
 Give each run a logical ID and each attempt its own instance ID.
 
 ```ts title="Report a workflow run"
+import { createRuntime } from "@generative-a11y/core";
+
+const runtime = createRuntime();
+
 runtime.dispatch({
   type: "run.started",
   runId: "report",
@@ -67,7 +73,15 @@ runtime.dispatch({
   runId: "report",
   runInstanceId: "report-1",
 });
+
+// Call when the owning surface is removed, not after each run.
+export function disposeWorkflowAccessibility() {
+  runtime.dispose();
+}
 ```
+
+Keep the runtime alive while the surface needs its queued announcements. Call
+`disposeWorkflowAccessibility()` when that surface is removed.
 
 <span id="identity"></span>
 
