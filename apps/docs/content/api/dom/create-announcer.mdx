@@ -1,17 +1,11 @@
 ---
 title: "createAnnouncer"
 description:
-  "Create an owned browser announcer with progressive ariaNotify delivery,
-  stable live-region fallback, diagnostics, and cleanup."
+  "Deliver announcements through ariaNotify with a live-region fallback."
 publicPath: "/api/dom/create-announcer"
 section: "DOM"
 keywords:
-  [
-    "createAnnouncer",
-    "AnnouncerOptions",
-    "DeliveryResult",
-    "live region",
-  ]
+  ["createAnnouncer", "AnnouncerOptions", "DeliveryResult", "live region"]
 related: []
 order: 9
 ---
@@ -25,113 +19,35 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "createAnnouncer",
-  "Create an owned browser announcer with progressive ariaNotify delivery, stable live-region fallback, diagnostics, and cleanup.",
-  "DOM",
-  "createAnnouncer",
-  "AnnouncerOptions",
-  "DeliveryResult",
-  "live region",
-  "signature",
+  "Deliver announcements through ariaNotify with a live-region fallback.",
   "Signature and import",
   "auto mode attempts ariaNotify when available, then falls back to the selected polite or assertive live region.",
-  "typescript",
-  'import { createAnnouncer } from "@generative-a11y/dom"; const announcer = createAnnouncer({ mode: "auto", onDelivery(result) { console.log(result.status, result.method); }, }); const result = announcer.announce(intent); // Call announcer.dispose() when the owning surface is removed.',
-  "Use progressive delivery",
-  "auto keeps the fallback available when ariaNotify is absent or throws.",
-  "Observe the attempt",
-  "DeliveryResult reports the browser action without making a speech claim.",
-  "Release owned nodes",
-  "Dispose removes only live regions created by this announcer.",
-  "options",
-  "AnnouncerOptions",
-  "Optional",
-  "{}",
+  'import { createAnnouncer } from "@generative-a11y/dom";',
+  "const announcer = createAnnouncer({ onDelivery(result) { console.log(result.status, result.method); }, });",
+  "const result = announcer.announce(intent); // Call announcer.dispose() when the owning surface is removed.",
+  "auto also falls back if ariaNotify throws. DeliveryResult describes the browser action; disposing the announcer removes only regions it created.",
+  "options return AnnouncerOptions {}",
   "Selects document, delivery mode, supplied regions, and diagnostic observation.",
-  "return",
   "Announcer",
-  "Return",
-  "n/a",
-  "Owned announcer with announce, getRegions, and dispose methods.",
-  "options",
+  "Return. Owned announcer with announce, getRegions, and dispose methods.",
   "AnnouncerOptions",
   "Supplying regions transfers neither node ownership nor removal responsibility to the library.",
-  "document",
-  "Document",
-  "Optional",
-  "global document",
+  "document mode regions onDelivery Document global document",
   "Document used to create live regions. Without a document, the announcer remains inert and reports unavailable.",
-  "mode",
-  "auto | live-region",
-  "Optional",
-  '"auto"',
-  "Selects progressive enhancement or a forced test path.",
-  "regions",
-  "LiveRegions",
-  "Optional",
-  "owned regions",
+  'auto | live-region "auto" Selects progressive enhancement or a forced test path. LiveRegions owned regions',
   "Supplies stable polite and assertive elements. Both must belong to the same document.",
-  "onDelivery",
-  "(result) => void",
-  "Optional",
-  "undefined",
+  "(result) => void undefined",
   "Observes each delivery attempt. Callback failures cannot alter delivery.",
-  "result",
   "DeliveryResult",
   "announce returns one result synchronously.",
-  "Status",
-  "Method",
-  "Meaning",
-  "notified",
-  "aria-notify",
-  "ariaNotify returned without throwing",
-  "mutated",
-  "live-region",
-  "Selected stable region text changed",
-  "unavailable",
-  "none",
-  "No usable document or region exists",
-  "disposed",
-  "none",
-  "announce was called after disposal",
-  "channel",
-  "polite | assertive",
-  "Required",
-  "n/a",
-  "Intent channel selected for this attempt.",
-  "announcementId",
-  "string",
-  "Required",
-  "n/a",
+  "Status Method Meaning",
+  "notified aria-notify ariaNotify returned without throwing",
+  "mutated live-region Selected stable region text changed",
+  "unavailable none No usable document or region exists",
+  "disposed none announce was called after disposal",
+  'channel announcementId sourceType at sourceEventId "responseId / toolId / interactionId" "runId / runInstanceId" "stepId / stepInstanceId" error polite | assertive Intent channel selected for this attempt. string',
   "Stable ID copied from the AnnouncementIntent for diagnostic correlation.",
-  "sourceType",
-  "RuntimeEvent['type']",
-  "Required",
-  "n/a",
-  "Event type that produced the announcement intent.",
-  "at",
-  "number",
-  "Required",
-  "n/a",
-  "Injected-clock timestamp copied from the announcement intent.",
-  "sourceEventId",
-  "string",
-  "Optional",
-  "undefined",
-  "Application event ID when the source event supplied one.",
-  "responseId / toolId / interactionId",
-  "string",
-  "Optional",
-  "undefined",
-  "Entity IDs copied from the announcement intent when present.",
-  "runId / runInstanceId / stepId / stepInstanceId",
-  "string",
-  "Optional",
-  "undefined",
-  "Workflow IDs copied from the announcement intent when present.",
-  "error",
-  "{ name, message }",
-  "Optional",
-  "undefined",
+  "RuntimeEvent['type'] Event type that produced the announcement intent. number Injected-clock timestamp copied from the announcement intent. string undefined Application event ID when the source event supplied one. string undefined Entity IDs copied from the announcement intent when present. string undefined Run and attempt IDs copied from the intent when present. string undefined Step and attempt IDs copied from the intent when present. { name, message } undefined",
   "Serializable ariaNotify failure information when fallback was needed.",
   "A notified or mutated result confirms that the library updated the browser. Test with a real screen reader to confirm what it speaks.",
 ].join("\n");
@@ -144,11 +60,10 @@ auto mode attempts ariaNotify when available, then falls back to the selected
 polite or assertive live region.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="announcer.ts"
 import { createAnnouncer } from "@generative-a11y/dom";
 
 const announcer = createAnnouncer({
-  mode: "auto",
   onDelivery(result) {
     console.log(result.status, result.method);
   },
@@ -158,35 +73,8 @@ const result = announcer.announce(intent);
 // Call announcer.dispose() when the owning surface is removed.
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Use progressive delivery
-
-auto keeps the fallback available when ariaNotify is absent or throws.
-
-</Step>
-
-<Step>
-
-### Observe the attempt
-
-DeliveryResult reports the browser action without making a speech claim.
-
-</Step>
-
-<Step>
-
-### Release owned nodes
-
-Dispose removes only live regions created by this announcer.
-
-</Step>
-
-</Steps>
+`auto` also falls back if `ariaNotify` throws. `DeliveryResult` describes the
+browser action; disposing the announcer removes only regions it created.
 
 <TypeTable
   type={{
@@ -213,6 +101,14 @@ Dispose removes only live regions created by this announcer.
 />
 
 <span id="options"></span>
+
+<span id="walkthrough"></span>
+
+<span id="use-progressive-delivery"></span>
+
+<span id="observe-the-attempt"></span>
+
+<span id="release-owned-nodes"></span>
 
 ## AnnouncerOptions
 
@@ -343,12 +239,16 @@ announce returns one result synchronously.
     "runId / runInstanceId": {
       type: <>string</>,
       default: <>undefined</>,
-      description: <>Run and attempt IDs copied from the intent when present.</>,
+      description: (
+        <>Run and attempt IDs copied from the intent when present.</>
+      ),
     },
     "stepId / stepInstanceId": {
       type: <>string</>,
       default: <>undefined</>,
-      description: <>Step and attempt IDs copied from the intent when present.</>,
+      description: (
+        <>Step and attempt IDs copied from the intent when present.</>
+      ),
     },
     error: {
       type: <>&#123; name, message &#125;</>,

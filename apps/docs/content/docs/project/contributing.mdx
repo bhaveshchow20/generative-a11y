@@ -19,46 +19,22 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Contributing",
-  "Contribute focused changes with tests, clear documentation, stable events, and clean package responsibilities.",
-  "Project",
-  "contributing",
-  "development",
-  "tests",
-  "pull request",
-  "pnpm check",
-  "workflow",
   "Development workflow",
-  "Use the Node version in .nvmrc, install repository dependencies, add tests for exported behavior, and run the full repository check before requesting review.",
-  "shell",
-  "corepack enable pnpm install --frozen-lockfile pnpm check pnpm test:browser:install pnpm test:browser",
-  "Enable the package manager",
-  "Corepack selects the pnpm version declared by the repository.",
-  "Install dependencies",
-  "pnpm restores the exact workspace dependency graph from the lockfile.",
-  "Run repository checks",
-  "pnpm check covers formatting, lint, types, package builds, unit behavior, and rendered documentation.",
-  "Install browser engines",
-  "Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable fixtures.",
-  "Run browser checks",
-  "pnpm test:browser checks keyboard behavior, focus, structure, and browser updates.",
-  "review",
+  "From a repository checkout, use the Node version in .nvmrc and install the locked dependencies. Add tests and documentation for exported behavior, then run repository and browser checks before requesting review.",
   "Review expectations",
   "Keep core independent of browsers, DOM independent of React and AI frameworks, and adapters small. Never claim that an automated transcript or page update proves what a screen reader spoke.",
-  "Every exported API requires tests and documentation.",
-  "Every owned timer and subscription must be disposed.",
-  "All queues and tracked identities remain bounded.",
-  "Security reports follow SECURITY.md rather than public issues.",
+  "Every exported API requires tests and documentation. - Every owned timer and subscription must be disposed. - All queues and tracked identities remain bounded. - Security reports follow SECURITY.md rather than public issues.",
 ].join("\n");
 
 <span id="workflow"></span>
 
 ## Development workflow
 
-Use the Node version in .nvmrc, install repository dependencies, add tests for
-exported behavior, and run the full repository check before requesting review.
+From a repository checkout, use the Node version in `.nvmrc` and install the
+locked dependencies. Add tests and documentation for exported behavior, then run
+repository and browser checks before requesting review.
 
-{/* prettier-ignore */}
-```shell
+```shell title="Terminal"
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
@@ -66,54 +42,12 @@ pnpm test:browser:install
 pnpm test:browser
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Enable the package manager
-
-Corepack selects the pnpm version declared by the repository.
-
-</Step>
-
-<Step>
-
-### Install dependencies
-
-pnpm restores the exact workspace dependency graph from the lockfile.
-
-</Step>
-
-<Step>
-
-### Run repository checks
-
-pnpm check covers formatting, lint, types, package builds, unit behavior, and
-rendered documentation.
-
-</Step>
-
-<Step>
-
-### Install browser engines
-
-Playwright uses pinned Chromium, Firefox, and WebKit binaries for repeatable
-fixtures.
-
-</Step>
-
-<Step>
-
-### Run browser checks
-
-pnpm test:browser checks keyboard behavior, focus, structure, and browser
-updates.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="enable-the-package-manager"></span>
+<span id="install-dependencies"></span>
+<span id="run-repository-checks"></span>
+<span id="install-browser-engines"></span>
+<span id="run-browser-checks"></span>
 
 <span id="review"></span>
 

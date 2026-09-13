@@ -1,8 +1,6 @@
 ---
 title: "bindRuntime"
-description:
-  "Subscribe an existing core runtime to a Announcer while preserving
-  separate runtime and browser ownership."
+description: "Connect a core runtime to browser announcement delivery."
 publicPath: "/api/dom/bind-runtime"
 section: "DOM"
 keywords: ["bindRuntime", "RuntimeBinding", "dispose"]
@@ -19,50 +17,20 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "bindRuntime",
-  "Subscribe an existing core runtime to a Announcer while preserving separate runtime and browser ownership.",
-  "DOM",
-  "bindRuntime",
-  "RuntimeBinding",
-  "dispose",
-  "signature",
   "Signature and import",
   "bindRuntime borrows your runtime. Disposing its binding removes only subscription and announcer resources.",
-  "typescript",
-  'import { createRuntime } from "@generative-a11y/core"; import { bindRuntime } from "@generative-a11y/dom"; const runtime = createRuntime(); const delivery = bindRuntime(runtime, { mode: "auto" }); runtime.dispatch(event); delivery.dispose(); runtime.dispose();',
-  "Create the runtime",
-  "Your app creates and owns the core runtime.",
-  "Connect browser delivery",
-  "Connect the DOM binding before your app sends events.",
-  "Clean up in order",
-  "Dispose the DOM binding before you dispose the runtime.",
-  "runtime",
-  "Runtime",
-  "Required",
-  "n/a",
+  'import { createRuntime } from "@generative-a11y/core"; import { bindRuntime } from "@generative-a11y/dom";',
+  'const runtime = createRuntime(); const delivery = bindRuntime(runtime, { mode: "auto" });',
+  'runtime.dispatch({ type: "response.started", responseId: "answer" });',
+  "// Call when the chat surface is removed. export function disposeChat() { delivery.dispose(); runtime.dispose(); }",
+  "Connect delivery before dispatching events. Dispose the delivery binding before the runtime when removing the chat surface.",
+  "runtime options return Runtime",
   "Supplies AnnouncementIntent objects while remaining under your app's control.",
-  "options",
-  "AnnouncerOptions",
-  "Optional",
-  "{}",
-  "Forwarded to the owned DOM announcer.",
-  "return",
-  "RuntimeBinding",
-  "Return",
-  "n/a",
-  "Provides the announcer and an idempotent dispose function.",
-  "ownership",
+  "AnnouncerOptions {} Forwarded to the owned DOM announcer. RuntimeBinding Return. Provides the announcer and an idempotent dispose function.",
   "RuntimeBinding",
   "dispose leaves app-supplied runtimes and live regions intact.",
-  "announcer",
-  "Announcer",
-  "Property",
-  "n/a",
-  "Owned announcer used for every runtime intent.",
-  "dispose()",
-  "void",
-  "Method",
-  "n/a",
-  "Unsubscribes from the runtime and disposes the owned announcer.",
+  'announcer "dispose()" Announcer Property. Owned announcer used for every runtime intent. void',
+  "Method. Unsubscribes from the runtime and disposes the owned announcer.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -73,14 +41,14 @@ bindRuntime borrows your runtime. Disposing its binding removes only
 subscription and announcer resources.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="chat-accessibility.ts"
 import { createRuntime } from "@generative-a11y/core";
 import { bindRuntime } from "@generative-a11y/dom";
 
 const runtime = createRuntime();
 const delivery = bindRuntime(runtime, { mode: "auto" });
 
-runtime.dispatch(event);
+runtime.dispatch({ type: "response.started", responseId: "answer" });
 
 // Call when the chat surface is removed.
 export function disposeChat() {
@@ -89,35 +57,8 @@ export function disposeChat() {
 }
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Create the runtime
-
-Your app creates and owns the core runtime.
-
-</Step>
-
-<Step>
-
-### Connect browser delivery
-
-Connect the DOM binding before your app sends events.
-
-</Step>
-
-<Step>
-
-### Clean up in order
-
-Dispose the DOM binding before you dispose the runtime.
-
-</Step>
-
-</Steps>
+Connect delivery before dispatching events. Dispose the delivery binding before
+the runtime when removing the chat surface.
 
 <TypeTable
   type={{
@@ -146,6 +87,14 @@ Dispose the DOM binding before you dispose the runtime.
 />
 
 <span id="ownership"></span>
+
+<span id="walkthrough"></span>
+
+<span id="create-the-runtime"></span>
+
+<span id="connect-browser-delivery"></span>
+
+<span id="clean-up-in-order"></span>
 
 ## RuntimeBinding
 

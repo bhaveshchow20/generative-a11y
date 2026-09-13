@@ -1,8 +1,6 @@
 ---
 title: "createAttentionStore"
-description:
-  "A store that uses page visibility, window focus, the focused area, and
-  response visibility to estimate where the user is working."
+description: "Observe browser focus and visibility for your existing interface."
 publicPath: "/api/dom/attention"
 section: "DOM"
 keywords:
@@ -24,56 +22,30 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useAttentionControl bindAttention quiet override /docs/attention-aware-announcements",
   "createAttentionStore",
-  "A store that uses page visibility, window focus, the focused area, and response visibility to estimate where the user is working.",
-  "DOM",
-  "createAttentionStore",
-  "AttentionStore",
-  "AttentionSnapshot",
-  "registerComposer",
-  "signature",
   "Create and register app elements",
   "AttentionStore reads browser focus and visibility. It does not inspect a screen reader's cursor or move focus.",
-  "typescript",
-  "const attention = createAttentionStore({ document }); const unregisterComposer = attention.registerComposer(composer); const unregisterConversation = attention.registerConversation(conversation); const unregisterNewest = attention.registerNewestResponse(latestResponse); const unsubscribe = attention.subscribe(() => { console.log(attention.getSnapshot()); }); unsubscribe(); unregisterNewest(); unregisterConversation(); unregisterComposer(); attention.dispose();",
-  "Read browser signals",
-  "AttentionStore reads document visibility, window focus, element focus, and intersection changes.",
-  "Register app areas",
-  "Register the composer, conversation history, and newest response so the store can identify them.",
-  "Clean up",
-  "Each registration and subscription returns its own cleanup function.",
-  "options",
-  "AttentionStoreOptions",
-  "Optional",
-  "browser document",
+  'import { createAttentionStore } from "@generative-a11y/dom";',
+  "const attention = createAttentionStore({ document });",
+  "const unregisterComposer = attention.registerComposer(composer); const unregisterConversation = attention.registerConversation(conversation); const unregisterNewest = attention.registerNewestResponse(latestResponse);",
+  "const unsubscribe = attention.subscribe(() => { console.log(attention.getSnapshot()); });",
+  "// Call when the owning surface is removed. function disposeAttention() { unsubscribe(); unregisterNewest(); unregisterConversation(); unregisterComposer(); attention.dispose(); }",
+  "Register the elements your app already owns. Each registration and subscription returns a cleanup function; dispose() releases the store and its browser listeners.",
+  "options return AttentionStoreOptions browser document",
   "Injects the document, intersection observer factory, and observer configuration.",
-  "return",
   "AttentionStore",
-  "Return",
-  "n/a",
-  "External store with snapshots, registrations, subscriptions, and disposal.",
-  "snapshot",
+  "Return. External store with snapshots, registrations, subscriptions, and disposal.",
   "AttentionSnapshot",
   "A field stays unknown when the browser cannot provide enough information. AttentionStore never guesses.",
-  "Field",
-  "Values",
-  "Browser signal",
-  "visibility",
-  "visible, hidden, unknown",
-  "Document visibility",
-  "windowFocus",
-  "focused, blurred, unknown",
-  "Window focus",
-  "focusArea",
-  "composer, conversation, elsewhere, none, unknown",
-  "Deep active element",
-  "newestResponse",
-  "visible, outside, unobserved, unknown",
-  "Intersection observer",
-  "mode",
-  "foreground, background, reading-history, away, unknown",
-  "Derived from the fields above",
+  "Field Values Browser signal",
+  "visibility visible, hidden, unknown Document visibility",
+  "windowFocus focused, blurred, unknown Window focus",
+  "focusArea composer, conversation, elsewhere, none, unknown Deep active element",
+  "newestResponse visible, outside, unobserved, unknown Intersection observer",
+  "mode foreground, background, reading-history, away, unknown Derived from the fields above",
+  "bindAttention",
+  "bindAttention({ runtime, attentionStore }) explicitly forwards initial and changed observations to the core runtime. Both inputs are borrowed. dispose() unsubscribes and sends attention.changed with mode unknown, without disposing either input. Competing bindings for one runtime throw. Core filtering still requires policy.attention.enabled.",
+  "Actual newest-response intersection contributes browser evidence; this cannot identify a screen reader virtual cursor. Read the attention guide /docs/attention-aware-announcements.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -84,7 +56,9 @@ AttentionStore reads browser focus and visibility. It does not inspect a screen
 reader's cursor or move focus.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="attention.ts"
+import { createAttentionStore } from "@generative-a11y/dom";
+
 const attention = createAttentionStore({ document });
 
 const unregisterComposer = attention.registerComposer(composer);
@@ -95,44 +69,19 @@ const unsubscribe = attention.subscribe(() => {
   console.log(attention.getSnapshot());
 });
 
-unsubscribe();
-unregisterNewest();
-unregisterConversation();
-unregisterComposer();
-attention.dispose();
+// Call when the owning surface is removed.
+function disposeAttention() {
+  unsubscribe();
+  unregisterNewest();
+  unregisterConversation();
+  unregisterComposer();
+  attention.dispose();
+}
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Read browser signals
-
-AttentionStore reads document visibility, window focus, element focus, and
-intersection changes.
-
-</Step>
-
-<Step>
-
-### Register app areas
-
-Register the composer, conversation history, and newest response so the store
-can identify them.
-
-</Step>
-
-<Step>
-
-### Clean up
-
-Each registration and subscription returns its own cleanup function.
-
-</Step>
-
-</Steps>
+Register the elements your app already owns. Each registration and subscription
+returns a cleanup function; `dispose()` releases the store and its browser
+listeners.
 
 <TypeTable
   type={{
@@ -159,6 +108,14 @@ Each registration and subscription returns its own cleanup function.
 />
 
 <span id="snapshot"></span>
+
+<span id="walkthrough"></span>
+
+<span id="read-browser-signals"></span>
+
+<span id="register-app-areas"></span>
+
+<span id="clean-up"></span>
 
 ## AttentionSnapshot
 
@@ -204,6 +161,12 @@ AttentionStore never guesses.
 
 ## bindAttention
 
-`bindAttention({ runtime, attentionStore })` explicitly forwards initial and changed observations to the core runtime. Both inputs are borrowed. `dispose()` unsubscribes and sends `attention.changed` with mode `unknown`, without disposing either input. Competing bindings for one runtime throw. Core filtering still requires `policy.attention.enabled`.
+`bindAttention({ runtime, attentionStore })` explicitly forwards initial and
+changed observations to the core runtime. Both inputs are borrowed. `dispose()`
+unsubscribes and sends `attention.changed` with mode `unknown`, without
+disposing either input. Competing bindings for one runtime throw. Core filtering
+still requires `policy.attention.enabled`.
 
-Actual newest-response intersection contributes browser evidence; this cannot identify a screen reader virtual cursor. [Read the attention guide](/docs/attention-aware-announcements).
+Actual newest-response intersection contributes browser evidence; this cannot
+identify a screen reader virtual cursor.
+[Read the attention guide](/docs/attention-aware-announcements).

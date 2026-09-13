@@ -1,8 +1,7 @@
 ---
 title: "Choose an integration"
 description:
-  "Compare framework-neutral, React, AI SDK, assistant-ui, AG-UI, and CopilotKit
-  paths for adding generative-a11y to an existing AI interface."
+  "Choose the adapter and delivery layer that connect your existing AI interface to generative-a11y."
 publicPath: "/docs/integrations"
 section: "Getting started"
 keywords:
@@ -28,180 +27,69 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Choose an integration",
-  "Choose the smallest package that connects generative-a11y to your app.",
-  "Getting started",
-  "choose",
-  "integration",
-  "package",
-  "AI SDK",
-  "assistant-ui",
-  "AG-UI",
-  "React",
-  "custom",
-  "decision-table",
-  "Start with the framework your app uses",
-  "Choose an adapter based on the framework in your code, not the way the interface looks. An adapter can only report events the framework makes publicly available.",
-  "Your app",
-  "Install",
-  "Choose when",
-  "Events available",
-  "Custom JavaScript",
-  "core + dom",
-  "Your app already knows when work starts and finishes",
-  "All standard library events",
-  "React application",
-  "react",
-  "You want a provider, browser updates, preferences, and element bindings",
-  "Events sent by your app",
-  "AI SDK useChat",
-  "ai-sdk + core",
-  "Your UI uses public useChat state and callbacks",
-  "Responses, tools, approvals, sources, and final response states",
-  "assistant-ui",
-  "assistant-ui + core",
-  "Your app exposes a public ThreadRuntime",
-  "Messages, tools, approvals, sources, and final response states",
-  "AG-UI or CopilotKit v2",
-  "ag-ui + core",
-  "Your agent exposes documented protocol callbacks",
-  "Response text, tools, interruptions, and final response states",
-  "fidelity",
-  "Check which events the adapter can see",
-  "Each adapter lists the events its framework reports and the events that are unavailable. Adapters do not guess by reading rendered text, timing interface changes, or using private framework fields.",
-  "Use the core integration directly when your app knows about retries, connection changes, or custom interactions that the framework adapter cannot see.",
-  "Question",
-  "Use an adapter",
-  "Dispatch core events",
-  "Does the framework report the event you need?",
-  "Yes",
-  "Not required",
-  "Do you need the framework's IDs translated?",
-  "Yes",
-  "Optional",
-  "Does your app know when retries or connection changes happen?",
-  "Only if the framework reports them",
-  "Yes",
-  "Can the integration depend on rendered UI text?",
-  "Never",
-  "Never",
-  "installation",
-  "Install only the layers you use",
-  "Your app supplies a core runtime to its framework adapter. DOM or React handles browser announcements separately.",
-  "Custom browser application: @generative-a11y/core and @generative-a11y/dom",
-  "React application: @generative-a11y/core and @generative-a11y/react",
-  "AI SDK: add @generative-a11y/ai-sdk to the core and delivery layers",
-  "assistant-ui: add @generative-a11y/assistant-ui to the core and delivery layers",
-  "AG-UI or CopilotKit v2: add @generative-a11y/ag-ui to the core and delivery layers",
-].join("\n");
+  "Choose an integration by public framework state and callbacks; preserve existing visual UI.",
+  "Custom JavaScript: core + dom. React: react. AI SDK useChat: react + ai-sdk.",
+  "assistant-ui: core + dom + assistant-ui. AG-UI: core + dom + ag-ui. CopilotKit v2: react + ag-ui.",
+  "Install only packages imported directly. A11yProvider owns core runtime and DOM delivery transitively; adapters borrow runtime.",
+  "One delivery layer per runtime; host owns message rendering, composer and focus navigation.",
+  "AI SDK retry and regenerate unavailable; assistant-ui run hierarchy, retry and connection unavailable; AG-UI steps and hierarchy partial and retries unavailable.",
+  "Use explicit core events only with confirmed app evidence. DOM transcripts do not establish screen-reader speech."
+] .join("\n");
 
 <span id="decision&#45;table"></span>
 
 ## Start with the framework your app uses
 
-Choose an adapter based on the framework in your code, not the way the interface
-looks. An adapter can only report events the framework makes publicly available.
+Choose the guide that matches the public state or callbacks your app exposes.
+Each guide starts with installation and a minimal integration for your existing
+UI.
 
-<table aria-label="Start with the framework your app uses table">
-  <thead>
-    <tr>
-      <th>Your app</th>
-      <th>Install</th>
-      <th>Choose when</th>
-      <th>Events available</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Custom JavaScript</td>
-      <td>core &#43; dom</td>
-      <td>Your app already knows when work starts and finishes</td>
-      <td>All standard library events</td>
-    </tr>
-    <tr>
-      <td>React application</td>
-      <td>react</td>
-      <td>
-        You want a provider, browser updates, preferences, and element bindings
-      </td>
-      <td>Events sent by your app</td>
-    </tr>
-    <tr>
-      <td>AI SDK useChat</td>
-      <td>ai&#45;sdk &#43; core</td>
-      <td>Your UI uses public useChat state and callbacks</td>
-      <td>Responses, tools, approvals, sources, and final response states</td>
-    </tr>
-    <tr>
-      <td>assistant&#45;ui</td>
-      <td>assistant&#45;ui &#43; core</td>
-      <td>Your app exposes a public ThreadRuntime</td>
-      <td>Messages, tools, approvals, sources, and final response states</td>
-    </tr>
-    <tr>
-      <td>AG&#45;UI or CopilotKit v2</td>
-      <td>ag&#45;ui &#43; core</td>
-      <td>Your agent exposes documented protocol callbacks</td>
-      <td>Response text, tools, interruptions, and final response states</td>
-    </tr>
-  </tbody>
-</table>
+| Your app | Guide | Accessibility packages for that example |
+| --- | --- | --- |
+| Custom JavaScript | [Dispatch your app's events](/docs/integrations/custom) | `core` + `dom` |
+| React with app-owned events | [Add a provider](/docs/getting-started) | `react` |
+| AI SDK `useChat` | [Connect chat state and callbacks](/docs/integrations/ai-sdk) | `react` + `ai-sdk` |
+| assistant-ui thread runtime | [Observe the public thread](/docs/integrations/assistant-ui) | `core` + `dom` + `assistant-ui` |
+| AG-UI agent | [Subscribe to protocol callbacks](/docs/integrations/ag-ui) | `core` + `dom` + `ag-ui` |
+| CopilotKit agent | [Connect the v2 agent hook](/docs/integrations/copilotkit) | `react` + `ag-ui` |
 
-<span id="fidelity"></span>
-
-## Check which events the adapter can see
-
-Each adapter lists the events its framework reports and the events that are
-unavailable. Adapters do not guess by reading rendered text, timing interface
-changes, or using private framework fields.
-
-Use the core integration directly when your app knows about retries, connection
-changes, or custom interactions that the framework adapter cannot see.
-
-<table aria-label="Check which events the adapter can see table">
-  <thead>
-    <tr>
-      <th>Question</th>
-      <th>Use an adapter</th>
-      <th>Dispatch core events</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Does the framework report the event you need?</td>
-      <td>Yes</td>
-      <td>Not required</td>
-    </tr>
-    <tr>
-      <td>Do you need the framework's IDs translated?</td>
-      <td>Yes</td>
-      <td>Optional</td>
-    </tr>
-    <tr>
-      <td>Does your app know when retries or connection changes happen?</td>
-      <td>Only if the framework reports them</td>
-      <td>Yes</td>
-    </tr>
-    <tr>
-      <td>Can the integration depend on rendered UI text?</td>
-      <td>Never</td>
-      <td>Never</td>
-    </tr>
-  </tbody>
-</table>
+Package names above use the `@generative-a11y/` prefix. Your app supplies its
+framework dependencies and backend. Check [compatibility](/docs/compatibility)
+before installing an adapter into an existing dependency tree.
 
 <span id="installation"></span>
 
 ## Install only the layers you use
 
-Your app supplies a core runtime to its framework adapter. DOM or React handles
-browser announcements separately.
+Core schedules events; DOM delivers them to browser live regions. React's
+`A11yProvider` owns both. Adapters translate host state into events and borrow the
+runtime you supply.
 
-- Custom browser application: @generative&#45;a11y/core and
-  @generative&#45;a11y/dom
-- React application: @generative&#45;a11y/core and @generative&#45;a11y/react
-- AI SDK: add @generative&#45;a11y/ai&#45;sdk to the core and delivery layers
-- assistant&#45;ui: add @generative&#45;a11y/assistant&#45;ui to the core and
-  delivery layers
-- AG&#45;UI or CopilotKit v2: add @generative&#45;a11y/ag&#45;ui to the core and
-  delivery layers
+Install each package your own code imports. Core and DOM are transitive
+dependencies of the React package, so a provider-based integration does not need
+to declare them unless it imports them directly. Framework-neutral examples
+import core and DOM themselves and therefore list both in their install command.
+
+Keep one delivery layer per runtime. Adapters preserve the host application's
+visible UI and do not supply message rendering, composer controls, or focus
+navigation.
+
+<span id="fidelity"></span>
+
+## Check which events the adapter can see
+
+| Integration | Confirmed evidence | Limits to check |
+| --- | --- | --- |
+| Custom / React | Events your app dispatches | Your callbacks must confirm each event |
+| AI SDK | Response text, terminal callbacks, tools, approvals, sources | Retry and regenerate detection unavailable |
+| assistant-ui | Thread messages, known final states, tools, approvals, sources | Run hierarchy, retry, and connection events unavailable |
+| AG-UI / CopilotKit | Runs, subagents, text, tools, interrupts | Steps and hierarchy partial; retries unavailable |
+
+Adapters do not infer lifecycle from rendered text, elapsed time, or private
+framework fields. Use [explicit core events](/docs/integrations/custom) when your
+app has additional evidence, and keep IDs consistent with any adapter sharing
+that runtime.
+
+Each adapter reference describes its evidence levels, including [AG-UI fidelity](/api/ag-ui#fidelity). Browser
+transcripts verify delivery writes; real assistive-technology testing is still
+required to establish spoken behavior.

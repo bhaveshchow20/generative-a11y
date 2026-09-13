@@ -1,9 +1,20 @@
 ---
 title: "Attention-aware announcements"
-description: "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls to an existing React interface."
+description:
+  "Opt into attention policy and add host-owned Auto, Normal, and Quiet controls
+  to an existing React interface."
 publicPath: "/docs/attention-aware-announcements"
 section: "Concepts"
-keywords: ["attention", "quiet", "override", "reading-history", "useAttentionControl", "useAttentionRefs", "bindAttention"]
+keywords:
+  [
+    "attention",
+    "quiet",
+    "override",
+    "reading-history",
+    "useAttentionControl",
+    "useAttentionRefs",
+    "bindAttention",
+  ]
 related: ["/api/core/policy", "/api/dom/attention", "/api/react/hooks"]
 order: 7
 ---
@@ -15,42 +26,65 @@ export const sourceMetadata = {
   order: 7,
 };
 
-export const searchableText = "Attention-aware announcements. policy.attention.enabled opts into core filtering; attentionPolicy forwards DOM observations. Auto normal quiet overrides. Default quietWhen background. Reading history and away are optional browser heuristics, not virtual cursor detection. Quiet discards response text and routine progress with no backlog. Terminal failure interaction connection citation retry notices retain base policy. useAttentionControl useAttentionRefs bindAttention. Provider ownership and body-level live regions. Short React setup and control snippets.";
+export const searchableText = [
+  "Attention-aware announcements",
+  "Opt in at both layers",
+  'Core attention filtering is disabled by default. Set policy.attention.enabled: true to enable it. Its default quietWhen is ["background"]; add "reading-history" or "away" only when appropriate for your host interface.',
+  "The React provider's separate attentionPolicy prop opts into forwarding browser observations to the runtime. It does not enable core filtering by itself. A runtime supplied through runtime must already have its policy configured; provider policy props do not reconfigure a borrowed runtime.",
+  "The provider renders no visible controls. Connect your existing interface, then add an optional quiet toggle. With core attention disabled, the effective mode remains normal.",
+  "Enable attention policy",
+  "Follow the React setup, then keep your content and styling.",
+  "Here, response is your application's existing response content. These bindings provide browser observations, not proof that someone is reading.",
+  "Add controls where they fit",
+  "Import useAttentionControl from @generative-a11y/react in your client module, then call it inside a component under the provider. Connect setOverride to your own settings or controls. For example, a quiet toggle:",
+  'setOverride("normal") explicitly restores normal delivery regardless of observations. setOverride("auto") follows attention policy again. state.observed reports browser evidence; state.effective reports the resulting normal or quiet mode.',
+  "Understand what quiet suppresses",
+  "Quiet suppresses all response text, including full text announcements, and routine response/tool/run/step starts and tool/step progress. It preserves terminal, failure, interaction, connection, citation, and retry notices only when the underlying policy already enables them. It does not turn on categories disabled by the base policy.",
+  "There is no backlog on return. Text observed while quiet is discarded for announcements while your host keeps rendering it normally. Sentence and paragraph strategies discard the unit crossing the attention boundary and resume at a fresh unit. A response that lost text during quiet mode is not replayed in full by the completion strategy. This is more than a reduction in detail: users can miss response content in announcements and must be able to read the host's retained response.",
+  "Browser attention is a heuristic. The observer checks actual intersection of your registered newest response, along with available focus and visibility evidence. Intersection is not proof of a screen reader's virtual cursor location or reading position. Missing evidence remains unknown. Ordinary streaming, attention changes, and routine statuses never move focus.",
+  "Ownership and delivery",
+  "The provider owns and disposes its internally created runtime, DOM delivery, and stores when unmounted. An externally supplied runtime or store is borrowed: its creator must dispose it after consumers detach.",
+  "Provider live regions are placed at body level, outside nested conversation semantics. Keep your existing visible response and composer, and attach the public ref bindings shown above. Do not add another live region around the transcript: the provider handles delivery.",
+  "Without React, use bindAttention({ runtime, attentionStore }) from @generative-a11y/dom. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See DOM attention, core policy, and React hooks.",
+  "Deterministic runtime tests and browser DOM checks establish filtering, cleanup, and focus behavior in those environments. They do not prove actual assistive-technology output. Manually test supported browser and screen-reader combinations, including quiet/resume, background return, history navigation, tool failure, approval, and explicit overrides.",
+].join("\n");
 
 ## Opt in at both layers
 
-Core attention filtering is disabled by default. Set `policy.attention.enabled: true` to enable it. Its default `quietWhen` is `["background"]`; add `"reading-history"` or `"away"` only when appropriate for your host interface.
+Core attention filtering is disabled by default. Set
+`policy.attention.enabled: true` to enable it. Its default `quietWhen` is
+`["background"]`; add `"reading-history"` or `"away"` only when appropriate for
+your host interface.
 
-The React provider's separate `attentionPolicy` prop opts into forwarding browser observations to the runtime. It does not enable core filtering by itself. A runtime supplied through `runtime` must already have its policy configured; provider policy props do not reconfigure a borrowed runtime.
+The React provider's separate `attentionPolicy` prop opts into forwarding
+browser observations to the runtime. It does not enable core filtering by
+itself. A runtime supplied through `runtime` must already have its policy
+configured; provider policy props do not reconfigure a borrowed runtime.
 
-The provider renders no visible controls. The snippets below connect host-owned controls using `useAttentionControl()`, which returns `{ state: { observed, override, effective }, setOverride }`. Explicit `"quiet"` and `"normal"` override observed attention; `"auto"` restores policy-based behavior. With core attention disabled, the effective mode remains normal.
-
-## Understand what quiet suppresses
-
-Quiet suppresses all response text, including full text announcements, and routine response/tool/run/step starts and tool/step progress. It preserves terminal, failure, interaction, connection, citation, and retry notices only when the underlying policy already enables them. It does not turn on categories disabled by the base policy.
-
-There is no backlog on return. Text observed while quiet is discarded for announcements while your host keeps rendering it normally. Sentence and paragraph strategies discard the unit crossing the attention boundary and resume at a fresh unit. A response that lost text during quiet mode is not replayed in full by the completion strategy. This is more than a reduction in detail: users can miss response content in announcements and must be able to read the host's retained response.
-
-Browser attention is a heuristic. The observer checks actual intersection of your registered newest response, along with available focus and visibility evidence. Intersection is not proof of a screen reader's virtual cursor location or reading position. Missing evidence remains unknown. Ordinary streaming, attention changes, and routine statuses never move focus.
+The provider renders no visible controls. Connect your existing interface, then
+add an optional quiet toggle. With core attention disabled, the effective mode
+remains normal.
 
 ## Enable attention policy
 
-Follow the [React setup](/api/react), then import `A11yProvider` from `@generative-a11y/react` and wrap your existing interface. Keep the default system clock for production.
+Follow the [React setup](/api/react), then import `A11yProvider` from
+`@generative-a11y/react` and wrap your existing interface. Keep the default
+system clock for production.
 
-```tsx
-<A11yProvider
-  attentionPolicy
-  policy={{ attention: { enabled: true } }}
->
+```tsx title="Provider configuration"
+<A11yProvider attentionPolicy policy={{ attention: { enabled: true } }}>
   <YourExistingInterface />
 </A11yProvider>
 ```
 
 ## Connect your existing elements
 
-In your client module, import `useAttentionRefs` from `@generative-a11y/react`. Call it inside a component under the provider to obtain callback refs for the composer, conversation, and newest response. Attach those refs to your existing elements to observe focus and visibility; keep your content and styling.
+In your client module, import `useAttentionRefs` from `@generative-a11y/react`.
+Call it inside a component under the provider to obtain callback refs for the
+composer, conversation, and newest response. Attach those refs to your existing
+elements to observe focus and visibility; keep your content and styling.
 
-```tsx
+```tsx title="Conversation element bindings"
 const { composerRef, conversationRef, newestResponseRef } = useAttentionRefs();
 
 return (
@@ -63,13 +97,16 @@ return (
 );
 ```
 
-Here, `response` is your application's existing response content. These bindings provide browser observations, not proof that someone is reading.
+Here, `response` is your application's existing response content. These bindings
+provide browser observations, not proof that someone is reading.
 
 ## Add controls where they fit
 
-Import `useAttentionControl` from `@generative-a11y/react` in your client module, then call it inside a component under the provider. Connect `setOverride` to your own settings or controls. For example, a quiet toggle:
+Import `useAttentionControl` from `@generative-a11y/react` in your client
+module, then call it inside a component under the provider. Connect
+`setOverride` to your own settings or controls. For example, a quiet toggle:
 
-```tsx
+```tsx title="Quiet announcement toggle"
 const { state, setOverride } = useAttentionControl();
 
 return (
@@ -83,14 +120,53 @@ return (
 );
 ```
 
-`setOverride("normal")` explicitly restores normal delivery regardless of observations. `setOverride("auto")` follows attention policy again. `state.observed` reports browser evidence; `state.effective` reports the resulting normal or quiet mode.
+`setOverride("normal")` explicitly restores normal delivery regardless of
+observations. `setOverride("auto")` follows attention policy again.
+`state.observed` reports browser evidence; `state.effective` reports the
+resulting normal or quiet mode.
+
+## Understand what quiet suppresses
+
+Quiet suppresses all response text, including full text announcements, and
+routine response/tool/run/step starts and tool/step progress. It preserves
+terminal, failure, interaction, connection, citation, and retry notices only
+when the underlying policy already enables them. It does not turn on categories
+disabled by the base policy.
+
+There is no backlog on return. Text observed while quiet is discarded for
+announcements while your host keeps rendering it normally. Sentence and
+paragraph strategies discard the unit crossing the attention boundary and resume
+at a fresh unit. A response that lost text during quiet mode is not replayed in
+full by the completion strategy. This is more than a reduction in detail: users
+can miss response content in announcements and must be able to read the host's
+retained response.
+
+Browser attention is a heuristic. The observer checks actual intersection of
+your registered newest response, along with available focus and visibility
+evidence. Intersection is not proof of a screen reader's virtual cursor location
+or reading position. Missing evidence remains unknown. Ordinary streaming,
+attention changes, and routine statuses never move focus.
 
 ## Ownership and delivery
 
-The provider owns and disposes its internally created runtime, DOM delivery, and stores when unmounted. An externally supplied runtime or store is borrowed: its creator must dispose it after consumers detach.
+The provider owns and disposes its internally created runtime, DOM delivery, and
+stores when unmounted. An externally supplied runtime or store is borrowed: its
+creator must dispose it after consumers detach.
 
-Provider live regions are placed at body level, outside nested conversation semantics. Keep your existing visible response and composer, and attach the public ref bindings shown above. Do not add another live region around the transcript: the provider handles delivery.
+Provider live regions are placed at body level, outside nested conversation
+semantics. Keep your existing visible response and composer, and attach the
+public ref bindings shown above. Do not add another live region around the
+transcript: the provider handles delivery.
 
-Without React, use `bindAttention({ runtime, attentionStore })` from `@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes. Dispose the binding to unsubscribe and send an unknown observation; it owns neither runtime nor store. Competing bindings to the same runtime are rejected. See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and [React hooks](/api/react/hooks).
+Without React, use `bindAttention({ runtime, attentionStore })` from
+`@generative-a11y/dom`. It forwards the initial snapshot and subsequent changes.
+Dispose the binding to unsubscribe and send an unknown observation; it owns
+neither runtime nor store. Competing bindings to the same runtime are rejected.
+See [DOM attention](/api/dom/attention), [core policy](/api/core/policy), and
+[React hooks](/api/react/hooks).
 
-Deterministic runtime tests and browser DOM checks establish filtering, cleanup, and focus behavior in those environments. They do not prove actual assistive-technology output. Manually test supported browser and screen-reader combinations, including quiet/resume, background return, history navigation, tool failure, approval, and explicit overrides.
+Deterministic runtime tests and browser DOM checks establish filtering, cleanup,
+and focus behavior in those environments. They do not prove actual
+assistive-technology output. Manually test supported browser and screen-reader
+combinations, including quiet/resume, background return, history navigation,
+tool failure, approval, and explicit overrides.

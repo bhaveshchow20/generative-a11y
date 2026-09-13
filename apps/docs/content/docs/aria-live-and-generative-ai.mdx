@@ -34,34 +34,22 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "ARIA live regions for generative AI",
-  "Understand what ARIA live regions provide, why streaming tokens are a poor announcement unit, and how generative-a11y separates policy from delivery.",
-  "Concepts",
-  "ARIA live region AI",
-  "aria-live AI chat",
-  "live region streaming text",
-  "accessible chatbot screen reader",
-  "/docs/screen-readers-and-streaming-ai",
-  "/api/dom/create-announcer",
-  "/docs/testing",
-  "what-live-regions-do",
   "Live regions expose changes without moving focus",
-  "An ARIA live region lets a browser expose text changes to assistive technology while keyboard focus stays where the user placed it. Polite updates generally wait for a suitable pause; assertive updates are reserved for information that warrants interruption.",
+  "An ARIA live region marks dynamic content so user agents can present changes to assistive technology while keyboard focus stays where the user placed it. The polite and assertive values communicate urgency, while aria-atomic and aria-relevant describe which portion of a change is relevant. These semantics support delivery; they do not decide whether every generated token is useful.",
+  "Use polite for routine updates and reserve assertive for information that warrants interruption. Browser and assistive-technology behavior determines when those updates are presented.",
+  "The normative behavior and supported values come from WAI-ARIA 1.2. WCAG’s status-message guidance also emphasizes informing users about important changes without unnecessarily moving focus or interrupting their work.",
   "A live region is a delivery mechanism, not an announcement policy. It does not know whether a token is meaningful, whether a repeated update is obsolete, or whether a tool failure should outrank routine progress.",
-  "streaming-risk",
   "Do not use each token as a live-region update",
   "Generative output changes far more frequently than ordinary status text. Sending every token can create partial-word announcements and a backlog of low-value mutations. Replacing the live region with the entire accumulated response can instead repeat content or produce inconsistent results across browser and screen-reader combinations.",
-  "Keep the visible transcript semantic and readable independently of announcements.",
-  "Choose meaningful phrases or sentences as announcement units.",
-  "Use assertive delivery sparingly for confirmed urgent states.",
-  "Cancel queued work when a response fails, stops, retries, or the runtime is disposed.",
-  "library-approach",
+  "Keep the visible transcript semantic and readable independently of announcements. - Choose meaningful phrases or sentences as announcement units. - Use assertive delivery sparingly for confirmed urgent states. - Cancel queued work when a response fails, stops, retries, or the runtime is disposed.",
   "generative-a11y separates scheduling from live-region delivery",
   "The core package turns lifecycle events into polite or assertive announcement intents after segmentation, prioritization, deduplication, and scheduling. The DOM package owns stable polite and assertive regions, replaces their text for live-region delivery, and can use the emerging ariaNotify API when the browser exposes it in the configured mode.",
   "The application still owns its visible messages, controls, headings, forms, error relationships, keyboard interactions, and focus behavior. The library's live regions are not a substitute for those fundamentals.",
   "Browser delivery confirms a DOM action, not audible output. Validate the complete experience with real assistive technology.",
-  "when-to-use",
   "Use ordinary semantics for stable content",
   "Do not announce information merely because it rendered. Stable assistant messages should remain ordinary document content that users can navigate. Use lifecycle announcements for changes that would otherwise be easy to miss: a response becoming available, a tool changing state, approval becoming required, a connection being lost, or work ending in failure.",
+  "Sources and evidence",
+  "WAI-ARIA 1.2 - WCAG 2.2: Understanding Status Messages - ARIA live-region implementation guidance",
 ].join("\n");
 
 <span id="what&#45;live&#45;regions&#45;do"></span>
@@ -74,10 +62,9 @@ assistive technology while keyboard focus stays where the user placed it. The
 `aria-relevant` describe which portion of a change is relevant. These semantics
 support delivery; they do not decide whether every generated token is useful.
 
-An ARIA live region lets a browser expose text changes to assistive technology
-while keyboard focus stays where the user placed it. Polite updates generally
-wait for a suitable pause; assertive updates are reserved for information that
-warrants interruption.
+Use `polite` for routine updates and reserve `assertive` for information that
+warrants interruption. Browser and assistive-technology behavior determines when
+those updates are presented.
 
 The normative behavior and supported values come from
 [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/). WCAG’s

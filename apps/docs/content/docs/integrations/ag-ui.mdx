@@ -28,232 +28,198 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "AG-UI accessibility",
-  "Map documented AG-UI runs, subagents, partial steps, responses, tools, and interactions into paced accessible workflow updates.",
-  "Integrations",
-  "AG-UI",
-  "bindAgent",
-  "AgentSubscriber",
-  "interrupt",
-  "protocol",
-  "/docs/accessible-ai-agents",
-  "/docs/getting-started",
-  "/api/ag-ui/bind-agent",
-  "installation",
-  "Install the AG-UI adapter",
-  "Install @generative-a11y/core, @generative-a11y/dom, and @generative-a11y/ag-ui beside the AG-UI client used by your application. Bind the existing agent after it is ready, and keep ownership of the agent and accessibility runtime in your application.",
-  "bind-agent",
+  "Install @generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui.",
   "Subscribe to the public agent API",
-  "bindAgent observes an AbstractAgent through subscribe callbacks. It does not invoke actions, subscribe to private observables, or mutate agent state.",
-  "typescript",
-  'import { bindAgent } from "@generative-a11y/ag-ui"; const binding = bindAgent({ runtime, scopeId: "research-agent", agent, }); // Never disposes the borrowed agent or runtime. binding.dispose();',
-  "Connect the agent",
-  "bindAgent uses documented AgentSubscriber callbacks and does not run agent actions.",
-  "Use a stable scope",
-  "scopeId prefixes protocol message, tool, and interrupt IDs for each mounted agent.",
-  "Translate confirmed events",
-  "Text, tool, and interrupt callbacks become standard events when their public data confirms what happened.",
-  "Clean up locally",
-  "dispose removes this subscriber without disposing the AG-UI agent or accessibility runtime.",
-  "runtime",
-  "Pick<Runtime, 'dispatch'>",
-  "Required",
-  "none",
-  "Receives events translated from documented protocol callbacks.",
-  "scopeId",
-  "string",
-  "Required",
-  "none",
-  "Namespaces message, tool, and interrupt identity for one agent binding.",
-  "agent",
-  "Pick<AbstractAgent, 'subscribe'>",
-  "Required",
-  "none",
-  "A borrowed AG-UI agent exposing the documented subscriber API.",
-  "maxTrackedEntities",
-  "number",
-  "Optional",
-  "1000",
-  "Bounds response, tool, and interaction records and fails closed after saturation.",
-  "dispose()",
-  "void",
-  "Return",
-  "n/a",
-  "Unsubscribes this binding and clears adapter-owned identity records.",
-  "lifecycle-mapping",
-  "Lifecycle mapping",
-  "Run callbacks map top-level run lifecycle. Subagent callbacks map delegated child runs and documented parent IDs. Step names remain labels because AG-UI does not expose stable step IDs. Text, tools, and interrupts retain run ownership when exposed.",
-  "screen-reader-behavior",
-  "Expected screen-reader behavior",
-  "The runtime paces response text, prioritizes approval and failure states, and suppresses duplicate progress updates. The DOM delivery layer updates live regions without moving focus for normal agent activity. Treat its transcript as browser evidence and run assistive-technology tests for spoken behavior.",
-  "protocol-evidence",
-  "What the protocol can report",
-  "AG-UI 0.0.59 reports stable run and subagent IDs. Step callbacks expose only stepName, so step support and hierarchy are partial. Replay and reconnection support are partial, retry support is unavailable, and custom events or state deltas are not mapped automatically.",
-  "troubleshooting",
-  "Troubleshooting",
-  "Missing interaction updates usually trace to an agent that was bound before readiness or callbacks that omit stable IDs. Duplicate updates can come from multiple subscribers. Confirm one binding per agent, a stable scopeId, and documented callbacks before adding custom event inference.",
-].join("\n");
+  "bindAgent accepts runtime, scopeId, agent; dispose the binding before owned delivery and runtime.",
+  "Optional maxTrackedEntities defaults to 1000; copy supplies localized labels. @ag-ui/client >=0.0.59 <0.0.60; checked 0.0.59.",
+  "Use one binding and stable scopeId. React can borrow A11yProvider runtime without duplicate delivery.",
+  "Runs and subagents, tools, text, interrupts; steps are partial diagnostics without snapshots or announcements. Replay and reconnection partial, retries and connection events unavailable.",
+  "Routine streaming preserves focus and host UI. Browser transcripts do not establish screen-reader speech."
+] .join("\n");
 
 <span id="installation"></span>
 
-## Install the AG&#45;UI adapter
+## Install the AG-UI adapter
 
-Install @generative&#45;a11y/core, @generative&#45;a11y/dom, and
-@generative&#45;a11y/ag&#45;ui beside the AG&#45;UI client used by your
-application. Bind the existing agent after it is ready, and keep ownership of
-the agent and accessibility runtime in your application.
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
+npm install @generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/core @generative-a11y/dom @generative-a11y/ag-ui
+```
+
+</Tab>
+
+</Tabs>
+
+Use the agent your app already owns. See [Compatibility](#compatibility) for
+supported host dependencies.
 
 <span id="bind&#45;agent"></span>
 
 ## Subscribe to the public agent API
 
-bindAgent observes an AbstractAgent through subscribe callbacks. It does not
-invoke actions, subscribe to private observables, or mutate agent state.
-
-{/* prettier-ignore */}
-```typescript
-import { bindAgent } from "@generative-a11y/ag-ui";
-
-const binding = bindAgent({
-  runtime,
-  scopeId: "research-agent",
-  agent,
-});
-
-// Never disposes the borrowed agent or runtime.
-binding.dispose();
-```
-
-### Walkthrough
+<span id="walkthrough"></span>
+<span id="connect-the-agent"></span>
+<span id="use-a-stable-scope"></span>
+<span id="translate-confirmed-events"></span>
+<span id="clean-up-locally"></span>
 
 <Steps>
-
 <Step>
 
-### Connect the agent
+### Create the binding
 
-bindAgent uses documented AgentSubscriber callbacks and does not run agent
-actions.
+Add this function to your browser app. It creates a runtime and browser delivery,
+then subscribes to your existing agent.
+
+```ts title="accessibility/ag-ui.ts"
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
+import { bindAgent, type AgentSource } from "@generative-a11y/ag-ui";
+
+export function connectAccessibility(agent: AgentSource) {
+  const runtime = createRuntime({});
+  const delivery = bindRuntime(runtime);
+  const binding = bindAgent({
+    runtime,
+    scopeId: "research-agent",
+    agent,
+  });
+
+  return () => {
+    binding.dispose();
+    delivery.dispose();
+    runtime.dispose();
+  };
+}
+```
 
 </Step>
-
 <Step>
 
-### Use a stable scope
+### Connect it to your app lifecycle
 
-scopeId prefixes protocol run, message, tool, and interrupt IDs for each mounted
-agent.
+Call this once when your agent is ready. Here,
+`agent` is your existing public AG-UI agent.
 
-</Step>
+```ts title="App mount callback"
+import { connectAccessibility } from "./accessibility/ag-ui";
 
-<Step>
+const disconnectAccessibility = connectAccessibility(agent);
+```
 
-### Translate confirmed events
+Keep the binding alive across responses. Call the returned function when the
+surface unmounts or before replacing the agent:
 
-Run, subagent, step, text, tool, and interrupt callbacks become standard events
-when their public data confirms what happened.
-
-</Step>
-
-<Step>
-
-### Clean up locally
-
-dispose removes this subscriber without disposing the AG&#45;UI agent or
-accessibility runtime.
+```ts title="App unmount callback"
+disconnectAccessibility();
+```
 
 </Step>
-
 </Steps>
 
-<TypeTable
-  type={{
-    runtime: {
-      type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
-      required: true,
-      default: <>none</>,
-      description: (
-        <>Receives events translated from documented protocol callbacks.</>
-      ),
-    },
-    scopeId: {
-      type: <>string</>,
-      required: true,
-      default: <>none</>,
-      description: (
-        <>
-          Namespaces run, message, tool, and interrupt identity for one agent
-          binding.
-        </>
-      ),
-    },
-    agent: {
-      type: <>Pick&lt;AbstractAgent, 'subscribe'&#62;</>,
-      required: true,
-      default: <>none</>,
-      description: (
-        <>A borrowed AG&#45;UI agent exposing the documented subscriber API.</>
-      ),
-    },
-    maxTrackedEntities: {
-      type: <>number</>,
-      default: <>1000</>,
-      description: (
-        <>
-          Bounds response, tool, and interaction records and fails closed after
-          saturation.
-        </>
-      ),
-    },
-    "dispose()": {
-      type: <>void</>,
-      description: (
-        <>
-          Return. Unsubscribes this binding and clears adapter&#45;owned
-          identity records.
-        </>
-      ),
-    },
-  }}
-/>
+<Callout title="Keep one owner for each resource">
+
+The example owns its core runtime and DOM delivery. If your app already has
+these, pass that runtime directly to `bindAgent` and clean up only its returned
+binding. In React, use the runtime from `A11yProvider` and return
+`() => binding.dispose()` from your effect. Do not attach a second delivery
+layer to that provider.
+
+</Callout>
+
+Keep `scopeId` stable and unique for each mounted agent. The adapter leaves your
+visible UI and actions with the host application.
+
+## Optional configuration
+
+`maxTrackedEntities` defaults to `1000` and bounds adapter identity records.
+`copy` supplies localized tool and interaction labels. See the
+[`bindAgent` reference](/api/ag-ui/bind-agent) for
+all options and the [localization guide](/docs/localized-announcements) for copy
+configuration.
+
+## Compatibility
+
+| Dependency | Supported range | Checked version |
+| --- | --- | --- |
+| Node.js | 22+ | — |
+| `@ag-ui/client` | `>=0.0.59 <0.0.60` | 0.0.59 |
+
+Your existing app supplies the host dependency. The adapter itself needs no
+React rendering layer; this example uses core and DOM directly.
 
 <span id="lifecycle&#45;mapping"></span>
 
 ## Lifecycle mapping
 
-Run callbacks map top&#45;level lifecycle. Subagent callbacks map delegated child
-runs and documented parent run, tool, or message IDs. Text, tool, and interrupt
-callbacks retain their run ownership when the protocol exposes it.
+| Public subscriber evidence | Reports |
+| --- | --- |
+| Run and subagent callbacks | Run lifecycle and documented parent relationships |
+| Assistant text callbacks | Response text and completion |
+| Tool start and result callbacks | Tool lifecycle |
+| Interrupt IDs and resume input | Input requests and resolutions |
+| Step callbacks | Partial-identity diagnostics only |
 
-Step callbacks expose `stepName` but no stable step ID. The adapter keeps that
-value as a label and omits `stepId`, so step and hierarchy fidelity are partial;
-same&#45;name concurrent steps cannot be correlated exactly. Core reports these
-callbacks only as ephemeral partial&#45;identity diagnostics; they do not create
-step snapshots, announcements, or run summary counts.
+Text, tool, and interaction events retain run ownership when exposed. Step
+callbacks provide `stepName` without stable step IDs. The adapter keeps the name
+as a label and omits `stepId`; core does not create step snapshots,
+announcements, or run summary counts from these diagnostics. Same-name
+concurrent steps cannot be correlated exactly.
 
 <span id="screen&#45;reader&#45;behavior"></span>
 
-## Expected screen&#45;reader behavior
+## Expected screen-reader behavior
 
-The runtime paces response text, prioritizes approval and failure states, and
-suppresses duplicate progress updates. The DOM delivery layer updates live
-regions without moving focus for normal agent activity. Treat its transcript as
-browser evidence and run assistive&#45;technology tests for spoken behavior.
+Core paces response text and prioritizes input requests and failure states. DOM
+updates live regions without moving focus during normal agent activity. A DOM
+transcript records browser writes; test spoken behavior with real assistive
+technology.
 
 <span id="protocol&#45;evidence"></span>
 
 ## What the protocol can report
 
-AG&#45;UI 0.0.59 reports stable run and subagent IDs. Its top&#45;level `parentRunId`
-describes run lineage, so the adapter does not reinterpret it as delegation.
-Replay and reconnection fidelity are partial because the subscription has no
-mandatory persistent cursor. Retry fidelity remains unavailable. Custom events
-and arbitrary state deltas are ignored without an explicit host mapping.
+Run identity is exact; step and hierarchy fidelity are partial. A top-level
+`parentRunId` describes lineage and is not reinterpreted as delegation. Replay
+and reconnection fidelity are partial because subscriptions have no mandatory
+persistent cursor. Retry and connection event fidelity are unavailable. Custom
+events and arbitrary state deltas require an explicit host mapping.
 
 <span id="troubleshooting"></span>
 
 ## Troubleshooting
 
-Missing interaction updates usually trace to an agent that was bound before
-readiness or callbacks that omit stable IDs. Duplicate updates can come from
-multiple subscribers. Confirm one binding per agent, a stable scopeId, and
-documented callbacks before adding custom event inference.
+- **Repeated updates:** attach only one subscriber per agent with a stable
+  `scopeId`.
+- **Missing interactions:** check that callbacks contain stable interrupt IDs
+  and the binding was attached before the run began.
+- **Updates stop in a long session:** review `maxTrackedEntities`. The adapter
+  suppresses further dispatch after capacity is reached; use a new binding at a
+  real session boundary instead of inferring missing events.

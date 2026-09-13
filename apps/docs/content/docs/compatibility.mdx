@@ -1,8 +1,7 @@
 ---
 title: "Compatibility"
 description:
-  "Check the browser, React, AI SDK, assistant-ui, and AG-UI versions covered by
-  automated tests, plus the assistive-technology evidence still required."
+  "Check supported framework ranges, server behavior, and the limits of automated browser coverage."
 publicPath: "/docs/compatibility"
 section: "Reference"
 keywords:
@@ -19,183 +18,87 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Compatibility",
-  "See which browsers, React versions, and framework versions are covered by the current tests.",
-  "Reference",
-  "browser",
-  "SSR",
-  "React 18",
-  "React 19",
-  "peer dependency",
-  "compatibility",
-  "runtime",
-  "Browser and server support",
-  "Core works without a browser. DOM stays inactive when document is unavailable. React renders stable hidden regions on the server and connects them in the browser. Adapter imports do not require browser globals.",
-  "browser-matrix",
-  "Automated browser tests have limits",
-  "Browser tests run in Chromium, Firefox, and WebKit. WebKit provides useful coverage, but it cannot replace Safari testing with a real screen reader. Record those hands-on tests separately.",
-  "Engine",
-  "Automated tests cover",
-  "Test by hand",
-  "Chromium",
-  "Keyboard, focus, structure, DOM delivery",
-  "Named browser and AT workflow",
-  "Firefox",
-  "Keyboard, focus, structure, DOM delivery",
-  "Named browser and AT workflow",
-  "WebKit",
-  "Keyboard, focus, structure, DOM delivery",
-  "Safari and platform AT workflow",
-  "matrix",
-  "Tested integration matrix",
-  "Declared ranges are deliberately narrow and must be retested before publication.",
-  "Integration",
-  "Peer range",
-  "Tested version",
-  "React",
-  "^18.2.0 or ^19.0.0",
-  "19.2.8",
-  "AI SDK",
-  "ai >=7.0.0 <7.1.0 / @ai-sdk/react >=4.0.0 <4.1.0",
-  "7.0.77 / 4.0.80",
-  "assistant-ui",
-  "@assistant-ui/core >=0.3.13 <0.4.0",
-  "0.3.15",
-  "AG-UI",
-  "@ag-ui/client >=0.0.59 <0.0.60",
-  "0.0.59",
-  "development-tools",
-  "Development package compatibility",
-  "The headless devtools store and test recorder work with the public core contracts. The optional browser overlay has React peers. Testing helpers accept Vitest structurally and do not add a test-runner peer to core.",
-  "Package entry",
-  "Peer range",
-  "Use",
-  "@generative-a11y/devtools",
-  "Core workspace dependency",
-  "Headless bounded diagnostic store",
-  "@generative-a11y/devtools/overlay",
-  "React and React DOM ^19.0.0",
-  "Browser trace explorer",
-  "@generative-a11y/core/testing",
-  "No runtime peer; pass your Vitest expect for matchers",
-  "Record, replay, and semantic assertions",
-].join("\n");
-
-<span id="runtime"></span>
-
-## Browser and server support
-
-Core works without a browser. DOM stays inactive when document is unavailable.
-React renders stable hidden regions on the server and connects them in the
-browser. Adapter imports do not require browser globals.
-
-<span id="browser&#45;matrix"></span>
-
-## Automated browser tests have limits
-
-Browser tests run in Chromium, Firefox, and WebKit. WebKit provides useful
-coverage, but it cannot replace Safari testing with a real screen reader. Record
-those hands&#45;on tests separately.
-
-<table aria-label="Automated browser tests have limits table">
-  <thead>
-    <tr>
-      <th>Engine</th>
-      <th>Automated tests cover</th>
-      <th>Test by hand</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Chromium</td>
-      <td>Keyboard, focus, structure, DOM delivery</td>
-      <td>Named browser and AT workflow</td>
-    </tr>
-    <tr>
-      <td>Firefox</td>
-      <td>Keyboard, focus, structure, DOM delivery</td>
-      <td>Named browser and AT workflow</td>
-    </tr>
-    <tr>
-      <td>WebKit</td>
-      <td>Keyboard, focus, structure, DOM delivery</td>
-      <td>Safari and platform AT workflow</td>
-    </tr>
-  </tbody>
-</table>
+  "Compatibility: declared peer ranges differ from pinned checked versions. All published packages require Node.js 22+.",
+  "React and React DOM ^18.2.0 or ^19.0.0 checked 19.2.8; AI SDK ai >=7.0.0 <7.1.0 and @ai-sdk/react >=4.0.0 <4.1.0 checked 7.0.77 and 4.0.80.",
+  "assistant-ui core >=0.3.13 <0.4.0 checked 0.3.15; AG-UI client >=0.0.59 <0.0.60 checked 0.0.59.",
+  "CopilotKit host version not pinned or typechecked; validate v2 hook and AG-UI dependency in host app.",
+  "Core works without browser globals. DOM inactive without document. React renders stable hidden regions for hydration; adapter imports require no browser globals.",
+  "Chromium Firefox WebKit automate keyboard focus structure and DOM delivery; WebKit cannot replace Safari testing with a real screen reader.",
+  "Devtools package declares React and React DOM ^19.0.0 peers including headless entry; overlay renders browser trace explorer.",
+  "Core testing has no test-runner peer and accepts Vitest expect structurally. Browser and deterministic tests do not establish speech."
+] .join("\n");
 
 <span id="matrix"></span>
 
 ## Tested integration matrix
 
-Declared ranges are deliberately narrow and must be retested before publication.
+Use these ranges when choosing an adapter for an existing app. A checked version
+is the repository's pinned dependency, not a claim that every version in its
+range has been tested.
 
-<table aria-label="Tested integration matrix table">
-  <thead>
-    <tr>
-      <th>Integration</th>
-      <th>Peer range</th>
-      <th>Tested version</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>React</td>
-      <td>^18.2.0 or ^19.0.0</td>
-      <td>19.2.8</td>
-    </tr>
-    <tr>
-      <td>AI SDK</td>
-      <td>
-        ai &#62;&#61;7.0.0 &lt;7.1.0 / @ai&#45;sdk/react &#62;&#61;4.0.0
-        &lt;4.1.0
-      </td>
-      <td>7.0.77 / 4.0.80</td>
-    </tr>
-    <tr>
-      <td>assistant&#45;ui</td>
-      <td>@assistant&#45;ui/core &#62;&#61;0.3.13 &lt;0.4.0</td>
-      <td>0.3.15</td>
-    </tr>
-    <tr>
-      <td>AG&#45;UI</td>
-      <td>@ag&#45;ui/client &#62;&#61;0.0.59 &lt;0.0.60</td>
-      <td>0.0.59</td>
-    </tr>
-  </tbody>
-</table>
+| Integration | Declared peer range | Checked version |
+| --- | --- | --- |
+| React / React DOM | `^18.2.0` or `^19.0.0` | 19.2.8 |
+| AI SDK | `ai >=7.0.0 <7.1.0` / `@ai-sdk/react >=4.0.0 <4.1.0` | 7.0.77 / 4.0.80 |
+| assistant-ui | `@assistant-ui/core >=0.3.13 <0.4.0` | 0.3.15 |
+| AG-UI | `@ag-ui/client >=0.0.59 <0.0.60` | 0.0.59 |
+
+All published packages require Node.js 22+. Host frameworks can have additional
+peers; the [AI SDK guide](/docs/integrations/ai-sdk#compatibility) lists its Zod
+requirements. Install instructions in each [integration guide](/docs/integrations)
+assume an existing working host app.
+
+[CopilotKit](/docs/integrations/copilotkit) reuses the AG-UI adapter through its
+public v2 hook. This repository does not pin or typecheck a CopilotKit host
+version; validate its hook and resolved AG-UI dependency in your app. Retest
+these ranges when changing framework dependencies.
+
+<span id="runtime"></span>
+
+## Browser and server support
+
+| Layer | Server behavior | Browser behavior |
+| --- | --- | --- |
+| Core | Runs without browser globals | Schedules normalized events |
+| DOM | Stays inactive when `document` is unavailable | Delivers live-region updates |
+| React | Renders stable hidden regions | Connects runtime delivery after hydration |
+| Adapters | Imports do not require browser globals | Observe the host state or callbacks you supply |
+
+Keep providers and browser effects within a client boundary in React Server
+Components applications. Framework-neutral integrations should attach browser
+delivery when their surface mounts and dispose it when that surface unmounts.
+
+<span id="browser&#45;matrix"></span>
+
+## Automated browser tests have limits
+
+| Engine | Automated coverage | Required manual evidence |
+| --- | --- | --- |
+| Chromium | Keyboard, focus, structure, DOM delivery | Named browser and screen-reader workflow |
+| Firefox | Keyboard, focus, structure, DOM delivery | Named browser and screen-reader workflow |
+| WebKit | Keyboard, focus, structure, DOM delivery | Safari and platform screen-reader workflow |
+
+<Callout title="Browser output is not speech evidence">
+
+WebKit provides useful coverage, but it cannot replace Safari testing with a real
+screen reader. Browser transcripts record DOM delivery and deterministic tests
+record library behavior; neither proves what assistive technology speaks.
+Record hands-on browser and screen-reader results separately.
+
+</Callout>
 
 <span id="development&#45;tools"></span>
 
 ## Development package compatibility
 
-The headless devtools store and test recorder work with the public core
-contracts. The optional browser overlay has React peers. Testing helpers accept
-Vitest structurally and do not add a test&#45;runner peer to core.
+| Entry | Dependency requirement | Purpose |
+| --- | --- | --- |
+| `@generative-a11y/devtools` | Core dependency; package declares React / React DOM `^19.0.0` peers | Headless bounded diagnostic store |
+| `@generative-a11y/devtools/overlay` | React / React DOM `^19.0.0` | Browser trace explorer |
+| `@generative-a11y/core/testing` | No test-runner peer; pass your Vitest `expect` for matchers | Record, replay, and semantic assertions |
 
-<table aria-label="Development package compatibility table">
-  <thead>
-    <tr>
-      <th>Package entry</th>
-      <th>Peer range</th>
-      <th>Use</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>@generative&#45;a11y/devtools</td>
-      <td>Core workspace dependency</td>
-      <td>Headless bounded diagnostic store</td>
-    </tr>
-    <tr>
-      <td>@generative&#45;a11y/devtools/overlay</td>
-      <td>React and React DOM ^19.0.0</td>
-      <td>Browser trace explorer</td>
-    </tr>
-    <tr>
-      <td>@generative&#45;a11y/core/testing</td>
-      <td>No runtime peer; pass your Vitest expect for matchers</td>
-      <td>Record, replay, and semantic assertions</td>
-    </tr>
-  </tbody>
-</table>
+The headless store uses public core contracts. React peers are declared at the
+package level, even when importing only the headless entry. The overlay's React
+requirement is narrower than the React accessibility provider's range. Testing
+helpers accept Vitest structurally and do not add a test-runner dependency to
+core.

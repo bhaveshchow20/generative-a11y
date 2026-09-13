@@ -19,24 +19,10 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Tool lifecycle",
-  "Tell users when an app action starts, makes progress, finishes, or fails without exposing private arguments or results.",
-  "Lifecycle",
-  "tools",
-  "progress",
-  "tool.failed",
-  "tool.completed",
-  "events",
   "Report the start, progress, and result",
-  "Tool arguments can arrive before the tool runs. Send tool.started when execution begins. Send tool.progress only when your app has a progress value from 0 to 1. Finish with one tool.completed or tool.failed event.",
-  "typescript",
-  'runtime.dispatch({ type: "tool.progress", toolId: "report-1", label: "Prepare report", progress: 0.5, message: "Halfway complete", });',
-  "Keep one tool ID",
-  "toolId keeps every progress update connected to the same app action.",
-  "Provide localized copy",
-  "label and message are short user-facing text, not raw tool arguments or backend output.",
-  "Report progress",
-  "progress uses a value from 0 to 1. Your runtime announces only useful changes.",
-  "safe-errors",
+  "Tool arguments can arrive before execution. Send tool.started only when the operation begins, meaningful tool.progress milestones while it runs, and one tool.completed or tool.failed event when it ends. Numeric progress is optional; when present, use a value from 0 to 1.",
+  "Use the runtime already connected to your application:",
+  "Keep toolId stable for the operation. Labels and progress messages are user-facing copy; supply short, translated text. For repeated executions, use instance IDs to keep late output attached to its original attempt.",
   "Keep backend data out of announcements",
   "Use error for debugging; generative-a11y never announces it. Set announcement only when your app has a short, translated message that is safe to share. Raw tool results also stay private.",
 ].join("\n");
@@ -45,12 +31,19 @@ export const searchableText = [
 
 ## Report the start, progress, and result
 
-Tool arguments can arrive before the tool runs. Send tool.started when execution
-begins. Send tool.progress only when your app has a progress value from 0 to 1.
-Finish with one tool.completed or tool.failed event.
+Tool arguments can arrive before execution. Send `tool.started` only when the
+operation begins, meaningful `tool.progress` milestones while it runs, and one
+`tool.completed` or `tool.failed` event when it ends. Numeric `progress` is
+optional; when present, use a value from 0 to 1.
 
-{/* prettier-ignore */}
-```typescript
+Use the runtime already connected to your application:
+
+```typescript title="Report a tool lifecycle"
+runtime.dispatch({
+  type: "tool.started",
+  toolId: "report-1",
+  label: "Prepare report",
+});
 runtime.dispatch({
   type: "tool.progress",
   toolId: "report-1",
@@ -58,40 +51,24 @@ runtime.dispatch({
   progress: 0.5,
   message: "Halfway complete",
 });
+runtime.dispatch({
+  type: "tool.completed",
+  toolId: "report-1",
+  label: "Prepare report",
+});
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Keep one tool ID
-
-toolId keeps every progress update connected to the same app action.
-
-</Step>
-
-<Step>
-
-### Provide localized copy
-
-label and message are short user&#45;facing text, not raw tool arguments or
-backend output.
-
-</Step>
-
-<Step>
-
-### Report progress
-
-progress uses a value from 0 to 1. Your runtime announces only useful changes.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="keep-one-tool-id"></span>
+<span id="provide-localized-copy"></span>
+<span id="report-progress"></span>
 
 <span id="safe&#45;errors"></span>
+
+Keep `toolId` stable for the operation. Labels and progress messages are
+user-facing copy; supply short, translated text. For repeated executions, use
+[instance IDs](/docs/lifecycle/identity) to keep late output attached to its
+original attempt.
 
 ## Keep backend data out of announcements
 

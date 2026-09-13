@@ -20,46 +20,24 @@ export const sourceMetadata = {
 export const searchableText = [
   "Focus helpers",
   "Helpers for capturing, moving, and restoring focus in dialogs and other app interactions.",
-  "DOM",
-  "captureFocus",
-  "focusElement",
-  "restoreFocus",
-  "FocusResult",
-  "workflow",
   "Capture and restore application focus",
   "Call these helpers from dialogs and other interactions that your app controls. Do not move focus for streaming text or routine status updates.",
-  "typescript",
-  "const capture = captureFocus(document); const opened = focusElement(dialogHeading, { preventScroll: true }); // After the application-owned interaction closes: const restored = restoreFocus(capture, { onlyIfFocusWithin: dialog, });",
-  "Capture current focus",
-  "captureFocus records the active element without moving focus.",
-  "Focus the dialog",
-  "Your app chooses the correct element inside the dialog.",
-  "Restore when appropriate",
-  "onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.",
-  "captureFocus(document)",
-  "FocusCapture",
-  "Function",
-  "global document",
-  "Captures the deep active element from the supplied document.",
-  "focusElement(element, options)",
+  'import { captureFocus, focusElement, restoreFocus } from "@generative-a11y/dom";',
+  "const capture = captureFocus(document); const opened = focusElement(dialogHeading, { preventScroll: true });",
+  "// After the application-owned interaction closes: const restored = restoreFocus(capture, { onlyIfFocusWithin: dialog, });",
+  "captureFocus records the active element without moving it. Choose a focusable dialog target; onlyIfFocusWithin preserves the user’s new focus if they have moved outside the dialog before it closes.",
+  '"captureFocus(document)" "focusElement(element, options)" "options.preventScroll" "options.onlyIfFocusWithin" "restoreFocus(capture, options)" FocusCapture global document',
+  "Function. Captures the deep active element from the supplied document.",
+  "FocusResult preventScroll: true",
+  "Function. Attempts focus and reports focused or a stable skipped reason.",
+  "boolean true Prevents scrolling when moving or restoring focus. Element undefined",
+  "Restoration guard. Skip restoration if current focus has left this element.",
   "FocusResult",
-  "Function",
-  "preventScroll: true",
-  "Attempts focus and reports focused or a stable skipped reason.",
-  "restoreFocus(capture, options)",
-  "FocusResult",
-  "Function",
-  "n/a",
-  "Restores only when the captured target remains eligible and optional guards still match.",
-  "results",
+  "Function. Restores only when the captured target remains eligible and optional guards still match.",
   "FocusResult",
   "Results are explicit so applications can test focus workflows without guessing.",
-  "Status",
-  "Meaning",
-  "Application response",
-  "focused",
-  "Target became active",
-  "Continue the workflow",
+  "Status Meaning Application response",
+  "focused Target became active Continue the workflow",
   "skipped",
   "A documented eligibility check, browser failure, or restoration guard prevented focus",
   "Preserve current focus and inspect reason",
@@ -73,7 +51,9 @@ Call these helpers from dialogs and other interactions that your app controls.
 Do not move focus for streaming text or routine status updates.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="Restore focus after a dialog"
+import { captureFocus, focusElement, restoreFocus } from "@generative-a11y/dom";
+
 const capture = captureFocus(document);
 const opened = focusElement(dialogHeading, { preventScroll: true });
 
@@ -83,35 +63,9 @@ const restored = restoreFocus(capture, {
 });
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Capture current focus
-
-captureFocus records the active element without moving focus.
-
-</Step>
-
-<Step>
-
-### Focus the dialog
-
-Your app chooses the correct element inside the dialog.
-
-</Step>
-
-<Step>
-
-### Restore when appropriate
-
-onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.
-
-</Step>
-
-</Steps>
+`captureFocus` records the active element without moving it. Choose a focusable
+dialog target; `onlyIfFocusWithin` preserves the user’s new focus if they have
+moved outside the dialog before it closes.
 
 <TypeTable
   type={{
@@ -134,6 +88,21 @@ onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.
         </>
       ),
     },
+    "options.preventScroll": {
+      type: <>boolean</>,
+      default: <>true</>,
+      description: <>Prevents scrolling when moving or restoring focus.</>,
+    },
+    "options.onlyIfFocusWithin": {
+      type: <>Element</>,
+      default: <>undefined</>,
+      description: (
+        <>
+          Restoration guard. Skip restoration if current focus has left this
+          element.
+        </>
+      ),
+    },
     "restoreFocus(capture, options)": {
       type: <>FocusResult</>,
       description: (
@@ -147,6 +116,14 @@ onlyIfFocusWithin leaves focus alone if the user moved outside the dialog.
 />
 
 <span id="results"></span>
+
+<span id="walkthrough"></span>
+
+<span id="capture-current-focus"></span>
+
+<span id="focus-the-dialog"></span>
+
+<span id="restore-when-appropriate"></span>
 
 ## FocusResult
 

@@ -20,33 +20,42 @@ export const sourceMetadata = {
 export const searchableText = [
   "@generative-a11y/assistant-ui",
   "Turn public assistant-ui ThreadRuntime state into response, tool, approval, and source events.",
-  "assistant-ui",
-  "assistant-ui",
-  "ThreadRuntime",
-  "adapterInfo",
-  "exports",
+  "Connect your runtime",
+  "Pass your existing thread and core runtime. The binding observes public state and callbacks; your app owns execution and browser delivery.",
+  'import { bindThread } from "@generative-a11y/assistant-ui";',
+  'const binding = bindThread({ runtime, scopeId: "support-thread", thread });',
+  "// Call binding.dispose() when the owning scope ends.",
+  "See bindThread /api/assistant-ui/bind-thread for options and the integration guide /docs/integrations/assistant-ui for setup and compatibility.",
   "Public exports",
   "assistant-ui integration uses only getState and subscribe from your ThreadRuntime.",
-  "Export",
-  "Kind",
-  "Purpose",
-  "bindThread",
-  "Function",
-  "Create one adapter subscription",
-  "adapterInfo",
-  "Frozen constant",
-  "List supported events and methods",
-  "BindThreadOptions",
-  "Interface",
-  "Options for the binding",
-  "ThreadBinding",
-  "Interface",
-  "Cleanup method for the binding",
-  "fidelity",
+  "Export Kind Purpose",
+  "bindThread Function Create one adapter subscription",
+  "adapterInfo Frozen constant List supported events and methods",
+  "BindThreadOptions Interface Options for the binding",
+  "ThreadBinding Interface Cleanup method for the binding",
   "Events the adapter can report",
   "Public thread state can report interruptions but not general retries or connection changes. Tool failures and sources depend on content parts from assistant-ui.",
   "Missing events are never guessed from rendered text, timing, or private runtime fields.",
+  "Localized announcements",
+  "See catalogs and adapter copy /docs/localized-announcements for the typed messages and copy options, language ownership, validation, construction lifetime, and replay requirements. Existing lifecycle evidence and timing remain unchanged.",
 ].join("\n");
+
+## Connect your runtime
+
+Pass your existing `thread` and core `runtime`. The binding observes public
+state and callbacks; your app owns execution and browser delivery.
+
+```ts title="thread-accessibility.ts"
+import { bindThread } from "@generative-a11y/assistant-ui";
+
+const binding = bindThread({ runtime, scopeId: "support-thread", thread });
+
+// Call binding.dispose() when the owning scope ends.
+```
+
+See [bindThread](/api/assistant-ui/bind-thread) for options and
+[the integration guide](/docs/integrations/assistant-ui) for setup and
+compatibility.
 
 <span id="exports"></span>
 
@@ -95,20 +104,15 @@ Public thread state can report interruptions but not general retries or
 connection changes. Tool failures and sources depend on content parts from
 assistant&#45;ui.
 
-<Callout title="Evidence and testing note">
-
 Missing events are never guessed from rendered text, timing, or private runtime
 fields.
-
-</Callout>
-
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`messages` and `copy` options, language ownership, validation,
-construction lifetime, and replay requirements. Existing lifecycle evidence
-and timing remain unchanged.
+`messages` and `copy` options, language ownership, validation, construction
+lifetime, and replay requirements. Existing lifecycle evidence and timing remain
+unchanged.
 
 import { ApiReference } from "@/components/api-reference";
 
