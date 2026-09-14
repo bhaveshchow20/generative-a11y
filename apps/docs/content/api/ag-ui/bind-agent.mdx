@@ -1,8 +1,6 @@
 ---
 title: "bindAgent"
-description:
-  "Connect one AG-UI agent through its public callbacks and send those events to
-  a core runtime supplied by your app."
+description: "Connect an AG-UI agent to your application runtime."
 publicPath: "/api/ag-ui/bind-agent"
 section: "AG-UI"
 keywords: ["bindAgent", "BindAgentOptions", "AgentBinding", "AgentSubscriber"]
@@ -19,80 +17,33 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "bindAgent",
-  "Connect one AG-UI agent through its public callbacks and send those events to a core runtime supplied by your app.",
-  "AG-UI",
-  "bindAgent",
-  "BindAgentOptions",
-  "AgentBinding",
-  "AgentSubscriber",
-  "signature",
   "Signature and import",
   "Create the binding after the agent is ready, then dispose it when the owning application scope ends.",
-  "typescript",
-  'import { bindAgent } from "@generative-a11y/ag-ui"; const binding = bindAgent({ runtime, scopeId: "research-agent", agent, maxTrackedEntities: 1_000, }); // Unsubscribes without disposing agent or runtime. binding.dispose();',
-  "Connect the agent",
-  "AgentBinding subscribes to documented callbacks without running your agent.",
-  "Separate agent IDs",
-  "scopeId prevents run, message, tool, and interrupt IDs from colliding across agents.",
-  "Limit stored IDs",
-  "After reaching its limit, the adapter ignores new IDs instead of removing active records.",
-  "Dispose the subscription",
-  "Your app still owns the runtime and agent after the binding is disposed.",
-  "runtime",
-  "Pick<Runtime, 'dispatch'>",
-  "Required",
-  "n/a",
-  "Receives adapter events while remaining under your app's control.",
-  "scopeId",
-  "string",
-  "Required",
-  "n/a",
+  'import { bindAgent } from "@generative-a11y/ag-ui";',
+  'const binding = bindAgent({ runtime, scopeId: "research-agent", agent, });',
+  "// Call when the owning scope ends; the agent and runtime remain yours. function disposeAgentBinding() { binding.dispose(); }",
+  "The binding subscribes without running the agent. Keep scopeId stable and unique across mounted agents; disposing the binding leaves both the agent and runtime under your app’s control.",
+  "Options",
+  "copy runtime scopeId agent maxTrackedEntities return AdapterCopy undefined",
+  "Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.",
+  "Pick<Runtime, 'dispatch'> Receives adapter events while remaining under your app's control. string",
   "Stable non-empty namespace for AG-UI run, message, tool, and interrupt IDs.",
-  "agent",
-  "AgentSource",
-  "Required",
-  "n/a",
-  "Borrowed object exposing documented subscribe behavior.",
-  "maxTrackedEntities",
-  "number",
-  "Optional",
-  "1000",
+  "AgentSource Borrowed object exposing documented subscribe behavior. number 1000",
   "Positive safe integer bounding tracked runs, responses, tools, and interactions.",
-  "return",
-  "AgentBinding",
-  "Return",
-  "n/a",
-  "An idempotent dispose method for the protocol subscription.",
-  "translation",
+  "AgentBinding Return. An idempotent dispose method for the protocol subscription.",
+  "After the tracking limit is exhausted, the binding suppresses subsequent lifecycle events, including events for known identities. Create a fresh binding at an intentional session boundary to resume observation.",
   "How AgentSubscriber callbacks map to events",
   "AG-UI integration reads public callbacks instead of rendered UI.",
-  "AG-UI callback family",
-  "generative-a11y event",
-  "Notes",
-  "Run start and finish",
-  "run lifecycle",
-  "Uses protocol run identity and preserves documented lineage",
-  "Subagent start and finish",
-  "delegated child run lifecycle",
-  "Preserves explicit parent run, tool, and message ownership",
-  "Step start and finish",
-  "partial step lifecycle",
-  "Keeps stepName as a label and omits stepId",
-  "Text message start, content, end",
-  "response lifecycle",
-  "Each update contains only new text",
-  "Tool call start, args, result, end",
-  "tool lifecycle",
-  "Arguments alone do not mean execution started",
-  "Run error or interruption",
-  "run and active descendant terminal events",
-  "Ends active response, tool, child run, and root run state",
-  "Interrupt and resume",
-  "interaction requested or resolved",
-  "Reports when the app needs user input",
-  "Run initialized",
-  "interaction resolution",
-  "Matches known active interrupt IDs",
+  "AG-UI callback family generative-a11y event Notes",
+  "Run start and finish run lifecycle Uses protocol run identity and preserves documented lineage",
+  "Subagent start and finish delegated child run lifecycle Preserves explicit parent run, tool, and message ownership",
+  "Step start and finish partial step lifecycle Keeps stepName as a label and omits stepId",
+  "Text message start, content, end response lifecycle Each update contains only new text",
+  "Tool call start, args, result, end tool lifecycle Arguments alone do not mean execution started",
+  "Run error or interruption run and active descendant terminal events Ends active response, tool, child run, and root run state",
+  "Interrupt and resume interaction requested or resolved Reports when the app needs user input",
+  "Run initialized interaction resolution Matches known active interrupt IDs",
+  "AG-UI 0.0.59 provides stable run and subagent IDs. Step callbacks provide stepName but no stable step ID, so step and hierarchy fidelity are partial. Replay and reconnection are partial, retry support is unavailable, and custom events require an explicit host mapping.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -103,66 +54,39 @@ Create the binding after the agent is ready, then dispose it when the owning
 application scope ends.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="agent-accessibility.ts"
 import { bindAgent } from "@generative-a11y/ag-ui";
 
 const binding = bindAgent({
   runtime,
   scopeId: "research-agent",
   agent,
-  maxTrackedEntities: 1_000,
 });
 
-// Unsubscribes without disposing agent or runtime.
-binding.dispose();
+// Call when the owning scope ends; the agent and runtime remain yours.
+function disposeAgentBinding() {
+  binding.dispose();
+}
 ```
 
-### Walkthrough
+The binding subscribes without running the agent. Keep `scopeId` stable and
+unique across mounted agents; disposing the binding leaves both the agent and
+runtime under your app’s control.
 
-<Steps>
-
-<Step>
-
-### Connect the agent
-
-AgentBinding subscribes to documented callbacks without running your agent.
-
-</Step>
-
-<Step>
-
-### Separate agent IDs
-
-scopeId prevents run, message, tool, and interrupt IDs from colliding across
-agents.
-
-</Step>
-
-<Step>
-
-### Limit stored IDs
-
-After reaching its limit, the adapter ignores new IDs instead of removing active
-records.
-
-</Step>
-
-<Step>
-
-### Dispose the subscription
-
-Your app still owns the runtime and agent after the binding is disposed.
-
-</Step>
-
-</Steps>
+## Options
 
 <TypeTable
   type={{
     copy: {
       type: <>AdapterCopy</>,
       default: <>undefined</>,
-      description: <>Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.</>,
+      description: (
+        <>
+          Optional complete localized copy from core/messages, validated and
+          captured before subscription or observation. It does not translate
+          response text.
+        </>
+      ),
     },
     runtime: {
       type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
@@ -205,7 +129,21 @@ Your app still owns the runtime and agent after the binding is disposed.
   }}
 />
 
+After the tracking limit is exhausted, the binding suppresses subsequent
+lifecycle events, including events for known identities. Create a fresh binding
+at an intentional session boundary to resume observation.
+
 <span id="translation"></span>
+
+<span id="walkthrough"></span>
+
+<span id="connect-the-agent"></span>
+
+<span id="separate-agent-ids"></span>
+
+<span id="limit-stored-ids"></span>
+
+<span id="dispose-the-subscription"></span>
 
 ## How AgentSubscriber callbacks map to events
 

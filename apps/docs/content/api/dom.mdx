@@ -1,8 +1,7 @@
 ---
 title: "@generative-a11y/dom"
 description:
-  "Browser announcements, runtime connections, safe focus helpers, attention
-  tracking, and validated preference storage."
+  "Deliver announcements and connect focus, attention, and preference helpers."
 publicPath: "/api/dom"
 section: "DOM"
 keywords: ["DOM", "ariaNotify", "live region", "focus", "preferences"]
@@ -19,42 +18,23 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "@generative-a11y/dom",
-  "Browser announcements, runtime connections, safe focus helpers, attention tracking, and validated preference storage.",
-  "DOM",
-  "DOM",
-  "ariaNotify",
-  "live region",
-  "focus",
-  "preferences",
-  "install",
+  "Deliver announcements and connect focus, attention, and preference helpers.",
   "Install browser delivery",
   "DOM uses core without depending on React or an AI framework.",
-  "shell",
   "npm install @generative-a11y/core @generative-a11y/dom",
-  "Prepare updates in core",
-  "Core prepares announcements without using browser globals.",
-  "Add updates to the page",
-  "DOM uses ariaNotify when available and falls back to hidden live regions.",
-  "exports",
+  "Core prepares announcement intents; DOM delivers them with ariaNotify when available and hidden live regions as a fallback. See bindRuntime /api/dom/bind-runtime for connection and cleanup.",
   "Public export map",
   "Choose direct announcing or bind an existing runtime.",
-  "Category",
-  "Exports",
-  "Reference",
-  "Delivery",
-  "createAnnouncer",
+  "Category Exports Reference",
+  "Delivery createAnnouncer",
   "/api/dom/create-announcer",
-  "Runtime binding",
-  "bindRuntime",
+  "Runtime binding bindRuntime",
   "/api/dom/bind-runtime",
-  "Focus",
-  "captureFocus, focusElement, restoreFocus",
+  "Focus captureFocus, focusElement, restoreFocus",
   "/api/dom/focus",
-  "Attention",
-  "createAttentionStore",
+  "Attention createAttentionStore",
   "/api/dom/attention",
-  "Preferences",
-  "createPreferenceStore and mapping helpers",
+  "Preferences createPreferenceStore and mapping helpers",
   "/api/dom/preferences",
 ].join("\n");
 
@@ -65,33 +45,21 @@ export const searchableText = [
 DOM uses core without depending on React or an AI framework.
 
 {/* prettier-ignore */}
-```shell
+```shell title="Terminal"
 npm install @generative-a11y/core @generative-a11y/dom
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Prepare updates in core
-
-Core prepares announcements without using browser globals.
-
-</Step>
-
-<Step>
-
-### Add updates to the page
-
-DOM uses ariaNotify when available and falls back to hidden live regions.
-
-</Step>
-
-</Steps>
+Core prepares announcement intents; DOM delivers them with `ariaNotify` when
+available and hidden live regions as a fallback. See
+[bindRuntime](/api/dom/bind-runtime) for connection and cleanup.
 
 <span id="exports"></span>
+
+<span id="walkthrough"></span>
+
+<span id="prepare-updates-in-core"></span>
+
+<span id="add-updates-to-the-page"></span>
 
 ## Public export map
 
@@ -109,27 +77,37 @@ Choose direct announcing or bind an existing runtime.
     <tr>
       <td>Delivery</td>
       <td>createAnnouncer</td>
-      <td><a href="/api/dom/create-announcer">/api/dom/create-announcer</a></td>
+      <td>
+        <a href="/api/dom/create-announcer">/api/dom/create-announcer</a>
+      </td>
     </tr>
     <tr>
       <td>Runtime binding</td>
       <td>bindRuntime</td>
-      <td><a href="/api/dom/bind-runtime">/api/dom/bind-runtime</a></td>
+      <td>
+        <a href="/api/dom/bind-runtime">/api/dom/bind-runtime</a>
+      </td>
     </tr>
     <tr>
       <td>Focus</td>
       <td>captureFocus, focusElement, restoreFocus</td>
-      <td><a href="/api/dom/focus">/api/dom/focus</a></td>
+      <td>
+        <a href="/api/dom/focus">/api/dom/focus</a>
+      </td>
     </tr>
     <tr>
       <td>Attention</td>
       <td>createAttentionStore</td>
-      <td><a href="/api/dom/attention">/api/dom/attention</a></td>
+      <td>
+        <a href="/api/dom/attention">/api/dom/attention</a>
+      </td>
     </tr>
     <tr>
       <td>Preferences</td>
       <td>createPreferenceStore and mapping helpers</td>
-      <td><a href="/api/dom/preferences">/api/dom/preferences</a></td>
+      <td>
+        <a href="/api/dom/preferences">/api/dom/preferences</a>
+      </td>
     </tr>
   </tbody>
 </table>

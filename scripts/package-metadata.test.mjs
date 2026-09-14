@@ -33,7 +33,9 @@ describe("published package discoverability metadata", () => {
       "https://generativea11y.com/examples/lifecycle-lab",
     );
     expect(introduction).toContain("https://www.npmjs.com/org/generative-a11y");
-    expect(introduction).toContain("npm install @generative-a11y/core");
+    expect(introduction).toContain(
+      "npm install @generative-a11y/react @generative-a11y/ai-sdk",
+    );
   });
 
   it("describes each package independently for AI accessibility searches", () => {

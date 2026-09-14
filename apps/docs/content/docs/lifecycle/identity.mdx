@@ -27,38 +27,10 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Keep updates connected with stable IDs",
-  "Use stable IDs to keep every update connected to the correct run, step, response, tool, interaction, or approval.",
-  "Lifecycle",
-  "identity",
-  "responseId",
-  "responseInstanceId",
-  "runId",
-  "stepId",
-  "toolId",
-  "scopeId",
-  "message",
-  "entities",
   "Use a stable ID for each piece of work",
-  "responseId identifies an answer, and responseInstanceId separates its retry attempts. toolId identifies a tool call, and toolInstanceId separates repeated runs. interactionId and approvalId connect each request to its result.",
-  "Entity",
-  "Identity",
-  "Why it matters",
-  "Response",
-  "responseId",
-  "Keeps text and the final state together",
-  "Attempt",
-  "responseInstanceId",
-  "Ignores late text from an older retry",
-  "Tool",
-  "toolId + toolInstanceId",
-  "Separates repeated tool runs",
-  "Interaction",
-  "interactionId",
-  "Connects a request to its result",
-  "Adapter mount",
-  "scopeId",
-  "Prevents ID collisions across chats",
-  "never-labels",
+  "runId and stepId identify workflow entities, while their instance IDs separate attempts. responseId identifies an answer, toolId identifies a tool call, and interactionId or approvalId connects each request to its result.",
+  'For example, a regenerated answer keeps responseId: "report" while changing responseInstanceId from "attempt-1" to "attempt-2". Every later delta and terminal event carries "attempt-2". See stop and retry for the transition event.',
+  "Entity | Identity | Why it matters | | --- | --- | --- | | Run attempt | runId + runInstanceId | Separates workflow retries and delegated work | | Step attempt | stepId + stepInstanceId | Preserves concurrent siblings and rejects stale retry output | | Response | responseId | Keeps text and the final state together | | Attempt | responseInstanceId | Ignores late text from an older retry | | Tool | toolId + toolInstanceId | Separates repeated tool runs | | Interaction | interactionId | Connects a request to its result | | Adapter mount | scopeId | Prevents ID collisions across chats",
   "Labels are copy, not identity",
   "Do not use displayed text, labels, array positions, or render counts as IDs because they can change. Framework adapters keep stable IDs from your framework and stop accepting unknown IDs after reaching their safety limit.",
 ].join("\n");
@@ -67,56 +39,24 @@ export const searchableText = [
 
 ## Use a stable ID for each piece of work
 
-runId and stepId identify workflow entities, while their instance IDs separate
-attempts. responseId identifies an answer, toolId identifies a tool call, and
-interactionId or approvalId connects each request to its result.
+`runId` and `stepId` identify workflow entities, while their instance IDs
+separate attempts. `responseId` identifies an answer, `toolId` identifies a tool
+call, and `interactionId` or `approvalId` connects each request to its result.
 
-<table aria-label="Use a stable ID for each piece of work table">
-  <thead>
-    <tr>
-      <th>Entity</th>
-      <th>Identity</th>
-      <th>Why it matters</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Run attempt</td>
-      <td>runId &#43; runInstanceId</td>
-      <td>Separates workflow retries and delegated work</td>
-    </tr>
-    <tr>
-      <td>Step attempt</td>
-      <td>stepId &#43; stepInstanceId</td>
-      <td>Preserves concurrent siblings and rejects stale retry output</td>
-    </tr>
-    <tr>
-      <td>Response</td>
-      <td>responseId</td>
-      <td>Keeps text and the final state together</td>
-    </tr>
-    <tr>
-      <td>Attempt</td>
-      <td>responseInstanceId</td>
-      <td>Ignores late text from an older retry</td>
-    </tr>
-    <tr>
-      <td>Tool</td>
-      <td>toolId &#43; toolInstanceId</td>
-      <td>Separates repeated tool runs</td>
-    </tr>
-    <tr>
-      <td>Interaction</td>
-      <td>interactionId</td>
-      <td>Connects a request to its result</td>
-    </tr>
-    <tr>
-      <td>Adapter mount</td>
-      <td>scopeId</td>
-      <td>Prevents ID collisions across chats</td>
-    </tr>
-  </tbody>
-</table>
+For example, a regenerated answer keeps `responseId: "report"` while changing
+`responseInstanceId` from `"attempt-1"` to `"attempt-2"`. Every later delta and
+terminal event carries `"attempt-2"`. See
+[stop and retry](/docs/lifecycle/stop-retry) for the transition event.
+
+| Entity        | Identity                | Why it matters                                               |
+| ------------- | ----------------------- | ------------------------------------------------------------ |
+| Run attempt   | runId + runInstanceId   | Separates workflow retries and delegated work                |
+| Step attempt  | stepId + stepInstanceId | Preserves concurrent siblings and rejects stale retry output |
+| Response      | responseId              | Keeps text and the final state together                      |
+| Attempt       | responseInstanceId      | Ignores late text from an older retry                        |
+| Tool          | toolId + toolInstanceId | Separates repeated tool runs                                 |
+| Interaction   | interactionId           | Connects a request to its result                             |
+| Adapter mount | scopeId                 | Prevents ID collisions across chats                          |
 
 <span id="never&#45;labels"></span>
 

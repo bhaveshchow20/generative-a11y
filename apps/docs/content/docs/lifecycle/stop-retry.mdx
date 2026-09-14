@@ -20,28 +20,11 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Stop, abort, retry, and stale responses",
-  "Stop pending announcements when a response is cancelled, and ignore late updates from an older retry.",
-  "Lifecycle",
-  "stop",
-  "abort",
-  "retry",
-  "regeneration",
-  "stale response",
-  "replacement",
-  "interruption",
   "Stopping a response clears pending text",
-  "Send response.interrupted when your app stops a response. Core discards waiting text and prepares a short status update. Adapters do not treat a generic ready state as proof that someone stopped a response.",
-  "retry",
+  "Send response.interrupted when your app stops a response. Core discards waiting text and prepares a short status update. Adapters do not treat a generic ready state as proof that someone stopped a response. The host must also cancel its network request or model generation; dispatching an accessibility event does not abort that work or recall speech already handed to assistive technology.",
   "Tell the runtime when a retry starts",
-  "response.retrying cancels the current attempt. Keep one responseId for the logical answer and give each attempt a new responseInstanceId. Core ignores late updates from older attempts.",
-  "typescript",
-  'runtime.dispatch({ type: "response.retrying", responseId: "report", responseInstanceId: "attempt-1", nextResponseInstanceId: "attempt-2", attempt: 2, });',
-  "Identify the replaced attempt",
-  "responseInstanceId names the active attempt that is being cancelled.",
-  "Name the new attempt",
-  "nextResponseInstanceId becomes the accepted attempt for later text and final events.",
-  "Keep the response ID",
-  "responseId stays the same so the app can treat both attempts as one logical answer.",
+  "response.retrying cancels the current attempt’s pending announcements. Keep one responseId for the logical answer and give each attempt a new responseInstanceId. Core ignores late updates from older attempts.",
+  "For an active report response on attempt-1:",
 ].join("\n");
 
 <span id="interruption"></span>
@@ -50,18 +33,21 @@ export const searchableText = [
 
 Send response.interrupted when your app stops a response. Core discards waiting
 text and prepares a short status update. Adapters do not treat a generic ready
-state as proof that someone stopped a response.
+state as proof that someone stopped a response. The host must also cancel its
+network request or model generation; dispatching an accessibility event does not
+abort that work or recall speech already handed to assistive technology.
 
 <span id="retry"></span>
 
 ## Tell the runtime when a retry starts
 
-response.retrying cancels the current attempt. Keep one responseId for the
-logical answer and give each attempt a new responseInstanceId. Core ignores late
-updates from older attempts.
+`response.retrying` cancels the current attempt’s pending announcements. Keep
+one `responseId` for the logical answer and give each attempt a new
+`responseInstanceId`. Core ignores late updates from older attempts.
 
-{/* prettier-ignore */}
-```typescript
+For an active `report` response on `attempt-1`:
+
+```typescript title="Replace a response attempt"
 runtime.dispatch({
   type: "response.retrying",
   responseId: "report",
@@ -69,36 +55,20 @@ runtime.dispatch({
   nextResponseInstanceId: "attempt-2",
   attempt: 2,
 });
+runtime.dispatch({
+  type: "response.text.delta",
+  responseId: "report",
+  responseInstanceId: "attempt-2",
+  delta: "The updated report is ready. ",
+});
+runtime.dispatch({
+  type: "response.completed",
+  responseId: "report",
+  responseInstanceId: "attempt-2",
+});
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Identify the replaced attempt
-
-responseInstanceId names the active attempt that is being cancelled.
-
-</Step>
-
-<Step>
-
-### Name the new attempt
-
-nextResponseInstanceId becomes the accepted attempt for later text and final
-events.
-
-</Step>
-
-<Step>
-
-### Keep the response ID
-
-responseId stays the same so the app can treat both attempts as one logical
-answer.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="identify-the-replaced-attempt"></span>
+<span id="name-the-new-attempt"></span>
+<span id="keep-the-response-id"></span>

@@ -26,47 +26,17 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Deterministic replay testing",
-  "Record normalized lifecycle events, replay them through a ManualClock, and assert announcement or diagnostic transcripts with optional Vitest matchers.",
-  "Accessibility and testing",
-  "deterministic replay",
-  "Vitest",
-  "ManualClock",
-  "fixtures",
-  "accessibility testing",
-  "/api/core/testing",
-  "/docs/testing",
-  "install",
   "Use the testing entry from core",
   "Testing helpers ship with @generative-a11y/core. Import the testing entry only in test code, and install Vitest only when the project uses the semantic matchers.",
-  "shell",
-  "npm install @generative-a11y/core npm install --save-dev vitest",
-  "Keep fixtures local",
-  "Replay files contain normalized application events and should follow the repository rules for test data.",
-  "Use one testing entry",
-  "Import recording, replay, and matcher helpers from @generative-a11y/core/testing.",
-  "record-and-replay",
   "Record and replay normalized events",
   "recordRuntime captures only events sent through the dispatch target it returns. Fixtures use a versioned JSON envelope, relative timestamps, and array order for events with the same time.",
-  "typescript",
-  'import { ManualClock, createRuntime } from "@generative-a11y/core"; import { recordRuntime, replayEvents } from "@generative-a11y/core/testing"; const clock = new ManualClock(0); const runtime = createRuntime({ clock }); const recording = recordRuntime({ runtime, clock }); recording.runtime.dispatch({ type: "response.started", responseId: "report", }); const fixture = recording.fixture(); const replayClock = new ManualClock(fixture.startAt); const replayRuntime = createRuntime({ clock: replayClock }); replayEvents(replayRuntime, replayClock, fixture); replayClock.runUntilIdle(); runtime.dispose(); replayRuntime.dispose();',
-  "Wrap the dispatch target",
-  "Send the same normalized events used by the application through recording.runtime.",
-  "Create a fixture",
-  "fixture returns a frozen V1 envelope with non-negative relative times.",
-  "Replay with controlled time",
-  "replayEvents advances ManualClock to each event and dispatches it in recorded order.",
-  "Settle only when intended",
-  "Call runUntilIdle when the test needs final delayed output rather than intermediate state.",
-  "vitest-matchers",
+  "recording.runtime is the dispatch target that captures events; calls sent directly to the original runtime are not recorded. runUntilIdle() settles delayed output; omit it when asserting an intermediate state. Keep fixture data under your application’s test-data rules because normalized events can contain host content.",
+  "Run and step events use the same fixture envelope. Preserve their IDs, parent relationships, and instance IDs to test nested or concurrent work, retry boundaries, late stale events, and parent completion races deterministically.",
   "Use semantic Vitest matchers",
   "installVitestMatchers adds transcript, announcement, and diagnostic assertions. Expected objects use semantic partial fields, which keeps tests focused on the behavior under review.",
-  "toHaveAnnouncementTranscript checks ordered output",
-  "toHaveAnnounced checks that one matching intent exists",
-  "toHaveDiagnostic checks a matching runtime decision",
-  "evidence-limit",
+  "Use toHaveAnnouncementTranscript for ordered output and toHaveDiagnostic for a matching runtime decision. See the testing reference for matcher fields and fixture limits.",
   "Keep the evidence boundary clear",
   "Replay proves that normalized events produce repeatable runtime output under a controlled clock. It does not prove browser delivery or screen-reader speech. Keep browser fixtures and hands-on assistive-technology tests as separate release evidence.",
-  "Workflow fixtures preserve run and step IDs, parent relationships, attempts, and same-time ordering so nested, concurrent, retry, stale-event, and completion-race behavior remains deterministic.",
 ].join("\n");
 
 <span id="install"></span>
@@ -77,35 +47,14 @@ Testing helpers ship with @generative&#45;a11y/core. Import the testing entry
 only in test code, and install Vitest only when the project uses the semantic
 matchers.
 
-{/* prettier-ignore */}
-```shell
+```shell title="Terminal"
 npm install @generative-a11y/core
 npm install --save-dev vitest
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Keep fixtures local
-
-Replay files contain normalized application events and should follow the
-repository rules for test data.
-
-</Step>
-
-<Step>
-
-### Use one testing entry
-
-Import recording, replay, and matcher helpers from
-@generative&#45;a11y/core/testing.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="keep-fixtures-local"></span>
+<span id="use-one-testing-entry"></span>
 
 <span id="record&#45;and&#45;replay"></span>
 
@@ -115,8 +64,7 @@ recordRuntime captures only events sent through the dispatch target it returns.
 Fixtures use a versioned JSON envelope, relative timestamps, and array order for
 events with the same time.
 
-{/* prettier-ignore */}
-```typescript
+```typescript title="Record and replay a response"
 import { ManualClock, createRuntime } from "@generative-a11y/core";
 import { recordRuntime, replayEvents } from "@generative-a11y/core/testing";
 
@@ -125,6 +73,11 @@ const runtime = createRuntime({ clock });
 const recording = recordRuntime({ runtime, clock });
 recording.runtime.dispatch({
   type: "response.started",
+  responseId: "report",
+});
+clock.advanceBy(100);
+recording.runtime.dispatch({
+  type: "response.interrupted",
   responseId: "report",
 });
 const fixture = recording.fixture();
@@ -138,50 +91,21 @@ runtime.dispose();
 replayRuntime.dispose();
 ```
 
+`recording.runtime` is the dispatch target that captures events; calls sent
+directly to the original runtime are not recorded. `runUntilIdle()` settles
+delayed output; omit it when asserting an intermediate state. Keep fixture data
+under your application’s test-data rules because normalized events can contain
+host content.
+
 Run and step events use the same fixture envelope. Preserve their IDs, parent
 relationships, and instance IDs to test nested or concurrent work, retry
 boundaries, late stale events, and parent completion races deterministically.
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Wrap the dispatch target
-
-Send the same normalized events used by the application through
-recording.runtime.
-
-</Step>
-
-<Step>
-
-### Create a fixture
-
-fixture returns a frozen V1 envelope with non&#45;negative relative times.
-
-</Step>
-
-<Step>
-
-### Replay with controlled time
-
-replayEvents advances ManualClock to each event and dispatches it in recorded
-order.
-
-</Step>
-
-<Step>
-
-### Settle only when intended
-
-Call runUntilIdle when the test needs final delayed output rather than
-intermediate state.
-
-</Step>
-
-</Steps>
+<span id="walkthrough-1"></span>
+<span id="wrap-the-dispatch-target"></span>
+<span id="create-a-fixture"></span>
+<span id="replay-with-controlled-time"></span>
+<span id="settle-only-when-intended"></span>
 
 <span id="vitest&#45;matchers"></span>
 
@@ -191,9 +115,29 @@ installVitestMatchers adds transcript, announcement, and diagnostic assertions.
 Expected objects use semantic partial fields, which keeps tests focused on the
 behavior under review.
 
-- toHaveAnnouncementTranscript checks ordered output
-- toHaveAnnounced checks that one matching intent exists
-- toHaveDiagnostic checks a matching runtime decision
+```ts title="interruption.test.ts"
+import { expect, test } from "vitest";
+import { createRecorder } from "@generative-a11y/core";
+import { installVitestMatchers } from "@generative-a11y/core/testing";
+
+const accessibilityExpect = installVitestMatchers(expect);
+
+test("announces a confirmed stop", () => {
+  const recorder = createRecorder();
+  recorder.runtime.dispatch({ type: "response.started", responseId: "r1" });
+  recorder.runtime.dispatch({ type: "response.interrupted", responseId: "r1" });
+  recorder.clock.runUntilIdle();
+
+  accessibilityExpect(recorder).toHaveAnnounced({
+    sourceType: "response.interrupted",
+  });
+  recorder.runtime.dispose();
+});
+```
+
+Use `toHaveAnnouncementTranscript` for ordered output and `toHaveDiagnostic` for
+a matching runtime decision. See the [testing reference](/api/core/testing) for
+matcher fields and fixture limits.
 
 <span id="evidence&#45;limit"></span>
 

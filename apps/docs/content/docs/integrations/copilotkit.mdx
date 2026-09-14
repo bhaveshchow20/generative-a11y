@@ -1,8 +1,7 @@
 ---
 title: "CopilotKit v2"
 description:
-  "Connect CopilotKit v2 to generative-a11y through its public AG-UI agent
-  lifecycle, with stable IDs and explicit setup and cleanup boundaries."
+  "Connect your CopilotKit agent to paced screen-reader updates through the AG-UI adapter."
 publicPath: "/docs/integrations/copilotkit"
 section: "Integrations"
 keywords: ["CopilotKit", "useAgent", "AG-UI", "human in the loop"]
@@ -18,55 +17,85 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "CopilotKit v2",
-  "Connect CopilotKit v2 with the AG-UI adapter after the agent is ready.",
-  "Integrations",
-  "CopilotKit",
-  "useAgent",
-  "AG-UI",
-  "human in the loop",
-  "reuse-ag-ui",
-  "Use the AG-UI adapter",
-  "CopilotKit v2 exposes an AG-UI agent through useAgent. Bind only after isReady, use a stable scope, and dispose the subscription from the effect cleanup.",
-  "tsx",
-  "function CopilotKitAccessibility({ agentId, runtime }) { const bindingScopeId = useId(); const { agent, isReady } = useAgent({ agentId }); useEffect(() => { if (!isReady) return; const binding = bindAgent({ agent, runtime, scopeId: `copilotkit:${bindingScopeId}`, }); return () => binding.dispose(); }, [agent, isReady, runtime, bindingScopeId]); return null; }",
-  "Create a mount identity",
-  "useId supplies a stable namespace that survives normal rerenders.",
-  "Wait for readiness",
-  "Your effect subscribes only after CopilotKit exposes a ready AG-UI agent.",
-  "Reuse the protocol adapter",
-  "CopilotKit v2 exposes a public AG-UI agent, so the AG-UI adapter can connect it directly.",
-  "Return cleanup",
-  "React effect cleanup disposes exactly the subscription created by this mount.",
-  "no-duplicate-package",
-  "Why there is no CopilotKit package",
-  "A second adapter would duplicate the same work. If an app has client tools that AG-UI cannot identify, connect those tools directly instead of guessing from their names.",
-].join("\n");
+  "CopilotKit v2 accessibility through AG-UI: install @generative-a11y/react and @generative-a11y/ag-ui.",
+  "CopilotKitAccessibility uses useAgent from @copilotkit/react-core/v2, useRuntime, useId and an effect guarded by isReady.",
+  "Wrap existing chat inside the CopilotKit provider with A11yProvider and one bridge per agent.",
+  "A11yProvider owns runtime and browser delivery; effect cleanup disposes only the AG-UI binding.",
+  "Compatibility: Node.js 22+, React 18.2 or 19, AG-UI client >=0.0.59 <0.0.60 checked at 0.0.59. CopilotKit host version is not pinned or typechecked here.",
+  "No separate CopilotKit package. Client tools without protocol IDs need explicit host mapping.",
+  "Preserve visible UI and routine focus. DOM transcripts do not prove screen-reader speech."
+] .join("\n");
+
+## Install the accessibility layers
+
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
+npm install @generative-a11y/react @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/react @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/react @generative-a11y/ag-ui
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/react @generative-a11y/ag-ui
+```
+
+</Tab>
+
+</Tabs>
+
+Start with an existing CopilotKit app and its configured provider. The
+accessibility bridge uses the public `useAgent` hook from the v2 entry point;
+see [Compatibility](#compatibility) for validation limits.
 
 <span id="reuse&#45;ag&#45;ui"></span>
 
-## Use the AG&#45;UI adapter
+## Use the AG-UI adapter
 
-CopilotKit v2 exposes an AG&#45;UI agent through useAgent. Bind only after
-isReady, use a stable scope, and dispose the subscription from the effect
-cleanup.
+<span id="walkthrough"></span>
+<span id="create-a-mount-identity"></span>
+<span id="wait-for-readiness"></span>
+<span id="reuse-the-protocol-adapter"></span>
+<span id="return-cleanup"></span>
 
-{/* prettier-ignore */}
-```tsx
+<Steps>
+<Step>
+
+### Create the bridge
+
+Add this component beside your chat. It gets the accessibility runtime from
+`A11yProvider`, waits for the agent, and removes its subscription on unmount.
+
+```tsx title="components/copilotkit-accessibility.tsx"
+"use client";
+
 import { useEffect, useId } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { bindAgent } from "@generative-a11y/ag-ui";
-import type { Runtime } from "@generative-a11y/core";
+import { useRuntime } from "@generative-a11y/react";
 
-interface CopilotKitAccessibilityProps {
-  agentId: string;
-  runtime: Pick<Runtime, "dispatch">;
-}
-
-export function CopilotKitAccessibility({
-  agentId,
-  runtime,
-}: CopilotKitAccessibilityProps) {
+export function CopilotKitAccessibility({ agentId }: { agentId: string }) {
+  const runtime = useRuntime();
   const bindingScopeId = useId();
   const { agent, isReady } = useAgent({ agentId });
 
@@ -84,49 +113,78 @@ export function CopilotKitAccessibility({
 }
 ```
 
-### Walkthrough
-
-<Steps>
-
+</Step>
 <Step>
 
-### Create a mount identity
+### Wrap your existing chat
 
-useId supplies a stable namespace that survives normal rerenders.
+Render this wrapper inside your existing CopilotKit provider. Pass the configured
+agent ID and your existing chat as `children`.
+
+```tsx title="components/accessible-copilot-chat.tsx"
+"use client";
+
+import type { ReactNode } from "react";
+import { A11yProvider } from "@generative-a11y/react";
+import { CopilotKitAccessibility } from "./copilotkit-accessibility";
+
+export function AccessibleCopilotChat({
+  agentId,
+  children,
+}: {
+  agentId: string;
+  children: ReactNode;
+}) {
+  return (
+    <A11yProvider>
+      <CopilotKitAccessibility agentId={agentId} />
+      {children}
+    </A11yProvider>
+  );
+}
+```
 
 </Step>
-
-<Step>
-
-### Wait for readiness
-
-Your effect subscribes only after CopilotKit exposes a ready AG&#45;UI agent.
-
-</Step>
-
-<Step>
-
-### Reuse the protocol adapter
-
-CopilotKit v2 exposes a public AG&#45;UI agent, so the AG&#45;UI adapter can
-connect it directly.
-
-</Step>
-
-<Step>
-
-### Return cleanup
-
-React effect cleanup disposes exactly the subscription created by this mount.
-
-</Step>
-
 </Steps>
+
+<Callout title="One binding per agent">
+
+Keep the wrapper mounted across responses. `A11yProvider` owns the runtime and
+browser delivery; the bridge owns only its AG-UI subscription. If your chat
+already has an accessibility provider, add just the bridge beneath it.
+
+</Callout>
+
+The bridge renders nothing and preserves your existing visible UI. Routine
+streaming updates live regions without moving focus. Confirm speech with your
+supported browsers and screen readers; DOM transcripts alone cannot prove it.
+
+## Compatibility
+
+| Dependency | Requirement |
+| --- | --- |
+| Node.js | 22+ |
+| React / React DOM | 18.2+ within major 18, or 19.x |
+| `@ag-ui/client` | `>=0.0.59 <0.0.60`; adapter checked against 0.0.59 |
+| CopilotKit | Public v2 `useAgent` exposing `agent` and `isReady` |
+
+The repository checks the AG-UI adapter, but does not pin or typecheck a
+CopilotKit package version. Validate the v2 hook and compatible AG-UI dependency
+in your host app. See the [AG-UI lifecycle mapping](/docs/integrations/ag-ui#lifecycle-mapping)
+for confirmed events and partial step, hierarchy, and replay support.
 
 <span id="no&#45;duplicate&#45;package"></span>
 
 ## Why there is no CopilotKit package
 
-A second adapter would duplicate the same work. If an app has client tools that
-AG&#45;UI cannot identify, connect those tools directly instead of guessing from
-their names.
+CopilotKit exposes the agent API the AG-UI adapter already observes. Client tools
+that lack protocol IDs need an [explicit host mapping](/docs/integrations/custom);
+the adapter cannot identify approvals or tool completion from names alone.
+
+## Troubleshooting
+
+- **No updates:** verify the component is inside both providers, the agent ID
+  matches your configuration, and `isReady` becomes true before the run starts.
+- **Duplicate updates:** remove extra bridges or AG-UI bindings for the same agent.
+- **Dependency mismatch:** check the resolved AG-UI client against the supported
+  range before assuming the CopilotKit integration is compatible.

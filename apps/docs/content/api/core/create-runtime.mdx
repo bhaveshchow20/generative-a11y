@@ -1,12 +1,10 @@
 ---
 title: "createRuntime"
 description:
-  "Create the core runtime that turns app events into well-timed
-  AnnouncementIntent objects and useful debugging details."
+  "Create a runtime that turns application events into announcement intents."
 publicPath: "/api/core/create-runtime"
 section: "Core"
-keywords:
-  ["createRuntime", "Runtime", "dispatch", "dispose"]
+keywords: ["createRuntime", "Runtime", "dispatch", "dispose"]
 related: []
 order: 2
 ---
@@ -20,123 +18,57 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "createRuntime",
-  "Create the core runtime that turns app events into well-timed AnnouncementIntent objects and useful debugging details.",
-  "Core",
-  "createRuntime",
-  "Runtime",
-  "dispatch",
-  "dispose",
-  "signature",
+  "Create a runtime that turns application events into announcement intents.",
   "Signature and import",
   "Create one runtime for your app or for each conversation that needs separate settings. Connect delivery before sending events that can produce output.",
-  "typescript",
-  'import { createRuntime } from "@generative-a11y/core"; const runtime = createRuntime({ preset: "balanced", onAnnouncement(intent) { deliver(intent); }, });',
-  "Import the constructor",
-  "Import createRuntime from the package root.",
-  "Choose a preset",
-  "Presets supply default behavior. policy changes only the settings you provide.",
-  "Connect output",
-  "onAnnouncement registers the first listener. Browser apps usually use bindRuntime instead.",
-  "options",
-  "RuntimeOptions",
-  "Optional",
-  "{}",
+  'import { createRuntime } from "@generative-a11y/core";',
+  "const runtime = createRuntime({ onAnnouncement(intent) { console.log(intent.text); }, });",
+  "Browser apps usually connect output with bindRuntime /api/dom/bind-runtime. Use onAnnouncement when your app owns another delivery mechanism.",
+  "options return RuntimeOptions {}",
   "Construction options for policy, time, announcement delivery, delivery errors, and diagnostics.",
-  "return",
   "Runtime",
-  "Return",
-  "n/a",
-  "An owned runtime with synchronous dispatch, subscriptions, policy inspection, pending work inspection, and disposal.",
-  "options",
+  "Return. An owned runtime with synchronous dispatch, subscriptions, policy inspection, pending work inspection, and disposal.",
   "RuntimeOptions",
   "Options are read during construction. Nested policy overrides merge with the selected preset.",
-  "preset",
-  "PresetName",
-  "Optional",
-  '"balanced"',
+  "messages preset policy clock onAnnouncement onDeliveryError onDiagnostic Messages English catalog",
+  "Localized notice catalog from core/messages, validated and captured at construction. Response text is unchanged.",
+  'PresetName "balanced"',
   "Selects a complete baseline policy: minimal, balanced, verbose, or completion-only behavior.",
-  "policy",
-  "PolicyOverrides",
-  "Optional",
-  "{}",
+  "PolicyOverrides {}",
   "Overrides only intentional text, tool, status, pacing, channel, and capacity differences.",
-  "clock",
-  "Clock",
-  "Optional",
-  "systemClock",
-  "Injects time and timers. Use ManualClock for deterministic tests.",
-  "onAnnouncement",
-  "AnnouncementListener",
-  "Optional",
-  "undefined",
+  "Clock systemClock Injects time and timers. Use ManualClock for deterministic tests. AnnouncementListener undefined",
   "Registers the first intent listener. Dispatch that produces output requires at least one listener.",
-  "onDeliveryError",
-  "(error, intent) => void",
-  "Optional",
-  "undefined",
+  "(error, intent) => void undefined",
   "Observes listener failures while delivery continues to later listeners.",
-  "onDiagnostic",
-  "DiagnosticListener",
-  "Optional",
-  "undefined",
+  "DiagnosticListener undefined",
   "Observes queued, merged, suppressed, cancelled, announced, and delivery-error decisions.",
-  "runtime-methods",
   "Runtime methods",
   "Runtime methods are synchronous. Unsubscribe functions and dispose are idempotent.",
-  "dispatch(event)",
-  "boolean",
-  "Method",
-  "n/a",
-  "Processes one serializable RuntimeEvent synchronously. Returns false after disposal or when a nested dispatch transaction reaches capacity.",
-  "getPolicy()",
-  "ReadonlyAnnouncementPolicy",
-  "Method",
-  "n/a",
-  "Returns the resolved immutable policy used by this runtime.",
-  "pendingCount()",
-  "number",
-  "Method",
-  "n/a",
-  "Counts scheduler candidates and owned response flush timers. Use it for tests and diagnostics, not application rendering.",
-  "subscribeAnnouncements(listener)",
+  '"dispatch(event)" "getPolicy()" "pendingCount()" "subscribeAnnouncements(listener)" "subscribeDiagnostics(listener)" "subscribeDiagnosticEvents(listener)" "getDiagnosticSnapshot()" "dispose()" boolean',
+  "Method. Processes one serializable RuntimeEvent synchronously. Returns false after disposal or when a nested dispatch transaction reaches capacity.",
+  "ReadonlyAnnouncementPolicy Method. Returns the resolved immutable policy used by this runtime. number",
+  "Method. Counts scheduler candidates and owned response flush timers. Use it for tests and diagnostics, not application rendering.",
   "() => void",
-  "Method",
-  "n/a",
-  "Registers an AnnouncementIntent listener and returns an idempotent unsubscribe function.",
-  "subscribeDiagnostics(listener)",
+  "Method. Registers an AnnouncementIntent listener and returns an idempotent unsubscribe function.",
   "() => void",
-  "Method",
-  "n/a",
-  "Registers an AnnouncementDiagnostic listener and returns an idempotent unsubscribe function.",
-  "subscribeDiagnosticEvents(listener)",
+  "Method. Registers an AnnouncementDiagnostic listener and returns an idempotent unsubscribe function.",
   "() => void",
-  "Method",
-  "n/a",
-  "Observes a versioned ordered stream of source events and diagnostic decisions without changing scheduling.",
-  "getDiagnosticSnapshot()",
+  "Method. Observes a versioned ordered stream of source events and diagnostic decisions without changing scheduling.",
   "RuntimeDiagnosticSnapshotV1",
-  "Method",
-  "n/a",
-  "Returns immutable content-free response, tool, run, step, queue, and flush timing state for diagnostic consumers.",
-  "dispose()",
+  "Method. Returns immutable content-free response, tool, run, step, queue, and flush timing state for diagnostic consumers.",
   "void",
-  "Method",
-  "n/a",
-  "Cancels every owned timer, clears bounded state and queued work, then releases listeners. Repeated calls are safe.",
-  "complete-lifecycle",
+  "Method. Cancels every owned timer, clears bounded state and queued work, then releases listeners. Repeated calls are safe.",
   "Complete response lifecycle",
   "Each delta contains only new text. A completed event announces useful text that is still waiting, then closes the response.",
-  "typescript",
-  'const accepted = runtime.dispatch({ type: "response.started", responseId: "report-1", }); runtime.dispatch({ type: "response.text.delta", responseId: "report-1", delta: "The migration completed successfully.", }); runtime.dispatch({ type: "response.completed", responseId: "report-1", }); console.log({ accepted, pending: runtime.pendingCount() }); runtime.dispose();',
-  "Start the response",
-  "Send response.started before text or final events for this responseId.",
-  "Send new text",
-  "Each delta contains only the text added since the last event.",
-  "Finish the response",
-  "Completion announces useful text that is still waiting and cancels response timers.",
-  "Clean up",
-  "Call dispose when the app no longer needs the runtime.",
+  'const accepted = runtime.dispatch({ type: "response.started", responseId: "report-1", });',
+  'runtime.dispatch({ type: "response.text.delta", responseId: "report-1", delta: "The migration completed successfully.", });',
+  'runtime.dispatch({ type: "response.completed", responseId: "report-1", });',
+  "console.log({ accepted, pending: runtime.pendingCount() });",
+  "// Call when the owning surface is removed, after delivery is no longer needed. function disposeRuntime() { runtime.dispose(); }",
+  "Send response.started before deltas or terminal events for that response. Completion cancels response timers; call dispose() when the runtime owner ends.",
   "AnnouncementIntent describes an update prepared by core. Test with a real screen reader to confirm what it speaks.",
+  "Localized announcements",
+  "See catalogs and adapter copy /docs/localized-announcements for the typed messages and copy options, language ownership, validation, construction lifetime, and replay requirements. Existing lifecycle evidence and timing remain unchanged.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -147,47 +79,18 @@ Create one runtime for your app or for each conversation that needs separate
 settings. Connect delivery before sending events that can produce output.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="accessibility-runtime.ts"
 import { createRuntime } from "@generative-a11y/core";
 
 const runtime = createRuntime({
-  preset: "balanced",
   onAnnouncement(intent) {
-    deliver(intent);
+    console.log(intent.text);
   },
 });
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Import the constructor
-
-Import createRuntime from the package root.
-
-</Step>
-
-<Step>
-
-### Choose a preset
-
-Presets supply default behavior. policy changes only the settings you provide.
-
-</Step>
-
-<Step>
-
-### Connect output
-
-onAnnouncement registers the first listener. Browser apps usually use
-bindRuntime instead.
-
-</Step>
-
-</Steps>
+Browser apps usually connect output with [bindRuntime](/api/dom/bind-runtime).
+Use `onAnnouncement` when your app owns another delivery mechanism.
 
 <TypeTable
   type={{
@@ -216,6 +119,14 @@ bindRuntime instead.
 
 <span id="options"></span>
 
+<span id="walkthrough"></span>
+
+<span id="import-the-constructor"></span>
+
+<span id="choose-a-preset"></span>
+
+<span id="connect-output"></span>
+
 ## RuntimeOptions
 
 Options are read during construction. Nested policy overrides merge with the
@@ -223,6 +134,16 @@ selected preset.
 
 <TypeTable
   type={{
+    messages: {
+      type: <>Messages</>,
+      default: <>English catalog</>,
+      description: (
+        <>
+          Localized notice catalog from core/messages, validated and captured at
+          construction. Response text is unchanged.
+        </>
+      ),
+    },
     preset: {
       type: <>PresetName</>,
       default: <>"balanced"</>,
@@ -283,8 +204,6 @@ selected preset.
   }}
 />
 
-<span id="runtime&#45;methods"></span>
-
 ## Runtime methods
 
 Runtime methods are synchronous. Unsubscribe functions and dispose are
@@ -296,9 +215,9 @@ idempotent.
       type: <>boolean</>,
       description: (
         <>
-          Method. Processes one serializable RuntimeEvent synchronously.
-          Returns false after disposal or when a nested dispatch transaction
-          reaches capacity.
+          Method. Processes one serializable RuntimeEvent synchronously. Returns
+          false after disposal or when a nested dispatch transaction reaches
+          capacity.
         </>
       ),
     },
@@ -373,7 +292,7 @@ Each delta contains only new text. A completed event announces useful text that
 is still waiting, then closes the response.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="Response lifecycle"
 const accepted = runtime.dispatch({
   type: "response.started",
   responseId: "report-1",
@@ -391,47 +310,16 @@ runtime.dispatch({
 });
 
 console.log({ accepted, pending: runtime.pendingCount() });
-runtime.dispose();
+
+// Call when the owning surface is removed, after delivery is no longer needed.
+function disposeRuntime() {
+  runtime.dispose();
+}
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Start the response
-
-Send response.started before text or final events for this responseId.
-
-</Step>
-
-<Step>
-
-### Send new text
-
-Each delta contains only the text added since the last event.
-
-</Step>
-
-<Step>
-
-### Finish the response
-
-Completion announces useful text that is still waiting and cancels response
-timers.
-
-</Step>
-
-<Step>
-
-### Clean up
-
-Call dispose when the app no longer needs the runtime.
-
-</Step>
-
-</Steps>
+Send `response.started` before deltas or terminal events for that response.
+Completion cancels response timers; call `dispose()` when the runtime owner
+ends.
 
 <Callout title="Evidence and testing note">
 
@@ -440,10 +328,19 @@ reader to confirm what it speaks.
 
 </Callout>
 
+<span id="walkthrough-1"></span>
+
+<span id="start-the-response"></span>
+
+<span id="send-new-text"></span>
+
+<span id="finish-the-response"></span>
+
+<span id="clean-up"></span>
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`messages` and `copy` options, language ownership, validation,
-construction lifetime, and replay requirements. Existing lifecycle evidence
-and timing remain unchanged.
+`messages` and `copy` options, language ownership, validation, construction
+lifetime, and replay requirements. Existing lifecycle evidence and timing remain
+unchanged.

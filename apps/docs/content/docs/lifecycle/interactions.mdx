@@ -26,17 +26,10 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Interactions and approvals",
-  "Announce approvals, confirmations, and requests for input when your app can confirm that they opened or closed.",
-  "Lifecycle",
-  "interaction",
-  "approval",
-  "confirmation",
-  "input required",
-  "human in the loop",
-  "general-events",
   "Prefer the general interaction model",
   "Use interaction.requested and interaction.resolved for confirmations and other requests for input. Use approval events when the framework provides a specific approval state.",
-  "focus",
+  "Dispatch through the runtime already connected to your application:",
+  "Keep the request ID through resolution. A rendered button, elapsed time, or closed panel is insufficient evidence of approval. The host performs the authorized action; these events only describe its lifecycle.",
   "Announcements do not move focus",
   "generative-a11y can announce when your app needs input. Your app still opens the dialog, manages its controls, and restores focus when it closes.",
 ].join("\n");
@@ -45,9 +38,30 @@ export const searchableText = [
 
 ## Prefer the general interaction model
 
-Use interaction.requested and interaction.resolved for confirmations and other
-requests for input. Use approval events when the framework provides a specific
-approval state.
+Use `interaction.requested` and `interaction.resolved` for confirmations and
+other requests for input. Use approval events when the framework provides a
+specific approval state.
+
+Dispatch through the runtime already connected to your application:
+
+```ts title="Announce a confirmed approval decision"
+runtime.dispatch({
+  type: "approval.requested",
+  approvalId: "publish-report",
+  label: "Approve publishing the report",
+});
+
+// Dispatch only after the application confirms the decision.
+runtime.dispatch({
+  type: "approval.resolved",
+  approvalId: "publish-report",
+  outcome: "approved",
+});
+```
+
+Keep the request ID through resolution. A rendered button, elapsed time, or
+closed panel is insufficient evidence of approval. The host performs the
+authorized action; these events only describe its lifecycle.
 
 <span id="focus"></span>
 
