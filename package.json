@@ -57,7 +57,7 @@
   "devDependencies": {
     "@ag-ui/client": "0.0.59",
     "@ag-ui/core": "0.0.59",
-    "@ai-sdk/react": "4.0.96",
+    "@ai-sdk/react": "4.0.100",
     "@assistant-ui/core": "0.3.17",
     "@assistant-ui/react": "0.15.18",
     "@axe-core/playwright": "4.13.0",
@@ -79,7 +79,7 @@
     "@typescript-eslint/eslint-plugin": "8.69.0",
     "@typescript-eslint/parser": "8.69.0",
     "@vitest/coverage-v8": "5.0.0",
-    "ai": "7.0.93",
+    "ai": "7.0.97",
     "eslint": "10.10.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "jsdom": "30.0.1",
