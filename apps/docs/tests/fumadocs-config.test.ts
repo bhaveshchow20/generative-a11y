@@ -18,9 +18,9 @@ describe("Fumadocs compatibility configuration", () => {
     };
 
     expect(declaredPackages).toMatchObject({
-      "fumadocs-core": "16.15.4",
+      "fumadocs-core": "16.15.9",
       "fumadocs-mdx": "15.4.0",
-      "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.4",
+      "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.9",
     });
   });
 
