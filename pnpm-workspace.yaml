@@ -7,3 +7,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+
+# React 0.15.18 uses assistant-cloud 0.1; core 0.3.18 requires cloud 0.2.
+overrides:
+  "@assistant-ui/react@0.15.18>@assistant-ui/core": "0.3.17"
