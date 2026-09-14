@@ -1,8 +1,6 @@
 ---
 title: "@generative-a11y/ag-ui"
-description:
-  "Turn documented AG-UI AgentSubscriber callbacks into hierarchical run,
-  partial step, response, tool, and interaction events."
+description: "Turn public AG-UI callbacks into runtime events."
 publicPath: "/api/ag-ui"
 section: "AG-UI"
 keywords: ["AG-UI", "AgentSubscriber", "adapterInfo"]
@@ -19,34 +17,41 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "@generative-a11y/ag-ui",
-  "Turn documented AG-UI AgentSubscriber callbacks into hierarchical run, partial step, response, tool, and interaction events.",
-  "AG-UI",
-  "AG-UI",
-  "AgentSubscriber",
-  "adapterInfo",
-  "exports",
+  "Connect your runtime",
+  "Pass your existing agent and core runtime. The binding observes public state and callbacks; your app owns execution and browser delivery.",
+  'import { bindAgent } from "@generative-a11y/ag-ui";',
+  'const binding = bindAgent({ runtime, scopeId: "research-agent", agent });',
+  "// Call binding.dispose() when the owning scope ends.",
+  "See bindAgent /api/ag-ui/bind-agent for options and the integration guide /docs/integrations/ag-ui for setup and compatibility.",
   "Public exports",
   "AG-UI integration subscribes through agent.subscribe(AgentSubscriber).",
-  "Export",
-  "Kind",
-  "Purpose",
-  "bindAgent",
-  "Function",
-  "Create one protocol subscription",
-  "adapterInfo",
-  "Frozen constant",
-  "List supported events and limits",
-  "BindAgentOptions",
-  "Interface",
-  "Options for the binding",
-  "AgentBinding",
-  "Interface",
-  "Cleanup method for the binding",
-  "fidelity",
+  "Export Kind Purpose",
+  "bindAgent Function Create one protocol subscription",
+  "adapterInfo Frozen constant List supported events and limits",
+  "BindAgentOptions Interface Options for the binding",
+  "AgentBinding Interface Cleanup method for the binding",
   "Events the adapter can report",
-  "AG-UI 0.0.59 reports exact run and delegated subagent identity. Step events expose labels but no stable IDs, making step and hierarchy support partial. Replay and reconnection are partial; retries remain unavailable.",
+  "AG-UI 0.0.59 reports exact run and delegated subagent identity. Step events expose labels but no stable IDs, making step and hierarchy support partial. Replay and reconnection are partial because there is no mandatory persistent cursor; retry support remains unavailable.",
   "AG-UI integration never uses private observables or guesses events missing from the protocol.",
+  "Localized announcements",
+  "See catalogs and adapter copy /docs/localized-announcements for the typed messages and copy options, language ownership, validation, construction lifetime, and replay requirements. Existing lifecycle evidence and timing remain unchanged.",
 ].join("\n");
+
+## Connect your runtime
+
+Pass your existing `agent` and core `runtime`. The binding observes public state
+and callbacks; your app owns execution and browser delivery.
+
+```ts title="agent-accessibility.ts"
+import { bindAgent } from "@generative-a11y/ag-ui";
+
+const binding = bindAgent({ runtime, scopeId: "research-agent", agent });
+
+// Call binding.dispose() when the owning scope ends.
+```
+
+See [bindAgent](/api/ag-ui/bind-agent) for options and
+[the integration guide](/docs/integrations/ag-ui) for setup and compatibility.
 
 <span id="exports"></span>
 
@@ -95,20 +100,15 @@ expose labels but no stable IDs, making step and hierarchy support partial.
 Replay and reconnection are partial because there is no mandatory persistent
 cursor; retry support remains unavailable.
 
-<Callout title="Evidence and testing note">
-
 AG&#45;UI integration never uses private observables or guesses events missing
 from the protocol.
-
-</Callout>
-
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`messages` and `copy` options, language ownership, validation,
-construction lifetime, and replay requirements. Existing lifecycle evidence
-and timing remain unchanged.
+`messages` and `copy` options, language ownership, validation, construction
+lifetime, and replay requirements. Existing lifecycle evidence and timing remain
+unchanged.
 
 import { ApiReference } from "@/components/api-reference";
 

@@ -1,8 +1,7 @@
 ---
 title: "bindThread"
 description:
-  "Connect one assistant-ui ThreadRuntime and send its public events to a core
-  runtime supplied by your app."
+  "Connect public assistant-ui thread state to your application runtime."
 publicPath: "/api/assistant-ui/bind-thread"
 section: "assistant-ui"
 keywords: ["bindThread", "BindThreadOptions", "ThreadBinding"]
@@ -19,73 +18,29 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "bindThread",
-  "Connect one assistant-ui ThreadRuntime and send its public events to a core runtime supplied by your app.",
-  "assistant-ui",
-  "bindThread",
-  "BindThreadOptions",
-  "ThreadBinding",
-  "signature",
+  "Connect public assistant-ui thread state to your application runtime.",
   "Signature and import",
   "Create one binding per thread scope and dispose it when that subscription owner unmounts.",
-  "typescript",
-  'import { bindThread } from "@generative-a11y/assistant-ui"; const binding = bindThread({ runtime, scopeId: "support-thread", thread, maxTrackedEntities: 1_000, }); // Removes only the subscription and adapter state. binding.dispose();',
-  "Use the app runtime",
-  "ThreadBinding sends events to core without disposing your runtime.",
-  "Separate thread IDs",
-  "scopeId prevents ID collisions across mounted conversations.",
-  "Read public thread state",
-  "ThreadBinding needs only getState and subscribe from ThreadRuntime.",
-  "Dispose the binding",
-  "dispose removes the subscription without changing the thread runtime.",
-  "runtime",
-  "Pick<Runtime, 'dispatch'>",
-  "Required",
-  "n/a",
-  "Receives adapter events while remaining under your app's control.",
-  "scopeId",
-  "string",
-  "Required",
-  "n/a",
+  'import { bindThread } from "@generative-a11y/assistant-ui";',
+  'const binding = bindThread({ runtime, scopeId: "support-thread", thread, });',
+  "// Call when the owning scope ends; removes only subscription and adapter state. function disposeThreadBinding() { binding.dispose(); }",
+  "Keep scopeId stable and unique across mounted conversations. The binding uses only getState and subscribe; disposal releases the subscription and adapter records while preserving your thread and core runtimes.",
+  "Options",
+  "copy runtime scopeId thread maxTrackedEntities return AdapterCopy undefined",
+  "Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.",
+  "Pick<Runtime, 'dispatch'> Receives adapter events while remaining under your app's control. string",
   "Stable non-empty namespace for message, tool, approval, and citation identity.",
-  "thread",
-  "ThreadRuntimeSource",
-  "Required",
-  "n/a",
-  "Borrowed getState and subscribe surface from assistant-ui.",
-  "maxTrackedEntities",
-  "number",
-  "Optional",
-  "1000",
-  "Bounds message, part, tool, and approval identity tracking.",
-  "return",
-  "ThreadBinding",
-  "Return",
-  "n/a",
-  "An idempotent dispose method for the adapter subscription.",
-  "translation",
+  "ThreadRuntimeSource Borrowed getState and subscribe surface from assistant-ui. number 1000 Bounds message, part, tool, and approval identity tracking. ThreadBinding Return. An idempotent dispose method for the adapter subscription.",
+  "After the tracking limit is exhausted, the binding suppresses subsequent lifecycle events, including events for known identities. Create a fresh binding at an intentional session boundary to resume observation.",
   "Events reported from thread state",
   "Each public thread snapshot is compared with its previous value, and confirmed changes become events.",
-  "assistant-ui state",
-  "generative-a11y event",
-  "Source",
-  "Assistant message starts running",
-  "response.started",
-  "Public message state",
-  "Text grows",
-  "response.text.delta",
-  "New text only",
-  "Message finishes, stops, or fails",
-  "completed, interrupted, failed",
-  "Public message status",
-  "Tool call and result parts",
-  "tool lifecycle",
-  "Public content parts",
-  "Approval state",
-  "approval requested or resolved",
-  "Public content parts",
-  "Source parts",
-  "citation.available",
-  "Optional content parts",
+  "assistant-ui state generative-a11y event Source",
+  "Assistant message starts running response.started Public message state",
+  "Text grows response.text.delta New text only",
+  "Message finishes, stops, or fails completed, interrupted, failed Public message status",
+  "Tool call and result parts tool lifecycle Public content parts",
+  "Approval state approval requested or resolved Public content parts",
+  "Source parts citation.available Optional content parts",
 ].join("\n");
 
 <span id="signature"></span>
@@ -96,64 +51,39 @@ Create one binding per thread scope and dispose it when that subscription owner
 unmounts.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="thread-accessibility.ts"
 import { bindThread } from "@generative-a11y/assistant-ui";
 
 const binding = bindThread({
   runtime,
   scopeId: "support-thread",
   thread,
-  maxTrackedEntities: 1_000,
 });
 
-// Removes only the subscription and adapter state.
-binding.dispose();
+// Call when the owning scope ends; removes only subscription and adapter state.
+function disposeThreadBinding() {
+  binding.dispose();
+}
 ```
 
-### Walkthrough
+Keep `scopeId` stable and unique across mounted conversations. The binding uses
+only `getState` and `subscribe`; disposal releases the subscription and adapter
+records while preserving your thread and core runtimes.
 
-<Steps>
-
-<Step>
-
-### Use the app runtime
-
-ThreadBinding sends events to core without disposing your runtime.
-
-</Step>
-
-<Step>
-
-### Separate thread IDs
-
-scopeId prevents ID collisions across mounted conversations.
-
-</Step>
-
-<Step>
-
-### Read public thread state
-
-ThreadBinding needs only getState and subscribe from ThreadRuntime.
-
-</Step>
-
-<Step>
-
-### Dispose the binding
-
-dispose removes the subscription without changing the thread runtime.
-
-</Step>
-
-</Steps>
+## Options
 
 <TypeTable
   type={{
     copy: {
       type: <>AdapterCopy</>,
       default: <>undefined</>,
-      description: <>Optional complete localized copy from core/messages, validated and captured before subscription or observation. It does not translate response text.</>,
+      description: (
+        <>
+          Optional complete localized copy from core/messages, validated and
+          captured before subscription or observation. It does not translate
+          response text.
+        </>
+      ),
     },
     runtime: {
       type: <>Pick&lt;Runtime, 'dispatch'&#62;</>,
@@ -195,7 +125,21 @@ dispose removes the subscription without changing the thread runtime.
   }}
 />
 
+After the tracking limit is exhausted, the binding suppresses subsequent
+lifecycle events, including events for known identities. Create a fresh binding
+at an intentional session boundary to resume observation.
+
 <span id="translation"></span>
+
+<span id="walkthrough"></span>
+
+<span id="use-the-app-runtime"></span>
+
+<span id="separate-thread-ids"></span>
+
+<span id="read-public-thread-state"></span>
+
+<span id="dispose-the-binding"></span>
 
 ## Events reported from thread state
 

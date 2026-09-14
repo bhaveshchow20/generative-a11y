@@ -1,17 +1,11 @@
 ---
 title: "createScheduler"
 description:
-  "Low-level scheduler for timing, duplicate removal, merging, cancellation,
-  queue priority, and repeatable tests."
+  "Schedule prepared announcements with bounded queues and an injected clock."
 publicPath: "/api/core/scheduler"
 section: "Core"
 keywords:
-  [
-    "createScheduler",
-    "ScheduleAnnouncement",
-    "capacityPriority",
-    "cancelScope",
-  ]
+  ["createScheduler", "ScheduleAnnouncement", "capacityPriority", "cancelScope"]
 related: ["/api/core/workflows"]
 order: 5
 ---
@@ -25,125 +19,55 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "createScheduler",
-  "Low-level scheduler for timing, duplicate removal, merging, cancellation, queue priority, and repeatable tests.",
-  "Core",
-  "createScheduler",
-  "ScheduleAnnouncement",
-  "capacityPriority",
-  "cancelScope",
-  "signature",
+  "Schedule prepared announcements with bounded queues and an injected clock.",
   "Signature and cleanup",
   "Most apps should use createRuntime. Use the scheduler directly only if your app already decides which events should produce announcements.",
-  "typescript",
-  'const scheduler = createScheduler({ clock, minimumGapMs: 750, dedupeWindowMs: 4_000, maxQueueSize: 64, onAnnouncement: deliver, onDiagnostic: recordDiagnostic, }); scheduler.schedule({ channel: "polite", text: "The report is ready.", sourceType: "response.completed", scope: "response:report-1", capacityPriority: "content", });',
-  "Supply a clock",
-  "Scheduler timers use your Clock, so tests can control time.",
-  "Limit the queue",
-  "maxQueueSize limits pending output.",
-  "Set queue priority",
-  "Response text can replace a status update when the queue is full.",
-  "Group related work",
-  "Use one scope to cancel pending work when a response, tool, run, or step ends.",
-  "options",
+  'import { createScheduler, systemClock } from "@generative-a11y/core";',
+  "const scheduler = createScheduler({ clock: systemClock, minimumGapMs: 750, dedupeWindowMs: 4_000, maxQueueSize: 64, onAnnouncement: (intent) => console.log(intent.text), });",
+  'scheduler.schedule({ channel: "polite", text: "The report is ready.", sourceType: "response.completed", scope: "response:report-1", capacityPriority: "content", });',
+  "Use scope to cancel related pending output when a response, tool, run, or step ends. Under capacity pressure, response content can replace a status update. Call scheduler.dispose() when its owner ends.",
   "SchedulerOptions",
-  "Required",
-  "n/a",
-  "Clock, pacing, capacity, announcement listener, and optional diagnostic callbacks.",
-  "return",
-  "Scheduler",
-  "Return",
-  "n/a",
-  "Owned scheduler with schedule, cancelScope, pendingCount, and dispose methods.",
-  "candidate",
+  "The scheduler requires explicit timing and capacity values; it does not apply a runtime preset.",
+  "clock minimumGapMs dedupeWindowMs maxQueueSize onAnnouncement onDeliveryError onDiagnostic return Clock",
+  "Time and timer implementation. Use systemClock in an app or ManualClock in a test.",
+  "number",
+  "Minimum spacing between deliveries, in milliseconds. Must be finite and non-negative.",
+  "number",
+  "Window for suppressing recently delivered equivalent output. Must be finite and non-negative.",
+  "number Positive integer limiting pending announcements. (intent: AnnouncementIntent) => void Receives each prepared announcement when it is due. (error, intent) => void undefined Observes failures thrown by the announcement listener. (diagnostic: AnnouncementDiagnostic) => void undefined Observes scheduler decisions. Scheduler",
+  "Return. Owned scheduler with schedule, cancelScope, pendingCount, and dispose methods.",
   "ScheduleAnnouncement",
   "A candidate describes prepared user-facing output. It must not contain raw backend data.",
-  "channel",
-  "polite | assertive",
-  "Required",
-  "n/a",
-  "Requested announcement urgency.",
-  "text",
-  "string",
-  "Required",
-  "n/a",
-  "Translated text with whitespace normalized by the runtime.",
-  "sourceType",
-  "RuntimeEvent['type']",
-  "Required",
-  "n/a",
-  "Identifies the app event that produced this candidate.",
-  "delayMs",
-  "number",
-  "Optional",
-  "0",
-  "Additional eligibility delay measured by the injected clock.",
-  "scope",
-  "string",
-  "Optional",
-  "undefined",
+  "channel text sourceType delayMs scope \"runId / runInstanceId / stepId / stepInstanceId\" coalesceKey dedupeKey capacityPriority polite | assertive Requested announcement urgency. string Translated text with whitespace normalized by the runtime. RuntimeEvent['type'] Identifies the app event that produced this candidate. number 0 Additional eligibility delay measured by the injected clock. string undefined",
   "Key used to cancel pending work for one response, tool, interaction, run, or step.",
-  "runId / runInstanceId / stepId / stepInstanceId",
-  "string",
-  "Optional workflow correlation copied into intents and diagnostics.",
-  "coalesceKey",
-  "string",
-  "Optional",
-  "undefined",
-  "Replaces equivalent pending work with the newest candidate.",
-  "dedupeKey",
-  "string",
-  "Optional",
-  "normalized text",
-  "Suppresses equivalent recent delivery within the dedupe window.",
-  "capacityPriority",
-  "status | content",
-  "Optional",
-  '"content"',
+  'string undefined Optional workflow correlation copied into intents and diagnostics. string undefined Replaces equivalent pending work with the newest candidate. string normalized text Suppresses equivalent recent delivery within the dedupe window. status | content "content"',
   "Allows content to displace status work when bounded capacity is exhausted.",
-  "methods",
   "Scheduler methods",
   "Dispose cancels the owned timer and pending queue.",
-  "schedule(candidate)",
-  "string | undefined",
-  "Method",
-  "n/a",
-  "Returns a scheduled ID, or undefined when the candidate is merged, deduplicated, rejected, or the scheduler is disposed.",
-  "cancelScope(scope)",
-  "void",
-  "Method",
-  "n/a",
-  "Cancels every pending candidate with the matching scope.",
-  "pendingCount()",
-  "number",
-  "Method",
-  "n/a",
-  "Returns the current bounded queue length.",
-  "getDiagnosticSnapshot()",
-  "readonly DiagnosticPendingAnnouncement[]",
-  "Returns the current content-free pending queue projection in due-time order.",
-  "dispose()",
-  "void",
-  "Method",
-  "n/a",
-  "Cancels the timer and queue. Repeated calls are safe.",
+  '"schedule(candidate)" "cancelScope(scope)" "pendingCount()" "getDiagnosticSnapshot()" "dispose()" string | undefined',
+  "Method. Returns the scheduled ID, including the replacement ID when coalescing pending work. Returns undefined when deduplicated, rejected, or disposed.",
+  "void Method. Cancels every pending candidate with the matching scope. number Method. Returns the current bounded queue length. readonly DiagnosticPendingAnnouncement[]",
+  "Method. Returns the current content-free pending queue projection in due-time order.",
+  "void Method. Cancels the timer and queue. Repeated calls are safe.",
 ].join("\n");
 
 <span id="signature"></span>
 
 ## Signature and cleanup
 
-Most apps should use createRuntime. Use the scheduler directly only if
-your app already decides which events should produce announcements.
+Most apps should use createRuntime. Use the scheduler directly only if your app
+already decides which events should produce announcements.
 
 {/* prettier-ignore */}
-```typescript
+```typescript title="announcement-scheduler.ts"
+import { createScheduler, systemClock } from "@generative-a11y/core";
+
 const scheduler = createScheduler({
-  clock,
+  clock: systemClock,
   minimumGapMs: 750,
   dedupeWindowMs: 4_000,
   maxQueueSize: 64,
-  onAnnouncement: deliver,
-  onDiagnostic: recordDiagnostic,
+  onAnnouncement: (intent) => console.log(intent.text),
 });
 
 scheduler.schedule({
@@ -155,55 +79,66 @@ scheduler.schedule({
 });
 ```
 
-### Walkthrough
+Use `scope` to cancel related pending output when a response, tool, run, or step
+ends. Under capacity pressure, response content can replace a status update.
+Call `scheduler.dispose()` when its owner ends.
 
-<Steps>
+## SchedulerOptions
 
-<Step>
-
-### Supply a clock
-
-Scheduler timers use your Clock, so tests can control time.
-
-</Step>
-
-<Step>
-
-### Limit the queue
-
-maxQueueSize limits pending output.
-
-</Step>
-
-<Step>
-
-### Set queue priority
-
-Response text can replace a status update when the queue is full.
-
-</Step>
-
-<Step>
-
-### Group related work
-
-Use one scope to cancel pending work when a response, tool, run, or step ends.
-
-</Step>
-
-</Steps>
+The scheduler requires explicit timing and capacity values; it does not apply a
+runtime preset.
 
 <TypeTable
   type={{
-    options: {
-      type: <>SchedulerOptions</>,
+    clock: {
+      type: <>Clock</>,
       required: true,
       description: (
         <>
-          Clock, pacing, capacity, announcement listener, and optional
-          diagnostic callbacks.
+          Time and timer implementation. Use systemClock in an app or
+          ManualClock in a test.
         </>
       ),
+    },
+    minimumGapMs: {
+      type: <>number</>,
+      required: true,
+      description: (
+        <>
+          Minimum spacing between deliveries, in milliseconds. Must be finite
+          and non-negative.
+        </>
+      ),
+    },
+    dedupeWindowMs: {
+      type: <>number</>,
+      required: true,
+      description: (
+        <>
+          Window for suppressing recently delivered equivalent output. Must be
+          finite and non-negative.
+        </>
+      ),
+    },
+    maxQueueSize: {
+      type: <>number</>,
+      required: true,
+      description: <>Positive integer limiting pending announcements.</>,
+    },
+    onAnnouncement: {
+      type: <>(intent: AnnouncementIntent) =&gt; void</>,
+      required: true,
+      description: <>Receives each prepared announcement when it is due.</>,
+    },
+    onDeliveryError: {
+      type: <>(error, intent) =&gt; void</>,
+      default: <>undefined</>,
+      description: <>Observes failures thrown by the announcement listener.</>,
+    },
+    onDiagnostic: {
+      type: <>(diagnostic: AnnouncementDiagnostic) =&gt; void</>,
+      default: <>undefined</>,
+      description: <>Observes scheduler decisions.</>,
     },
     return: {
       type: <>Scheduler</>,
@@ -218,6 +153,16 @@ Use one scope to cancel pending work when a response, tool, run, or step ends.
 />
 
 <span id="candidate"></span>
+
+<span id="walkthrough"></span>
+
+<span id="supply-a-clock"></span>
+
+<span id="limit-the-queue"></span>
+
+<span id="set-queue-priority"></span>
+
+<span id="group-related-work"></span>
 
 ## ScheduleAnnouncement
 
@@ -306,8 +251,9 @@ Dispose cancels the owned timer and pending queue.
       type: <>string &#124; undefined</>,
       description: (
         <>
-          Method. Returns a scheduled ID, or undefined when the candidate is
-          merged, deduplicated, rejected, or the scheduler is disposed.
+          Method. Returns the scheduled ID, including the replacement ID when
+          coalescing pending work. Returns undefined when deduplicated,
+          rejected, or disposed.
         </>
       ),
     },
@@ -325,8 +271,8 @@ Dispose cancels the owned timer and pending queue.
       type: <>readonly DiagnosticPendingAnnouncement&#91;&#93;</>,
       description: (
         <>
-          Method. Returns the current content&#45;free pending queue projection in
-          due&#45;time order.
+          Method. Returns the current content&#45;free pending queue projection
+          in due&#45;time order.
         </>
       ),
     },

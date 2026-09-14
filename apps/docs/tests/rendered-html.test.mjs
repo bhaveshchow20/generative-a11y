@@ -253,7 +253,7 @@ test("server-renders documentation and project deep links", async () => {
     ["/docs/integrations", /Choose an integration/i],
     ["/docs/troubleshooting", /Troubleshooting/i],
     ["/docs/stability", /Stability and migrations/i],
-    ["/docs/testing", /Chromium, Firefox, and WebKit/i],
+    ["/docs/testing", /Chromium,\s+Firefox,\s+and\s+WebKit/i],
     ["/docs/compatibility", /cannot replace Safari testing/i],
     ["/docs/lifecycle/stop-retry", /stale responses/i],
     ["/api/core/create-runtime", /createRuntime/i],

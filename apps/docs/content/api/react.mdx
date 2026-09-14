@@ -1,8 +1,7 @@
 ---
 title: "@generative-a11y/react"
 description:
-  "A React provider and hooks for browser updates, attention, preferences, and
-  refs for your existing interface."
+  "Connect a runtime and browser delivery to your existing React interface."
 publicPath: "/api/react"
 section: "React"
 keywords: ["React", "A11yProvider", "hooks", "bindings"]
@@ -18,117 +17,61 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Attention policy attentionPolicy useAttentionControl bindAttention quiet override /docs/attention-aware-announcements",
   "@generative-a11y/react",
-  "A React provider and hooks for browser updates, attention, preferences, and refs for your existing interface.",
-  "React",
-  "React",
-  "A11yProvider",
-  "hooks",
-  "bindings",
-  "provider",
+  "Connect a runtime and browser delivery to your existing React interface.",
   "A11yProvider",
   "A11yProvider can own a runtime or borrow one from your app. It renders stable hidden delivery regions and leaves visible UI unchanged.",
-  "tsx",
-  'import { A11yProvider } from "@generative-a11y/react"; export function App() { return ( <A11yProvider preset="balanced" delivery={{ mode: "auto" }} > <ExistingChat /> </A11yProvider> ); }',
-  "Mount one provider",
-  "Wrap the part of your app that sends accessibility events.",
-  "Configure browser delivery",
-  "delivery controls hidden screen-reader updates without replacing visible components.",
-  "Keep app behavior in the app",
-  "ExistingChat still owns its HTML, keyboard behavior, and focus.",
-  "runtime",
-  "Runtime",
-  "Optional",
-  "owned runtime",
+  'import { A11yProvider } from "@generative-a11y/react";',
+  "export function App() { return (",
+  "); }",
+  "Wrap the part of your app that sends events. The provider supplies browser delivery by default; your existing components retain their markup, keyboard behavior, and focus. See React hooks /api/react/hooks to read the runtime.",
+  "Provider options",
+  "The provider also accepts RuntimeOptions /api/core/create-runtimeoptions when it creates a runtime, including preset, policy, messages, and clock.",
+  "runtime delivery attention attentionPolicy attentionStore preferences preferenceStore Runtime owned runtime",
   "Borrows an existing runtime when provided. A11yProvider never disposes app-supplied runtimes.",
-  "delivery",
-  "false | DeliveryOptions",
-  "Optional",
-  "{}",
-  "Configures hidden DOM delivery or disables it.",
-  "attention",
-  "false | AttentionStoreOptions",
-  "Optional",
-  "{}",
+  "false | DeliveryOptions {} Configures hidden DOM delivery or disables it. false | AttentionStoreOptions {}",
   "Configures the provider's attention store or disables browser signal collection.",
-  "attentionStore",
-  "AttentionStore",
-  "Optional",
-  "owned store",
-  "Borrows an application-supplied attention store.",
-  "preferences",
-  "PreferenceStoreOptions",
-  "Optional",
-  "{}",
-  "Configures an owned preference store.",
-  "preferenceStore",
-  "PreferenceStore",
-  "Optional",
-  "owned store",
-  "Borrows an application-supplied preference store.",
-  "ownership",
+  "boolean false",
+  "Forwards browser observations to core. Enable policy.attention.enabled separately to filter announcements.",
+  "AttentionStore owned store Borrows an application-supplied attention store. PreferenceStoreOptions {} Configures an owned preference store. PreferenceStore owned store Borrows an application-supplied preference store.",
   "Provider ownership",
   "A11yProvider cleans up every runtime, browser connection, store, timer, subscription, and live region it creates. Anything supplied by your app remains under your control.",
-  "Provider context is unavailable outside the provider.",
-  "Server rendering uses stable hidden structure and reports attention as unknown.",
-  "Routine announcements never move focus.",
-  "Preference changes update the runtime without replacing your components.",
+  "- Provider context is unavailable outside the provider. - Server rendering uses stable hidden structure and reports attention as unknown. - Routine announcements never move focus. - Initial preferences configure an owned runtime only when no explicit preset or policy is supplied. Later preference changes update the store, not the active runtime policy.",
+  "Opt-in attention forwarding",
+  "A11yProvider accepts attentionPolicy?: boolean (default false). This forwards browser observations to the runtime; independently enable policy.attention.enabled for filtering. useAttentionControl exposes observed, override, and effective state plus setOverride. See the complete attention guide /docs/attention-aware-announcements.",
+  "Localized announcements",
+  "See catalogs and adapter copy /docs/localized-announcements for the typed messages and copy options, language ownership, validation, construction lifetime, and replay requirements. Existing lifecycle evidence and timing remain unchanged.",
 ].join("\n");
 
 <span id="provider"></span>
 
 ## A11yProvider
 
-A11yProvider can own a runtime or borrow one from your app. It renders
-stable hidden delivery regions and leaves visible UI unchanged.
+A11yProvider can own a runtime or borrow one from your app. It renders stable
+hidden delivery regions and leaves visible UI unchanged.
 
 {/* prettier-ignore */}
-```tsx
+```tsx title="components/app.tsx"
 import { A11yProvider } from "@generative-a11y/react";
 
 export function App() {
   return (
-    <A11yProvider
-      preset="balanced"
-      delivery={{ mode: "auto" }}
-    >
+    <A11yProvider>
       <ExistingChat />
     </A11yProvider>
   );
 }
 ```
 
-### Walkthrough
+Wrap the part of your app that sends events. The provider supplies browser
+delivery by default; your existing components retain their markup, keyboard
+behavior, and focus. See [React hooks](/api/react/hooks) to read the runtime.
 
-<Steps>
+## Provider options
 
-<Step>
-
-### Mount one provider
-
-Wrap the part of your app that sends accessibility events.
-
-</Step>
-
-<Step>
-
-### Configure browser delivery
-
-delivery controls hidden screen&#45;reader updates without replacing visible
-components.
-
-</Step>
-
-<Step>
-
-### Keep app behavior in the app
-
-ExistingChat still owns its HTML, keyboard behavior, and focus.
-
-</Step>
-
-</Steps>
+The provider also accepts [RuntimeOptions](/api/core/create-runtime#options)
+when it creates a runtime, including `preset`, `policy`, `messages`, and
+`clock`.
 
 <TypeTable
   type={{
@@ -137,8 +80,8 @@ ExistingChat still owns its HTML, keyboard behavior, and focus.
       default: <>owned runtime</>,
       description: (
         <>
-          Borrows an existing runtime when provided. A11yProvider
-          never disposes app&#45;supplied runtimes.
+          Borrows an existing runtime when provided. A11yProvider never disposes
+          app&#45;supplied runtimes.
         </>
       ),
     },
@@ -154,6 +97,16 @@ ExistingChat still owns its HTML, keyboard behavior, and focus.
         <>
           Configures the provider's attention store or disables browser signal
           collection.
+        </>
+      ),
+    },
+    attentionPolicy: {
+      type: <>boolean</>,
+      default: <>false</>,
+      description: (
+        <>
+          Forwards browser observations to core. Enable policy.attention.enabled
+          separately to filter announcements.
         </>
       ),
     },
@@ -177,29 +130,42 @@ ExistingChat still owns its HTML, keyboard behavior, and focus.
 
 <span id="ownership"></span>
 
+<span id="walkthrough"></span>
+
+<span id="mount-one-provider"></span>
+
+<span id="configure-browser-delivery"></span>
+
+<span id="keep-app-behavior-in-the-app"></span>
+
 ## Provider ownership
 
-A11yProvider cleans up every runtime, browser connection, store,
-timer, subscription, and live region it creates. Anything supplied by your app
-remains under your control.
+A11yProvider cleans up every runtime, browser connection, store, timer,
+subscription, and live region it creates. Anything supplied by your app remains
+under your control.
 
 - Provider context is unavailable outside the provider.
 - Server rendering uses stable hidden structure and reports attention as
   unknown.
 - Routine announcements never move focus.
-- Preference changes update the runtime without replacing your components.
+- Initial preferences configure an owned runtime only when no explicit preset or
+  policy is supplied. Later preference changes update the store, not the active
+  runtime policy.
 
 ## Opt-in attention forwarding
 
-`A11yProvider` accepts `attentionPolicy?: boolean` (default `false`). This forwards browser observations to the runtime; independently enable `policy.attention.enabled` for filtering. `useAttentionControl` exposes observed, override, and effective state plus `setOverride`. [See the complete attention guide](/docs/attention-aware-announcements).
-
+`A11yProvider` accepts `attentionPolicy?: boolean` (default `false`). This
+forwards browser observations to the runtime; independently enable
+`policy.attention.enabled` for filtering. `useAttentionControl` exposes
+observed, override, and effective state plus `setOverride`.
+[See the complete attention guide](/docs/attention-aware-announcements).
 
 ## Localized announcements
 
 See [catalogs and adapter copy](/docs/localized-announcements) for the typed
-`messages` and `copy` options, language ownership, validation,
-construction lifetime, and replay requirements. Existing lifecycle evidence
-and timing remain unchanged.
+`messages` and `copy` options, language ownership, validation, construction
+lifetime, and replay requirements. Existing lifecycle evidence and timing remain
+unchanged.
 
 import { ApiReference } from "@/components/api-reference";
 

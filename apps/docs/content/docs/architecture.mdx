@@ -19,24 +19,13 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Accessibility model and architecture",
-  "See how an event from your app becomes a clear, well-timed screen-reader update.",
-  "Concepts",
-  "architecture",
-  "policy",
-  "delivery",
-  "assistive technology",
-  "flow",
   "From an app event to a screen-reader update",
   "AI framework → standard events → core runtime → browser delivery → screen reader.",
-  "An adapter reads events from your framework. Core chooses useful updates, removes repeats, and controls timing. DOM adds each update without changing your visible interface.",
-  "runtime-flow",
-  "boundaries",
+  "An adapter translates documented framework state into normalized events. Core segments text, removes repeats, and schedules announcement intents. DOM delivers those intents through browser APIs without changing your visible interface.",
+  "Layer | Owns | Integration boundary | | --- | --- | --- | | Host application | Visible content, controls, lifecycle evidence | Reports confirmed state and keeps content readable | | Adapter | Framework-to-event translation | Uses public state; declares missing evidence | | Core runtime | Text segmentation, policy, queues, cancellation | Emits announcement intents without browser dependencies | | DOM delivery | Live regions and browser notification calls | Reports browser delivery results | | React bindings | Provider lifetime and host element refs | Connects existing elements to runtime and DOM behavior",
   "Report only what the app knows",
   "generative-a11y turns confirmed app events into screen-reader updates. It records each update added to the page. Test with real screen readers to confirm what they speak.",
-  "Core does not use the DOM.",
-  "Adapters do not run framework actions or control your interface.",
-  "Streaming and status changes do not move focus.",
-  "generative-a11y does not copy backend errors or tool results into announcements.",
+  "Core does not use the DOM. - Adapters do not run framework actions or control your interface. - Streaming and status changes do not move focus. - generative-a11y does not copy backend errors or tool results into announcements.",
 ].join("\n");
 
 <span id="flow"></span>
@@ -46,9 +35,17 @@ export const searchableText = [
 AI framework → standard events → core runtime → browser delivery → screen
 reader.
 
-An adapter reads events from your framework. Core chooses useful updates,
-removes repeats, and controls timing. DOM adds each update without changing your
-visible interface.
+An adapter translates documented framework state into normalized events. Core
+segments text, removes repeats, and schedules announcement intents. DOM delivers
+those intents through browser APIs without changing your visible interface.
+
+| Layer            | Owns                                            | Integration boundary                                    |
+| ---------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| Host application | Visible content, controls, lifecycle evidence   | Reports confirmed state and keeps content readable      |
+| Adapter          | Framework-to-event translation                  | Uses public state; declares missing evidence            |
+| Core runtime     | Text segmentation, policy, queues, cancellation | Emits announcement intents without browser dependencies |
+| DOM delivery     | Live regions and browser notification calls     | Reports browser delivery results                        |
+| React bindings   | Provider lifetime and host element refs         | Connects existing elements to runtime and DOM behavior  |
 
 <div
   aria-label="Runtime flow visual"

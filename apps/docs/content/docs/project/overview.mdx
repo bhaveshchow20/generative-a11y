@@ -19,43 +19,18 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Project overview",
-  "See what each generative-a11y package does and how the project keeps integrations small and reliable.",
-  "Project",
-  "project",
-  "packages",
-  "architecture",
-  "validation",
-  "overview",
-  "packages",
   "A focused package family",
   "Each package has one job: decide what to announce, update the browser, connect React, or connect an AI framework. Install only what your app needs.",
-  "Package",
-  "Purpose",
-  "What it does not depend on",
-  "core",
-  "Policy, scheduling, segmentation, and testing helpers",
-  "No DOM or framework dependency",
-  "dom",
-  "Browser delivery, focus, attention, preferences",
-  "No React or AI framework dependency",
-  "react",
-  "Provider and host-element bindings",
-  "Leaves the visual interface unchanged",
-  "ai-sdk",
-  "useChat lifecycle translation",
-  "Public state and callbacks only",
-  "assistant-ui",
-  "Thread runtime translation",
-  "getState and subscribe only",
-  "ag-ui",
-  "Protocol lifecycle translation",
-  "Documented subscriber callbacks only",
-  "devtools",
-  "Bounded redacted diagnostics and a trace explorer",
-  "No application content or runtime control",
-  "validation",
+  "Package | Purpose | Boundary | | --- | --- | --- | | core | Policy, scheduling, segmentation, and testing helpers | No DOM or framework dependency | | dom | Browser delivery, focus, attention, preferences | No React or AI framework dependency | | react | Provider and host-element bindings | Leaves the visual interface unchanged | | ai-sdk | useChat lifecycle translation | Public state and callbacks only | | assistant-ui | Thread runtime translation | getState and subscribe only | | ag-ui | Protocol lifecycle translation | Documented subscriber callbacks only | | devtools | Bounded redacted diagnostics and a trace explorer | No application content or runtime control",
   "Test each part at the right level",
   "Runtime, adapter, browser, and hands-on screen-reader tests answer different questions. Keeping them separate prevents anyone from mistaking an automated transcript for what a person heard.",
+  "Maintained by Bhavesh Chowdhury.",
+  "Read documentation from tools",
+  "Use **Copy Markdown** below a guide or API page description to copy its content. The **Open** dropdown links to Markdown, the GitHub source, and external AI tools.",
+  "Start with /llms.txt for guide and API Markdown links. Each export includes its canonical HTML URL and source checkout context. For example, /markdown/docs/integrations/ai-sdk exports the AI SDK recipe, and /markdown/api/core includes generated public declarations. Prefix any canonical /docs/... or /api/... path with /markdown; the API landing page is /markdown/api. Unknown pages return 404.",
+  "These docs track source, which can contain APIs awaiting publication even when package manifest versions match npm. Check stability and migrations and the release tag for your installed version. The typechecked consumer journeys provide fuller integration examples for the source checkout.",
+  "Prefer individual pages. For offline retrieval, use /llms-docs.txt for guides, /llms-api.txt for references, or /llms-full.txt for both. All share the same compiled content; Markdown exports retain code and replace custom reference components with text. HTML URLs continue to return HTML regardless of the Accept header.",
+  "The existing search endpoint returns Fumadocs search JSON with page and section URLs. Its response follows the installed Fumadocs UI contract, with no package-version filter. Fetch the matching page's Markdown URL for the full context; a search excerpt alone is not an integration contract. These retrieval formats do not guarantee model discovery or correct integration, and deterministic tests do not prove real screen-reader behavior.",
 ].join("\n");
 
 <span id="packages"></span>
@@ -65,52 +40,15 @@ export const searchableText = [
 Each package has one job: decide what to announce, update the browser, connect
 React, or connect an AI framework. Install only what your app needs.
 
-<table aria-label="A focused package family table">
-  <thead>
-    <tr>
-      <th>Package</th>
-      <th>Purpose</th>
-      <th>What it does not depend on</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>core</td>
-      <td>Policy, scheduling, segmentation, and testing helpers</td>
-      <td>No DOM or framework dependency</td>
-    </tr>
-    <tr>
-      <td>dom</td>
-      <td>Browser delivery, focus, attention, preferences</td>
-      <td>No React or AI framework dependency</td>
-    </tr>
-    <tr>
-      <td>react</td>
-      <td>Provider and host&#45;element bindings</td>
-      <td>Leaves the visual interface unchanged</td>
-    </tr>
-    <tr>
-      <td>ai&#45;sdk</td>
-      <td>useChat lifecycle translation</td>
-      <td>Public state and callbacks only</td>
-    </tr>
-    <tr>
-      <td>assistant&#45;ui</td>
-      <td>Thread runtime translation</td>
-      <td>getState and subscribe only</td>
-    </tr>
-    <tr>
-      <td>ag&#45;ui</td>
-      <td>Protocol lifecycle translation</td>
-      <td>Documented subscriber callbacks only</td>
-    </tr>
-    <tr>
-      <td>devtools</td>
-      <td>Bounded redacted diagnostics and a trace explorer</td>
-      <td>No application content or runtime control</td>
-    </tr>
-  </tbody>
-</table>
+| Package      | Purpose                                               | Boundary                                  |
+| ------------ | ----------------------------------------------------- | ----------------------------------------- |
+| core         | Policy, scheduling, segmentation, and testing helpers | No DOM or framework dependency            |
+| dom          | Browser delivery, focus, attention, preferences       | No React or AI framework dependency       |
+| react        | Provider and host-element bindings                    | Leaves the visual interface unchanged     |
+| ai-sdk       | useChat lifecycle translation                         | Public state and callbacks only           |
+| assistant-ui | Thread runtime translation                            | getState and subscribe only               |
+| ag-ui        | Protocol lifecycle translation                        | Documented subscriber callbacks only      |
+| devtools     | Bounded redacted diagnostics and a trace explorer     | No application content or runtime control |
 
 <span id="validation"></span>
 
@@ -136,7 +74,7 @@ generated public declarations. Prefix any canonical `/docs/...` or `/api/...`
 path with `/markdown`; the API landing page is `/markdown/api`. Unknown pages
 return 404.
 
-```shell
+```shell title="Terminal"
 curl -fsS https://generativea11y.com/llms.txt
 curl -fsS https://generativea11y.com/markdown/docs/integrations/ai-sdk
 npm view @generative-a11y/ai-sdk version peerDependencies --json

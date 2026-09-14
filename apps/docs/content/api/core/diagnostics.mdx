@@ -1,8 +1,7 @@
 ---
 title: "Intents and diagnostics"
 description:
-  "AnnouncementIntent output and AnnouncementDiagnostic decisions for delivery,
-  tests, telemetry, and bounded failure analysis."
+  "Inspect prepared announcements and the runtime decisions that produced them."
 publicPath: "/api/core/diagnostics"
 section: "Core"
 keywords:
@@ -20,105 +19,38 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Intents and diagnostics",
-  "AnnouncementIntent output and AnnouncementDiagnostic decisions for delivery, tests, telemetry, and bounded failure analysis.",
-  "Core",
-  "AnnouncementIntent",
-  "AnnouncementDiagnostic",
-  "DiagnosticReason",
-  "count",
-  "intent",
+  "Inspect prepared announcements and the runtime decisions that produced them.",
   "AnnouncementIntent",
   "An AnnouncementIntent describes an update prepared by core. It does not confirm that the browser delivered it or that a screen reader spoke it.",
-  "id",
-  "string",
-  "Required",
-  "n/a",
-  "Unique scheduled output identity.",
-  "at",
-  "number",
-  "Required",
-  "n/a",
-  "Injected clock timestamp at delivery.",
-  "channel",
-  "polite | assertive",
-  "Required",
-  "n/a",
-  "Requested urgency for the delivery layer.",
-  "text",
-  "string",
-  "Required",
-  "n/a",
-  "Translated text with normalized whitespace.",
-  "sourceType",
-  "event type",
-  "Required",
-  "n/a",
-  "Identifies the app event that caused this intent.",
-  "responseId / toolId / interactionId / runId / runInstanceId / stepId / stepInstanceId",
-  "string",
-  "Optional",
-  "undefined",
-  "Optional source lifecycle correlation.",
-  "diagnostic",
+  'import { createRuntime } from "@generative-a11y/core";',
+  "const runtime = createRuntime({ onAnnouncement: (intent) => console.log(intent.sourceType, intent.channel), onDiagnostic: (diagnostic) => console.log(diagnostic.reason), });",
+  "// Call runtime.dispose() when inspection ends.",
+  "Intent fields",
+  "id at channel text sourceType string Unique scheduled output identity. number Injected clock timestamp at delivery. polite | assertive Requested urgency for the delivery layer. string Translated text with normalized whitespace. event type Identifies the app event that caused this intent. string undefined Optional source lifecycle correlation.",
   "AnnouncementDiagnostic",
   "Diagnostics record runtime decisions for tests and telemetry. Listener failures do not change runtime behavior. Repeated queue-limit decisions can share one diagnostic with a count.",
-  "Disposition",
-  "Typical reasons",
-  "Meaning",
-  "queued",
-  "scheduled",
-  "Candidate entered the scheduler",
-  "merged",
-  "coalesced",
-  "Pending equivalent work was replaced",
+  "Disposition Typical reasons Meaning",
+  "queued scheduled Candidate entered the scheduler",
+  "merged coalesced Pending equivalent work was replaced",
   "suppressed",
   "duplicate, policy-silent, stale-response, stale-run, stale-step, partial-identity",
   "Policy or identity prevented output",
-  "cancelled",
-  "scope-cancelled, runtime-disposed",
-  "Pending work became invalid",
-  "announced",
-  "delivered, delivery-error",
-  "Listeners accepted output or every attempt failed",
-  "disposition",
-  "DiagnosticDisposition",
-  "Required",
-  "n/a",
-  "High-level outcome category.",
-  "reason",
-  "DiagnosticReason",
-  "Required",
-  "n/a",
-  "Stable machine-readable explanation for the decision.",
-  "count",
-  "number",
-  "Optional",
-  "undefined",
+  "cancelled scope-cancelled, runtime-disposed Pending work became invalid",
+  "announced delivered, delivery-error Listeners accepted output or every attempt failed",
+  "disposition reason count DiagnosticDisposition High-level outcome category. DiagnosticReason Stable machine-readable explanation for the decision. number undefined",
   "Number of equivalent decisions represented by an aggregated diagnostic.",
-  "runtime-observability",
   "Versioned runtime observability",
   "subscribeDiagnosticEvents emits each normalized source event before the decisions caused by that dispatch. getDiagnosticSnapshot returns current lifecycle and queue timing without response text, labels, errors, scopes, deduplication keys, or timer handles.",
-  "RuntimeDiagnosticEventV1",
-  "event-observed | decision",
-  "Event",
-  "n/a",
-  "Schema-versioned ordered diagnostic event with injected time and a monotonic sequence.",
-  "RuntimeDiagnosticSnapshotV1",
+  'RuntimeDiagnosticEventV1 RuntimeDiagnosticSnapshotV1 "pending.announcements" runs steps event-observed | decision',
+  "Event. Schema-versioned ordered diagnostic event with injected time and a monotonic sequence.",
   "immutable object",
-  "Snapshot",
-  "n/a",
-  "Content-free response, tool, run, identified step, pending announcement, and response flush state.",
-  "runs",
-  "readonly DiagnosticRunSnapshot[]",
-  "Content-free run attempts with explicit hierarchy, status, and identified step counts.",
-  "steps",
-  "readonly DiagnosticStepSnapshot[]",
-  "Content-free identified step attempts with explicit hierarchy, status, start time, and progress bucket.",
-  "pending.announcements",
-  "readonly DiagnosticPendingAnnouncement[]",
-  "Snapshot field",
-  "[]",
-  "Stable correlation, channel, source, scheduling, due-time, delay, and queue sequence fields ordered by due time.",
+  "Snapshot. Content-free response, tool, run, identified step, pending announcement, and response flush state.",
+  "readonly DiagnosticPendingAnnouncement[] []",
+  "Snapshot field. Stable correlation, channel, source, scheduling, due-time, delay, and queue sequence fields ordered by due time.",
+  "readonly DiagnosticRunSnapshot[] undefined",
+  "Content-free run attempts with explicit hierarchy, status, and identified step counts. Optional for schema-version compatibility.",
+  "readonly DiagnosticStepSnapshot[] undefined",
+  "Content-free identified step attempts with explicit hierarchy, status, start time, and progress bucket. Optional for schema-version compatibility.",
   "Runtime diagnostics explain library behavior. They do not prove DOM delivery or screen-reader speech.",
 ].join("\n");
 
@@ -128,6 +60,19 @@ export const searchableText = [
 
 An AnnouncementIntent describes an update prepared by core. It does not confirm
 that the browser delivered it or that a screen reader spoke it.
+
+```ts title="Inspect prepared announcements"
+import { createRuntime } from "@generative-a11y/core";
+
+const runtime = createRuntime({
+  onAnnouncement: (intent) => console.log(intent.sourceType, intent.channel),
+  onDiagnostic: (diagnostic) => console.log(diagnostic.reason),
+});
+
+// Call runtime.dispose() when inspection ends.
+```
+
+### Intent fields
 
 <TypeTable
   type={{
@@ -156,11 +101,12 @@ that the browser delivered it or that a screen reader spoke it.
       required: true,
       description: <>Identifies the app event that caused this intent.</>,
     },
-    "responseId / toolId / interactionId / runId / runInstanceId / stepId / stepInstanceId": {
-      type: <>string</>,
-      default: <>undefined</>,
-      description: <>Optional source lifecycle correlation.</>,
-    },
+    "responseId / toolId / interactionId / runId / runInstanceId / stepId / stepInstanceId":
+      {
+        type: <>string</>,
+        default: <>undefined</>,
+        description: <>Optional source lifecycle correlation.</>,
+      },
   }}
 />
 

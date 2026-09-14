@@ -19,29 +19,11 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "Streaming without repetition",
-  "Send only the new text from each streaming update so screen readers do not hear the whole response again and again.",
-  "Lifecycle",
-  "streaming",
-  "delta",
-  "segment",
-  "sentence",
-  "non-repetition",
-  "append-only",
   "Send only the new text",
   "Send response.started when a response begins. Each response.text.delta must contain only the text that just arrived. Send response.completed to announce any useful text still waiting. Send response.failed or response.interrupted to discard that text.",
-  "typescript",
-  'runtime.dispatch({ type: "response.started", responseId: "r1" }); runtime.dispatch({ type: "response.text.delta", responseId: "r1", delta: "First complete sentence. ", }); runtime.dispatch({ type: "response.text.delta", responseId: "r1", delta: "Second complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "r1" });',
-  "Start the response",
-  "response.started tells the runtime that a new response is beginning.",
-  "Send new text only",
-  "Each delta contains only new text, so earlier text is not announced again.",
-  "Let the runtime group text",
-  "Your runtime waits for useful phrases instead of announcing every token.",
-  "Finish the response",
-  "response.completed sends any useful text that is still waiting and closes the response.",
-  "segmentation",
   "Meaningful units, not tokens",
-  "Balanced mode waits for a complete sentence when possible. It can also send a useful phrase after enough text arrives or a short delay. Each piece is announced once.",
+  "Balanced mode waits for a complete sentence when possible. It can also prepare a useful phrase after enough text arrives or a short delay. This avoids submitting each token as its own announcement. See core policy to change the text strategy or timing.",
+  "If your framework exposes accumulated text, use its supported adapter to derive new text. A custom integration must distinguish an append from a replacement; sending the full accumulated response as a delta repeats earlier content.",
   "Interactive examples show app text beside the screen-reader updates prepared by a real runtime.",
 ].join("\n");
 
@@ -54,8 +36,7 @@ contain only the text that just arrived. Send response.completed to announce any
 useful text still waiting. Send response.failed or response.interrupted to
 discard that text.
 
-{/* prettier-ignore */}
-```typescript
+```typescript title="Dispatch append-only response text"
 runtime.dispatch({ type: "response.started", responseId: "r1" });
 runtime.dispatch({
   type: "response.text.delta",
@@ -70,52 +51,24 @@ runtime.dispatch({
 runtime.dispatch({ type: "response.completed", responseId: "r1" });
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Start the response
-
-response.started tells the runtime that a new response is beginning.
-
-</Step>
-
-<Step>
-
-### Send new text only
-
-Each delta contains only new text, so earlier text is not announced again.
-
-</Step>
-
-<Step>
-
-### Let the runtime group text
-
-Your runtime waits for useful phrases instead of announcing every token.
-
-</Step>
-
-<Step>
-
-### Finish the response
-
-response.completed sends any useful text that is still waiting and closes the
-response.
-
-</Step>
-
-</Steps>
+<span id="walkthrough"></span>
+<span id="start-the-response"></span>
+<span id="send-new-text-only"></span>
+<span id="let-the-runtime-group-text"></span>
+<span id="finish-the-response"></span>
 
 <span id="segmentation"></span>
 
 ## Meaningful units, not tokens
 
-Balanced mode waits for a complete sentence when possible. It can also send a
-useful phrase after enough text arrives or a short delay. Each piece is
-announced once.
+Balanced mode waits for a complete sentence when possible. It can also prepare a
+useful phrase after enough text arrives or a short delay. This avoids submitting
+each token as its own announcement. See [core policy](/api/core/policy) to
+change the text strategy or timing.
+
+If your framework exposes accumulated text, use its supported adapter to derive
+new text. A custom integration must distinguish an append from a replacement;
+sending the full accumulated response as a delta repeats earlier content.
 
 <Callout title="Evidence and testing note">
 

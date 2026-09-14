@@ -18,46 +18,105 @@ export const sourceMetadata = {
 };
 
 export const searchableText = [
-  "Custom applications",
-  "Connect a custom app by reporting its response, tool, and interaction events directly to generative-a11y.",
-  "Integrations",
-  "custom",
-  "framework neutral",
-  "adapter",
-  "normalized event",
-  "thin-adapter",
-  "Keep translation thin",
-  "Report events where your app knows what happened. Keep the original IDs and send only newly added text. Report how each response or tool ends, and provide translated labels for users.",
-  "typescript",
-  'import { createRuntime } from "@generative-a11y/core"; import { bindRuntime } from "@generative-a11y/dom"; const runtime = createRuntime({}); const delivery = bindRuntime(runtime); runtime.dispatch({ type: "response.started", responseId: "response-1" }); runtime.dispatch({ type: "response.text.delta", responseId: "response-1", delta: "A complete sentence.", }); runtime.dispatch({ type: "response.completed", responseId: "response-1" }); delivery.dispose(); runtime.dispose();',
-  "Report events at the source",
-  "Call dispatch from the transport or app callback that confirms what happened.",
-  "Preserve stable IDs",
-  "Use the response and tool IDs from your app instead of labels, array positions, or render counts.",
-  "Connect browser delivery",
-  "DOM adds announcements without changing visible rendering or app actions.",
-  "Dispose by ownership",
-  "Your adapter cleans up its subscriptions, then the application disposes resources it created.",
-  "never-infer",
-  "Leave out events the framework cannot report",
-  "Do not treat streamed arguments as a completed tool, a repeated render as a retry, a ready state as an interruption, or a tool name as an approval. If the framework does not report an event, the adapter leaves it out.",
-].join("\n");
+  "Custom applications: install @generative-a11y/core and @generative-a11y/dom.",
+  "Create runtime and bind browser delivery once; dispatch response.started, response.text.delta, response.completed from confirmed callbacks.",
+  "Use response.interrupted for cancellation and response.failed for errors instead of completion.",
+  "Keep translation thin; preserve stable response and tool IDs; send only new text and translated labels.",
+  "Dispose subscriptions then browser delivery then runtime at unmount, not after each response.",
+  "Node.js 22+, no framework peers; React A11yProvider owns runtime and delivery. Core works without browser.",
+  "Never infer tools, retry, interruption or approval. Host UI and routine focus stay unchanged; DOM tests do not establish speech."
+] .join("\n");
+
+<span id="installation"></span>
+
+## Install core and browser delivery
+
+<Tabs groupId="package-manager" items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```shell title="Terminal"
+npm install @generative-a11y/core @generative-a11y/dom
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```shell title="Terminal"
+pnpm add @generative-a11y/core @generative-a11y/dom
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```shell title="Terminal"
+yarn add @generative-a11y/core @generative-a11y/dom
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```shell title="Terminal"
+bun add @generative-a11y/core @generative-a11y/dom
+```
+
+</Tab>
+
+</Tabs>
+
+Use this path when your app owns the callbacks that confirm response, tool, or
+interaction events.
 
 <span id="thin&#45;adapter"></span>
 
 ## Keep translation thin
 
-Report events where your app knows what happened. Keep the original IDs and send
-only newly added text. Report how each response or tool ends, and provide
-translated labels for users.
+<span id="walkthrough"></span>
 
-{/* prettier-ignore */}
-```typescript
+<Steps>
+<Step>
+
+### Connect browser delivery
+
+Create one runtime for the mounted chat surface and keep it alive across
+responses.
+
+```ts title="accessibility.ts"
 import { createRuntime } from "@generative-a11y/core";
 import { bindRuntime } from "@generative-a11y/dom";
 
-const runtime = createRuntime({});
-const delivery = bindRuntime(runtime);
+export function createAccessibility() {
+  const runtime = createRuntime({});
+  const delivery = bindRuntime(runtime);
+
+  return {
+    runtime,
+    dispose() {
+      delivery.dispose();
+      runtime.dispose();
+    },
+  };
+}
+```
+
+</Step>
+<Step>
+
+### Report events at the source
+
+Call the factory when your surface mounts, then dispatch from the transport or
+application callbacks that confirm each event.
+This sequence shows a successful response; replace the sample ID and text with
+your app's values, and send only newly added text in each delta.
+
+```ts title="Response lifecycle callbacks"
+import { createAccessibility } from "./accessibility";
+
+const accessibility = createAccessibility();
+const { runtime } = accessibility;
 
 runtime.dispatch({ type: "response.started", responseId: "response-1" });
 runtime.dispatch({
@@ -66,50 +125,57 @@ runtime.dispatch({
   delta: "A complete sentence.",
 });
 runtime.dispatch({ type: "response.completed", responseId: "response-1" });
-
-delivery.dispose();
-runtime.dispose();
 ```
 
-### Walkthrough
-
-<Steps>
-
-<Step>
-
-### Report events at the source
-
-Call dispatch from the transport or app callback that confirms what happened.
-
 </Step>
-
-<Step>
-
-### Preserve stable IDs
-
-Use the response and tool IDs from your app instead of labels, array positions,
-or render counts.
-
-</Step>
-
-<Step>
-
-### Connect browser delivery
-
-DOM adds announcements without changing visible rendering or app actions.
-
-</Step>
-
 <Step>
 
 ### Dispose by ownership
 
-Your adapter cleans up its subscriptions, then the application disposes
-resources it created.
+Stop your transport subscriptions, then call this when the chat surface unmounts.
+Do not dispose after each response: delivery may still have paced output queued.
+
+```ts title="App unmount callback"
+accessibility.dispose();
+```
 
 </Step>
-
 </Steps>
+
+## Report interruption and failure
+
+Send exactly the terminal event confirmed by your app. For a cancelled response,
+use this instead of `response.completed`:
+
+```ts title="Cancellation callback"
+runtime.dispatch({ type: "response.interrupted", responseId: "response-1" });
+```
+
+For a failed response:
+
+```ts title="Error callback"
+runtime.dispatch({ type: "response.failed", responseId: "response-1" });
+```
+
+<span id="preserve-stable-ids"></span>
+
+## Preserve stable IDs
+
+Use response and tool IDs from your app, with a namespace when multiple surfaces
+share a runtime. Labels, array positions, and render counts are not stable IDs.
+Provide translated user-facing labels when reporting tools or interactions.
+See the [event reference](/api/core/events) for their required fields.
+
+## Compatibility and delivery
+
+The packages require Node.js 22+ and have no framework peers. Core works without
+a browser; DOM delivery stays inactive when `document` is unavailable. In React,
+use [`A11yProvider`](/api/react) to own runtime and browser delivery instead of
+calling the factory above.
+
+Your app keeps its visible UI, semantic structure, keyboard controls, and focus
+management. Ordinary streaming does not move focus. Browser delivery tests do
+not establish what a screen reader speaks.
 
 <span id="never&#45;infer"></span>
 

@@ -1,8 +1,7 @@
 ---
 title: "PreferenceStore"
 description:
-  "Validated, versioned external store for user-controlled streaming and tool
-  verbosity with optional persistence."
+  "Store validated announcement preferences with optional persistence."
 publicPath: "/api/dom/preferences"
 section: "DOM"
 keywords:
@@ -25,71 +24,32 @@ export const sourceMetadata = {
 
 export const searchableText = [
   "PreferenceStore",
-  "Validated, versioned external store for user-controlled streaming and tool verbosity with optional persistence.",
-  "DOM",
-  "createPreferenceStore",
-  "PreferenceSchemaV1",
-  "preferencesToCoreConfiguration",
-  "storage",
-  "store",
+  "Store validated announcement preferences with optional persistence.",
   "createPreferenceStore",
   "createPreferenceStore validates loaded and assigned values before exposing a stable snapshot.",
-  "typescript",
-  'const store = createPreferenceStore({ defaultValue: defaultPreferences, persistence: { key: "chat:a11y-preferences", storage: window.localStorage, events: { subscribe(listener) { const handle = (event: StorageEvent) => listener(event); window.addEventListener("storage", handle); return () => window.removeEventListener("storage", handle); }, }, }, }); const unsubscribe = store.subscribe(() => { const preferences = store.getSnapshot(); const configuration = preferencesToCoreConfiguration(preferences); applyConfiguration(configuration); }); store.setPreferences({ version: 1, preset: "balanced", streaming: "sentence", tools: "status", });',
-  "Supply storage",
-  "Pass storage when you need persistence, server rendering, or controlled tests.",
-  "Subscribe to changes",
-  "getSnapshot returns validated, versioned preferences.",
-  "Map preferences to core",
-  "preferencesToCoreConfiguration converts selected verbosity into a core preset and policy override.",
-  "defaultValue",
-  "PreferenceSchemaV1",
-  "Optional",
-  "defaultPreferences",
-  "Validated snapshot used when persistence is missing or invalid.",
-  "persistence.key",
-  "string",
-  "Optional",
-  "library key",
-  "Storage key for the serialized versioned schema.",
-  "persistence.storage",
-  "PreferenceStorage",
-  "Optional",
-  "localStorage when available",
-  "Injected getItem and setItem surface.",
-  "persistence.events",
-  "PreferenceStorageEventSource",
-  "Optional",
-  "storage events when available",
-  "Synchronizes validated changes from other documents.",
-  "onDiagnostic",
-  "callback",
-  "Optional",
-  "undefined",
+  'import { createPreferenceStore } from "@generative-a11y/dom";',
+  'const store = createPreferenceStore(); store.setPreferences({ version: 1, preset: "balanced", streaming: "sentence", tools: "status", });',
+  "// Read store.getSnapshot() or subscribe to changes. // Call store.dispose() when its owner ends.",
+  "Persistence is disabled by default. Supply persistence.key to use browser storage when it is available:",
+  'const store = createPreferenceStore({ persistence: { key: "chat:a11y-preferences" }, });',
+  "Use preferencesToCoreConfiguration to map the snapshot to a core preset and policy overrides. Unsubscribe listeners and dispose the store when its owner ends.",
+  "Options",
+  'defaultValue "persistence.key" "persistence.storage" "persistence.events" onDiagnostic PreferenceSchemaV1 defaultPreferences Validated snapshot used when persistence is missing or invalid. string',
+  "Required when persistence is configured. Storage key for the serialized versioned schema.",
+  "PreferenceStorage localStorage when available Injected getItem and setItem surface. PreferenceStorageEventSource browser events with browser storage Synchronizes validated changes from other documents. callback undefined",
   "Observes invalid, unavailable, read, write, and event-source outcomes.",
-  "schema",
+  "Custom storage and runtime configuration",
+  "Supply storage and events together to persist and synchronize through a custom storage layer. When you inject storage, the store uses only the event source you provide.",
+  'import { createRuntime } from "@generative-a11y/core"; import { preferencesToCoreConfiguration } from "@generative-a11y/dom";',
+  "const runtime = createRuntime( preferencesToCoreConfiguration(store.getSnapshot()), );",
+  "// Call runtime.dispose() when its owner ends.",
+  "Core reads this configuration at construction. Later preference changes update the store without changing an active runtime. A11yProvider /api/react also uses preferences only when constructing its owned runtime, and only when no explicit preset or policy is supplied. Apply saved changes when creating the next runtime or remounting the provider at an intentional session boundary.",
   "PreferenceSchemaV1 and helpers",
   "A version field makes persistence migrations explicit.",
-  "defaultPreferences",
-  "PreferenceSchemaV1",
-  "Constant",
-  "balanced",
-  "Frozen balanced user preference snapshot.",
-  "normalizePreferences(value)",
-  "PreferenceSchemaV1",
-  "Function",
-  "n/a",
-  "Validates and freezes a schema value. Invalid fields or unsupported versions throw TypeError.",
-  "samePreferences(left, right)",
-  "boolean",
-  "Function",
-  "n/a",
-  "Compares the supported schema fields.",
-  "preferencesToCoreConfiguration(value)",
-  "CorePreferenceConfiguration",
-  "Function",
-  "n/a",
-  "Maps user verbosity to a core preset and policy overrides.",
+  'defaultPreferences "normalizePreferences(value)" "samePreferences(left, right)" "preferencesToCoreConfiguration(value)" PreferenceSchemaV1 balanced Constant. Frozen balanced user preference snapshot. PreferenceSchemaV1',
+  "Function. Validates and freezes a schema value. Invalid fields or unsupported versions throw TypeError.",
+  "boolean Function. Compares the supported schema fields. CorePreferenceConfiguration",
+  "Function. Maps user verbosity to a core preset and policy overrides.",
 ].join("\n");
 
 <span id="store"></span>
@@ -99,67 +59,35 @@ export const searchableText = [
 createPreferenceStore validates loaded and assigned values before exposing a
 stable snapshot.
 
-{/* prettier-ignore */}
-```typescript
-const store = createPreferenceStore({
-  defaultValue: defaultPreferences,
-  persistence: {
-    key: "chat:a11y-preferences",
-    storage: window.localStorage,
-    events: {
-      subscribe(listener) {
-        const handle = (event: StorageEvent) => listener(event);
-        window.addEventListener("storage", handle);
-        return () => window.removeEventListener("storage", handle);
-      },
-    },
-  },
-});
+```ts title="preferences.ts"
+import { createPreferenceStore } from "@generative-a11y/dom";
 
-const unsubscribe = store.subscribe(() => {
-  const preferences = store.getSnapshot();
-  const configuration = preferencesToCoreConfiguration(preferences);
-  applyConfiguration(configuration);
-});
-
+const store = createPreferenceStore();
 store.setPreferences({
   version: 1,
   preset: "balanced",
   streaming: "sentence",
   tools: "status",
 });
+
+// Read store.getSnapshot() or subscribe to changes.
+// Call store.dispose() when its owner ends.
 ```
 
-### Walkthrough
+Persistence is disabled by default. Supply `persistence.key` to use browser
+storage when it is available:
 
-<Steps>
+```ts title="Persist preferences"
+const store = createPreferenceStore({
+  persistence: { key: "chat:a11y-preferences" },
+});
+```
 
-<Step>
+Use `preferencesToCoreConfiguration` to map the snapshot to a core preset and
+policy overrides. Unsubscribe listeners and dispose the store when its owner
+ends.
 
-### Supply storage
-
-Pass storage when you need persistence, server rendering, or controlled tests.
-
-</Step>
-
-<Step>
-
-### Subscribe to changes
-
-getSnapshot returns validated, versioned preferences.
-
-</Step>
-
-<Step>
-
-### Map preferences to core
-
-preferencesToCoreConfiguration converts selected verbosity into a core preset
-and policy override.
-
-</Step>
-
-</Steps>
+## Options
 
 <TypeTable
   type={{
@@ -172,8 +100,13 @@ and policy override.
     },
     "persistence.key": {
       type: <>string</>,
-      default: <>library key</>,
-      description: <>Storage key for the serialized versioned schema.</>,
+      required: true,
+      description: (
+        <>
+          Required when persistence is configured. Storage key for the
+          serialized versioned schema.
+        </>
+      ),
     },
     "persistence.storage": {
       type: <>PreferenceStorage</>,
@@ -182,7 +115,7 @@ and policy override.
     },
     "persistence.events": {
       type: <>PreferenceStorageEventSource</>,
-      default: <>storage events when available</>,
+      default: <>browser events with browser storage</>,
       description: <>Synchronizes validated changes from other documents.</>,
     },
     onDiagnostic: {
@@ -198,7 +131,38 @@ and policy override.
   }}
 />
 
+## Custom storage and runtime configuration
+
+Supply `storage` and `events` together to persist and synchronize through a
+custom storage layer. When you inject storage, the store uses only the event
+source you provide.
+
+```ts title="Create a runtime with stored preferences"
+import { createRuntime } from "@generative-a11y/core";
+import { preferencesToCoreConfiguration } from "@generative-a11y/dom";
+
+const runtime = createRuntime(
+  preferencesToCoreConfiguration(store.getSnapshot()),
+);
+
+// Call runtime.dispose() when its owner ends.
+```
+
+Core reads this configuration at construction. Later preference changes update
+the store without changing an active runtime. [A11yProvider](/api/react) also
+uses preferences only when constructing its owned runtime, and only when no
+explicit preset or policy is supplied. Apply saved changes when creating the
+next runtime or remounting the provider at an intentional session boundary.
+
 <span id="schema"></span>
+
+<span id="walkthrough"></span>
+
+<span id="supply-storage"></span>
+
+<span id="subscribe-to-changes"></span>
+
+<span id="map-preferences-to-core"></span>
 
 ## PreferenceSchemaV1 and helpers
 
