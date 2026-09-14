@@ -20,7 +20,7 @@
   "dependencies": {
     "@ai-sdk/react": "4.0.100",
     "@assistant-ui/core": "0.3.17",
-    "@assistant-ui/react": "0.15.18",
+    "@assistant-ui/react": "0.15.19",
     "@base-ui/react": "1.8.0",
     "@generative-a11y/ai-sdk": "workspace:*",
     "@generative-a11y/assistant-ui": "workspace:*",
