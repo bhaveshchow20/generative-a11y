@@ -58,7 +58,7 @@
     "@ag-ui/client": "0.0.59",
     "@ag-ui/core": "0.0.59",
     "@ai-sdk/react": "4.0.96",
-    "@assistant-ui/core": "0.3.15",
+    "@assistant-ui/core": "0.3.17",
     "@assistant-ui/react": "0.15.18",
     "@axe-core/playwright": "4.13.0",
     "@changesets/cli": "3.0.2",
