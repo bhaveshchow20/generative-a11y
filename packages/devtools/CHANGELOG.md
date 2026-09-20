@@ -1,5 +1,12 @@
 # @generative-a11y/devtools
 
+## 0.2.1
+
+### Patch Changes
+
+- 902f4ce: Update the devtools icon and motion dependencies to lucide-react
+  1.44.0 and motion 13.2.0.
+
 ## 0.2.0
 
 ### Minor Changes
