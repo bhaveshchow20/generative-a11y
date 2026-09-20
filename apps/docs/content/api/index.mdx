@@ -42,6 +42,30 @@ export const searchableText = [
   "How to read this reference",
   "Package pages list their exports; symbol pages show usage, options, defaults, and cleanup. Generated declarations provide the complete public type contracts. Follow the integration guides for installation and host framework setup.",
   "- Method return values describe behavior the library can confirm. - Cleanup notes list the timers, subscriptions, DOM nodes, or framework objects released by dispose(). - Test notes separate runtime and browser results from hands-on screen-reader tests.",
+  "Install at a glance",
+  "Install core first, then add the packages your host needs. Framework adapters depend on core; the DOM and React packages deliver announcements to the browser.",
+  "npm install @generative-a11y/core",
+  "npm install @generative-a11y/core @generative-a11y/dom",
+  "npm install @generative-a11y/react",
+  "npm install @generative-a11y/ai-sdk",
+  "npm install @generative-a11y/assistant-ui",
+  "npm install @generative-a11y/ag-ui",
+  "npm install --save-dev @generative-a11y/devtools",
+  "What each package owns",
+  "Core turns streaming AI and agent lifecycle events into paced screen-reader announcements. Core never touches the DOM and never claims assistive technology spoke anything.",
+  "DOM delivers core announcements to the browser through mounted or adopted live regions without changing the host application's visible interface.",
+  "React adds React lifecycle integration: wrap the existing application in A11yProvider, then dispatch normalized public core events from the host's existing lifecycle.",
+  "AI SDK observes host-owned public state from ai 7 and @ai-sdk/react 4 and dispatches to a borrowed core runtime. The root entry is SSR-safe; React hooks live at @generative-a11y/ai-sdk/react.",
+  "assistant-ui observes only the documented public ThreadRuntime getState and subscribe methods. bindThread silently baselines existing history and translates assistant text, terminal statuses, tool results, approvals, and sources.",
+  "ag-ui observes an AbstractAgent only through agent.subscribe callbacks and translates public subscription events into a borrowed core runtime.",
+  "devtools is development-only: a bounded redacted trace with categories, timing, outcomes, stable runtime IDs, and delivery metadata. It never retains assistant text or DOM content.",
+  "Subpath entries",
+  "@generative-a11y/core/testing exposes ManualClock, createRecorder, recordRuntime, replayEvents, and matchers. These exports are not available from the core root.",
+  "@generative-a11y/core/messages exposes en, Messages, MessageMap, MessageParams, MessageKey, AdapterCopy, and normalizeAdapterCopy.",
+  "@generative-a11y/ai-sdk/react exposes useChatAccessibility and useObserveChatAccessibility.",
+  "Disposal ownership",
+  "Creating something disposes it: createRuntime, createScheduler, and createStore each return an owned object with dispose.",
+  "Borrowing something never disposes it: adapters and bindings only unsubscribe and release their own subscription and adapter records.",
 ].join("\n");
 
 <span id="packages"></span>
@@ -132,3 +156,152 @@ Follow the integration guides for installation and host framework setup.
   released by dispose().
 - Test notes separate runtime and browser results from hands&#45;on
   screen&#45;reader tests.
+
+<span id="install&#45;at&#45;a&#45;glance"></span>
+
+## Install at a glance
+
+Install core first, then add the packages your host needs. Framework adapters
+depend on core; the DOM and React packages deliver announcements to the browser.
+
+```shell title="Terminal"
+npm install @generative-a11y/core
+```
+
+Add browser delivery:
+
+```shell title="Terminal"
+npm install @generative-a11y/core @generative-a11y/dom
+```
+
+Add React integration, which depends on core and DOM:
+
+```shell title="Terminal"
+npm install @generative-a11y/react
+```
+
+Add one or more framework adapters for the host you already use:
+
+```shell title="Terminal"
+npm install @generative-a11y/ai-sdk
+npm install @generative-a11y/assistant-ui
+npm install @generative-a11y/ag-ui
+```
+
+Add diagnostics only while developing:
+
+```shell title="Terminal"
+npm install --save-dev @generative-a11y/devtools
+```
+
+Peer requirements live on each package page: the React package supports React
+18.2 and 19, the AI SDK adapter targets `ai@7.0.x` and `@ai-sdk/react@4.0.x`,
+and the assistant&#45;ui adapter observes `@assistant-ui/core@0.3.x`.
+
+<span id="what&#45;each&#45;package&#45;owns"></span>
+
+## What each package owns
+
+Each package owns one layer and borrows the rest. Knowing the ownership
+boundary tells you which package to reach for and which one to dispose.
+
+**@generative&#45;a11y/core** is the framework&#45;independent accessibility
+runtime. It turns streaming AI and agent lifecycle events into paced
+screen&#45;reader announcements. Your app dispatches `RuntimeEvent` objects;
+core applies policy, schedules prepared output through a bounded queue with an
+injected clock, and emits `AnnouncementIntent` objects when there is something
+useful to announce. Core never touches the DOM and never claims assistive
+technology spoke anything. Use it directly in any JavaScript runtime, including
+tests without a document. Backend `error` fields are diagnostic&#45;only; use
+an event's `announcement` field for short, localized, user&#45;safe spoken
+error copy.
+
+**@generative&#45;a11y/dom** delivers core announcements to the browser. It
+mounts or adopts live regions without changing the host application's visible
+interface. `bindRuntime(runtime, options?)` creates an `Announcer`, subscribes
+it to a runtime, and returns a `RuntimeBinding` that exposes the connected
+announcer and an idempotent `dispose()` method. Disposing the binding
+unsubscribes and disposes the announcer but never disposes the borrowed
+runtime. It reports DOM delivery actions; it does not claim assistive
+technology produced speech.
+
+**@generative&#45;a11y/react** adds React lifecycle integration on top of core
+and DOM. Wrap the existing application in `A11yProvider` to supply runtime and
+delivery ownership, then dispatch normalized public core events from the host's
+existing lifecycle. The provider's only rendered infrastructure is one visually
+hidden polite region and one visually hidden assertive region. It does not
+replace or style the host application's chat, messages, composer, controls, or
+preference UI.
+
+**@generative&#45;a11y/ai&#45;sdk** is the Vercel AI SDK accessibility adapter.
+It observes host&#45;owned public state from `ai@7.0.x` and
+`@ai-sdk/react@4.0.x` and dispatches to a borrowed core runtime. The root entry
+is SSR&#45;safe; the React integration lives at
+`@generative-a11y/ai-sdk/react` with hooks such as `useChatAccessibility` and
+`useObserveChatAccessibility`. It does not render UI, read the DOM, own a chat,
+invoke `regenerate()`, or inspect private chat state.
+
+**@generative&#45;a11y/assistant&#45;ui** observes only the documented public
+`ThreadRuntime` `getState()` and `subscribe()` methods from
+`@assistant-ui/core@0.3.x`. `bindThread()` silently baselines existing history
+and translates later assistant text and documented terminal statuses, tool
+result state, approvals, and sources into a borrowed generative&#45;a11y
+runtime. It does not render UI, access the DOM, or call host runtime actions.
+Text is emitted only for append&#45;only changes; a rewrite, an unknown
+incomplete reason, or an observer that reaches its bounded identity capacity
+fails closed. The documented thread snapshot does not expose stable run, step,
+or hierarchy identity, so those lifecycle dimensions stay unavailable.
+
+**@generative&#45;a11y/ag&#45;ui** observes an `AbstractAgent` only through its
+documented `agent.subscribe(AgentSubscriber)` callbacks. `bindAgent()` translates
+the agent's public subscription events, including run and subagent run
+lifecycle, partial step lifecycle, assistant text messages, tool calls, and
+interaction requests, into a borrowed core runtime. It does not subscribe to the
+protocol observable, mutate agent state, render UI, or invoke agent actions.
+Step events expose only `stepName`, so the adapter deliberately omits `stepId`:
+names never become identity. Custom events and arbitrary state deltas are
+ignored.
+
+**@generative&#45;a11y/devtools** is the development&#45;only diagnostics
+layer. The default headless store is framework&#45;neutral, side&#45;effect&#45;free
+on import, and retains a bounded redacted trace: categories, timing, outcomes,
+stable runtime IDs, queue and entity snapshots, and browser delivery metadata.
+It never retains assistant text, labels, error messages, tool data, stacks, or
+DOM content. Attach a runtime with `store.attachRuntime()`, subscribe a render
+function, and export a schema&#45;versioned redacted trace for inspection. Keep
+it out of production bundles.
+
+<span id="subpath&#45;entries"></span>
+
+## Subpath entries
+
+Some behavior lives behind subpath exports rather than the package root:
+
+- `@generative-a11y/core/testing` exposes the deterministic testing surface:
+  `ManualClock`, `createRecorder`, `recordRuntime`, `replayEvents`, and
+  matchers for lifecycle tests. These exports are not available from the core
+  root.
+- `@generative-a11y/core/messages` exposes the localized copy surface: `en`,
+  `Messages`, `MessageMap`, `MessageParams`, `MessageKey`, `AdapterCopy`, and
+  `normalizeAdapterCopy`. Import this entry when you need custom copy or
+  adapter copy validation; these exports are not available from the core root.
+- `@generative-a11y/ai-sdk/react` exposes the React hooks
+  (`useChatAccessibility`, `useObserveChatAccessibility`). The root entry is
+  SSR&#45;safe and framework&#45;neutral; the React integration is only
+  available from the subpath.
+
+<span id="disposal&#45;ownership"></span>
+
+## Disposal ownership
+
+Ownership is the rule that keeps cleanup predictable across packages:
+
+- Creating something disposes it. `createRuntime()`, `createScheduler()`, and
+  `createStore()` each return an owned object with `dispose()`.
+- Borrowing something never disposes it. Adapters and bindings
+  (`bindThread()`, `bindAgent()`, `bindRuntime()`) only unsubscribe and release
+  their own subscription and adapter records. Your thread, agent, and core
+  runtimes stay yours.
+- Disposal is idempotent everywhere. Call `dispose()` once when the owning
+  scope ends, typically in a framework cleanup function or an explicit teardown
+  path.

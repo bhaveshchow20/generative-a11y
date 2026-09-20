@@ -38,6 +38,12 @@ export const searchableText = [
   "Supplies stable polite and assertive elements. Both must belong to the same document.",
   "(result) => void undefined",
   "Observes each delivery attempt. Callback failures cannot alter delivery.",
+  "Delivery pipeline",
+  "Use progressive delivery. auto mode calls ariaNotify on the channel region first, then falls back to mutating the live region when ariaNotify is missing or throws.",
+  "After the first ariaNotify throw, later announcements skip ariaNotify and go straight to the live region.",
+  "Observe the attempt. onDelivery sees every result synchronously; throwing inside the callback cannot alter delivery.",
+  "Log only the fallback cases by checking result.error, which is set only when ariaNotify threw.",
+  "Release owned nodes. dispose is idempotent and removes only regions the announcer created.",
   "DeliveryResult",
   "announce returns one result synchronously.",
   "Status Method Meaning",
@@ -47,8 +53,20 @@ export const searchableText = [
   "disposed none announce was called after disposal",
   'channel announcementId sourceType at sourceEventId "responseId / toolId / interactionId" "runId / runInstanceId" "stepId / stepInstanceId" error polite | assertive Intent channel selected for this attempt. string',
   "Stable ID copied from the AnnouncementIntent for diagnostic correlation.",
-  "RuntimeEvent['type'] Event type that produced the announcement intent. number Injected-clock timestamp copied from the announcement intent. string undefined Application event ID when the source event supplied one. string undefined Entity IDs copied from the announcement intent when present. string undefined Run and attempt IDs copied from the intent when present. string undefined Step and attempt IDs copied from the intent when present. { name, message } undefined",
+  "RuntimeEvent['type'] Event type that produced the announcement intent. number Injected-clock timestamp copied from the announcement intent.",
   "Serializable ariaNotify failure information when fallback was needed.",
+  "intent.locale sets the lang attribute on the region; an undefined locale removes it.",
+  "Supplied regions",
+  "Polite and assertive regions must be distinct, connected, non-nested elements in the same document. Violations throw a TypeError before anything is created.",
+  "Supplied regions are normalized like owned ones: aria-live, aria-atomic, aria-relevant, and visually-hidden styling are applied.",
+  "Owned regions",
+  "Without supplied regions the announcer appends its own polite and assertive divs to the document body, or the document element when no body exists, and normalizes them. dispose removes only these owned nodes.",
+  "Multiple announcers",
+  "Each createAnnouncer call is independent with its own regions and ariaNotify latch. Prefer one announcer per surface and dispose it with that surface.",
+  "The inert announcer",
+  "Without a document anywhere, the announcer stays inert: getRegions returns undefined and announce reports unavailable.",
+  "Common pitfalls",
+  "Server-side rendering produces an inert announcer, not an error. Announcing after dispose reports disposed. Passing the same element twice throws.",
   "A notified or mutated result confirms that the library updated the browser. Test with a real screen reader to confirm what it speaks.",
 ].join("\n");
 
@@ -102,14 +120,6 @@ browser action; disposing the announcer removes only regions it created.
 
 <span id="options"></span>
 
-<span id="walkthrough"></span>
-
-<span id="use-progressive-delivery"></span>
-
-<span id="observe-the-attempt"></span>
-
-<span id="release-owned-nodes"></span>
-
 ## AnnouncerOptions
 
 Supplying regions transfers neither node ownership nor removal responsibility to
@@ -154,6 +164,79 @@ the library.
     },
   }}
 />
+
+The document is resolved in a fixed order: the explicit `document` option
+first, then the owner document of the supplied polite region, then the global
+document. An invalid `mode` throws a `TypeError` immediately, before any region
+is created or validated.
+
+<span id="walkthrough"></span>
+
+## Delivery pipeline
+
+### Use progressive delivery
+
+<span id="use-progressive-delivery"></span>
+
+In `auto` mode, `announce` tries `ariaNotify` first. It reads `ariaNotify` off
+the live region element for the intent's channel and calls it with the intent
+text and a priority: `high` for assertive intents, `normal` for polite ones.
+When the call returns without throwing, the result is `notified` via
+`aria-notify`.
+
+Two fallback paths lead to the live region. If the element has no `ariaNotify`
+function, delivery skips straight to mutating the region. If `ariaNotify`
+throws, the error is serialized into the result, a latch disables `ariaNotify`
+for all later announcements, and delivery falls back to the region as well.
+Because of the latch, one failing browser means subsequent announcements skip
+the `ariaNotify` attempt entirely instead of throwing on every message.
+
+`mode: "live-region"` skips the `ariaNotify` attempt altogether. Use it as a
+forced test path when you want deterministic region-text assertions:
+
+{/* prettier-ignore */}
+```typescript title="announcer.test.ts"
+const announcer = createAnnouncer({ mode: "live-region" });
+const result = announcer.announce(intent);
+
+expect(result).toMatchObject({ status: "mutated", method: "live-region" });
+expect(announcer.getRegions()?.[intent.channel].textContent).toBe(
+  intent.text,
+);
+```
+
+### Observe the attempt
+
+<span id="observe-the-attempt"></span>
+
+Every `announce` call reports through `onDelivery` synchronously, including
+`unavailable` and `disposed` results. The callback is purely observational:
+exceptions thrown inside it are swallowed and cannot alter delivery. Use it to
+log the status and method per announcement, or to count how often the
+`ariaNotify` path succeeds in the browsers your users run.
+
+{/* prettier-ignore */}
+```typescript title="delivery-logging.ts"
+const announcer = createAnnouncer({
+  onDelivery: (result) => {
+    if (result.status === "mutated" && result.error) {
+      console.warn("ariaNotify failed, fell back to live region:", result.error);
+    }
+  },
+});
+```
+
+The `error` field is only set when `ariaNotify` threw, so this logs exactly
+the fallback cases without noise from the normal live-region path.
+
+### Release owned nodes
+
+<span id="release-owned-nodes"></span>
+
+Call `dispose()` when the owning surface is removed. Disposal is idempotent.
+It removes the polite and assertive regions only when the announcer created
+them; regions you supplied stay in the document. After disposal, `announce`
+returns a `disposed` result without touching the document.
 
 <span id="result"></span>
 
@@ -261,6 +344,118 @@ announce returns one result synchronously.
     },
   }}
 />
+
+The `error` field is only present when `ariaNotify` threw and delivery fell
+back to the live region. `intent.locale`, when defined, sets the `lang`
+attribute on the region before delivery; an undefined locale removes it.
+
+## Supplied regions
+
+When you pass `regions`, they are validated before anything else is created. A
+violation throws a `TypeError`:
+
+<table aria-label="Supplied regions validation table">
+  <thead>
+    <tr>
+      <th>Rule</th>
+      <th>Failure</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Polite and assertive must be distinct elements</td>
+      <td>Passing the same element twice throws.</td>
+    </tr>
+    <tr>
+      <td>Both must be connected to the document</td>
+      <td>Detached elements throw.</td>
+    </tr>
+    <tr>
+      <td>Neither may contain the other</td>
+      <td>Nested regions throw.</td>
+    </tr>
+    <tr>
+      <td>Both must belong to the same document</td>
+      <td>Regions from different documents throw.</td>
+    </tr>
+    <tr>
+      <td>Both must belong to the provided document</td>
+      <td>A document option that disagrees with the regions throws.</td>
+    </tr>
+  </tbody>
+</table>
+
+Supplied regions are normalized the same way owned regions are. The announcer
+sets `aria-live` to the channel, `aria-atomic="true"`,
+`aria-relevant="additions text"`, and applies visually-hidden styling so the
+regions are exposed to assistive technology without affecting layout. It also
+clears `role`, `aria-busy`, `hidden`, `aria-hidden`, and `inert` so a reused
+container cannot accidentally silence itself.
+
+{/* prettier-ignore */}
+```typescript title="supplied-regions.ts"
+import { createAnnouncer } from "@generative-a11y/dom";
+
+const announcer = createAnnouncer({
+  regions: {
+    polite: document.getElementById("sr-polite")!,
+    assertive: document.getElementById("sr-assertive")!,
+  },
+});
+```
+
+## Owned regions
+
+When you do not supply regions, the announcer creates its own pair. Each
+region is a `div` appended to `document.body` (falling back to the document
+element when there is no body), polite first and assertive second. Both are
+normalized by the same configuration applied to supplied regions: the channel
+as `aria-live`, `aria-atomic="true"`, `aria-relevant="additions text"`, and
+visually-hidden styling that keeps the regions exposed to assistive
+technology without affecting layout.
+
+Owned regions are the only nodes `dispose()` removes. If your app also needs
+visible status text, keep a separate element; the announcer regions are
+exclusively a screen-reader channel and are hidden from sighted users by
+design. Because the regions are appended at creation time, they sit after your
+app's existing content in the DOM; their position does not affect announcement
+behavior.
+
+## Multiple announcers
+
+Each `createAnnouncer` call is independent: it creates (or adopts) its own
+region pair and its own `ariaNotify` latch. Two announcers on the same page do
+not share state, and disposing one never touches the other's regions. Sharing
+one region pair between two announcers via `options.regions` is allowed, but
+each announcer normalizes the shared elements on creation, so prefer one
+announcer per surface and dispose it with that surface.
+
+## The inert announcer
+
+When no document is available anywhere (no `document` option, no supplied
+regions, no global document, as in server-side rendering), `createAnnouncer`
+does not throw. It returns an inert announcer: `getRegions()` returns
+`undefined` and every `announce` call reports `unavailable` with method `none`.
+This makes SSR safe by default; create the announcer on the client or pass a
+document explicitly.
+
+## Common pitfalls
+
+- **Expecting an error without a document.** The announcer stays inert and
+  reports `unavailable`. Check the result status in code that must run during
+  SSR.
+- **Announcing after dispose.** `announce` returns a `disposed` result and
+  leaves the document alone. Do not retain the announcer past its owner.
+- **Assuming `ariaNotify` runs everywhere.** It is progressive enhancement.
+  Browsers without it take the live-region path, and a throwing `ariaNotify`
+  disables itself after the first failure.
+- **Reusing one element for both channels.** Passing the same element as
+  polite and assertive throws a `TypeError`.
+- **Throwing inside `onDelivery`.** The error is swallowed. Keep the callback
+  side-effect free and handle logging failures outside it.
+- **Reading regions before creation finishes.** `createAnnouncer` builds
+  regions synchronously, so `getRegions()` is populated immediately after the
+  call. There is no async setup step to wait for.
 
 <Callout title="Evidence and testing note">
 

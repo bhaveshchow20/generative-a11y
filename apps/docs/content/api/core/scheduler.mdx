@@ -45,10 +45,29 @@ export const searchableText = [
   "Scheduler methods",
   "Dispose cancels the owned timer and pending queue.",
   '"schedule(candidate)" "cancelScope(scope)" "pendingCount()" "getDiagnosticSnapshot()" "dispose()" string | undefined',
-  "Method. Returns the scheduled ID, including the replacement ID when coalescing pending work. Returns undefined when deduplicated, rejected, or disposed.",
+  "Method. Returns the scheduled ID, including the replacement ID when coalescing pending work. Returns undefined for blank text, a disposed scheduler, or a candidate rejected by capacity eviction. Duplicate suppression happens later at delivery.",
   "void Method. Cancels every pending candidate with the matching scope. number Method. Returns the current bounded queue length. readonly DiagnosticPendingAnnouncement[]",
   "Method. Returns the current content-free pending queue projection in due-time order.",
   "void Method. Cancels the timer and queue. Repeated calls are safe.",
+  "Delivery pacing",
+  "The scheduler keeps a single timer aimed at the next eligible candidate. Polite announcements additionally wait for minimumGapMs after the last successful delivery.",
+  "Assertive announcements bypass the minimum gap and deliver before eligible polite candidates.",
+  "Deduplication",
+  "Each delivered announcement registers a dedupe key for dedupeWindowMs. A later candidate with the same key is suppressed with a duplicate diagnostic.",
+  "The default dedupe key combines the locale, source type, entity identity, channel, and text. An explicit dedupeKey collapses equivalent output that differs in incidental text.",
+  "A matching coalesceKey replaces the pending item in place, keeping its ID and queue position with the newest text and a fresh dueAt.",
+  "Capacity and eviction",
+  "When the queue is full, the scheduler drops the lowest capacityPriority (status before content), then the oldest sequence. Polite-channel candidates are evicted first when any polite candidate is involved.",
+  "cancelPurposes removes only queued candidates whose purpose appears in the list, with the reason defaulting to scope-cancelled. Already delivered output cannot be retracted.",
+  "Diagnostics",
+  "Every diagnostic carries a disposition (queued, announced, merged, suppressed, cancelled), a reason, a timestamp from the injected clock, and a content-free announcement projection.",
+  "getDiagnosticSnapshot returns a frozen content-free projection of the pending queue in due-time order.",
+  "Diagnostic delivery is best-effort and budgeted; excess is aggregated into a single suppressed queue-capacity diagnostic with a count.",
+  "Error semantics",
+  "Construction throws RangeError when minimumGapMs or dedupeWindowMs is negative or non-finite, or when maxQueueSize is not a positive integer. schedule throws RangeError for negative or non-finite delayMs.",
+  "If onAnnouncement throws, the announcement is suppressed with a delivery-error diagnostic and onDeliveryError is notified; the remaining queue keeps moving.",
+  "Testing with a manual clock",
+  "Pair the scheduler with ManualClock to test pacing deterministically: advance the clock instead of waiting and assert on collected announcements.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -171,6 +190,16 @@ backend data.
 
 <TypeTable
   type={{
+    purpose: {
+      type: <>response&#45;text &#124; routine&#45;status &#124; notice</>,
+      default: <>"notice"</>,
+      description: (
+        <>
+          Independent of channel and source event. Used by cancelPurposes to
+          retract only queued output of a given kind.
+        </>
+      ),
+    },
     channel: {
       type: <>polite &#124; assertive</>,
       required: true,
@@ -187,6 +216,37 @@ backend data.
       type: <>RuntimeEvent&#91;'type'&#93;</>,
       required: true,
       description: <>Identifies the app event that produced this candidate.</>,
+    },
+    sourceEventId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Optional source event correlation copied into intents.</>
+      ),
+    },
+    responseId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Optional response identity used for dedupe grouping.</>
+      ),
+    },
+    toolId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Optional tool identity used for dedupe grouping.</>,
+    },
+    interactionId: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: <>Optional interaction identity used for dedupe grouping.</>,
+    },
+    locale: {
+      type: <>string</>,
+      default: <>undefined</>,
+      description: (
+        <>Optional locale copied into the announcement intent.</>
+      ),
     },
     delayMs: {
       type: <>number</>,
@@ -221,7 +281,7 @@ backend data.
     },
     dedupeKey: {
       type: <>string</>,
-      default: <>normalized text</>,
+      default: <>source, entity, channel, and text</>,
       description: (
         <>Suppresses equivalent recent delivery within the dedupe window.</>
       ),
@@ -252,8 +312,10 @@ Dispose cancels the owned timer and pending queue.
       description: (
         <>
           Method. Returns the scheduled ID, including the replacement ID when
-          coalescing pending work. Returns undefined when deduplicated,
-          rejected, or disposed.
+          coalescing pending work. Returns undefined when the candidate text
+          is blank, the scheduler is disposed, or the candidate loses
+          capacity eviction. Duplicate suppression happens at delivery and
+          does not change the return value.
         </>
       ),
     },
@@ -261,6 +323,16 @@ Dispose cancels the owned timer and pending queue.
       type: <>void</>,
       description: (
         <>Method. Cancels every pending candidate with the matching scope.</>
+      ),
+    },
+    "cancelPurposes(purposes, reason?)": {
+      type: <>void</>,
+      description: (
+        <>
+          Method. Cancels only queued candidates whose purpose (defaulting to
+          "notice") is in the given list. The optional reason defaults to
+          "scope&#45;cancelled". Already delivered output cannot be retracted.
+        </>
       ),
     },
     "pendingCount()": {
@@ -284,3 +356,173 @@ Dispose cancels the owned timer and pending queue.
     },
   }}
 />
+
+<span id="delivery&#45;pacing"></span>
+
+## Delivery pacing
+
+The scheduler keeps a single timer aimed at the next eligible candidate. An
+announcement becomes eligible at its `dueAt` time, which is the scheduling
+moment plus `delayMs` on the injected clock. Polite announcements additionally
+wait for `minimumGapMs` to elapse since the last successful delivery, so a
+burst of status updates cannot machine&#45;gun a screen reader. Assertive
+announcements bypass the minimum gap: when an eligible assertive and an
+eligible polite candidate compete, the assertive one delivers first. The gap is
+only updated by successful deliveries; a suppressed duplicate does not reset
+pacing.
+
+{/* prettier-ignore */}
+```typescript title="pacing.ts"
+import { createScheduler, systemClock } from "@generative-a11y/core";
+
+const scheduler = createScheduler({
+  clock: systemClock,
+  minimumGapMs: 1000,
+  dedupeWindowMs: 5_000,
+  maxQueueSize: 32,
+  onAnnouncement: (intent) => liveRegion.textContent = intent.text,
+});
+
+// Deliver soon, but no sooner than one second after the previous announcement.
+const statusId = scheduler.schedule({
+  channel: "polite",
+  text: "Still working on your request.",
+  sourceType: "response.started",
+  responseId: "response:r1",
+  capacityPriority: "status",
+});
+
+// Urgent content jumps ahead of the polite queue.
+scheduler.schedule({
+  channel: "assertive",
+  text: "Your approval is required.",
+  sourceType: "approval.requested",
+  interactionId: "interaction:a1",
+  capacityPriority: "content",
+});
+```
+
+<span id="deduplication"></span>
+
+## Deduplication
+
+Each delivered announcement registers a dedupe key for `dedupeWindowMs`. When
+a queued candidate later becomes eligible with the same key, delivery is
+suppressed and a `suppressed` / `duplicate` diagnostic is recorded. The key
+combines the locale with either your explicit `dedupeKey` or a default built
+from the source type, an entity identity
+(`responseId ?? toolId ?? interactionId ?? scope ?? "global"`), the channel,
+and the text. Passing an explicit `dedupeKey` lets you collapse equivalent
+output that differs in incidental text, while the default keeps announcements
+from two different responses separate even when the wording matches.
+
+Coalescing is the queue&#45;time counterpart. If a candidate carries a
+`coalesceKey` that matches a pending item, the pending item is replaced in
+place: it keeps its ID and queue position but adopts the newest candidate's
+text and a fresh `dueAt`. A `merged` / `coalesced` diagnostic records the
+replacement. Use coalescing for progress updates where only the latest value
+matters.
+
+<span id="capacity&#45;and&#45;eviction"></span>
+
+## Capacity and eviction
+
+The queue is bounded by `maxQueueSize`, a positive integer validated at
+construction. When a new candidate arrives at a full queue, the scheduler
+chooses a victim rather than growing: if any polite&#45;channel candidate is
+involved, only polite candidates are eligible for eviction, which shields
+assertive output. Among the pool, the scheduler drops the lowest
+`capacityPriority` (`status` before `content`) and then the oldest sequence.
+If the new candidate itself is the victim, `schedule` returns `undefined` and
+records a `cancelled` / `queue-capacity` diagnostic.
+
+`cancelScope(scope)` removes every pending candidate tagged with that scope,
+for example when a response, tool, run, or step ends and its follow&#45;up
+output is no longer relevant. `cancelPurposes(purposes, reason?)` removes only
+queued candidates whose `purpose` (defaulting to `"notice"`) appears in the
+list, with the reason defaulting to `"scope-cancelled"`. Both emit one
+diagnostic per cancelled candidate. Already delivered output cannot be
+retracted by either method.
+
+<span id="diagnostics"></span>
+
+## Diagnostics
+
+Attach `onDiagnostic` to observe scheduler decisions without affecting them.
+Every decision carries a disposition (`queued`, `announced`, `merged`,
+`suppressed`, `cancelled`), a reason (such as `scheduled`, `coalesced`,
+`duplicate`, `queue-capacity`, `scope-cancelled`, `delivery-error`, or
+`runtime-disposed`), a timestamp from the injected clock, and, when relevant, a
+content&#45;free announcement projection plus the correlation IDs and timing
+fields of the item involved.
+
+`getDiagnosticSnapshot()` returns a frozen projection of the current pending
+queue in due&#45;time order. It is deliberately content&#45;free: no text,
+dedupe keys, or coalesce keys are exposed, so it is safe to log or render.
+
+Diagnostic delivery is best&#45;effort and budgeted. The scheduler drains
+queued diagnostics with a budget of at least 16 entries (scaling with
+`maxQueueSize`); if diagnostics are produced faster than they drain, the excess
+is aggregated into a single `suppressed` / `queue-capacity` diagnostic with a
+count. An `onDiagnostic` listener that throws cannot alter scheduling: the
+error is swallowed.
+
+<span id="error&#45;semantics"></span>
+
+## Error semantics
+
+Construction validates its timing and capacity values up front:
+`minimumGapMs` and `dedupeWindowMs` must be finite non&#45;negative numbers,
+and `maxQueueSize` must be a positive integer; violations throw a
+`RangeError`. `schedule` throws a `RangeError` when `delayMs` is negative or
+non&#45;finite, and silently ignores candidates with blank text.
+
+Delivery failures are contained. If `onAnnouncement` throws, the failed
+announcement is suppressed with a `delivery-error` diagnostic and your
+`onDeliveryError` observer is notified; an observer that throws is swallowed so
+it cannot strand the remaining queue. A scheduler whose `onAnnouncement`
+always throws keeps its queue moving: every queued item is attempted once, in
+due order, regardless of earlier failures.
+
+<span id="testing&#45;with&#45;a&#45;manual&#45;clock"></span>
+
+## Testing with a manual clock
+
+Pair the scheduler with `ManualClock` from `@generative-a11y/core` to test
+pacing deterministically. Advance the clock instead of waiting, and assert on
+the announcements your `onAnnouncement` listener collects.
+
+{/* prettier-ignore */}
+```typescript title="scheduler.test.ts"
+import { createScheduler, ManualClock } from "@generative-a11y/core";
+
+const clock = new ManualClock(0);
+const announced: string[] = [];
+const scheduler = createScheduler({
+  clock,
+  minimumGapMs: 1000,
+  dedupeWindowMs: 5_000,
+  maxQueueSize: 8,
+  onAnnouncement: (intent) => announced.push(intent.text),
+});
+
+scheduler.schedule({
+  channel: "polite",
+  text: "First update.",
+  sourceType: "response.started",
+});
+scheduler.schedule({
+  channel: "polite",
+  text: "Second update.",
+  sourceType: "response.text.delta",
+});
+
+// Nothing delivered yet: the timer waits on the manual clock.
+clock.advanceBy(1);
+console.log(announced); // ["First update."]
+
+clock.advanceBy(1000);
+console.log(announced); // ["First update.", "Second update."]
+
+scheduler.dispose();
+```

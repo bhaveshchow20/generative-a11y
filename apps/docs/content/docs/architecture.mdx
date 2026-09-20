@@ -23,6 +23,16 @@ export const searchableText = [
   "AI framework → standard events → core runtime → browser delivery → screen reader.",
   "An adapter translates documented framework state into normalized events. Core segments text, removes repeats, and schedules announcement intents. DOM delivers those intents through browser APIs without changing your visible interface.",
   "Layer | Owns | Integration boundary | | --- | --- | --- | | Host application | Visible content, controls, lifecycle evidence | Reports confirmed state and keeps content readable | | Adapter | Framework-to-event translation | Uses public state; declares missing evidence | | Core runtime | Text segmentation, policy, queues, cancellation | Emits announcement intents without browser dependencies | | DOM delivery | Live regions and browser notification calls | Reports browser delivery results | | React bindings | Provider lifetime and host element refs | Connects existing elements to runtime and DOM behavior",
+  "The standard event vocabulary: response events, tool events, run and step events, interaction and approval events, connection events, citations, attention events.",
+  "Every event carries a stable identity so replays and retries can be distinguished without guessing.",
+  "Package map: core, dom, react, ai-sdk, assistant-ui, ag-ui, devtools.",
+  "The runtime pipeline: dispatch, policy resolution, segmentation, scheduling, announcement intents.",
+  "Presets: minimal, balanced, verbose, completion-only. Text strategy: silent, sentence, paragraph, completion.",
+  "Queues are bounded. Timers are injected through SystemClock and cancelled on dispose and terminal events.",
+  "Browser delivery: bindRuntime connects the runtime to the page, writes intents through live regions, reports delivery results, and disposes before the runtime.",
+  "Streaming and status changes never move focus.",
+  "Attention model: observed modes foreground, background, reading-history, away, unknown. Explicit host or user choice takes precedence over observed evidence.",
+  "Diagnostics: redacted runtime and DOM delivery traces. Never claim that a transcript proves what a screen reader spoke.",
   "Report only what the app knows",
   "generative-a11y turns confirmed app events into screen-reader updates. It records each update added to the page. Test with real screen readers to confirm what they speak.",
   "Core does not use the DOM. - Adapters do not run framework actions or control your interface. - Streaming and status changes do not move focus. - generative-a11y does not copy backend errors or tool results into announcements.",
@@ -53,6 +63,140 @@ those intents through browser APIs without changing your visible interface.
   role="img"
 />
 
+### The standard event vocabulary
+
+Everything the runtime understands is expressed as a small set of typed,
+serializable events. Adapters translate framework&#45;specific state into
+these events; the host app can also dispatch them directly. The categories
+are:
+
+- **Response events**: `response.started`, `response.text.delta`,
+  `response.completed`, `response.interrupted`, `response.failed`, and
+  `response.retrying`. These describe one assistant response from start to a
+  terminal state.
+- **Tool events**: `tool.started`, `tool.progress`, `tool.completed`, and
+  `tool.failed`. These describe tool calls the assistant makes on the way to
+  an answer.
+- **Run and step events**: `run.started`, `run.completed`, `run.failed`,
+  `run.interrupted`, `run.retrying`, and the matching `step.*` events. These
+  describe agent workflows with explicit ownership: a stable logical run
+  identity, plus an optional instance identity for each attempt, and the
+  same for steps.
+- **Interaction and approval events**: `interaction.requested`,
+  `interaction.resolved`, `approval.requested`, and `approval.resolved`.
+  These describe moments where the app needs the user to decide something.
+- **Connection events**: `connection.lost` and `connection.restored`.
+- **Citations**: `citation.available`, for source references the app chooses
+  to surface.
+- **Attention events**: `attention.changed` and `attention.override`, which
+  feed the attention model described below.
+
+Every event carries a stable identity, such as a response id, tool id, or
+run id, plus optional instance ids that distinguish retries and replays.
+The runtime uses these identities to deduplicate and cancel correctly, so a
+retried response does not produce duplicate announcements. Because the
+events are serializable, they can be recorded, replayed, and asserted in
+deterministic tests.
+
+### Package map
+
+The monorepo is organized so that each package owns one responsibility.
+Dependencies point in one direction: adapters and bindings depend on core,
+never the other way around.
+
+| Package                            | Responsibility                                                                 | Key sources                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `@generative-a11y/core`            | Framework&#45;independent runtime: events, policy, segmentation, scheduling    | `runtime.ts`, `scheduler.ts`, `policy.ts`, `segmenter.ts`, `messages.ts`, `attention.ts`, `clock.ts`, `recorder.ts`, `testing.ts`, `types.ts` |
+| `@generative-a11y/dom`             | Browser delivery: live regions, focus utilities, preferences, attention binding | `index.ts` (`bindRuntime`), `focus.ts`, `composed-tree.ts`, `preferences.ts`, `attention-binding.ts` |
+| `@generative-a11y/react`           | React bindings: provider lifetime, hooks, attention control                    | `index.tsx`                                                                                  |
+| `@generative-a11y/ai-sdk`          | Adapter translating AI SDK `useChat` state into standard events                 | `react.tsx`, `index.ts`                                                                      |
+| `@generative-a11y/assistant-ui`    | Adapter translating assistant&#45;ui lifecycle into standard events            | `index.ts`                                                                                   |
+| `@generative-a11y/ag-ui`           | Adapter translating the AG&#45;UI protocol into standard events                | `index.ts`                                                                                   |
+| `@generative-a11y/devtools`        | Development diagnostics: redacted runtime and DOM delivery traces               | `overlay.ts`, `inspector.tsx`, `store.ts`                                                    |
+
+Core has no browser dependencies at all: it never touches the DOM, timers
+run through an injected clock, and it emits plain announcement intents. DOM
+is independent of React and AI frameworks. Adapters are thin: they read
+documented public framework state and emit events. When a framework does not
+expose reliable evidence, the adapter declares reduced fidelity rather than
+guessing, as documented in [limitations](/docs/limitations).
+
+### The runtime pipeline
+
+One dispatch travels through the runtime in stages:
+
+1. **Dispatch.** The host or adapter calls `runtime.dispatch(event)` with a
+   standard event. The runtime updates its internal model of active
+   responses, tools, runs, and steps.
+2. **Policy resolution.** The announcement policy decides what becomes an
+   announcement. Policies are presets you can override: `minimal`,
+   `balanced`, `verbose`, and `completion-only`. The text strategy selects
+   the granularity: `silent`, `sentence`, `paragraph`, or `completion`. For
+   example, the balanced preset announces text at sentence boundaries with
+   a minimum of 24 characters and a maximum delay of 2,500 ms, announces
+   tool starts after 1,500 ms, and announces completions, failures,
+   interruptions, and retries.
+3. **Segmentation and dedupe.** Streaming text is normalized and segmented
+   into speakable units. Repeats within a dedupe window are removed, so a
+   re&#45;sent chunk does not get announced twice.
+4. **Scheduling.** Intents are queued and paced: a minimum gap separates
+   announcements, and the queue is bounded (200 intents) so a flood of
+   events cannot grow memory without limit. Time is injected through a
+   `SystemClock` abstraction, which is why tests can drive the scheduler
+   deterministically with a manual clock.
+5. **Intent emission.** The runtime emits announcement intents with a
+   channel (`polite` or `assertive`) and a purpose (`response-text`,
+   `routine-status`, or `notice`). Errors and failures use the assertive
+   channel.
+
+Timers and subscriptions are owned resources: every timer the runtime
+creates is cancelled on terminal events and on `dispose()`. Queues and
+tracked identities stay bounded. These are not optimizations; they are
+correctness rules, because a leaked timer in an accessibility layer can
+announce stale text long after the user moved on.
+
+### Browser delivery
+
+`bindRuntime(runtime)` from `@generative-a11y/dom` connects the runtime to
+the page. It subscribes to announcement intents and writes them through
+live regions and browser notification calls, without changing the visible
+interface. Each delivery reports a result, so the host can observe what was
+added to the page, while remembering the honesty rule: delivery confirmation
+is not proof of speech.
+
+Dispose in the right order: dispose browser delivery before the runtime, and
+keep the binding alive across responses. Streaming and status changes never
+move focus; focus utilities exist only for the cases where the host
+explicitly manages focus, such as dialogs the host itself opens.
+
+### Attention and preferences
+
+The attention model keeps announcements appropriate to what the runtime can
+conservatively observe. The observed modes are `foreground`, `background`,
+`reading-history`, `away`, and `unknown`; the labels are deliberately
+conservative and never claim to prove reading or intent. An explicit
+override, `auto`, `normal`, or `quiet`, lets the host or the user take
+precedence over observed evidence. The effective state is either `normal`
+or `quiet`, and policies can quiet routine announcements when the user is
+away or in the background.
+
+Preferences follow the same principle: the host reports what the user chose,
+and the runtime honors it. Preference handling stays in the DOM layer, where
+browser storage and settings live, and is translated into core configuration
+rather than read directly by the runtime.
+
+### Diagnostics without surveillance
+
+The runtime emits diagnostics alongside intents: what was prepared, when,
+and under which policy. The devtools package renders these as redacted
+traces, so developers can see the event&#45;to&#45;announcement pipeline
+without leaking message content or user data into logs. The same
+diagnostics power the recorder and replay fixtures used in tests.
+
+Diagnostics describe the library's own behavior. They are evidence about
+what the code did, not about what any person heard. Keep that boundary in
+every dashboard, log line, and test report.
+
 <span id="boundaries"></span>
 
 ## Report only what the app knows
@@ -66,3 +210,49 @@ confirm what they speak.
 - Streaming and status changes do not move focus.
 - generative&#45;a11y does not copy backend errors or tool results into
   announcements.
+
+The last point deserves emphasis: when a response fails or a tool errors,
+the announcement is a curated status message from the announcement catalog,
+not a paste of the backend error or tool result. Raw errors can contain
+secrets, stack traces, or confusing internals; the catalog keeps
+announcements safe, localizable, and honest about what is actually known.
+
+### Messages and localization
+
+Announcement wording lives in a message catalog, not inline in the
+runtime. Each message has a key, parameters, and an optional locale, and
+`formatAnnouncement` renders the final text. Keeping wording in one place
+has three benefits: announcements stay consistent across events, they can
+be translated without touching scheduling logic, and failure messages can
+be curated rather than copied from backend errors.
+
+The catalog never invents information. A tool failure announcement says a
+tool failed; it does not include the tool's raw output. A retry
+announcement says a retry is happening; it does not speculate about why.
+This restraint is what makes the announcements safe to speak aloud in the
+first place.
+
+### Example: one streaming chat turn
+
+Concretely, here is what happens when an assistant streams a two&#45;sentence
+reply in a React + AI SDK app:
+
+1. The AI SDK adapter observes the framework's public streaming state and
+   dispatches `response.started` with a stable response id.
+2. As text chunks arrive, the adapter dispatches `response.text.delta`
+   events carrying only the new text. The runtime buffers the text and,
+   under the balanced preset, waits for a sentence boundary with at least
+   24 characters before preparing an intent.
+3. The scheduler emits a polite intent for the first sentence and queues
+   the second behind the minimum gap. If the same chunk arrives twice, the
+   dedupe window removes the repeat.
+4. DOM delivery writes each intent into the live region and reports the
+   delivery result. Focus never moves.
+5. When the framework reports the stream finished, the adapter dispatches
+   `response.completed`, and the policy prepares a completion announcement.
+   If the user interrupts instead, `response.interrupted` cancels the
+   pending queue first, so stale text is never announced after the fact.
+
+At every stage the library can confirm what its own layer did: which
+events arrived, which intents were prepared, and which updates reached the
+page. What the screen reader spoke remains a question for manual testing.

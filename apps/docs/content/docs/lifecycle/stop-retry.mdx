@@ -5,8 +5,7 @@ description:
   updates from an older retry."
 publicPath: "/docs/lifecycle/stop-retry"
 section: "Lifecycle"
-keywords:
-  ["stop", "abort", "retry", "regeneration", "stale response", "replacement"]
+keywords: ["stop", "abort", "retry", "regeneration", "stale response", "replacement"]
 related: []
 order: 9
 ---
@@ -22,9 +21,20 @@ export const searchableText = [
   "Stop, abort, retry, and stale responses",
   "Stopping a response clears pending text",
   "Send response.interrupted when your app stops a response. Core discards waiting text and prepares a short status update. Adapters do not treat a generic ready state as proof that someone stopped a response. The host must also cancel its network request or model generation; dispatching an accessibility event does not abort that work or recall speech already handed to assistive technology.",
+  "Failure discards text too",
+  "Send response.failed when a response ends in error. The announcement field carries the short, translated failure message; error stays private for debugging. Failures announce on the error channel, which is assertive in the balanced policy.",
   "Tell the runtime when a retry starts",
   "response.retrying cancels the current attempt’s pending announcements. Keep one responseId for the logical answer and give each attempt a new responseInstanceId. Core ignores late updates from older attempts.",
+  "Identify the replaced attempt",
+  "Send response.retrying with the responseId and the responseInstanceId of the attempt being replaced.",
+  "Name the new attempt",
+  "nextResponseInstanceId names the replacement attempt. attempt is the human-readable one-based attempt number.",
+  "Keep the response ID",
+  "The responseId stays stable across retries for the logical answer. Every later delta and terminal event carries the new instance ID.",
   "For an active report response on attempt-1:",
+  "Late updates from replaced attempts are ignored",
+  "Events carrying an older responseInstanceId are diagnosed as stale and produce no output. This protects listeners from hearing interleaved fragments of an answer the app already discarded.",
+  "A stop event proves the host stopped its announcement work, not what a screen reader spoke.",
 ].join("\n");
 
 <span id="interruption"></span>
@@ -36,6 +46,84 @@ text and prepares a short status update. Adapters do not treat a generic ready
 state as proof that someone stopped a response. The host must also cancel its
 network request or model generation; dispatching an accessibility event does not
 abort that work or recall speech already handed to assistive technology.
+
+Concretely, `response.interrupted` does three things inside the runtime:
+
+1. Cancels the response's scheduled announcements and lifecycle scope, so no
+   queued sentence from the stopped answer can slip out later.
+2. Clears the text buffer and anything waiting for the completed boundary.
+3. Marks the response `interrupted` and, when the policy allows, prepares a
+   short polite status message from the message catalog, something equivalent
+   to "Response stopped." The balanced policy announces interruptions; the
+   `completion-only` preset stays silent.
+
+What it does not do is just as important. The event cannot abort your fetch,
+close your stream, or stop the model; you must do that in your own stop
+handler, in the same tick, before or alongside the dispatch. It also cannot
+recall speech already handed to assistive technology. If the screen reader has
+already started speaking a sentence, that sentence finishes. The interruption
+announcement describes what happened next: the response was stopped, and no
+more of it is coming.
+
+```ts title="Stop a response the user cancelled"
+async function stopResponse(responseId: string) {
+  // 1. Stop the host work first: abort the fetch, close the reader.
+  controller.abort();
+
+  // 2. Then tell the runtime, so pending announcements are discarded.
+  runtime.dispatch({ type: "response.interrupted", responseId });
+}
+```
+
+The order matters. If you dispatch first and abort second, a slow abort lets
+late deltas arrive after the interruption, and those deltas extend a response
+the user was told had stopped. Abort the host work, then report the stop.
+
+<span id="failure"></span>
+
+## Failure discards text too
+
+Not every ended response was stopped by the user. When a response ends in
+error, a timed&#45;out request, a failed model call, a stream that broke
+mid&#45;sentence, send `response.failed`:
+
+```ts title="Report a failed response"
+runtime.dispatch({
+  type: "response.failed",
+  responseId: "report",
+  error: "upstream 502 after 8.2s",
+  announcement: "The report could not be generated. Try again.",
+});
+```
+
+The two message fields have opposite privacy rules:
+
+| Field          | Purpose                                                      |
+| -------------- | ------------------------------------------------------------ |
+| `error`        | Diagnostic&#45;only backend detail. Never announced.          |
+| `announcement` | Short, translated, user&#45;safe failure copy. Announced.    |
+
+When `announcement` is present, the runtime announces it. When it is absent,
+the runtime falls back to a catalog message equivalent to "Response failed."
+Failures announce on the error channel, which is assertive in the balanced
+policy, because a failed response is information the user needs even if
+something else is being read. The `completion-only` preset disables failure
+announcements entirely; choose it only if your host surfaces errors through
+its own accessible UI.
+
+Keep `error` genuinely diagnostic: status codes, latencies, exception names.
+It exists so your logs and the devtools trace can explain the failure without
+leaking backend detail into the live region. Raw model errors often contain
+prompt fragments or internal hostnames; they must never reach `announcement`.
+
+Like interruption, failure clears the text buffer and anything staged for the
+completed boundary, then marks the response failed. There is no host work left
+to cancel, the work already failed, so dispatch `response.failed` as soon as
+your error handler knows the response is over. Do not wait for a retry
+decision: if you decide to retry afterward, send `response.retrying` as its
+own event with a new instance ID. A failure followed by a retry is two facts,
+and the listener deserves to hear both, the failure on the error channel and
+the retry as a new attempt, rather than a silent pivot.
 
 <span id="retry"></span>
 
@@ -70,5 +158,76 @@ runtime.dispatch({
 
 <span id="walkthrough"></span>
 <span id="identify-the-replaced-attempt"></span>
+
+### Identify the replaced attempt
+
+The `response.retrying` event names the attempt being replaced through
+`responseInstanceId`. This is the attempt whose pending announcements are
+cancelled. If your host never assigned instance IDs and sent deltas with a
+bare `responseId`, omit `responseInstanceId` here too; the retry then replaces
+the un&#45;instanced attempt. What you must not do is name the wrong
+attempt: the cancellation is keyed on this field, and a mismatch leaves the
+old attempt's queued sentences alive.
+
 <span id="name-the-new-attempt"></span>
+
+### Name the new attempt
+
+`nextResponseInstanceId` becomes the identity of the replacement attempt.
+`attempt` is the human&#45;readable one&#45;based attempt number and exists
+for catalog copy, for example a retry announcement equivalent to "Retrying,
+attempt 2." The balanced policy announces retries, so the listener hears that
+a new attempt began instead of wondering why the text restarted. If you omit
+`nextResponseInstanceId`, the runtime treats the retry as returning to an
+un&#45;instanced attempt, which is correct only when your attempts never had
+instance IDs in the first place.
+
 <span id="keep-the-response-id"></span>
+
+### Keep the response ID
+
+The `responseId` is the logical answer and it does not change across retries.
+The regenerated answer is still the answer to the same request, so it keeps
+`responseId: "report"` while the instance moves from `"attempt-1"` to
+`"attempt-2"`. Every later delta and terminal event carries `"attempt-2"`.
+This is what lets the runtime attach the new text to the right answer, the
+devtools trace show one answer with two attempts, and your tests assert on a
+stable identifier that survives regeneration.
+
+<span id="late&#45;updates"></span>
+
+## Late updates from replaced attempts are ignored
+
+A retry does not guarantee the old attempt is silent. A slow stream can
+deliver one more delta for `attempt-1` after the retry already started. The
+runtime compares the event's `responseInstanceId` against the current
+instance, diagnoses the late event as a stale response, and produces no
+output. The listener never hears interleaved fragments of an answer the app
+already discarded. Even a delta that omits `responseInstanceId` is caught
+once the retry named a current instance; the mismatch alone is enough.
+
+This protection depends on you sending instance IDs consistently. If you
+never use instance IDs at all, neither the runtime state nor the late event
+carries one, and there is nothing to mismatch against. The same rule applies
+to terminal events: a `response.completed` carrying the old instance ID
+after a retry is diagnosed stale, not announced, so a completed boundary
+from a discarded attempt can never masquerade as the new answer's
+completion. An event for a response that is already terminal is diagnosed
+as a terminal response and likewise produces nothing.
+
+The general principle is worth stating plainly: the runtime trusts the IDs
+you send. Unknown, terminal, or stale identities are diagnosed, never
+announced. Supplying accurate instance IDs is what makes stop, retry, and
+regeneration safe for the listener.
+
+<span id="evidence&#45;note"></span>
+
+## What these events prove
+
+A `response.interrupted` event proves your host dispatched a stop and the
+runtime discarded its pending announcements. A `response.retrying` event
+proves the runtime moved to a new attempt and will ignore late updates from
+the old one. Neither proves what a screen reader spoke, and an interruption
+announcement cannot unsay text the assistive technology already started
+reading. Treat these events as lifecycle facts about your app's reporting,
+and confirm the heard experience with real screen readers.

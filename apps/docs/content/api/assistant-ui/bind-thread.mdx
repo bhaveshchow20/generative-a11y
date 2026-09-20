@@ -41,6 +41,31 @@ export const searchableText = [
   "Tool call and result parts tool lifecycle Public content parts",
   "Approval state approval requested or resolved Public content parts",
   "Source parts citation.available Optional content parts",
+  "Baselining existing history",
+  "The first observe call during construction treats every message already in the thread as historical: it records assistant messages, tools, approvals, and sources without dispatching a single event.",
+  "Terminal outcomes only dispatch for records that became active, so a conversation opened on an already-finished exchange never announces stale finishes.",
+  "Response identity",
+  "Response identity is derived: `${scopeId}:message:${messageId}`, so two conversations with different scope IDs produce disjoint event streams.",
+  "Text deltas are emitted only for append-only growth. A rewritten part is marked as poisoned and stops being reported.",
+  "Terminal statuses",
+  "complete with reason stop or unknown becomes response.completed. incomplete with reason cancelled becomes response.interrupted. incomplete with reason error becomes response.failed.",
+  "An unknown reason fails closed: the binding never invents a stop, error, or interruption it did not see.",
+  "Tool and approval translation",
+  "tool.started when a tool-call part is first seen; tool.completed when it gains a result, or tool.failed when isError is true.",
+  "approval.requested while approved is undefined; approval.resolved with outcome approved or rejected when it resolves to a boolean.",
+  "Source parts dispatch citation.available with a count equal to the number of distinct sources tracked so far.",
+  "The copy locale is stamped onto tool and approval events only; it never translates response text.",
+  "Identity tracking and saturation",
+  "maxTrackedEntities defaults to 1000 and bounds message records, tools, approvals, sources, and text parts per message.",
+  "When any counter is exhausted the binding suppresses all subsequent dispatch. Create a fresh binding at an intentional session boundary to resume observation.",
+  "Adapter fidelity",
+  "adapterInfo: name assistant-ui, tools exact, interruption exact, replay partial, custom events unsupported, optional events tool.failed and citation.available, observed runtime methods getState and subscribe.",
+  "Error semantics",
+  "scopeId must be a non-empty string after trimming; maxTrackedEntities must be a positive safe integer; both throw TypeError otherwise.",
+  "Host delivery is isolated: exceptions thrown by runtime.dispatch are swallowed and observation continues.",
+  "Disposal releases only the binding's own state: the unsubscribe function and tracked records. Your thread and core runtimes are preserved.",
+  "Worked example",
+  "Two conversations mounted at once need two bindings with distinct, stable scope IDs. Dispose each binding when its owning scope ends.",
 ].join("\n");
 
 <span id="signature"></span>
@@ -187,3 +212,235 @@ changes become events.
     </tr>
   </tbody>
 </table>
+
+<span id="baselining"></span>
+
+## Baselining existing history
+
+`bindThread` calls its observer once during construction, before subscribing.
+That first pass treats every message already in the thread as historical: it
+records assistant messages, tools, approvals, and sources without dispatching
+a single event. A user who opens a conversation with forty old messages hears
+nothing. Only changes observed after binding become events.
+
+Historical messages are not inert. If an old assistant message gains new text
+later, the binding emits `response.started` followed by `response.text.delta`
+for the new text, and a later terminal status still resolves the response.
+Terminal outcomes (`response.completed`, `response.interrupted`,
+`response.failed`) only dispatch for records that became active, so a
+conversation opened on an already&#45;finished exchange never announces stale
+finishes.
+
+The binding observes assistant messages only. A message must have a string
+`id`, `role: "assistant"`, an array `content`, and a defined `status` to be
+tracked. User and system messages are never inspected.
+
+<span id="response&#45;identity"></span>
+
+## Response identity
+
+Every dispatched event is namespaced under your `scopeId`, which is trimmed at
+construction and validated to be a non&#45;empty string. Response identity is
+derived, not borrowed: a response ID has the shape
+`` `${scopeId}:message:${messageId}` ``, so two conversations mounted at the
+same time produce disjoint event streams as long as their scope IDs differ.
+Tool IDs take the shape `` `${scopeId}:tool:${toolCallId}` `` and approval IDs
+`` `${scopeId}:approval:${approvalId}` ``.
+
+Text deltas are emitted only for append&#45;only growth. Each text part is
+remembered per part index; when the observed text extends the previous value,
+only the new slice is dispatched in `response.text.delta`. If the observed text
+is rewritten instead of extended, the binding marks that part as poisoned and
+stops reporting it. Poisoning never invents content: the user hears the text
+that was already announced, not a reconstruction.
+
+<span id="terminal&#45;statuses"></span>
+
+## Terminal statuses
+
+Public assistant&#45;ui statuses map to terminal events as follows:
+
+- `status.type: "complete"` with reason `"stop"` or `"unknown"` becomes
+  `response.completed`.
+- `status.type: "incomplete"` with reason `"cancelled"` becomes
+  `response.interrupted`.
+- `status.type: "incomplete"` with reason `"error"` becomes
+  `response.failed`.
+- Any other incomplete reason produces no terminal event.
+
+An unknown reason fails closed: the binding never invents a stop, error, or
+interruption it did not see. A terminal event dispatches at most once per
+response record, and only after the record became active.
+
+<span id="tool&#45;and&#45;approval&#45;translation"></span>
+
+## Tool and approval translation
+
+Tool&#45;call parts (`type: "tool-call"` with a string `toolCallId`) produce
+`tool.started` when first seen after the initial baseline, carrying a label
+from your copy or the default `"A tool"`. When the part later gains a defined
+`result`, the binding dispatches `tool.completed`, or `tool.failed` when
+`isError` is `true`. A tool&#45;call part with a result already present during the
+initial baseline emits neither event, which keeps history replays quiet. The
+same part first observed after the baseline emits `tool.started` followed by
+its terminal event.
+
+Approval parts work in two phases. An approval observed while its `approved`
+field is still `undefined` dispatches `approval.requested`. When the same
+approval later resolves to a boolean, the binding dispatches
+`approval.resolved` with outcome `"approved"` or `"rejected"` and the matching
+resolved label from your copy. An approval that was already decided in history
+never announces a request.
+
+Source parts (`type: "source"` with a string `id`) dispatch
+`citation.available` with a `count` equal to the number of distinct sources
+tracked so far. Each source ID is reported once.
+
+Localized copy is captured and validated once at construction through
+`normalizeAdapterCopy`. The copy's `locale` is stamped onto `tool.*` and
+`approval.*` events only; response events carry no locale. It never translates
+response text.
+
+<span id="identity&#45;saturation"></span>
+
+## Identity tracking and saturation
+
+`maxTrackedEntities` (default `1000`) bounds five independent counters: message
+records, tools, approvals, sources, and text parts per message record. The
+default accommodates long conversations; raise it only for sessions you expect
+to exceed a thousand distinct entities per counter.
+
+When any counter is exhausted, the binding sets a saturated flag and suppresses
+all subsequent dispatch, including events for identities it already knows. This
+is a deliberate fail&#45;closed choice: a saturated observer stops talking
+rather than reporting an incomplete picture. Create a fresh binding at an
+intentional session boundary (for example, when the user starts a new
+conversation) to resume observation with a clean slate.
+
+<span id="adapter&#45;fidelity"></span>
+
+## Adapter fidelity
+
+The package exports a frozen `adapterInfo` declaration describing what the
+adapter can truthfully observe. Framework&#45;independent consumers and the
+devtools store use it to report public evidence without overclaiming.
+
+<table aria-label="adapterInfo fidelity table">
+  <thead>
+    <tr>
+      <th>Lifecycle dimension</th>
+      <th>Fidelity</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Runs</td>
+      <td>unavailable: the thread snapshot exposes no run identity</td>
+    </tr>
+    <tr>
+      <td>Steps</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Hierarchy</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Tools</td>
+      <td>exact</td>
+    </tr>
+    <tr>
+      <td>Interactions</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Replay</td>
+      <td>partial</td>
+    </tr>
+    <tr>
+      <td>Reconnection</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Custom events</td>
+      <td>unsupported</td>
+    </tr>
+    <tr>
+      <td>Interruption</td>
+      <td>exact</td>
+    </tr>
+    <tr>
+      <td>Retries</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Connection</td>
+      <td>unavailable</td>
+    </tr>
+    <tr>
+      <td>Optional events</td>
+      <td>tool.failed, citation.available</td>
+    </tr>
+    <tr>
+      <td>Observed runtime methods</td>
+      <td>getState, subscribe</td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="error&#45;semantics"></span>
+
+## Error semantics
+
+Construction validates its options before touching the thread runtime:
+
+- `scopeId` must be a string that is non&#45;empty after trimming, otherwise a
+  `TypeError` is thrown.
+- `maxTrackedEntities`, when provided, must be a positive safe integer,
+  otherwise a `TypeError` is thrown.
+- An invalid `copy` is rejected by `normalizeAdapterCopy` at construction.
+
+Host delivery is isolated: if your runtime's `dispatch` throws, the binding
+swallows the exception and continues observing. A misbehaving host listener
+cannot break the subscription. Disposal releases only the binding's own state:
+the unsubscribe function, message records, tool records, approval records, and
+source IDs. Your thread and core runtimes are preserved.
+
+<span id="worked&#45;example"></span>
+
+## Worked example
+
+Two conversations mounted at once need two bindings with distinct, stable
+scope IDs. Dispose each binding when its owning scope ends.
+
+{/* prettier-ignore */}
+```typescript title="thread-accessibility.ts"
+import { bindThread, type ThreadBinding } from "@generative-a11y/assistant-ui";
+
+export function bindConversation(options: {
+  runtime: Parameters<typeof bindThread>[0]["runtime"];
+  scopeId: string;
+  thread: Parameters<typeof bindThread>[0]["thread"];
+}): ThreadBinding {
+  const binding = bindThread({
+    runtime: options.runtime,
+    scopeId: options.scopeId,
+    thread: options.thread,
+    maxTrackedEntities: 2000,
+  });
+
+  return binding;
+}
+
+// In a React component:
+// const bindingRef = useRef<ThreadBinding | null>(null);
+// useEffect(() => {
+//   bindingRef.current = bindConversation({ runtime, scopeId: "support-thread", thread });
+//   return () => bindingRef.current?.dispose();
+// }, [runtime, thread]);
+```
+
+Keep the scope ID stable for the life of the conversation and unique across
+mounted conversations. Re&#45;using a scope ID for a new conversation can
+replay identities the runtime has already attributed; when the user starts a
+new session, bind with a new scope ID instead.
