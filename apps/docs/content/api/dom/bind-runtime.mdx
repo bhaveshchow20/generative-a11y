@@ -27,6 +27,25 @@ export const searchableText = [
   "runtime options return Runtime",
   "Supplies AnnouncementIntent objects while remaining under your app's control.",
   "AnnouncerOptions {} Forwarded to the owned DOM announcer. RuntimeBinding Return. Provides the announcer and an idempotent dispose function.",
+  "Disposal and ownership",
+  "The binding borrows the runtime; it never disposes it. dispose is idempotent and always unsubscribes before disposing the owned announcer.",
+  "If subscribing throws, bindRuntime disposes the announcer it just created and rethrows, so no live regions leak.",
+  "React usage",
+  "Create the runtime and binding once inside an effect and dispose both in the effect cleanup. StrictMode double-invocation is safe because cleanup disposes the first binding.",
+  "Dispose the binding before the runtime. Disposing the runtime first leaves the binding with a dead subscription.",
+  "Walkthrough",
+  "1. Create the runtime. Configure policy and messages on the core runtime before connecting delivery.",
+  "2. Connect browser delivery. Options are forwarded to createAnnouncer; an invalid mode throws a TypeError immediately.",
+  "Options are forwarded unchanged: document, regions, and onDelivery behave exactly as documented for createAnnouncer.",
+  "3. Dispatch events, then clean up in order. Intents flow to announcer.announce synchronously as the runtime produces them.",
+  "Announcer access",
+  "The binding exposes the owned announcer for manual announcements and test assertions.",
+  "Testing delivery",
+  'Use mode: "live-region" in tests and assert on delivery status and region text. Dispose the binding in teardown.',
+  "What the binding does not do",
+  "The binding adds delivery only. It does not change policy, coalesce intents, create a document, or replay history.",
+  "Common pitfalls",
+  "Bind once per chat surface. Dispatching before binding leaves intents without delivery, and a typo in mode throws instead of silently degrading.",
   "RuntimeBinding",
   "dispose leaves app-supplied runtimes and live regions intact.",
   'announcer "dispose()" Announcer Property. Owned announcer used for every runtime intent. void',
@@ -75,7 +94,12 @@ the runtime when removing the chat surface.
     options: {
       type: <>AnnouncerOptions</>,
       default: <>&#123;&#125;</>,
-      description: <>Forwarded to the owned DOM announcer.</>,
+      description: (
+        <>
+          Forwarded to the owned DOM announcer. An invalid mode throws a
+          TypeError before the binding subscribes.
+        </>
+      ),
     },
     return: {
       type: <>RuntimeBinding</>,
@@ -88,13 +112,238 @@ the runtime when removing the chat surface.
 
 <span id="ownership"></span>
 
+## Disposal and ownership
+
+The binding borrows the runtime; it never disposes it. Your app created the
+runtime, so your app ends it. `dispose()` on the binding is idempotent: calling
+it twice has no additional effect. Disposing from inside an `onDelivery`
+callback is safe: the disposed flag stops any further forwarding, while the
+in-flight announcement completes normally.
+
+Disposal runs in a fixed order. The binding first unsubscribes its announcement
+listener from the runtime, then disposes the owned announcer. The announcer
+disposal runs inside a `finally` block, so the announcer is always released
+even if unsubscribing throws. After disposal, the binding's internal guard also
+stops forwarding intents, so a late dispatch can never reach a disposed
+announcer.
+
+Setup failure is cleaned up too. If `runtime.subscribeAnnouncements` throws
+(for example, the runtime was already disposed), `bindRuntime` disposes the
+announcer it just created and rethrows the original error. No live regions leak
+from a failed bind.
+
+The subscription callback also checks a disposed flag before forwarding. This
+is a second layer of protection: even if an intent were somehow emitted after
+`dispose()` ran, it would never reach the announcer. In practice the
+unsubscribe removes the listener first, so the flag is a guard rather than the
+primary mechanism.
+
+## React usage
+
+In React, create the runtime and the binding once inside an effect and dispose
+both in the effect cleanup. A ref holds the binding for event handlers that
+need the announcer outside the effect.
+
+{/* prettier-ignore */}
+```tsx title="ChatSurface.tsx"
+import { useEffect, useRef } from "react";
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime, type RuntimeBinding } from "@generative-a11y/dom";
+
+export function ChatSurface() {
+  const bindingRef = useRef<RuntimeBinding | null>(null);
+
+  useEffect(() => {
+    const runtime = createRuntime();
+    const delivery = bindRuntime(runtime, { mode: "auto" });
+    bindingRef.current = delivery;
+    return () => {
+      delivery.dispose();
+      runtime.dispose();
+      bindingRef.current = null;
+    };
+  }, []);
+
+  return <div aria-label="Chat" />;
+}
+```
+
+Creating the binding during render, or in an effect without cleanup, stacks a
+new subscription and a new pair of live regions on every render. The effect
+above runs once, and StrictMode's double-invocation is safe because the
+cleanup disposes the first binding before the second effect run creates
+another.
+
+Ownership boundaries are strict:
+
+- The runtime is never disposed by the binding. Dispose the binding first, then
+  the runtime.
+- Live regions created by the announcer are removed when the binding is
+  disposed.
+- Regions you supplied through `AnnouncerOptions` stay in the document. The
+  announcer never removes nodes it did not create.
+
 <span id="walkthrough"></span>
+
+## Walkthrough
+
+### 1. Create the runtime
 
 <span id="create-the-runtime"></span>
 
+Create and configure the core runtime before connecting delivery. Policy,
+messages, and any `onAnnouncement` listener belong to the core runtime; the
+binding only adds browser delivery on top.
+
+```ts title="runtime-setup.ts"
+import { createRuntime } from "@generative-a11y/core";
+
+const runtime = createRuntime({
+  onAnnouncement: (intent) => console.log(intent.text),
+});
+```
+
+### 2. Connect browser delivery
+
 <span id="connect-browser-delivery"></span>
 
+Call `bindRuntime` once per chat surface. The options object is forwarded
+unchanged to `createAnnouncer`, so `mode`, `document`, `regions`, and
+`onDelivery` behave exactly as documented for the announcer.
+
+```ts title="delivery-setup.ts"
+import { bindRuntime } from "@generative-a11y/dom";
+
+const delivery = bindRuntime(runtime, { mode: "auto" });
+```
+
+Two details matter here. First, an invalid `mode` throws a `TypeError`
+immediately, before any subscription exists; there is no silent fallback to a
+default mode. Second, `mode: "live-region"` forces the live-region path and is
+the right choice for tests that assert on region text instead of relying on
+`ariaNotify` availability.
+
+Because options are forwarded unchanged, everything documented for
+`createAnnouncer` applies: pass `document` to target a specific document (for
+example an iframe's), `regions` to reuse existing live regions, and
+`onDelivery` to observe each delivery. The binding adds no options of its own,
+so there is nothing binding-specific to configure.
+
+### 3. Dispatch events, then clean up in order
+
 <span id="clean-up-in-order"></span>
+
+Dispatch `RuntimeEvent` objects as usual. Each announcement intent the runtime
+produces flows to `announcer.announce` through the subscription, so
+`onDelivery` observes every delivery the binding performs.
+
+When the chat surface is removed, dispose the binding first and the runtime
+second:
+
+```ts title="teardown.ts"
+export function disposeChat() {
+  delivery.dispose(); // unsubscribes, then disposes the owned announcer
+  runtime.dispose(); // ends scheduling; the runtime was never owned by the binding
+}
+```
+
+Disposing the runtime first is not recommended. The binding would be left
+holding a subscription on a dead runtime, and the owned announcer would stay in
+the document until the binding is also disposed.
+
+## Announcer access
+
+The binding exposes the owned announcer, so you are not limited to
+runtime-driven delivery. `delivery.announcer.announce(intent)` accepts a
+manually built `AnnouncementIntent` for one-off messages, and
+`delivery.announcer.getRegions()` returns the live regions for test assertions.
+It returns undefined when the announcer is inert (no document available).
+Disposing the binding disposes this announcer, so do not retain and use it
+afterward: `announce` on a disposed announcer reports a `disposed` result
+instead of touching the document.
+
+A manual intent needs the required `AnnouncementIntent` fields: a stable `id`,
+an `at` timestamp, a `channel`, the `text`, and the `sourceType` event name.
+
+{/* prettier-ignore */}
+```typescript title="manual-announce.ts"
+const result = delivery.announcer.announce({
+  id: "manual-1",
+  at: Date.now(),
+  channel: "polite",
+  text: "Your file finished uploading.",
+  sourceType: "response.completed",
+});
+```
+
+## Testing delivery
+
+Use `mode: "live-region"` so tests do not depend on `ariaNotify` availability.
+Dispatch the events your feature produces, then assert on the region text for
+the expected channel. Dispose the binding in test teardown so live regions
+from one test cannot leak into the next.
+
+{/* prettier-ignore */}
+```typescript title="delivery.test.ts"
+import { createRuntime } from "@generative-a11y/core";
+import { bindRuntime } from "@generative-a11y/dom";
+
+test("streams status to the polite region", () => {
+  const runtime = createRuntime();
+  const deliveries: string[] = [];
+  const delivery = bindRuntime(runtime, {
+    mode: "live-region",
+    onDelivery: (result) => deliveries.push(`${result.status}:${result.method}`),
+  });
+  try {
+    runtime.dispatch({ type: "response.started", responseId: "answer" });
+    expect(deliveries).toContain("mutated:live-region");
+    expect(
+      delivery.announcer.getRegions()?.polite.textContent?.length,
+    ).toBeGreaterThan(0);
+  } finally {
+    delivery.dispose();
+    runtime.dispose();
+  }
+});
+```
+
+The exact text depends on your runtime messages and policy, so assert on the
+channel selection and the delivery status rather than the full string. For
+deterministic timing, pair the test with a `ManualClock` from
+`@generative-a11y/core` instead of wall-clock dispatching.
+
+## What the binding does not do
+
+`bindRuntime` adds delivery and nothing else. It does not change runtime
+policy, coalesce intents, or choose channels; the core runtime decides what is
+announced and the binding only carries it to the browser. It forwards every
+intent it receives without filtering or deduplicating: if the runtime emits
+two intents, both are announced. It does not create a
+document, so in server-side rendering the owned announcer is inert and reports
+`unavailable` until a document exists. And it does not replay history: only
+intents produced while the subscription is active are delivered.
+
+## Common pitfalls
+
+- **Dispatching before binding.** Intents produced before `bindRuntime` runs
+  have no delivery path. Connect delivery during setup, before the first
+  dispatch.
+- **Binding on every render.** In React, create the binding once inside an
+  effect and dispose it in the effect cleanup. A binding per render stacks
+  duplicate subscriptions and duplicate live regions.
+- **Forgetting disposal on route changes.** In a single-page app, a removed
+  chat surface without `delivery.dispose()` keeps its subscription alive, so a
+  later dispatch announces through a surface the user can no longer see.
+- **Assuming the binding ends the runtime.** It does not. If the runtime is
+  never disposed, its scheduler and queue keep running after the binding is
+  gone.
+- **Sharing one binding across surfaces.** A binding is tied to the announcer
+  it created. Two chat surfaces need two bindings, each disposed with its own
+  surface, so removing one surface does not silence the other.
+- **Catching the mode TypeError too late.** Validate the mode in one place,
+  at startup. A typo like `"Live-Region"` throws on the first `bindRuntime`
+  call, which is easy to miss if binding happens lazily on user interaction.
 
 ## RuntimeBinding
 

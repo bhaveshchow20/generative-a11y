@@ -30,8 +30,18 @@ export const searchableText = [
   "Use interaction.requested and interaction.resolved for confirmations and other requests for input. Use approval events when the framework provides a specific approval state.",
   "Dispatch through the runtime already connected to your application:",
   "Keep the request ID through resolution. A rendered button, elapsed time, or closed panel is insufficient evidence of approval. The host performs the authorized action; these events only describe its lifecycle.",
+  "Choose the event shape that matches the evidence",
+  "interaction.requested and interaction.resolved cover confirmations and requests for input. approval.requested and approval.resolved cover framework approval states such as tool-use approval.",
+  "interaction.requested carries interactionId, kind, label, and an optional urgent flag. interaction.resolved carries interactionId, kind, and an outcome of approved, rejected, submitted, or cancelled.",
+  "Mark urgent requests honestly",
+  "urgent: true announces the request on the assertive channel. Use it only when the request blocks progress and time matters.",
+  "Resolve with an outcome, not just a label",
+  "interaction outcomes are approved, rejected, submitted, or cancelled. approval outcomes are approved, rejected, or cancelled. When a resolution omits label, the runtime renders a catalog message from kind and outcome.",
   "Announcements do not move focus",
   "generative-a11y can announce when your app needs input. Your app still opens the dialog, manages its controls, and restores focus when it closes.",
+  "Scope IDs keep parallel surfaces apart",
+  "Framework adapters prefix stable framework IDs with scopeId so two chat surfaces do not collide, and they stop accepting unknown IDs after their tracked-entity safety limit.",
+  "An interaction event proves the host confirmed the lifecycle, not what a screen reader spoke.",
 ].join("\n");
 
 <span id="general&#45;events"></span>
@@ -63,9 +73,190 @@ Keep the request ID through resolution. A rendered button, elapsed time, or
 closed panel is insufficient evidence of approval. The host performs the
 authorized action; these events only describe its lifecycle.
 
+<span id="choose&#45;event"></span>
+
+## Choose the event shape that matches the evidence
+
+Two event pairs cover every request for human input. Pick by what your source
+actually exposes:
+
+| Pair                                                        | Use when                                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------- |
+| `interaction.requested` / `interaction.resolved`            | Your app asks for confirmation, input, or a decision.          |
+| `approval.requested` / `approval.resolved`                  | The framework exposes a specific approval state, such as       |
+|                                                             | tool&#45;use approval in an agent framework adapter.           |
+
+The general pair is the default. If your app asks "Send this email?" or
+"Which file did you mean?", that is an `interaction`, even if the UI calls it
+an approval. Reserve the approval pair for integrations where the framework
+itself tracks an approval lifecycle with an approval ID, because adapters map
+those IDs directly to `approvalId`.
+
+Field reference for the request side:
+
+| Event                  | Field           | Required | Meaning                                       |
+| ---------------------- | --------------- | -------- | --------------------------------------------- |
+| `interaction.requested` | `interactionId` | yes      | Stable ID for this request.                   |
+|                        | `kind`          | yes      | `"approval"`, `"confirmation"`, `"input"`,    |
+|                        |                 |          | or a custom string your host defines.         |
+|                        | `label`         | yes      | Short, translated, user&#45;facing copy.       |
+|                        | `urgent`        | no       | `true` announces on the assertive channel.    |
+| `approval.requested`    | `approvalId`    | yes      | Stable ID for this approval.                  |
+|                        | `label`         | yes      | Short, translated, user&#45;facing copy.       |
+|                        | `urgent`        | no       | `true` announces on the assertive channel.    |
+
+The `kind` field is an open union: `"approval" | "confirmation" | "input"`
+plus any string your host defines. A custom kind such as `"disambiguation"`
+or `"slot-fill"` is valid, but keep it a stable machine string. The kind is
+used in the fallback catalog message when a resolution omits `label`, and it
+appears in devtools traces, so a kind that changes wording per request makes
+both unreadable. Kinds are not labels; the label carries the human copy.
+
+```ts title="Request confirmation with a custom kind"
+runtime.dispatch({
+  type: "interaction.requested",
+  interactionId: "pick-file",
+  kind: "disambiguation",
+  label: "Which file did you mean: report.md or report-final.md?",
+});
+```
+
+<span id="urgent"></span>
+
+## Mark urgent requests honestly
+
+The request events announce `label` on the polite channel by default. Setting
+`urgent: true` moves the announcement to the assertive channel, which can
+interrupt speech already in progress. That interruption is a real cost to the
+listener, so reserve `urgent` for requests where time genuinely matters and
+the request blocks progress: an expiring payment confirmation, a
+time&#45;boxed deployment gate, a safety&#45;critical override.
+
+Do not mark a request urgent just because it is important. Importance without
+a deadline still belongs on the polite channel; the user reaches it after the
+current announcement finishes. If every request in your app is urgent, none of
+them are, and you have trained the listener to ignore the assertive channel.
+
+```ts title="Request an expiring confirmation"
+runtime.dispatch({
+  type: "interaction.requested",
+  interactionId: "deploy-prod",
+  kind: "confirmation",
+  label: "Confirm the production deploy. This approval expires in 60 seconds.",
+  urgent: true,
+});
+```
+
+<span id="resolve&#45;with&#45;outcome"></span>
+
+## Resolve with an outcome, not just a label
+
+A resolution must say what happened. The two pairs accept different outcomes
+because they describe different evidence:
+
+| Event                 | Outcome                                        |
+| --------------------- | ---------------------------------------------- |
+| `interaction.resolved` | `"approved"`, `"rejected"`, `"submitted"`,     |
+|                       | `"cancelled"`                                  |
+| `approval.resolved`    | `"approved"`, `"rejected"`, `"cancelled"`      |
+
+Use `"submitted"` for input the user filled in and sent, `"cancelled"` for a
+dismissed or abandoned request, and `"approved"` / `"rejected"` for decisions.
+Approval resolutions have no `"submitted"` because an approval is a decision,
+not a form.
+
+Field reference for the resolution side:
+
+| Event                 | Field           | Required | Meaning                                                  |
+| --------------------- | --------------- | -------- | -------------------------------------------------------- |
+| `interaction.resolved` | `interactionId` | yes      | The same ID from the request.                            |
+|                       | `kind`          | yes      | The same kind from the request.                          |
+|                       | `outcome`       | yes      | What the user did.                                       |
+|                       | `label`         | no       | Optional short result copy, e.g. "Report published."     |
+| `approval.resolved`    | `approvalId`    | yes      | The same ID from the request.                            |
+|                       | `outcome`       | yes      | What the decider did.                                    |
+|                       | `label`         | no       | Optional short result copy.                              |
+
+When a resolution omits `label`, the runtime renders a catalog message from
+`kind` and `outcome` instead, so the announcement still reads as a complete
+sentence. Supply `label` when your app has result copy worth hearing, such as
+what was actually published or where the submitted input went. Keep it short
+and translated, the same standard as every other announcement.
+
+```ts title="Resolve the disambiguation"
+runtime.dispatch({
+  type: "interaction.resolved",
+  interactionId: "pick-file",
+  kind: "disambiguation",
+  outcome: "submitted",
+  label: "Using report-final.md.",
+});
+```
+
+Dispatch the resolution only after the application confirms the decision, not
+when the dialog closes. A dialog can close through dismissal, navigation, or
+a crash, and none of those is evidence of what the user chose. The event
+describes the lifecycle your host confirmed; the host is the only source that
+can confirm it.
+
 <span id="focus"></span>
 
 ## Announcements do not move focus
 
 generative&#45;a11y can announce when your app needs input. Your app still opens
 the dialog, manages its controls, and restores focus when it closes.
+
+That division is deliberate. Moving focus is a destructive act for a screen
+reader user: it yanks the reading cursor, destroys their place, and cannot be
+undone by the announcement that caused it. So the library never moves focus,
+and the host keeps every responsibility that focus implies:
+
+- Opening the dialog or panel when the request goes out, in the same tick as
+  the `interaction.requested` or `approval.requested` dispatch where possible,
+  so the announcement and the available control arrive together.
+- Trapping focus inside modal dialogs and returning it to the invoking
+  control when the dialog closes, following the usual dialog pattern.
+- Handling Escape, dismissal, and the `"cancelled"` outcome honestly: a
+  dismissed request still gets its resolution event, because the lifecycle
+  did resolve, just not in the user's favor.
+- Keeping the visible request text and the announcement `label` consistent so
+  a sighted user and a screen reader user hear about the same request.
+
+The announcement is a polite (or assertive, when urgent) live&#45;region
+update. The dialog is the interaction. Do not rely on the announcement to
+substitute for a reachable, keyboard&#45;operable control.
+
+<span id="adapters"></span>
+
+## Scope IDs keep parallel surfaces apart
+
+When two chat surfaces share one runtime, for example a main chat and a
+sidebar assistant, framework IDs can collide. Framework adapters prevent that
+by namespacing every stable ID with a `scopeId` supplied at adapter
+construction. The AI SDK adapter builds scoped IDs such as
+`` `${scopeId}:approval:${id}` `` for approvals, `` `${scopeId}:tool:${toolCallId}` ``
+for tools, and `` `${scopeId}:message:${messageId}` `` for responses. Your
+custom integration should do the same whenever one runtime serves more than
+one surface: derive every dispatched ID from a per&#45;surface prefix.
+
+Adapters also defend the runtime from unbounded growth. An observer keeps a
+set of tracked response, tool, approval, and source identities, capped by
+`maxTrackedEntities`. Once that safety limit is reached, the adapter stops
+accepting unknown IDs instead of tracking more. The runtime then diagnoses
+events for unknown entities instead of announcing them, which is the same
+treatment an unknown `interactionId` receives. If your adapter suddenly goes
+quiet on a long&#45;running surface, check whether it hit its tracked&#45;entity
+limit before assuming the runtime swallowed the events.
+
+<span id="evidence&#45;note"></span>
+
+## What these events prove
+
+An `interaction.requested` event proves that your app dispatched a request,
+and the devtools trace can show that the announcement was prepared and which
+channel carried it.
+An `interaction.resolved` event proves that your host confirmed the outcome.
+Neither proves what a screen reader spoke, what the user heard, or what the
+user intended. Treat the events as lifecycle facts, test the experience with
+real screen readers, and never claim that an automated transcript of
+announcements is evidence of a human decision.

@@ -21,9 +21,17 @@ export const searchableText = [
   "Contributing",
   "Development workflow",
   "From a repository checkout, use the Node version in .nvmrc and install the locked dependencies. Add tests and documentation for exported behavior, then run repository and browser checks before requesting review.",
+  "Walkthrough: enable Corepack, install dependencies with pnpm install --frozen-lockfile, run pnpm check, install browser engines, run pnpm test:browser.",
+  "What pnpm check runs: format check, lint, typecheck, coverage, build, package checks, example and docs tests.",
+  "Ways to contribute: screen reader testing, event traces, examples and docs, lifecycle evidence reports, focused core behavior.",
+  "Before opening a pull request: open an issue for substantial changes, fork and branch, install Node with .nvmrc and Corepack, add tests and docs, run pnpm changeset, run pnpm check.",
+  "Changesets: add a changeset for user-visible published-package changes.",
+  "Accessibility expectations: describe the user need, include keyboard and assistive technology testing details. Automated checks support review but do not replace manual testing.",
+  "Security reports follow SECURITY.md: private vulnerability reporting, not public issues.",
   "Review expectations",
   "Keep core independent of browsers, DOM independent of React and AI frameworks, and adapters small. Never claim that an automated transcript or page update proves what a screen reader spoke.",
   "Every exported API requires tests and documentation. - Every owned timer and subscription must be disposed. - All queues and tracked identities remain bounded. - Security reports follow SECURITY.md rather than public issues.",
+  "Pull requests: keep them focused, CI must pass, follow the Code of Conduct.",
 ].join("\n");
 
 <span id="workflow"></span>
@@ -42,12 +50,221 @@ pnpm test:browser:install
 pnpm test:browser
 ```
 
+### Walkthrough
+
 <span id="walkthrough"></span>
+
 <span id="enable-the-package-manager"></span>
+
+#### Enable the package manager
+
+The repository pins Node 24 in `.nvmrc` and pnpm 11.21.0 through
+Corepack. Enable Corepack first so the pinned pnpm version is used; the
+engines field also requires Node 22 or newer, but the `.nvmrc` version is
+what CI and maintainers test against.
+
+```shell title="Terminal"
+nvm use
+corepack enable
+```
+
 <span id="install-dependencies"></span>
+
+#### Install dependencies
+
+Install the locked dependency tree exactly as committed. The frozen
+lockfile flag fails instead of updating the lockfile, which keeps every
+contributor and CI run on identical dependencies.
+
+```shell title="Terminal"
+pnpm install --frozen-lockfile
+```
+
 <span id="run-repository-checks"></span>
+
+#### Run repository checks
+
+`pnpm check` is the full gate. It runs, in order:
+
+| Step            | Command                                        | What it covers                                                   |
+| --------------- | ---------------------------------------------- | ---------------------------------------------------------------- |
+| Format          | `pnpm format:check`                            | Prettier formatting across the repo                              |
+| Lint            | `pnpm lint`                                    | ESLint with zero warnings allowed, plus docs lint                |
+| Types           | `pnpm typecheck`                               | Package typechecks, browser test types, consumer types           |
+| Coverage        | `pnpm test:coverage`                           | Vitest with coverage, plus docs unit tests                       |
+| Build           | `pnpm build`                                   | Builds every package                                             |
+| Package         | `pnpm package:check`                           | Package metadata, publint, and the package smoke test            |
+| Examples        | Example workflow test                          | Runs the hierarchical&#45;workflow example test suite            |
+| Docs            | Docs test                                      | Runs the docs app test suite                                     |
+
+Fix failures in order: a formatting or type error will usually cascade, so
+get the early steps green before investigating test failures. If you change
+formatting, run `pnpm format` to write the fixes rather than editing by
+hand.
+
 <span id="install-browser-engines"></span>
+
+#### Install browser engines
+
+Browser tests run against real engines through Playwright. Install them
+once per machine:
+
+```shell title="Terminal"
+pnpm test:browser:install
+```
+
+This installs Chromium, Firefox, and WebKit. It downloads several hundred
+megabytes, so plan for that on a fresh machine.
+
 <span id="run-browser-checks"></span>
+
+#### Run browser checks
+
+```shell title="Terminal"
+pnpm test:browser
+```
+
+This builds the packages, runs the Playwright suite, and then runs the
+docs app browser tests. Browser tests confirm DOM delivery behavior in
+real engines, but remember the honesty rule from
+[limitations](/docs/limitations): a passing browser test proves the
+announcement reached the page, not what any screen reader spoke.
+
+## Ways to contribute
+
+Contributions are not limited to runtime code. Especially useful work
+includes:
+
+- Testing real interactions with screen readers and other assistive
+  technology, reported through the assistive&#45;technology report issue
+  template.
+- Reducing a framework lifecycle into a documented, reproducible event
+  trace that an adapter can translate.
+- Improving examples, API documentation, or accessibility guidance.
+- Reporting missing or ambiguous public lifecycle evidence in an AI
+  framework, so adapters can document reduced fidelity accurately.
+- Implementing focused core behavior with deterministic tests, using the
+  injected clock and replay fixtures rather than real timers.
+
+## Before opening a pull request
+
+1. Open or find an issue for substantial changes so the problem and the
+   proposed API can be discussed first. Small fixes and documentation
+   improvements can go straight to a pull request.
+2. Fork the repository and create a focused branch. One branch, one
+   concern: a focused branch is easier to review and easier to revert.
+3. Install Node.js using `.nvmrc`, enable Corepack, then run
+   `pnpm install --frozen-lockfile`, as described in the walkthrough
+   above.
+4. Make the change with tests and documentation where appropriate. Every
+   exported API requires both.
+5. Run `pnpm changeset` for a user&#45;visible package change, so the
+   release notes describe it accurately. See the changesets section below.
+6. Run `pnpm check` before opening the pull request, and make sure the
+   full gate passes locally.
+
+Adapters must rely on documented public framework state. If exact
+lifecycle evidence is unavailable, document the reduced fidelity rather
+than inferring the event or depending on a private API.
+
+### Changesets
+
+Add a changeset for user&#45;visible published&#45;package changes. The
+changeset records which packages are affected, the semver bump type, and
+a short description that becomes the release note. Internal refactors,
+test&#45;only changes, and documentation fixes that do not change
+published behavior do not need one.
+
+```shell title="Terminal"
+pnpm changeset
+```
+
+Follow the prompts: select the affected `@generative-a11y/*` packages,
+choose patch, minor, or major, and write the summary in plain language
+describing what changed for the user.
+
+## Accessibility expectations
+
+Changes should describe the user need they address and how the behavior
+was tested. When relevant, include keyboard&#45;only and
+assistive&#45;technology testing details: which screen reader and browser
+you used, their versions, and what you observed. Automated checks support
+review but do not replace manual accessibility testing.
+
+If your change affects announcement timing, wording, or policy defaults,
+say so explicitly in the pull request and include the evidence you used
+to choose the new behavior. Never claim that an automated transcript or
+page update proves what a screen reader spoke; report what the code does
+and what you observed manually, separately.
+
+## Testing guidance
+
+Every exported API requires tests, and core tests must be deterministic.
+The rules that make this possible are architectural, so follow them when
+you write tests:
+
+- **Inject time, do not wait for it.** Core scheduling logic takes a clock
+  through the `SystemClock` abstraction. In tests, use `ManualClock` from
+  `@generative-a11y/core` to advance time explicitly. Core code must not
+  call global timers directly, and neither should your tests.
+- **Record and replay.** Use the recorder in
+  `@generative-a11y/core/testing` to capture dispatched events with
+  timestamps, then replay the fixture and assert the same announcement
+  intents come out. Prefer semantic assertions over string matching: assert
+  that an interruption cancels pending intents, not the exact wording of
+  every intent.
+- **Keep queues and timers owned.** Every timer your code creates must be
+  cancelled on terminal events and on `dispose()`. Write a test that
+  disposes the runtime and asserts nothing fires afterward.
+- **Run the fast suite often.** `pnpm test` runs Vitest once;
+  `pnpm test:watch` keeps it running during development. `pnpm
+  test:coverage` is the gate version used by `pnpm check`.
+- **Run browser tests for DOM changes.** Anything touching
+  `@generative-a11y/dom` should also pass `pnpm test:browser` after
+  `pnpm test:browser:install`. These run against real Chromium, Firefox,
+  and WebKit engines through Playwright.
+
+Name test assertions after the layer under test. "Prepares a failure
+intent on the assertive channel when the tool fails" describes runtime
+behavior. "Announces the failure to the screen reader" claims something
+no automated test can prove.
+
+## Documentation changes
+
+Docs live in `apps/docs/content/docs/` as MDX files. When you change
+exported behavior, update the docs in the same pull request. Follow the
+conventions the existing pages use:
+
+- **Frontmatter and metadata stay in sync.** `title`, `description`,
+  `publicPath`, `section`, `keywords`, `related`, and `order` in the
+  frontmatter must match the `sourceMetadata` export exactly.
+- **`searchableText` stays current.** The export must remain non&#45;empty
+  and should reflect the page's headings and key sentences, so updates to
+  the body mean updates to the searchable text.
+- **Keep anchors stable.** Existing anchor elements (`span` tags carrying an
+  `id` attribute) are link targets; do not rename or remove them. Add new
+  anchors when you add sections that deserve deep links.
+- **Use only the components already in use.** Pages use a small set of MDX
+  components such as `Callout`; do not introduce new ones or add imports
+  the page does not already have.
+- **Match the voice.** Docs are concise, honest, and evidence&#45;focused.
+  State what each layer can confirm, cite the evidence limits, and never
+  let a test result read as a claim about what a person heard.
+
+The docs app has its own test suite, run as part of `pnpm check`, which
+validates metadata consistency and page structure. If you add a page,
+give it a `publicPath`, `section`, and `order` that fit the existing
+navigation.
+
+## Security reports
+
+Security reports follow [SECURITY.md](https://github.com/bhaveshchow20/generative-a11y/blob/main/SECURITY.md)
+rather than public issues. Do not open a public issue for a suspected
+vulnerability. Use GitHub's private vulnerability reporting, and include
+the affected version or commit, reproduction steps, impact, and any known
+mitigations. The project is pre&#45;release, so security fixes are made on
+the latest version only. Reports are acknowledged as soon as practical,
+and disclosure is coordinated after a fix is available.
 
 <span id="review"></span>
 
@@ -61,3 +278,26 @@ proves what a screen reader spoke.
 - Every owned timer and subscription must be disposed.
 - All queues and tracked identities remain bounded.
 - Security reports follow SECURITY.md rather than public issues.
+
+Reviewers will check the architectural boundaries first: does core import
+anything browser&#45;specific? Does an adapter depend on a private
+framework API instead of documented public state? Does scheduling logic
+call a global timer instead of the injected clock? A change that breaks
+these boundaries will be asked to restructure, even if its tests pass.
+
+Expect feedback on API surface as well. Public events and policies are
+serializable by design, so a new event field or policy option should stay
+serializable where practical and be covered by deterministic tests. Keep
+the change focused: one pull request, one concern, with tests and
+documentation for the exported behavior it adds or changes.
+
+## Pull requests
+
+Keep pull requests focused and explain the reason for the change. Describe
+the user need, link the issue for substantial changes, and summarize how
+the behavior was tested, including any manual assistive&#45;technology
+testing. CI must pass, and maintainers may request API, test, or
+documentation updates before merging.
+
+By participating, you agree to follow the
+[Code of Conduct](https://github.com/bhaveshchow20/generative-a11y/blob/main/CODE_OF_CONDUCT.md).

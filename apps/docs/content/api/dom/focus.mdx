@@ -34,6 +34,15 @@ export const searchableText = [
   "Restoration guard. Skip restoration if current focus has left this element.",
   "FocusResult",
   "Function. Restores only when the captured target remains eligible and optional guards still match.",
+  "FocusCapture",
+  "Frozen snapshot of { document, target }. target is the deep active element, or null when nothing restorable is focused.",
+  "The capture snapshot",
+  "A capture is frozen at creation. A null target means body focus, no document, or a hostile document; all three make restoreFocus report unavailable.",
+  "Pass an explicit document to capture focus for an iframe or secondary document.",
+  "FocusElementOptions",
+  "{ preventScroll?: boolean }. Defaults to preventing scroll on focus moves.",
+  "RestoreFocusOptions",
+  "Extends FocusElementOptions with onlyIfFocusWithin?: Element, the restoration guard.",
   "FocusResult",
   "Results are explicit so applications can test focus workflows without guessing.",
   "Status Meaning Application response",
@@ -41,6 +50,19 @@ export const searchableText = [
   "skipped",
   "A documented eligibility check, browser failure, or restoration guard prevented focus",
   "Preserve current focus and inspect reason",
+  "Skipped reasons",
+  "unavailable cross-document disconnected disabled hidden aria-hidden inert missing-focus guard-mismatch focus-error focus-not-applied",
+  "Walkthrough",
+  "Capture current focus. Capture before the dialog opens; capturing afterward records the dialog itself.",
+  "Focus the dialog. Pick a focusable target such as a heading with tabindex -1, and check the FocusResult.",
+  "Restore when appropriate. onlyIfFocusWithin keeps the user's new focus when they have already moved on.",
+  "Eligibility checks",
+  "focusElement checks disconnected, disabled, hidden, aria-hidden, inert, and missing focus before calling focus. Shadow DOM is traversed through the composed tree.",
+  "If focus throws, the previous focus is restored on a best-effort basis.",
+  "Testing focus workflows",
+  "Assert on status for the happy path and on reason for the guarded paths. A removed trigger makes restoration skip with disconnected instead of throwing.",
+  "Common pitfalls",
+  "Capturing after the dialog opens, restoring into a removed element, and moving focus for streaming updates.",
 ].join("\n");
 
 <span id="workflow"></span>
@@ -66,6 +88,10 @@ const restored = restoreFocus(capture, {
 `captureFocus` records the active element without moving it. Choose a focusable
 dialog target; `onlyIfFocusWithin` preserves the user’s new focus if they have
 moved outside the dialog before it closes.
+
+The helpers are shadow-DOM aware. Capture resolves the deep active element by
+descending into shadow roots, and the eligibility checks walk the composed
+tree, so `hidden`, `aria-hidden`, and `inert` on shadow hosts are honored.
 
 <TypeTable
   type={{
@@ -112,18 +138,56 @@ moved outside the dialog before it closes.
         </>
       ),
     },
+    FocusCapture: {
+      type: <>&#123; document, target &#125;</>,
+      description: (
+        <>
+          Frozen snapshot. `document` is the captured document (or null without
+          one); `target` is the deep active element, or null when nothing
+          restorable was focused.
+        </>
+      ),
+    },
+    FocusElementOptions: {
+      type: <>&#123; preventScroll?: boolean &#125;</>,
+      description: (
+        <>Options for focusElement. preventScroll defaults to true.</>
+      ),
+    },
+    RestoreFocusOptions: {
+      type: (
+        <>&#123; preventScroll?: boolean; onlyIfFocusWithin?: Element &#125;</>
+      ),
+      description: (
+        <>Options for restoreFocus. Extends FocusElementOptions with the restoration guard.</>
+      ),
+    },
   }}
 />
 
 <span id="results"></span>
 
-<span id="walkthrough"></span>
+## The capture snapshot
 
-<span id="capture-current-focus"></span>
+`FocusCapture` is a frozen `{ document, target }` snapshot. It never changes
+after creation, so a capture taken before a dialog opens stays valid while the
+dialog is open, even as focus moves around.
 
-<span id="focus-the-dialog"></span>
+The `target` is the deep active element at capture time: the helper descends
+into shadow roots, so focus inside a web component is recorded as the inner
+element, not the host. Three situations produce a null target, and all three
+make `restoreFocus` report `skipped` with reason `unavailable`:
 
-<span id="restore-when-appropriate"></span>
+- No document exists (server-side rendering or a deleted global).
+- `document.body` or the document element itself is focused. There is no
+  meaningful element to restore to.
+- The document throws on property access. A hostile document is captured
+  without a restorable target instead of throwing.
+
+The `document` field is null only when no document was available. Passing an
+explicit document is the way to capture focus for an iframe or a secondary
+document: `captureFocus(iframe.contentDocument)`. The default is the global
+document when one exists.
 
 ## FocusResult
 
@@ -153,3 +217,225 @@ Results are explicit so applications can test focus workflows without guessing.
     </tr>
   </tbody>
 </table>
+
+### Skipped reasons
+
+Every skip carries a stable `reason` string. Check `result.reason` in tests
+instead of guessing why focus did not move.
+
+<table aria-label="FocusSkippedReason table">
+  <thead>
+    <tr>
+      <th>Reason</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>unavailable</td>
+      <td>
+        No usable document, element, or DOM access. Also used for hostile
+        documents and property reads that throw.
+      </td>
+    </tr>
+    <tr>
+      <td>cross&#45;document</td>
+      <td>
+        The captured target now belongs to a different document than the
+        capture.
+      </td>
+    </tr>
+    <tr>
+      <td>disconnected</td>
+      <td>Target is no longer connected to the document.</td>
+    </tr>
+    <tr>
+      <td>disabled</td>
+      <td>
+        Target is disabled via the disabled attribute, the disabled property,
+        or a `:disabled` selector match.
+      </td>
+    </tr>
+    <tr>
+      <td>hidden</td>
+      <td>Target or a composed&#45;tree ancestor has the hidden attribute.</td>
+    </tr>
+    <tr>
+      <td>aria&#45;hidden</td>
+      <td>
+        Target or a composed&#45;tree ancestor has aria&#45;hidden="true".
+      </td>
+    </tr>
+    <tr>
+      <td>inert</td>
+      <td>Target or a composed&#45;tree ancestor is inert.</td>
+    </tr>
+    <tr>
+      <td>missing&#45;focus</td>
+      <td>Target has no callable focus() function.</td>
+    </tr>
+    <tr>
+      <td>guard&#45;mismatch</td>
+      <td>
+        The onlyIfFocusWithin guard failed: the guard is in another document,
+        nothing is focused, or focus is outside the guard.
+      </td>
+    </tr>
+    <tr>
+      <td>focus&#45;error</td>
+      <td>
+        focus() threw, or the active element could not be read afterward. The
+        previous focus is restored on a best&#45;effort basis.
+      </td>
+    </tr>
+    <tr>
+      <td>focus&#45;not&#45;applied</td>
+      <td>
+        focus() returned without throwing, but the element did not become the
+        active element.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<span id="walkthrough"></span>
+
+## Walkthrough
+
+### Capture current focus
+
+<span id="capture-current-focus"></span>
+
+Call `captureFocus` before the dialog opens, while the user's original focus
+is still in place. The returned snapshot is frozen: `{ document, target }`.
+`target` is the deep active element, so focus inside a web component's shadow
+root is captured correctly. When `document.body` or the document element
+itself is focused, or when no document exists, `target` is null and
+`restoreFocus` later reports `skipped` with reason `unavailable`.
+
+```ts title="capture-before-open.ts"
+const capture = captureFocus(document);
+openDialog(dialog);
+```
+
+Capture is defensive. A hostile document that throws on property access is
+captured without a restorable target instead of throwing.
+
+### Focus the dialog
+
+<span id="focus-the-dialog"></span>
+
+Move focus to a target your app controls, such as the dialog heading with
+`tabindex="-1"`. `focusElement` runs the eligibility checks first and only
+then calls `focus({ preventScroll: true })` by default, so the page does not
+jump on long documents.
+
+```ts title="focus-dialog.ts"
+const opened = focusElement(dialogHeading, { preventScroll: true });
+if (opened.status === "skipped") {
+  console.warn("Dialog focus skipped:", opened.reason);
+}
+```
+
+Always inspect the result. A `skipped` result tells you exactly why focus did
+not move, which is the difference between a flaky dialog and a testable one.
+
+### Restore when appropriate
+
+<span id="restore-when-appropriate"></span>
+
+After the interaction closes, restore the captured focus. The
+`onlyIfFocusWithin` guard keeps the user's new focus when they have already
+moved outside the dialog before it closed, which is the polite behavior for
+modeless surfaces.
+
+```ts title="restore-after-close.ts"
+const restored = restoreFocus(capture, { onlyIfFocusWithin: dialog });
+```
+
+`restoreFocus` revalidates everything: the capture is read defensively, a
+cross-document target is rejected, the guard is checked against the current
+deep active element, and the final move goes through the same eligibility
+checks as `focusElement`.
+
+## Eligibility checks
+
+`focusElement` checks eligibility before calling `focus()`, and checks again
+afterward. The pre-checks run in this order: unavailable (no owner document,
+not a real element, or DOM access throws), disconnected, disabled, hidden,
+aria-hidden, inert, and missing-focus. Hidden, aria-hidden, and inert are
+evaluated up the composed tree, so attributes on shadow hosts and slot
+ancestors count.
+
+If `focus()` throws, the helper attempts a best-effort rollback: it restores
+the previously focused element with `preventScroll: true`, but only when the
+previous element is still eligible and the failed target actually received
+focus. The result is `skipped` with reason `focus-error`. When `focus()`
+returns but the element never became active, the result is `skipped` with
+reason `focus-not-applied`.
+
+The composed-tree walk is what makes the checks shadow-DOM correct. Instead of
+only looking at `parentElement`, the walk follows assigned slots and shadow
+hosts, so `hidden` on a slot ancestor or `inert` on a custom element host is
+detected. Cycles are guarded with a visited set: a cyclic tree reports
+`unavailable` rather than hanging.
+
+## Testing focus workflows
+
+Because every outcome is a plain object, focus workflows are straightforward
+to test in jsdom or a real browser. Assert on `status` for the happy path and
+on `reason` for the guarded paths.
+
+{/* prettier-ignore */}
+```typescript title="dialog-focus.test.ts"
+import {
+  captureFocus,
+  focusElement,
+  restoreFocus,
+} from "@generative-a11y/dom";
+
+test("restores focus after the dialog closes", () => {
+  const trigger = document.getElementById("open-dialog")!;
+  trigger.focus();
+
+  const capture = captureFocus(document);
+  const dialog = document.getElementById("dialog")!;
+  const heading = dialog.querySelector("h2")!;
+
+  expect(focusElement(heading)).toMatchObject({ status: "focused" });
+
+  // The dialog closed with focus still inside it, so the guard passes and
+  // focus returns to the trigger.
+  const restored = restoreFocus(capture, { onlyIfFocusWithin: dialog });
+  expect(restored).toMatchObject({ status: "focused", target: trigger });
+});
+
+test("skips restoration when the trigger was removed", () => {
+  const trigger = document.getElementById("open-dialog")!;
+  trigger.focus();
+  const capture = captureFocus(document);
+  trigger.remove();
+
+  const restored = restoreFocus(capture);
+  expect(restored).toMatchObject({ status: "skipped", reason: "disconnected" });
+});
+```
+
+Note the second test: removing the trigger makes restoration skip with reason
+`disconnected` instead of throwing or moving focus somewhere unexpected. That
+is the behavior to rely on, not to work around.
+
+## Common pitfalls
+
+- **Capturing after the dialog opens.** Capture first. A capture taken after
+  opening records an element inside the dialog, and restoring it after the
+  dialog is removed skips with reason `disconnected`.
+- **Restoring into a removed trigger.** If the originally focused element was
+  removed from the DOM while the dialog was open, restoration skips as
+  `disconnected`. Leave focus where it is or choose a fallback target.
+- **Moving focus for streaming updates.** These helpers are for
+  application-owned interactions like dialogs. Streaming text and routine
+  status updates should use announcements, not focus moves.
+- **Ignoring the result.** `focusElement` and `restoreFocus` never throw for
+  eligibility problems; they report. Branch on `status` and log `reason`
+  instead of assuming focus moved.

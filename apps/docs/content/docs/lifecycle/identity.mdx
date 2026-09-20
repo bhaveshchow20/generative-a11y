@@ -31,8 +31,19 @@ export const searchableText = [
   "runId and stepId identify workflow entities, while their instance IDs separate attempts. responseId identifies an answer, toolId identifies a tool call, and interactionId or approvalId connects each request to its result.",
   'For example, a regenerated answer keeps responseId: "report" while changing responseInstanceId from "attempt-1" to "attempt-2". Every later delta and terminal event carries "attempt-2". See stop and retry for the transition event.',
   "Entity | Identity | Why it matters | | --- | --- | --- | | Run attempt | runId + runInstanceId | Separates workflow retries and delegated work | | Step attempt | stepId + stepInstanceId | Preserves concurrent siblings and rejects stale retry output | | Response | responseId | Keeps text and the final state together | | Attempt | responseInstanceId | Ignores late text from an older retry | | Tool | toolId + toolInstanceId | Separates repeated tool runs | | Interaction | interactionId | Connects a request to its result | | Adapter mount | scopeId | Prevents ID collisions across chats",
+  "Workflows carry context, not just identity",
+  "Responses, tools, approvals, and interactions can carry runId, runInstanceId, stepId, and stepInstanceId to declare which workflow owns them, without becoming steps themselves.",
+  "Generate IDs the host can reproduce",
+  "Derive IDs from stable framework identifiers such as message and tool-call IDs. Generate them once per logical entity and reuse them across renders, retries, and replays.",
+  "Scope IDs prevent cross-surface collisions",
+  "Framework adapters prefix stable framework IDs with a per-surface scopeId, for example scopeId:approval:id. One runtime can then serve a main chat and a sidebar without their IDs colliding.",
+  "Capacity has a safety limit",
+  "Adapters cap their tracked identities with maxTrackedEntities and stop accepting unknown IDs after the limit. The runtime caps active entities with maxActiveEntities, 1,000 in the balanced policy.",
+  "Unknown and stale IDs are diagnosed, not announced",
+  "Events for unknown, terminal, or stale identities are diagnosed with reasons like unknown-response, terminal-tool, or stale-step, and produce no output. Diagnostics are content-free.",
   "Labels are copy, not identity",
   "Do not use displayed text, labels, array positions, or render counts as IDs because they can change. Framework adapters keep stable IDs from your framework and stop accepting unknown IDs after reaching their safety limit.",
+  "Stable IDs prove routing, not hearing.",
 ].join("\n");
 
 <span id="entities"></span>
@@ -58,6 +69,139 @@ terminal event carries `"attempt-2"`. See
 | Interaction   | interactionId           | Connects a request to its result                             |
 | Adapter mount | scopeId                 | Prevents ID collisions across chats                          |
 
+The pattern is the same everywhere: a stable ID names the logical thing, and
+an instance ID names one attempt at it. The logical ID never changes for the
+life of the work; the instance ID changes exactly when the work restarts.
+When an event arrives, the runtime looks up the logical ID first. If it is
+unknown, the event is diagnosed and ignored. If it is known but terminal,
+the event is diagnosed and ignored. If the instance ID does not match the
+current attempt, the event is diagnosed as stale and ignored. Only a live
+logical ID with a current instance ID produces output. That ordering is the
+whole safety model: identity decides whether an event may speak.
+
+<span id="workflow&#45;context"></span>
+
+## Workflows carry context, not just identity
+
+Responses, tools, approvals, and interactions are not steps, but they can
+declare which workflow owns them. Every one of these events accepts the
+workflow context fields: `runId`, `runInstanceId`, `stepId`, and
+`stepInstanceId`. Supply them when the work genuinely belongs to a reported
+run or step, for example a tool call the agent made inside step `"sources"`
+of run `"report"`. The runtime uses the context for diagnostics and for the
+devtools trace, so a tool failure can be read as "the search tool failed
+inside the sources step" rather than as a free&#45;floating failure.
+
+The type system enforces the shape of that context: you can supply a `runId`
+alone, or a `runId` with a `stepId`, but you cannot supply a `stepId`
+without its owning `runId`, and you cannot supply instance IDs without
+their logical IDs. Partial context, a bare step name with no `stepId`, for
+instance, produces an ephemeral partial&#45;identity diagnostic and no
+snapshot, no announcement, and no run count. The runtime never treats
+display text, array position, or timing as identity, so a name without an ID
+is evidence of nothing.
+
+```ts title="Attribute a tool call to its workflow step"
+runtime.dispatch({
+  type: "tool.started",
+  toolId: "web-search-1",
+  label: "Search the web",
+  runId: "report",
+  runInstanceId: "run-1",
+  stepId: "sources",
+  stepInstanceId: "sources-2",
+});
+```
+
+<span id="generate&#45;ids"></span>
+
+## Generate IDs the host can reproduce
+
+Stable means stable across renders, retries, and replays, and reproducible
+by the host without consulting the runtime. The best IDs are the ones your
+framework already gives you: the message ID for a response, the tool&#45;call
+ID for a tool, the approval ID the framework tracks for an approval. Derive
+your dispatched IDs from those, generate them once per logical entity, and
+reuse them for every event in that entity's lifecycle.
+
+A few rules keep generated IDs honest:
+
+- Generate the ID when the logical work begins, not when the first event
+  fires. If the work exists before you report it, the ID should already
+  exist too.
+- Never derive an ID from displayed text, a label, an array position, or a
+  render count. All four change: text gets translated, lists reorder,
+  renders repeat. An ID built from any of them will silently fork one
+  logical entity into several.
+- Keep instance IDs ordered and human&#45;readable where you can:
+  `"attempt-1"`, `"attempt-2"`. They appear in diagnostics and in the retry
+  announcement's attempt number, and a readable sequence is easier to debug
+  than a UUID.
+- Do not reuse a logical ID for new work. When the user asks a follow&#45;up
+  question, that is a new response with a new `responseId`, even if it looks
+  like a continuation. Reusing the old ID attaches the new answer to a
+  terminal response, and terminal responses do not speak.
+
+<span id="scope&#45;id"></span>
+
+## Scope IDs prevent cross&#45;surface collisions
+
+One runtime can serve more than one surface: a main chat and a sidebar
+assistant, two tabs sharing a worker, a preview pane beside an editor. Each
+surface gets its own `scopeId` at adapter construction, and the adapter
+prefixes every stable framework ID with it. The AI SDK adapter builds
+`` `${scopeId}:message:${messageId}` `` for responses,
+`` `${scopeId}:tool:${toolCallId}` `` for tools, and
+`` `${scopeId}:approval:${id}` `` for approvals. Two surfaces reporting
+message `"abc"` become `chat-1:message:abc` and `chat-2:message:abc`: no
+collision, no cross&#45;talk, no sidebar announcement attributed to the main
+chat.
+
+If you write a custom integration over a shared runtime, do the same. The
+`scopeId` is not a dispatched event field; it is a construction&#45;time
+namespace your adapter applies before dispatching. Pick it per surface,
+keep it stable for the surface's lifetime, and never reuse one scope's IDs
+in another.
+
+<span id="capacity"></span>
+
+## Capacity has a safety limit
+
+Identity tracking is bounded on both sides of the dispatch. Adapters cap
+their tracked response, tool, approval, and source identities with
+`maxTrackedEntities`; once the limit is reached, the adapter stops accepting
+unknown IDs rather than growing without bound. The runtime caps active
+entities with `maxActiveEntities`, 1,000 in the balanced policy, and rejects
+new work past the cap as an invalid event.
+
+These limits are why a long&#45;running surface can go quiet without any
+error being announced. If your adapter stops reporting new tools on a chat
+that has been open for hours, check whether it reached its tracked&#45;entity
+limit before assuming the runtime swallowed the events. The limit is a
+safety property, not a bug: an unbounded identity map is a memory leak with
+an announcement system attached.
+
+<span id="unknown&#45;ids"></span>
+
+## Unknown and stale IDs are diagnosed, not announced
+
+Every identity check that fails produces a diagnostic instead of an
+announcement. The diagnostic reasons name the failure precisely:
+`unknown-response` and `unknown-tool` for IDs the runtime never saw,
+`terminal-response` and `terminal-tool` for work that already ended,
+`stale-response`, `stale-tool`, `stale-run`, and `stale-step` for events
+carrying an older instance ID, and `partial-identity` for name&#45;only
+evidence without a stable ID. Subscribe with `onDiagnostic` on
+`createRuntime` to watch these decisions during development.
+
+Diagnostics are content&#45;free by design: they carry the event type, the
+IDs, the disposition, and the reason, never the announcement text. That is
+what makes them safe to log, to render in the devtools inspector, and to
+paste into a bug report. When a user says "I never heard the tool finish,"
+the diagnostic trace answers whether the completion was announced,
+suppressed by policy, or rejected for a stale instance ID, without exposing
+what the tool said.
+
 <span id="never&#45;labels"></span>
 
 ## Labels are copy, not identity
@@ -65,3 +209,24 @@ terminal event carries `"attempt-2"`. See
 Do not use displayed text, labels, array positions, or render counts as IDs
 because they can change. Framework adapters keep stable IDs from your framework
 and stop accepting unknown IDs after reaching their safety limit.
+
+This bears repeating because it is the most common identity bug in custom
+integrations: the label is right there, it is unique right now, and using it
+as the ID works in every demo. Then the app ships in twelve languages, the
+label becomes a translation key's output, and one logical tool forks into
+twelve identities, or two tools with the same display name merge into one.
+Labels are copy. They are translated, punctuated, and rewritten by product.
+IDs are identity. They are stable, opaque, and boring. Keep the two jobs
+separate and the runtime can do its job.
+
+<span id="evidence&#45;note"></span>
+
+## What stable IDs prove
+
+Stable IDs prove routing: that an update reached the right response, the
+right tool, the right attempt. They prove nothing about what a screen reader
+spoke. An event with a perfect `responseId` and a current
+`responseInstanceId` still only proves that the runtime prepared the
+announcement. Treat identity as the addressing on the envelope, test the
+heard experience with real screen readers, and let the diagnostics tell you
+when the address was wrong.

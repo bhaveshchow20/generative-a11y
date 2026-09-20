@@ -22,9 +22,19 @@ export const searchableText = [
   "Report the start, progress, and result",
   "Tool arguments can arrive before execution. Send tool.started only when the operation begins, meaningful tool.progress milestones while it runs, and one tool.completed or tool.failed event when it ends. Numeric progress is optional; when present, use a value from 0 to 1.",
   "Use the runtime already connected to your application:",
-  "Keep toolId stable for the operation. Labels and progress messages are user-facing copy; supply short, translated text. For repeated executions, use instance IDs to keep late output attached to its original attempt.",
+  "tool.started carries toolId and label, with an optional toolInstanceId. tool.progress adds an optional normalized progress and a localized message. tool.completed accepts an optional summary. tool.failed accepts an optional error for debugging and an optional announcement with safe failure copy.",
+  "The balanced policy delays tool start announcements by 1,500 milliseconds, so tools that finish quickly never announce a start. Progress announcements are off by default and bucketed at 25 percent when enabled.",
+  "Keep one tool ID",
+  "Keep toolId stable for the operation across start, progress, and completion. For repeated executions, use toolInstanceId to keep late output attached to its original attempt.",
+  "Provide localized copy",
+  "Labels and progress messages are user-facing copy; supply short, translated text. The runtime renders catalog messages from your labels and never invents its own wording.",
+  "Report progress milestones",
+  "Send tool.progress for meaningful milestones only. Numeric progress is normalized from 0 to 1; out-of-range values are rejected as invalid events.",
+  "Summarize results briefly",
+  "tool.completed accepts a summary. The runtime announces the summary when present and falls back to a catalog message built from the label.",
   "Keep backend data out of announcements",
   "Use error for debugging; generative-a11y never announces it. Set announcement only when your app has a short, translated message that is safe to share. Raw tool results also stay private.",
+  "A tool event proves the host reported the lifecycle, not what a screen reader spoke.",
 ].join("\n");
 
 <span id="events"></span>
@@ -58,20 +68,161 @@ runtime.dispatch({
 });
 ```
 
+Field reference for all four events:
+
+| Event            | Field             | Required | Meaning                                                   |
+| ---------------- | ----------------- | -------- | --------------------------------------------------------- |
+| `tool.started`   | `toolId`          | yes      | Stable ID for the logical operation.                      |
+|                  | `toolInstanceId`  | no       | Identifies one attempt when the tool runs repeatedly.     |
+|                  | `label`           | yes      | Short, translated, user&#45;facing name of the operation. |
+| `tool.progress`  | `toolId`          | yes      | The same ID from the start.                               |
+|                  | `toolInstanceId`  | no       | Must match the start's instance when one was given.       |
+|                  | `label`           | yes      | Short, translated, user&#45;facing name.                  |
+|                  | `progress`        | no       | Normalized progress from 0 to 1.                          |
+|                  | `message`         | no       | Short, translated milestone copy.                         |
+| `tool.completed` | `toolId`          | yes      | The same ID from the start.                               |
+|                  | `toolInstanceId`  | no       | Must match the start's instance when one was given.       |
+|                  | `label`           | yes      | Short, translated, user&#45;facing name.                  |
+|                  | `summary`         | no       | Short result copy, announced when present.                |
+| `tool.failed`    | `toolId`          | yes      | The same ID from the start.                               |
+|                  | `toolInstanceId`  | no       | Must match the start's instance when one was given.       |
+|                  | `label`           | yes      | Short, translated, user&#45;facing name.                  |
+|                  | `error`           | no       | Diagnostic&#45;only detail. Never announced.              |
+|                  | `announcement`    | no       | Short, translated, safe failure copy. Announced.          |
+
+Every field has a privacy contract. `label`, `message`, `summary`, and
+`announcement` are user&#45;facing copy and must already be translated and
+safe to share. `error` is diagnostic&#45;only and is never announced, which
+is why backend detail belongs there. Raw tool results are not a field at
+all; they stay private by construction.
+
 <span id="walkthrough"></span>
 <span id="keep-one-tool-id"></span>
+
+### Keep one tool ID
+
+Keep `toolId` stable for the operation across start, progress, completion, or
+failure. The ID is the thread that ties the lifecycle together; the runtime
+diagnoses progress for an unknown `toolId` as an unknown tool and produces
+nothing. Labels may change between events if your copy does, but the ID must
+not. For repeated executions of the same logical tool, add `toolInstanceId`
+so late output from an earlier run is diagnosed as stale instead of being
+attached to the new attempt. See [stable IDs](/docs/lifecycle/identity) for
+the general rules.
+
+```ts title="Separate repeated executions"
+runtime.dispatch({
+  type: "tool.started",
+  toolId: "web-search",
+  toolInstanceId: "search-1",
+  label: "Search the web",
+});
+runtime.dispatch({
+  type: "tool.completed",
+  toolId: "web-search",
+  toolInstanceId: "search-1",
+  label: "Search the web",
+  summary: "Found 4 sources.",
+});
+```
+
 <span id="provide-localized-copy"></span>
+
+### Provide localized copy
+
+Labels and progress messages are user&#45;facing copy; supply short,
+translated text. The runtime never invents wording: start announcements are
+rendered from a catalog message parameterized by your `label`, progress
+announcements use your `message` when you provide one and a catalog fallback
+otherwise, and completions announce your `summary` when present. The catalog
+itself is construction&#45;time and locale&#45;tagged, and events carry a
+`locale` field so prepared announcements inherit the right locale. If your
+app supports multiple languages, translate the labels before dispatching;
+the runtime cannot translate for you, and an English label in a Japanese UI
+is a bug in your host, not in the library.
+
 <span id="report-progress"></span>
 
-<span id="safe&#45;errors"></span>
+### Report progress milestones
 
-Keep `toolId` stable for the operation. Labels and progress messages are
-user-facing copy; supply short, translated text. For repeated executions, use
-[instance IDs](/docs/lifecycle/identity) to keep late output attached to its
-original attempt.
+Send `tool.progress` for meaningful milestones only, not for every tick of a
+progress callback. When `progress` is present it must be a finite number from
+0 to 1; values outside that range are diagnosed as invalid events. When
+progress announcements are enabled, the runtime coalesces them into buckets
+of `progressEveryPercent` (25 percent in the balanced policy), so a burst of
+updates within one bucket produces a single announcement and the rest are
+diagnosed as below the progress threshold.
+
+The balanced policy keeps tool verbosity deliberately low:
+
+| Setting                  | Balanced value | Effect                                            |
+| ------------------------ | -------------- | ------------------------------------------------- |
+| `announceStart`          | `true`         | Start announcements exist...                      |
+| `announceStartAfterMs`   | `1,500`        | ...but delayed 1.5 seconds, so quick tools stay   |
+|                          |                | quiet and the listener hears only the completion. |
+| `announceProgress`       | `false`        | Progress is silent by default.                    |
+| `progressEveryPercent`   | `25`           | Bucket size when progress is enabled.             |
+| `announceCompletion`     | `true`         | Completions are announced.                        |
+| `announceFailure`        | `true`         | Failures are announced on the polite channel.     |
+
+A tool that finishes before the 1.5&#45;second start delay never announces a
+start at all: the terminal event cancels the pending start announcement, and
+the listener hears a single completion. That is the point. Most tool calls
+in an agent loop are short, and announcing every start would be a drumbeat
+of noise. If your tool is genuinely long&#45;running and users need the
+early signal, keep the default; the start announcement arrives 1.5 seconds
+in, which is early enough to matter and late enough to skip the trivial.
+
+<span id="summarize&#45;results"></span>
+
+### Summarize results briefly
+
+`tool.completed` accepts a `summary`: one short sentence about the result,
+announced when present. Use it for outcomes the user is waiting on: "Found 4
+sources.", "Report saved to Downloads.", "No conflicts found." When
+`summary` is absent, the runtime falls back to a catalog message built from
+the label. Do not stuff raw tool output into `summary`; it is announced
+verbatim, so it must be short, translated, and free of backend detail. If
+the honest summary is "the tool returned 40 kilobytes of JSON," the summary
+is not the place for it.
+
+<span id="safe&#45;errors"></span>
 
 ## Keep backend data out of announcements
 
 Use error for debugging; generative&#45;a11y never announces it. Set
-announcement only when your app has a short, translated message that is safe to
-share. Raw tool results also stay private.
+announcement only when your app has a short, translated message that is safe
+to share. Raw tool results also stay private.
+
+The failure path deserves an example because it is the one place where
+panic writes bad copy:
+
+```ts title="Report a tool failure safely"
+runtime.dispatch({
+  type: "tool.failed",
+  toolId: "report-1",
+  label: "Prepare report",
+  error: "template render: missing variable 'q3_revenue' (report.tpl:42)",
+  announcement: "The report could not be prepared. Check the template.",
+});
+```
+
+The listener hears only the announcement, on the polite channel. The `error`
+field, with its filename, line number, and variable name, goes to the
+diagnostic trace and your logs. Note that tool failures announce on the
+polite channel, not the assertive one: a failed tool is status information,
+and the balanced policy reserves the assertive channel for response failures
+and urgent interaction requests. If a tool failure genuinely demands
+interruption, that is your host's decision to make through its own UI, not
+something to smuggle into this event.
+
+<span id="evidence&#45;note"></span>
+
+## What these events prove
+
+A `tool.completed` event proves your host reported a completion and the
+runtime prepared the corresponding announcement. It does not prove the tool
+did the right thing, that the summary is accurate, or what a screen reader
+spoke. Tool events describe your app's reporting of its own work. Test the
+heard experience with real screen readers, and keep the diagnostic fields
+honest so the trace is worth reading when something goes wrong.

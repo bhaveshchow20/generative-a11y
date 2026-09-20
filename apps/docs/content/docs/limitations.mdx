@@ -28,10 +28,19 @@ export const searchableText = [
   "Limitations and honest claims",
   "What automated tests prove",
   "Core tests check which updates the runtime prepares and when. Adapter tests check how framework events are translated. DOM and browser tests check page structure and updates. None can confirm what a specific screen reader spoke or what a person heard.",
+  "What core tests check: transcripts of prepared announcement intents, replay fixtures, semantic assertions, manual clock injection.",
+  "What browser tests check: live region structure, delivery calls, browser behavior through Playwright. Browser delivery does not prove screen reader speech.",
+  "What no automated test can check: actual speech output, perceived timing, comprehension, focus behavior under assistive technology.",
+  "The core honesty rule: never claim an automated transcript or page update proves what a screen reader spoke.",
+  "You can report: the runtime prepared an intent, DOM delivery added it to the page, the browser reported delivery. You cannot report: what was spoken, heard, or understood.",
   "Test with real browsers and screen readers before release.",
   "Unsupported by design",
   "generative-a11y does not replace semantic HTML, keyboard support, focus management, visible status messages, or dialogs. It cannot read private framework state, run remote code, guarantee screen-reader speech, or guess missing events from page text.",
+  "Not a screen reader simulator. Not an accessibility audit. Not a WCAG compliance claim.",
   "Integration | Evidence limit | | --- | --- | | assistant-ui | No general retry or connection event | | AI SDK | The host must report retries that public framework state cannot establish | | AG-UI | No replay deduplication without a mandatory cursor | | CopilotKit | Uses the supported AG-UI path; there is no duplicate adapter package |",
+  "Adapters declare reduced fidelity when a framework does not expose reliable lifecycle evidence. They do not infer missing events or depend on private APIs.",
+  "Reporting what you observe: use the assistive technology report issue template for manual findings, including positive results.",
+  "Experimental integrations are labeled experimental when they depend on public framework state that is unstable or incomplete.",
 ].join("\n");
 
 <span id="what&#45;tests&#45;prove"></span>
@@ -49,6 +58,75 @@ Test with real browsers and screen readers before release.
 
 </Callout>
 
+### What core tests check
+
+Core tests run the framework&#45;independent runtime in isolation and record
+everything it prepares. A test dispatches standard lifecycle events, advances a
+manually controlled clock, and reads back the resulting announcement intents.
+This confirms the scheduling policy behaves deterministically: text is
+segmented the same way, repeats are removed the same way, and intents are
+emitted in the same order, every run.
+
+The recorder and replay fixtures in `@generative-a11y/core/testing` make this
+concrete. A recorded session captures each dispatched event with its timestamp,
+and a replay fixture re&#45;runs those events to assert the same intents come
+out. Semantic assertions check meaning, not just strings: for example, that an
+interruption cancels pending announcements, or that a failed tool call
+produces a failure intent on the assertive channel. These tests prove the
+runtime's decisions are correct and repeatable. They say nothing about what
+any assistive technology did with the result.
+
+### What DOM and browser tests check
+
+DOM tests check that announcement intents are translated into the right page
+updates: the correct live&#45;region structure, the correct text content, and
+the correct delivery calls to browser APIs. Browser tests run through
+Playwright against real browser engines and confirm the page behaves as
+expected when intents arrive, including focus behavior and preference handling.
+
+This is where the honesty boundary matters most. A passing browser test proves
+the announcement was added to the page and that the browser reported delivery.
+It does not prove a screen reader spoke it, spoke it in full, spoke it at the
+right time, or that a person understood it. Browser delivery is not
+screen&#45;reader output. Keep that distinction in every test name,
+assertion message, and report you write.
+
+### What no automated test can check
+
+Some questions only a person with assistive technology can answer:
+
+- What did the screen reader actually speak, and was anything dropped,
+  reordered, or interrupted?
+- Did the pacing feel right, or did announcements arrive too fast to follow?
+- Did the person understand the update in context, or was it noise?
+- Did focus behave correctly while announcements were delivered?
+- How did a specific browser and screen&#45;reader combination behave,
+  including versions and settings you did not test against?
+
+Automated tests are strong evidence about your code. Manual testing is the
+only evidence about the user's experience. Both are required before release.
+
+## The core honesty rule
+
+Never claim that an automated transcript or page update proves what a screen
+reader spoke. This is the single most important rule in this project, and it
+applies to code comments, test names, documentation, changelogs, and
+marketing copy.
+
+It helps to state claims in terms of what each layer can actually confirm:
+
+| What you can say                                        | What you cannot say                                    |
+| ------------------------------------------------------- | ------------------------------------------------------ |
+| The runtime prepared an announcement intent             | The screen reader spoke the announcement               |
+| The intent was emitted at a specific policy&#45;driven time | The user heard it at that moment                       |
+| DOM delivery added the text to the page                 | The screen reader announced the added text             |
+| The browser reported a delivery result                  | The person understood what was announced               |
+| A replay fixture reproduces the same intents            | Real usage will sound identical                        |
+
+When you write a test, name the assertion after the layer you are testing.
+"Emits a completion intent when the response completes" is honest.
+"Announces the completion to the screen reader" is not.
+
 <span id="unsupported"></span>
 
 ## Unsupported by design
@@ -58,9 +136,115 @@ management, visible status messages, or dialogs. It cannot read private
 framework state, run remote code, guarantee screen&#45;reader speech, or guess
 missing events from page text.
 
-| Integration                                     | Evidence limit                                                            |
-| ----------------------------------------------- | ------------------------------------------------------------------------- |
+Put more plainly, this library is a pacing and delivery layer for confirmed
+app events. It is not:
+
+- A screen&#45;reader simulator. Nothing in the library approximates what NVDA,
+  VoiceOver, JAWS, or TalkBack will speak.
+- An accessibility audit. It does not scan your interface, score it, or find
+  violations.
+- A WCAG conformance claim. Using this library does not make an interface
+  conformant, and no output of the library should be cited as conformance
+  evidence.
+- A replacement for accessible design. If the underlying interface is not
+  keyboard&#45;operable, focus&#45;managed, and semantically structured, paced
+  announcements cannot fix it.
+- A way to observe users. The attention model tracks coarse, explicitly
+  reported evidence such as foreground or background state; it never proves
+  attention, intent, or reading.
+
+### Integration evidence limits
+
+Adapters translate documented public framework state into normalized events.
+When a framework does not expose reliable evidence for a lifecycle event, the
+adapter declares reduced fidelity instead of inferring the event or depending
+on a private API. These are the current known limits:
+
+| Integration                                      | Evidence limit                                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
 | [assistant-ui](/docs/integrations/assistant-ui) | No general retry or connection event                                      |
 | [AI SDK](/docs/integrations/ai-sdk)             | The host must report retries that public framework state cannot establish |
 | [AG-UI](/docs/integrations/ag-ui)               | No replay deduplication without a mandatory cursor                        |
 | [CopilotKit](/docs/integrations/copilotkit)     | Uses the supported AG-UI path; there is no duplicate adapter package      |
+
+These limits are documented per integration guide. If a framework later
+exposes the missing evidence through a stable public API, the adapter can be
+updated and the limit removed. Until then, the honest behavior is to say less,
+not to guess more.
+
+## Reporting what you observe
+
+Manual findings are a first&#45;class contribution. If you test with a real
+screen reader and find behavior worth reporting, use the dedicated
+[assistive&#45;technology report](https://github.com/bhaveshchow20/generative-a11y/issues/new?template=assistive_technology_report.yml)
+issue template. Positive results are welcome too: confirmed announcements
+that sounded right in a specific browser and screen&#45;reader combination
+help everyone calibrate expectations.
+
+When reporting, describe what you observed, not what you inferred. "NVDA
+2026.x spoke the completion announcement after the response finished" is a
+useful observation. "The library correctly announced the completion" assumes
+the conclusion. Include the browser, screen reader, versions, and the
+announcement policy in use so others can reproduce the conditions.
+
+## Experimental and planned work
+
+Some integrations or behaviors are explicitly experimental: they depend on
+public framework state that is documented but unstable or incomplete. An
+experimental label means the adapter may behave differently across framework
+versions and that its evidence limits should be read carefully before
+depending on it in production.
+
+Planned work follows the same honesty rules as shipped work. A roadmap item
+describes what will be attempted and what evidence it will rely on; it is
+not a promise that the evidence will turn out to be available. If the
+evidence does not materialize, the plan changes or the feature ships with
+declared reduced fidelity. See [contributing](/docs/project/contributing)
+for how to propose and document such work.
+
+## What the policy cannot know
+
+The announcement policy is a set of heuristics, not a model of the user.
+Numbers like the 2,500 ms maximum text delay, the 2,000 ms dedupe window,
+or the 100 ms minimum gap between announcements were chosen to keep speech
+output paced and non&#45;repetitive. They do not guarantee that any
+particular person can follow the announcements, that the pacing suits
+everyone, or that a faster or slower stream would not work better for a
+given user. Treat policy defaults as a reasonable starting point that your
+own manual testing should validate or adjust.
+
+The same applies to text segmentation. Splitting streamed text into
+sentences produces speakable units, but sentence boundaries in generated
+text are not always clean: abbreviations, code, lists, and mixed languages
+can all segment awkwardly. The segmenter is deterministic, which makes it
+testable, but determinism is not correctness for every input. If your
+content has unusual structure, test how it sounds before assuming the
+policy handles it well.
+
+The announcement catalog is localizable, and messages carry an optional
+locale, but the library cannot know whether the locale it was given matches
+the language the user actually hears, or whether the screen reader will
+pronounce the text correctly. Report the locale you set; do not claim the
+user heard the right language.
+
+## Where the library stops and your app starts
+
+generative&#45;a11y handles paced announcements for confirmed lifecycle
+events. Everything else in the accessible experience stays with the host
+application, and no announcement layer can compensate for its absence:
+
+- **Semantic HTML.** Live regions announce text, but the interface itself
+  must be structured: headings, landmarks, lists, and native controls.
+- **Keyboard support.** Every action a mouse user can take must be
+  reachable and operable by keyboard, with a visible focus indicator.
+- **Focus management.** Dialogs, navigation, and task completion must move
+  and restore focus deliberately. The library never moves focus during
+  streaming, which means the host owns every focus decision.
+- **Visible status messages.** Some users do not use a screen reader.
+  Status that matters should be visible on the page, not only announced.
+- **Error recovery.** When something fails, the user needs a way to
+  understand what happened and what to do next, in the interface itself.
+
+If any of these are missing, adding this library will not make the
+interface accessible. Fix the foundation first, then add paced
+announcements on top of confirmed events.

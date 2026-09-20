@@ -21,10 +21,25 @@ export const searchableText = [
   "Streaming without repetition",
   "Send only the new text",
   "Send response.started when a response begins. Each response.text.delta must contain only the text that just arrived. Send response.completed to announce any useful text still waiting. Send response.failed or response.interrupted to discard that text.",
+  "Start the response",
+  "response.started opens a response with a responseId and an optional responseInstanceId. The runtime tracks text per response, so start the response before the first delta arrives.",
+  "Send new text only",
+  "Each response.text.delta must contain only the text that just arrived. Never resend text from an earlier delta.",
+  "Let the runtime group text",
+  "The balanced policy groups text into sentences: it waits for a complete sentence when possible, flushes buffered text after a maximum delay, and skips announcements below a minimum character count.",
+  "Finish the response",
+  "response.completed flushes any useful text still waiting and closes the response. After a terminal event, further events for the response are diagnosed and produce no output.",
+  "Tell append from replacement",
+  "If your framework exposes accumulated text, use its supported adapter to derive new text. A custom integration must distinguish an append from a replacement; sending the full accumulated response as a delta repeats earlier content.",
   "Meaningful units, not tokens",
   "Balanced mode waits for a complete sentence when possible. It can also prepare a useful phrase after enough text arrives or a short delay. This avoids submitting each token as its own announcement. See core policy to change the text strategy or timing.",
-  "If your framework exposes accumulated text, use its supported adapter to derive new text. A custom integration must distinguish an append from a replacement; sending the full accumulated response as a delta repeats earlier content.",
+  "Text strategies: silent, sentence, paragraph, and completion. The sentence strategy splits on locale-aware sentence boundaries; the completion strategy accumulates full text and announces once at the end.",
+  "Terminal events close the response",
+  "response.completed, response.failed, and response.interrupted each set a terminal status. Events arriving afterward are diagnosed as terminal responses and ignored.",
+  "Keep one locale per response turn",
+  "Events carry a locale field. When the locale changes mid-response, the runtime flushes buffered text in the old language before switching, so announcements do not mix languages.",
   "Interactive examples show app text beside the screen-reader updates prepared by a real runtime.",
+  "A delta proves your app reported new text, not what a screen reader spoke.",
 ].join("\n");
 
 <span id="append&#45;only"></span>
@@ -53,9 +68,120 @@ runtime.dispatch({ type: "response.completed", responseId: "r1" });
 
 <span id="walkthrough"></span>
 <span id="start-the-response"></span>
+
+### Start the response
+
+`response.started` opens the response under a `responseId` you choose, with an
+optional `responseInstanceId` when you track attempts. The runtime creates its
+tracking state here: the text buffer, the pending announcement queue, and the
+locale. Dispatch the start before the first delta arrives, not after. A delta
+for an unknown `responseId` is diagnosed as an unknown response and produces
+no output, which is the correct behavior, but it means a missing start event
+silently drops the beginning of your answer. If your framework's streaming
+callbacks give you the first chunk and the start signal together, dispatch
+both in the same tick, start first.
+
 <span id="send-new-text-only"></span>
+
+### Send new text only
+
+Each `response.text.delta` must contain only the text that just arrived.
+Never resend text from an earlier delta, and never send the full accumulated
+response as a delta. The runtime treats every delta as new content; if you
+send the accumulated string, the listener hears the first sentence again
+with every chunk, then the first two sentences, then three, a triangular
+repetition that makes long answers unlistenable. This is the single most
+common streaming bug, and it is entirely in the host's hands to avoid. The
+runtime cannot deduplicate for you because it cannot distinguish your
+accumulated snapshot from genuinely repeated content.
+
 <span id="let-the-runtime-group-text"></span>
+
+### Let the runtime group text
+
+Once honest deltas arrive, the runtime decides when the listener hears them.
+The balanced policy groups text into sentences: it waits for a complete
+sentence when possible, flushes buffered text after a maximum delay even
+without a boundary, and skips announcements below a minimum character count.
+In numbers, the balanced text policy is a sentence strategy, a 24&#45;character
+minimum, and a 2,500&#45;millisecond maximum delay. That combination is the
+reason the example above works: two sentence deltas become two announcements,
+while a stream of word&#45;level deltas would be reassembled into sentences
+before anyone hears them.
+
+The grouping has three moving parts worth understanding:
+
+- **Segmentation.** The sentence strategy splits buffered text on
+  locale&#45;aware sentence boundaries. Text after the last complete
+  boundary stays in the buffer as the remainder; it is not lost, just not
+  ready yet.
+- **The minimum gate.** Buffered text shorter than `minimumCharacters` is not
+  announced on its own. This keeps fragments like "Sure," or "The answer is"
+  from becoming their own interruptions.
+- **The maximum delay.** If text sits in the buffer longer than
+  `maximumDelayMs`, the runtime flushes what is there, boundary or not. A
+  listener waiting on a slow model still hears progress instead of silence.
+
 <span id="finish-the-response"></span>
+
+### Finish the response
+
+`response.completed` flushes any useful text still waiting, announces it when
+it passes the minimum gate, and closes the response. Send it when the stream
+ends normally, even if you think the buffer is empty; the completed event is
+what releases the final boundary and marks the response terminal. The
+terminal status is also what stops late deltas: any event arriving after
+`response.completed`, `response.failed`, or `response.interrupted` is
+diagnosed as a terminal response and produces no output.
+
+<span id="append&#45;vs&#45;replacement"></span>
+
+## Tell append from replacement
+
+Many frameworks expose accumulated text: each callback hands you the whole
+response so far, not the new chunk. If your framework exposes accumulated
+text, use its supported adapter to derive new text; the adapters do the
+diffing for you. A custom integration must distinguish an append from a
+replacement itself, and the distinction matters more than it sounds.
+
+An append extends the previous text. A replacement rewrites it: the model
+revised an earlier sentence, the framework re&#45;rendered, or a tool result
+was edited in place. Sending a replacement as a delta repeats the rewritten
+region, and the runtime cannot tell the difference, it announces what you
+send. The honest handling of a replacement depends on its size. For a small
+correction inside an active response, send the corrected text as a delta and
+accept that the listener hears the region twice; that is better than silence
+about a changed answer. For a wholesale replacement, treat it as a retry:
+send `response.retrying` with a new instance ID and start the text fresh, so
+the old attempt's pending announcements are cancelled instead of interleaved.
+See [stop and retry](/docs/lifecycle/stop-retry) for the attempt mechanics.
+
+```ts title="Derive a delta from accumulated text"
+let seen = "";
+function onAccumulatedText(full: string, responseId: string) {
+  // Only the suffix is new. If the text was rewritten rather than
+  // extended, full will not start with seen, and the caller should
+  // treat it as a replacement, not an append.
+  if (!full.startsWith(seen)) {
+    runtime.dispatch({
+      type: "response.retrying",
+      responseId,
+      nextResponseInstanceId: `retry-${Date.now()}`,
+      attempt: 2,
+    });
+    seen = "";
+  }
+  const delta = full.slice(seen.length);
+  seen = full;
+  if (delta) {
+    runtime.dispatch({ type: "response.text.delta", responseId, delta });
+  }
+}
+```
+
+This is a sketch, not a prescription: real diffing belongs in the adapter
+for your framework. The point is the contract. Deltas are append&#45;only by
+definition, and anything that is not an append needs the retry path.
 
 <span id="segmentation"></span>
 
@@ -66,13 +192,92 @@ useful phrase after enough text arrives or a short delay. This avoids submitting
 each token as its own announcement. See [core policy](/api/core/policy) to
 change the text strategy or timing.
 
-If your framework exposes accumulated text, use its supported adapter to derive
-new text. A custom integration must distinguish an append from a replacement;
-sending the full accumulated response as a delta repeats earlier content.
+The available strategies:
+
+| Strategy     | Behavior                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| `sentence`   | Groups into complete sentences; flushes on delay. The balanced default.  |
+| `paragraph`  | Groups on blank&#45;line boundaries instead of sentence boundaries.      |
+| `silent`     | No text announcements; useful when the host reads content another way.   |
+| `completion` | Accumulates the full text and announces once when the response ends.     |
+
+Choose by how your content reads aloud. The sentence strategy suits chat
+answers. The paragraph strategy suits structured content where a sentence
+alone is a fragment, such as a list of steps. The completion strategy suits
+short responses where intermediate announcements would be noise, at the cost
+of the listener hearing nothing until the end. The silent strategy is for
+hosts that surface text through their own accessible channel; it does not
+mean the text is unimportant, only that this library is not its voice.
+
+Change the strategy through `resolvePolicy`, not by post&#45;processing
+deltas yourself:
+
+```ts title="Use the completion strategy"
+import { createRuntime } from "@generative-a11y/core";
+
+const runtime = createRuntime({
+  policy: {
+    text: { strategy: "completion", minimumCharacters: 0, maximumDelayMs: 0 },
+  },
+});
+```
+
+`minimumCharacters` and `maximumDelayMs` tune the same grouping for the
+sentence and paragraph strategies. Lower the minimum to hear shorter
+fragments; raise the maximum delay to wait longer for a clean boundary. Every
+tuning choice trades latency against coherence, and the balanced defaults
+are the project's judgment about where that trade sits for most chat.
+
+<span id="terminal&#45;events"></span>
+
+## Terminal events close the response
+
+`response.completed`, `response.failed`, and `response.interrupted` each set
+a terminal status on the response: completed, failed, or interrupted. The
+status is terminal in the strong sense. The runtime retains just enough
+state to diagnose what comes next, and every later event for that
+`responseId` is diagnosed as a terminal response and produces no output.
+This is what makes the stop and retry paths safe: a stopped answer cannot
+be revived by a stray delta, and a failed answer cannot be completed by a
+late success.
+
+If you need to speak after a terminal event, you need a new response, not a
+new event on the old one. Dispatch `response.started` with a fresh
+`responseId` (or a retry with a new instance ID before the terminal event)
+and the lifecycle begins again with a clean buffer and a clean slate.
+
+<span id="locale"></span>
+
+## Keep one locale per response turn
+
+Every event carries a `locale` field, and response announcements inherit it.
+When the locale changes mid&#45;response, for example a bilingual answer that
+switches languages, the runtime flushes the buffered text in the old
+language before switching, so announcements do not mix languages in one
+breath. Pass the locale your host is actually rendering in on each event;
+the message catalog is construction&#45;time and locale&#45;tagged, and the
+prepared announcement carries the event's locale to the delivery layer. An
+absent locale falls back to the runtime default, which is correct only when
+your content is genuinely monolingual.
 
 <Callout title="Evidence and testing note">
 
 Interactive examples show app text beside the screen&#45;reader updates prepared
 by a real runtime.
 
+Prepared updates are still not heard speech. Confirm what people hear with
+real screen readers, on the platforms your users use, before claiming an
+experience is accessible.
+
 </Callout>
+
+<span id="evidence&#45;note-2"></span>
+
+## What these events prove
+
+A `response.text.delta` proves your app reported new text and the runtime
+accepted it into the buffer. A `response.completed` proves the runtime
+flushed the remainder and closed the response. Neither proves what a screen
+reader spoke, what the user heard, or that the grouping was pleasant to
+listen to. Automated tests can assert on the prepared announcements; only
+people with screen readers can tell you what the experience is like.
