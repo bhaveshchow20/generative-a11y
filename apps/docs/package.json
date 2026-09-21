@@ -18,7 +18,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test && pnpm test:browser"
   },
   "dependencies": {
-    "@ai-sdk/react": "4.0.100",
+    "@ai-sdk/react": "4.0.109",
     "@assistant-ui/core": "0.3.17",
     "@assistant-ui/react": "0.15.18",
     "@base-ui/react": "1.8.0",
